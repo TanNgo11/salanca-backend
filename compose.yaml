@@ -1,0 +1,23 @@
+name: salanca-cms
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-salanca_cms}
+      POSTGRES_USER: ${DATABASE_USERNAME:-salanca}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD is required}
+    ports:
+      - "${DATABASE_PORT:-5433}:5432"
+    volumes:
+      - salanca_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME:-salanca} -d ${DATABASE_NAME:-salanca_cms}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  salanca_postgres_data:

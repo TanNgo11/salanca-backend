@@ -1,0 +1,42 @@
+{
+  "name": "salanca-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Salanca multilingual content backend powered by Strapi",
+  "scripts": {
+    "build": "strapi build",
+    "console": "strapi console",
+    "deploy": "strapi deploy",
+    "dev": "strapi develop",
+    "develop": "strapi develop",
+    "start": "strapi start",
+    "strapi": "strapi",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm run build",
+    "upgrade": "npx @strapi/upgrade latest",
+    "upgrade:dry": "npx @strapi/upgrade latest --dry"
+  },
+  "dependencies": {
+    "@strapi/plugin-users-permissions": "5.50.2",
+    "@strapi/strapi": "5.50.2",
+    "pg": "8.20.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "react-router-dom": "^6.0.0",
+    "styled-components": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=22.0.0 <25.0.0",
+    "npm": ">=10.0.0"
+  },
+  "strapi": {
+    "uuid": "27bed92b-394e-4b43-bc8c-4d2f68a0c79c",
+    "installId": "708e9de59441c2f9c4c1824e0e7dc6d600e8ce7e2803145bd323f3bbebe8fcfd"
+  }
+}
