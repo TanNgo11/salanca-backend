@@ -9,7 +9,7 @@ Standalone Strapi backend for the Salanca Churrascaria website.
 - PostgreSQL 16 for local development.
 - Vietnamese (`vi`) as the default locale and English (`en`) as the secondary locale.
 
-The product roadmap and phase specifications are under [`docs/`](docs/strapi-backend-roadmap.md). The design prototype is a read-only sibling repository at `../salanca-cms`.
+Start with the [current status](docs/STATUS.md), then use the [documentation map](docs/README.md) to find the relevant contract, phase specification, or verification evidence. The design prototype is a read-only sibling repository at `../salanca-cms`.
 
 ## Prerequisites
 
@@ -65,9 +65,12 @@ Phase 1-3 automated gate, including the disposable VI/EN API and media dataset.
 
 ## Documentation
 
+- [Current status](docs/STATUS.md)
+- [Documentation map](docs/README.md)
 - [Product context](docs/product-context.md)
 - [Technical decisions](docs/cms-technical-decisions.md)
 - [Backend roadmap](docs/strapi-backend-roadmap.md)
+- [Execution plan template](PLANS.md)
 - [Phase 1](docs/phases/phase-01-foundation.md)
 - [Phase 2](docs/phases/phase-02-content-model.md)
 - [Phase 3](docs/phases/phase-03-internationalization.md)
