@@ -1,0 +1,28 @@
+{
+  "collectionName": "components_shared_operating_periods",
+  "info": {
+    "displayName": "Operating Period",
+    "description": "One named opening period such as lunch or dinner"
+  },
+  "options": {},
+  "attributes": {
+    "label": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "type": "string",
+      "required": true,
+      "maxLength": 80
+    },
+    "opensAt": {
+      "type": "time",
+      "required": true
+    },
+    "closesAt": {
+      "type": "time",
+      "required": true
+    }
+  }
+}

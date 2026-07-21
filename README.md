@@ -46,11 +46,14 @@ The scaffold-created local `.env` is already ignored. Replace it from `.env.exam
 ## Quality gates
 
 ```powershell
-npm run typecheck
-npm run build
+npm run check
+npm run smoke:crud
+npm run check:phase3
 ```
 
-`npm run check` runs both gates.
+`npm run check` verifies the schema, TypeScript and production Admin build. `smoke:crud`
+checks persistence and relation integrity on PostgreSQL. `check:phase3` runs the complete
+Phase 1-3 automated gate, including the disposable VI/EN API and media dataset.
 
 ## Repository boundaries
 

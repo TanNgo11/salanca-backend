@@ -254,16 +254,16 @@ Guide đầy đủ được hoàn thiện ở handoff phase, nhưng workflow c�
 
 ## 9. Exit gate
 
-- [ ] `vi` là default và `en` hoạt động.
-- [ ] Localization matrix được áp dụng cho toàn bộ schema.
-- [ ] Slug VI/EN độc lập.
-- [ ] Relations qua locale đã được kiểm thử.
-- [ ] Media binary dùng chung, alt/caption localized.
-- [ ] Draft/Publish độc lập pass toàn bộ scenarios.
-- [ ] Locale API smoke tests pass.
+- [x] `vi` là default và `en` hoạt động.
+- [x] Localization matrix được áp dụng cho toàn bộ schema.
+- [x] Slug VI/EN độc lập.
+- [x] Relations qua locale đã được kiểm thử.
+- [x] Media binary dùng chung, alt/caption localized.
+- [x] Draft/Publish độc lập pass toàn bộ scenarios.
+- [x] Locale API smoke tests pass.
 - [ ] Editor đại diện hoàn thành workflow không cần developer.
-- [ ] Editor guide draft đã cập nhật.
-- [ ] Build và typecheck pass.
-- [ ] Không sửa frontend.
+- [x] Editor guide draft đã cập nhật.
+- [x] Build và typecheck pass.
+- [x] Không sửa frontend.
 
 Nếu chỉ chứng minh được “Admin có dropdown ngôn ngữ” thì Phase 3 chưa xong. Đa ngôn ngữ thật nằm ở trạng thái publish, relation, slug, media metadata và API response.

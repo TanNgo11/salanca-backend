@@ -4,6 +4,10 @@
 
 Date: 2026-07-18
 
+Rechecked on 2026-07-19 against `https://registry.npmjs.org`; counts are unchanged.
+The machine's configured AWS CodeArtifact registry does not expose npm's audit endpoint,
+so audit runs must pass the public registry explicitly until that registry policy changes.
+
 The official Strapi 5.50.2 scaffold reported:
 
 - 0 critical vulnerabilities.

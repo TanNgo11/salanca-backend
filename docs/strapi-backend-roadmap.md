@@ -137,6 +137,8 @@ Chỉ các field hiển thị bằng chữ mới localized. Số điện thoại
 #### Page single types
 
 - `home-page`.
+- `menu-page`.
+- `campaign-page`.
 - `story-page`.
 - `experience-page`.
 - `space-page`.

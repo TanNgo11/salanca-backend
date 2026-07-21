@@ -1,0 +1,31 @@
+{
+  "collectionName": "components_shared_options",
+  "info": {
+    "displayName": "Option",
+    "description": "A stable value and its editor-controlled label"
+  },
+  "options": {},
+  "attributes": {
+    "label": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "type": "string",
+      "required": true,
+      "maxLength": 100
+    },
+    "value": {
+      "type": "string",
+      "required": true,
+      "maxLength": 80
+    },
+    "displayOrder": {
+      "type": "integer",
+      "required": true,
+      "default": 0,
+      "min": 0
+    }
+  }
+}

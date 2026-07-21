@@ -15,6 +15,7 @@
 | Local PostgreSQL port | `5433`, avoiding the machine's existing PostgreSQL on `5432` |
 | Default locale | `vi` |
 | Secondary locale | `en` |
+| i18n implementation | Built-in `@strapi/i18n` bundled with Strapi `5.50.2` |
 | API style | REST first |
 | Admin | Generated Strapi Admin CRUD |
 | Source prototype | Read-only sibling `../salanca-cms` |
@@ -37,10 +38,25 @@ The project was created from the official stable CLI and all generated Strapi pa
 
 The content model should use generated CRUD until editors demonstrate a concrete workflow that the default Admin cannot support. A custom dashboard without that evidence is wasted maintenance.
 
+### Locale bootstrap
+
+`STRAPI_PLUGIN_I18N_INIT_LOCALE_CODE=vi` initializes a fresh database in Vietnamese. The project bootstrap idempotently guarantees `vi` and `en` exist and sets `vi` as default, including databases that were first booted with Strapi's English default. It does not silently delete unexpected locales; the Phase 3 verification gate must flag them for an explicit operator decision.
+
+Slugs and user-facing copy are localized. Prices, technical state and timestamps are shared by the i18n service. Fields nested inside localized components are a Strapi limitation: technical nested values are stored per locale and must be kept equal by editor/seed policy.
+
 ## Open decisions before staging
 
-- Hosting provider for the Strapi Node service.
-- Managed PostgreSQL provider and backup retention.
-- S3/R2-compatible media provider and lifecycle policy.
-- Production domain names and CORS allowlist.
-- Node 24 validation for staging/production.
+These are hard Phase 4 entry gates. A role is accountable now; the project owner must
+replace each role with a named person and record the decision before Phase 4 starts.
+
+| Decision | Accountable owner | Deadline |
+| --- | --- | --- |
+| Hosting provider for the Strapi Node service | Project owner | Before Phase 4 starts |
+| Managed PostgreSQL provider and backup retention | Project owner + backend lead | Before Phase 4 starts |
+| S3/R2-compatible media provider and lifecycle policy | Project owner + backend lead | Before Phase 4 starts |
+| Production domains and CORS allowlist | Project owner + frontend lead | Before Phase 4 starts |
+| Node 24 staging/production validation | Backend lead | Before the first staging deploy |
+
+Role ownership is not the same as an assigned human. Phase 1 remains open until the
+actual names and provider decisions are recorded; this table prevents the blocker from
+remaining an ownerless TODO.

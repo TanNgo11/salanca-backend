@@ -129,6 +129,8 @@ Mỗi đoạn phải được phân loại:
 #### Fixed page schemas
 
 - `home-page`.
+- `menu-page`.
+- `campaign-page`.
 - `story-page`.
 - `experience-page`.
 - `space-page`.
@@ -316,15 +318,15 @@ Riêng campaign:
 
 ## 8. Exit gate
 
-- [ ] Shared components không bị duplicate vô lý.
+- [x] Shared components không bị duplicate vô lý.
 - [ ] Tất cả single/collection types trong scope tồn tại trong Admin.
 - [ ] CRUD matrix pass.
-- [ ] Draft & Publish hoạt động.
-- [ ] Relations và delete behavior được kiểm thử.
-- [ ] Không có page builder tổng quát.
-- [ ] Không có reservation/booking models.
-- [ ] `docs/cms-content-model.md` khớp schema thực tế.
-- [ ] Build và typecheck pass.
-- [ ] Không sửa frontend.
+- [x] Draft & Publish hoạt động.
+- [x] Relations và delete behavior được kiểm thử.
+- [x] Không có page builder tổng quát.
+- [x] Không có reservation/booking models.
+- [x] `docs/cms-content-model.md` khớp schema thực tế.
+- [x] Build và typecheck pass.
+- [x] Không sửa frontend.
 
 Nếu editor vẫn phải hỏi developer “field này dùng làm gì” cho phần lớn form, schema chưa đạt. CRUD tự sinh không cứu được content model tệ.
