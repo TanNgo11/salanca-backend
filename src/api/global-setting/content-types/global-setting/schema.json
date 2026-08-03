@@ -4,8 +4,8 @@
   "info": {
     "singularName": "global-setting",
     "pluralName": "global-settings",
-    "displayName": "Global Setting",
-    "description": "Brand, navigation, contact, and footer content used site-wide"
+    "displayName": "Cấu hình chung",
+    "description": "Thương hiệu, điều hướng, liên hệ và footer dùng toàn site"
   },
   "options": {
     "draftAndPublish": true
@@ -133,6 +133,128 @@
       "component": "shared.seo",
       "repeatable": false,
       "required": true
+    }
+  },
+  "config": {
+    "metadatas": {
+      "brandName": {
+        "edit": {
+          "label": "Tên thương hiệu",
+          "placeholder": "Salanca Brazil"
+        },
+        "list": {
+          "label": "Tên thương hiệu"
+        }
+      },
+      "tagline": {
+        "edit": {
+          "label": "Slogan",
+          "placeholder": "Tinh hoa churrascaria Brazil — từ 2003"
+        },
+        "list": {
+          "label": "Slogan"
+        }
+      },
+      "logo": {
+        "edit": {
+          "label": "Logo"
+        },
+        "list": {
+          "label": "Logo"
+        }
+      },
+      "hotline": {
+        "edit": {
+          "label": "Hotline",
+          "placeholder": "0989561159"
+        },
+        "list": {
+          "label": "Hotline"
+        }
+      },
+      "email": {
+        "edit": {
+          "label": "Email",
+          "placeholder": "booking@salanca.com.vn"
+        },
+        "list": {
+          "label": "Email"
+        }
+      },
+      "address": {
+        "edit": {
+          "label": "Địa chỉ",
+          "placeholder": "49 Phan Bội Châu, Hà Nội"
+        },
+        "list": {
+          "label": "Địa chỉ"
+        }
+      },
+      "mapUrl": {
+        "edit": {
+          "label": "Link Google Maps",
+          "placeholder": "https://www.google.com/maps?q=..."
+        },
+        "list": {
+          "label": "Link Google Maps"
+        }
+      },
+      "openingHours": {
+        "edit": {
+          "label": "Giờ mở cửa"
+        },
+        "list": {
+          "label": "Giờ mở cửa"
+        }
+      },
+      "socialLinks": {
+        "edit": {
+          "label": "Mạng xã hội"
+        },
+        "list": {
+          "label": "Mạng xã hội"
+        }
+      },
+      "headerLinks": {
+        "edit": {
+          "label": "Menu header"
+        },
+        "list": {
+          "label": "Menu header"
+        }
+      },
+      "footerExploreLinks": {
+        "edit": {
+          "label": "Footer — khám phá"
+        },
+        "list": {
+          "label": "Footer — khám phá"
+        }
+      },
+      "footerInfoLinks": {
+        "edit": {
+          "label": "Footer — thông tin"
+        },
+        "list": {
+          "label": "Footer — thông tin"
+        }
+      },
+      "mainLocation": {
+        "edit": {
+          "label": "Chi nhánh chính"
+        },
+        "list": {
+          "label": "Chi nhánh chính"
+        }
+      },
+      "defaultSeo": {
+        "edit": {
+          "label": "SEO mặc định"
+        },
+        "list": {
+          "label": "SEO mặc định"
+        }
+      }
     }
   }
 }

@@ -61,20 +61,34 @@ npm ci
 Common gates:
 
 ```powershell
+npm run lint
 npm run verify:schema
 npm run typecheck
+npm run test
 npm run build
 npm run smoke:crud
 npm run smoke:i18n
 npm run check:phase3
 ```
 
+Seed / ops (BDS-style):
+
+```powershell
+npm run seed:demo          # modular scripts/seed-salanca-demo/*
+npm run verify:seed
+npm run media:reconcile    # read-only S3 vs DB (requires S3 env); not part of check:phase6
+npm run data:export
+npm run data:import
+```
+
+Admin Content Manager labels (v1): only schemas that declare `config.metadatas` are synced at bootstrap (auto-discovered — no UID allowlist). Today: `global-setting`, `location`, `campaign`, plus selected `shared.*` components. `info.displayName` is Vietnamese for all content types.
+
 Apply gates proportionally:
 
 - Documentation-only: verify links and run `git diff --check`.
 - Schema or component changes: run schema verification, typecheck, and affected CRUD/i18n smoke tests.
 - Middleware, lifecycle, locale, or relation changes: run `npm run check:phase3`.
-- Dependency, configuration, or build changes: run `npm run check` plus affected smoke tests.
+- Dependency, configuration, or build changes: run `npm run check` (includes lint) plus affected smoke tests.
 - Before staging: follow `docs/security-baseline.md` and audit against the public npm registry explicitly.
 
 If a required gate cannot run, report the exact blocker. Missing verification is not a pass.

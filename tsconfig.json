@@ -39,6 +39,8 @@
     // Do not include test files
     "**/*.test.*",
     // Do not include plugins in the server compilation
-    "src/plugins/**"
+    "src/plugins/**",
+    // Ops scripts run via Node ESM, not the Strapi server tsc graph
+    "scripts/reconcile-media/**"
   ]
 }

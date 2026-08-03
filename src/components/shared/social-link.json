@@ -1,14 +1,20 @@
 {
   "collectionName": "components_shared_social_links",
   "info": {
-    "displayName": "Social Link",
-    "description": "A named social channel and URL"
+    "displayName": "Mạng xã hội",
+    "description": "Kênh social + URL"
   },
   "options": {},
   "attributes": {
     "platform": {
       "type": "enumeration",
-      "enum": ["facebook", "instagram", "tiktok", "youtube", "other"],
+      "enum": [
+        "facebook",
+        "instagram",
+        "tiktok",
+        "youtube",
+        "other"
+      ],
       "required": true
     },
     "label": {
@@ -25,6 +31,34 @@
       "type": "string",
       "required": true,
       "maxLength": 500
+    }
+  },
+  "config": {
+    "metadatas": {
+      "platform": {
+        "edit": {
+          "label": "Nền tảng"
+        },
+        "list": {
+          "label": "Nền tảng"
+        }
+      },
+      "label": {
+        "edit": {
+          "label": "Nhãn"
+        },
+        "list": {
+          "label": "Nhãn"
+        }
+      },
+      "url": {
+        "edit": {
+          "label": "URL"
+        },
+        "list": {
+          "label": "URL"
+        }
+      }
     }
   }
 }

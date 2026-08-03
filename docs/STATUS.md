@@ -6,6 +6,8 @@ Last reviewed against repository documentation: 2026-08-03
 
 **Coding for Phases 4–6 is in tree (2026-08-03):** `/api/v1`, CORS, public read bootstrap, seed/verify/smoke:api, media helpers, invariants, Vitest, API contract.
 
+**Pattern-lift follow-up (2026-08-03, post-seed real client data):** modular seed (`scripts/seed-salanca-demo/*`), Admin VI labels + field-hint hide, Content Manager label bootstrap (auto-discover schemas with `config.metadatas`; empty placeholder/description stripped), ESLint in `npm run check`, `data:export|import|transfer`, read-only `media:reconcile`. Review fixes: no ghost managedModels allowlist, warn on missing CM fields, dead shim/example/types removed. Automated: lint + unit tests + typecheck + verify:schema (seed/smoke need Postgres).
+
 **Local self-test re-run (2026-08-03):** green on Windows PostgreSQL 17 (`localhost:5432`, DB `salanca_cms`, same host/user pattern as `batdongsan-cms`). Campaign date invariant already in code. Seed script fixes applied (location EN slug, campaign `shared.cta` shape).
 
 Still open (ops/human): Phase 0 Admin UAT (manual), named host/DB/S3 providers, 4C multi-account UAT, Phase 7 staging.

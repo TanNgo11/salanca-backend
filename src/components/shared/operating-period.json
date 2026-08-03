@@ -1,8 +1,8 @@
 {
   "collectionName": "components_shared_operating_periods",
   "info": {
-    "displayName": "Operating Period",
-    "description": "One named opening period such as lunch or dinner"
+    "displayName": "Khung giờ",
+    "description": "Một khung giờ mở cửa"
   },
   "options": {},
   "attributes": {
@@ -23,6 +23,35 @@
     "closesAt": {
       "type": "time",
       "required": true
+    }
+  },
+  "config": {
+    "metadatas": {
+      "label": {
+        "edit": {
+          "label": "Nhãn",
+          "placeholder": "Buổi trưa"
+        },
+        "list": {
+          "label": "Nhãn"
+        }
+      },
+      "opensAt": {
+        "edit": {
+          "label": "Mở cửa"
+        },
+        "list": {
+          "label": "Mở cửa"
+        }
+      },
+      "closesAt": {
+        "edit": {
+          "label": "Đóng cửa"
+        },
+        "list": {
+          "label": "Đóng cửa"
+        }
+      }
     }
   }
 }

@@ -2,7 +2,7 @@
   "collectionName": "components_shared_heroes",
   "info": {
     "displayName": "Hero",
-    "description": "Fixed page hero content"
+    "description": "Khối hero trang"
   },
   "options": {},
   "attributes": {
@@ -64,6 +64,42 @@
       "type": "component",
       "component": "shared.link",
       "repeatable": false
+    }
+  },
+  "config": {
+    "metadatas": {
+      "title": {
+        "edit": {
+          "label": "Tiêu đề"
+        },
+        "list": {
+          "label": "Tiêu đề"
+        }
+      },
+      "description": {
+        "edit": {
+          "label": "Mô tả"
+        },
+        "list": {
+          "label": "Mô tả"
+        }
+      },
+      "backgroundImage": {
+        "edit": {
+          "label": "Ảnh nền"
+        },
+        "list": {
+          "label": "Ảnh nền"
+        }
+      },
+      "primaryLink": {
+        "edit": {
+          "label": "Nút chính"
+        },
+        "list": {
+          "label": "Nút chính"
+        }
+      }
     }
   }
 }

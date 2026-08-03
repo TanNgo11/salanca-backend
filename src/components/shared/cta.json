@@ -1,8 +1,8 @@
 {
   "collectionName": "components_shared_ctas",
   "info": {
-    "displayName": "Call to Action",
-    "description": "Heading, supporting copy and destination link"
+    "displayName": "CTA",
+    "description": "Khối kêu gọi hành động"
   },
   "options": {},
   "attributes": {
@@ -35,6 +35,34 @@
       "component": "shared.link",
       "repeatable": false,
       "required": true
+    }
+  },
+  "config": {
+    "metadatas": {
+      "heading": {
+        "edit": {
+          "label": "Tiêu đề"
+        },
+        "list": {
+          "label": "Tiêu đề"
+        }
+      },
+      "body": {
+        "edit": {
+          "label": "Nội dung"
+        },
+        "list": {
+          "label": "Nội dung"
+        }
+      },
+      "link": {
+        "edit": {
+          "label": "Liên kết"
+        },
+        "list": {
+          "label": "Liên kết"
+        }
+      }
     }
   }
 }

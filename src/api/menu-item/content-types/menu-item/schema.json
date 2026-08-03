@@ -4,7 +4,7 @@
   "info": {
     "singularName": "menu-item",
     "pluralName": "menu-items",
-    "displayName": "Menu Item",
+    "displayName": "Món",
     "description": "Individual menu item with numeric VND price"
   },
   "options": {

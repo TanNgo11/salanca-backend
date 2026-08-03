@@ -10,8 +10,8 @@ import { findBySlug } from './lib/seed-document.mjs';
 const app = await loadStrapiApp();
 
 try {
-  const location = await findBySlug(app, 'api::location.location', 'vi', 'salanca-quan-1');
-  assert.ok(location, 'expected seeded location salanca-quan-1');
+  const location = await findBySlug(app, 'api::location.location', 'vi', 'salanca-ha-noi');
+  assert.ok(location, 'expected seeded location salanca-ha-noi');
 
   const categories = await app.documents('api::menu-category.menu-category').findMany({
     locale: 'vi',
@@ -61,7 +61,9 @@ try {
     status: 'published',
   });
   assert.ok(globalVi, 'global-setting VI published required');
-  assert.equal(globalVi.brandName, 'Salanca');
+  assert.equal(globalVi.brandName, 'Salanca Brazil');
+  assert.equal(globalVi.email, 'booking@salanca.com.vn');
+  assert.match(globalVi.hotline ?? '', /0989561159/);
 
   const homeVi = await app.documents('api::home-page.home-page').findFirst({
     locale: 'vi',

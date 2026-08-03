@@ -4,8 +4,8 @@
   "info": {
     "singularName": "campaign",
     "pluralName": "campaigns",
-    "displayName": "Campaign",
-    "description": "Promotion, event, or private-event offering"
+    "displayName": "Ưu đãi / sự kiện",
+    "description": "Khuyến mãi, sự kiện và tiệc riêng"
   },
   "options": {
     "draftAndPublish": true
@@ -18,7 +18,11 @@
   "attributes": {
     "kind": {
       "type": "enumeration",
-      "enum": ["promotion", "event", "private_event"],
+      "enum": [
+        "promotion",
+        "event",
+        "private_event"
+      ],
       "required": true
     },
     "title": {
@@ -122,6 +126,106 @@
       "type": "component",
       "component": "shared.seo",
       "repeatable": false
+    }
+  },
+  "config": {
+    "metadatas": {
+      "kind": {
+        "edit": {
+          "label": "Loại chương trình"
+        },
+        "list": {
+          "label": "Loại chương trình"
+        }
+      },
+      "title": {
+        "edit": {
+          "label": "Tiêu đề"
+        },
+        "list": {
+          "label": "Tiêu đề"
+        }
+      },
+      "summary": {
+        "edit": {
+          "label": "Tóm tắt"
+        },
+        "list": {
+          "label": "Tóm tắt"
+        }
+      },
+      "body": {
+        "edit": {
+          "label": "Nội dung"
+        },
+        "list": {
+          "label": "Nội dung"
+        }
+      },
+      "startsAt": {
+        "edit": {
+          "label": "Bắt đầu"
+        },
+        "list": {
+          "label": "Bắt đầu"
+        }
+      },
+      "endsAt": {
+        "edit": {
+          "label": "Kết thúc"
+        },
+        "list": {
+          "label": "Kết thúc"
+        }
+      },
+      "isFeatured": {
+        "edit": {
+          "label": "Nổi bật"
+        },
+        "list": {
+          "label": "Nổi bật"
+        }
+      },
+      "displayOrder": {
+        "edit": {
+          "label": "Thứ tự"
+        },
+        "list": {
+          "label": "Thứ tự"
+        }
+      },
+      "coverImage": {
+        "edit": {
+          "label": "Ảnh bìa"
+        },
+        "list": {
+          "label": "Ảnh bìa"
+        }
+      },
+      "cta": {
+        "edit": {
+          "label": "Nút kêu gọi (CTA)"
+        },
+        "list": {
+          "label": "Nút kêu gọi (CTA)"
+        }
+      },
+      "seo": {
+        "edit": {
+          "label": "SEO"
+        },
+        "list": {
+          "label": "SEO"
+        }
+      },
+      "slug": {
+        "edit": {
+          "label": "Slug URL"
+        },
+        "list": {
+          "label": "Slug URL"
+        }
+      }
     }
   }
 }

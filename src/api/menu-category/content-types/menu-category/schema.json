@@ -4,7 +4,7 @@
   "info": {
     "singularName": "menu-category",
     "pluralName": "menu-categories",
-    "displayName": "Menu Category",
+    "displayName": "Nhóm món",
     "description": "Ordered group of menu items"
   },
   "options": {

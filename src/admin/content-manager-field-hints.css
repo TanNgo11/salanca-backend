@@ -1,0 +1,7 @@
+/**
+ * Hide permanent Content Manager field hints on edit screens.
+ * Scoped by body[data-cm-hide-field-hints]. Field.Error stays visible.
+ */
+body[data-cm-hide-field-hints] p[id$='-hint'] {
+  display: none !important;
+}

@@ -1,8 +1,8 @@
 {
   "collectionName": "components_shared_images",
   "info": {
-    "displayName": "Image",
-    "description": "Image with editorial accessibility metadata"
+    "displayName": "Ảnh",
+    "description": "Ảnh kèm alt/caption biên tập"
   },
   "options": {},
   "attributes": {
@@ -10,7 +10,9 @@
       "type": "media",
       "multiple": false,
       "required": true,
-      "allowedTypes": ["images"]
+      "allowedTypes": [
+        "images"
+      ]
     },
     "alt": {
       "pluginOptions": {
@@ -30,6 +32,34 @@
       },
       "type": "text",
       "maxLength": 300
+    }
+  },
+  "config": {
+    "metadatas": {
+      "media": {
+        "edit": {
+          "label": "File ảnh"
+        },
+        "list": {
+          "label": "File ảnh"
+        }
+      },
+      "alt": {
+        "edit": {
+          "label": "Alt text (bắt buộc)"
+        },
+        "list": {
+          "label": "Alt text (bắt buộc)"
+        }
+      },
+      "caption": {
+        "edit": {
+          "label": "Chú thích"
+        },
+        "list": {
+          "label": "Chú thích"
+        }
+      }
     }
   }
 }

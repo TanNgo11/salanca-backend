@@ -4,7 +4,7 @@
   "info": {
     "singularName": "gallery-item",
     "pluralName": "gallery-items",
-    "displayName": "Gallery Item",
+    "displayName": "Ảnh gallery",
     "description": "Ordered image assigned to a restaurant area"
   },
   "options": {
@@ -48,7 +48,14 @@
     },
     "area": {
       "type": "enumeration",
-      "enum": ["main_hall", "bar", "private_room", "night", "food", "experience"],
+      "enum": [
+        "main_hall",
+        "bar",
+        "private_room",
+        "night",
+        "food",
+        "experience"
+      ],
       "required": true
     },
     "location": {

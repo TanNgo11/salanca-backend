@@ -4,8 +4,8 @@
   "info": {
     "singularName": "location",
     "pluralName": "locations",
-    "displayName": "Location",
-    "description": "Restaurant branch and operating information"
+    "displayName": "Chi nhánh",
+    "description": "Chi nhánh nhà hàng và giờ hoạt động"
   },
   "options": {
     "draftAndPublish": true
@@ -113,6 +113,118 @@
       "type": "component",
       "component": "shared.seo",
       "repeatable": false
+    }
+  },
+  "config": {
+    "metadatas": {
+      "name": {
+        "edit": {
+          "label": "Tên chi nhánh",
+          "placeholder": "Salanca Brazil Hà Nội"
+        },
+        "list": {
+          "label": "Tên chi nhánh"
+        }
+      },
+      "slug": {
+        "edit": {
+          "label": "Slug URL"
+        },
+        "list": {
+          "label": "Slug URL"
+        }
+      },
+      "address": {
+        "edit": {
+          "label": "Địa chỉ",
+          "placeholder": "49 Phan Bội Châu, phường Cửa Nam, TP. Hà Nội"
+        },
+        "list": {
+          "label": "Địa chỉ"
+        }
+      },
+      "mapUrl": {
+        "edit": {
+          "label": "Link Google Maps"
+        },
+        "list": {
+          "label": "Link Google Maps"
+        }
+      },
+      "phone": {
+        "edit": {
+          "label": "Điện thoại đặt bàn",
+          "placeholder": "02438455224"
+        },
+        "list": {
+          "label": "Điện thoại đặt bàn"
+        }
+      },
+      "email": {
+        "edit": {
+          "label": "Email",
+          "placeholder": "booking@salanca.com.vn"
+        },
+        "list": {
+          "label": "Email"
+        }
+      },
+      "operatingHours": {
+        "edit": {
+          "label": "Giờ hoạt động"
+        },
+        "list": {
+          "label": "Giờ hoạt động"
+        }
+      },
+      "heroImage": {
+        "edit": {
+          "label": "Ảnh hero"
+        },
+        "list": {
+          "label": "Ảnh hero"
+        }
+      },
+      "gallery": {
+        "edit": {
+          "label": "Gallery nhúng"
+        },
+        "list": {
+          "label": "Gallery nhúng"
+        }
+      },
+      "galleryItems": {
+        "edit": {
+          "label": "Mục gallery liên kết"
+        },
+        "list": {
+          "label": "Mục gallery liên kết"
+        }
+      },
+      "isActive": {
+        "edit": {
+          "label": "Đang hoạt động"
+        },
+        "list": {
+          "label": "Đang hoạt động"
+        }
+      },
+      "displayOrder": {
+        "edit": {
+          "label": "Thứ tự hiển thị"
+        },
+        "list": {
+          "label": "Thứ tự hiển thị"
+        }
+      },
+      "seo": {
+        "edit": {
+          "label": "SEO"
+        },
+        "list": {
+          "label": "SEO"
+        }
+      }
     }
   }
 }

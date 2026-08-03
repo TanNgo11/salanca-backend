@@ -1,8 +1,8 @@
 {
   "collectionName": "components_shared_links",
   "info": {
-    "displayName": "Link",
-    "description": "A labeled internal or external link"
+    "displayName": "Liên kết",
+    "description": "Link điều hướng"
   },
   "options": {},
   "attributes": {
@@ -30,6 +30,34 @@
       "type": "boolean",
       "default": false,
       "required": true
+    }
+  },
+  "config": {
+    "metadatas": {
+      "label": {
+        "edit": {
+          "label": "Nhãn"
+        },
+        "list": {
+          "label": "Nhãn"
+        }
+      },
+      "url": {
+        "edit": {
+          "label": "URL"
+        },
+        "list": {
+          "label": "URL"
+        }
+      },
+      "openInNewTab": {
+        "edit": {
+          "label": "Mở tab mới"
+        },
+        "list": {
+          "label": "Mở tab mới"
+        }
+      }
     }
   }
 }

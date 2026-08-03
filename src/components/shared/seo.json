@@ -2,7 +2,7 @@
   "collectionName": "components_shared_seos",
   "info": {
     "displayName": "SEO",
-    "description": "Search and social metadata shared by public content"
+    "description": "Metadata tìm kiếm / chia sẻ"
   },
   "options": {},
   "attributes": {
@@ -30,7 +30,9 @@
       "type": "media",
       "multiple": false,
       "required": false,
-      "allowedTypes": ["images"]
+      "allowedTypes": [
+        "images"
+      ]
     },
     "canonicalPath": {
       "pluginOptions": {
@@ -44,6 +46,51 @@
       "type": "boolean",
       "default": false,
       "required": true
+    }
+  },
+  "config": {
+    "metadatas": {
+      "metaTitle": {
+        "edit": {
+          "label": "Meta title"
+        },
+        "list": {
+          "label": "Title"
+        }
+      },
+      "metaDescription": {
+        "edit": {
+          "label": "Meta description"
+        },
+        "list": {
+          "label": "Meta description"
+        }
+      },
+      "shareImage": {
+        "edit": {
+          "label": "Ảnh share"
+        },
+        "list": {
+          "label": "Ảnh share"
+        }
+      },
+      "canonicalPath": {
+        "edit": {
+          "label": "Canonical path",
+          "placeholder": "/vi/..."
+        },
+        "list": {
+          "label": "Canonical path"
+        }
+      },
+      "noIndex": {
+        "edit": {
+          "label": "Không index (noIndex)"
+        },
+        "list": {
+          "label": "Không index (noIndex)"
+        }
+      }
     }
   }
 }
