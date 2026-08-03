@@ -123,6 +123,7 @@ try {
   summary.record(locationVi.action);
   await upsertLocalization(app, 'api::location.location', locationVi.documentId, 'en', {
     name: 'Salanca District 1',
+    slug: 'salanca-district-1',
     address: '123 Dong Khoi, District 1, Ho Chi Minh City',
     operatingHours: [
       { label: 'Lunch', opensAt: '11:00:00.000', closesAt: '14:00:00.000' },
@@ -237,7 +238,7 @@ try {
     isFeatured: true,
     displayOrder: 0,
     coverImage: image(mediaId, 'Ưu đãi khai trương'),
-    cta: link('Đặt bàn', '/vi/dat-ban'),
+    cta: cta('Đặt bàn ngay', 'Giữ chỗ để nhận ưu đãi khai trương.', 'Đặt bàn', '/vi/dat-ban'),
     seo: seo('Ưu đãi khai trương', 'Khuyến mãi bàn đặt trước tại Salanca.', '/vi/uu-dai/uu-dai-khai-truong'),
   });
   summary.record(promo.action);
@@ -248,7 +249,7 @@ try {
     body: paragraph('Applies to the signature buffet; cannot stack with other vouchers.'),
     slug: 'opening-promotion',
     coverImage: image(mediaId, 'Opening promotion'),
-    cta: link('Book a table', '/en/booking'),
+    cta: cta('Book a table', 'Reserve to claim the opening offer.', 'Book a table', '/en/booking'),
     seo: seo('Opening promotion', 'Advance booking offer at Salanca.', '/en/offers/opening-promotion'),
   });
   summary.record('updated');
@@ -269,7 +270,7 @@ try {
       isFeatured: false,
       displayOrder: 1,
       coverImage: image(mediaId, 'Phòng tiệc riêng'),
-      cta: link('Liên hệ', '/vi/lien-he'),
+      cta: cta('Đặt tiệc riêng', 'Liên hệ để nhận báo giá theo số khách.', 'Liên hệ', '/vi/lien-he'),
       seo: seo('Tiệc riêng tư', 'Đặt phòng riêng tại Salanca.', '/vi/uu-dai/tiec-rieng-tu'),
     },
   );
@@ -285,7 +286,7 @@ try {
       summary: 'Translation pending editorial review.',
       slug: 'private-dining-draft',
       coverImage: image(mediaId, 'Private dining room'),
-      cta: link('Contact', '/en/contact'),
+      cta: cta('Private dining', 'Contact us for a group quote.', 'Contact', '/en/contact'),
       seo: seo(
         'Private dining draft',
         'English copy pending review — keep draft.',
@@ -562,7 +563,18 @@ try {
 } catch (error) {
   console.error('seed:demo failed');
   console.error(error);
+  if (error?.details?.errors) {
+    console.error(
+      'validation details:',
+      JSON.stringify(error.details.errors, null, 2),
+    );
+  }
   process.exitCode = 1;
 } finally {
-  await app.destroy();
+  // Strapi/pg pool sometimes aborts in-flight clients during destroy on Windows.
+  // That must not flip a successful seed to a non-zero exit.
+  await app.destroy().catch((destroyError) => {
+    console.warn('seed:demo shutdown warning:', destroyError?.message ?? destroyError);
+  });
+  process.exit(process.exitCode ?? 0);
 }

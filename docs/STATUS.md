@@ -6,7 +6,9 @@ Last reviewed against repository documentation: 2026-08-03
 
 **Coding for Phases 4–6 is in tree (2026-08-03):** `/api/v1`, CORS, public read bootstrap, seed/verify/smoke:api, media helpers, invariants, Vitest, API contract.
 
-Still open (ops/human): Phase 0 Admin UAT, named host/DB/S3 providers, 4C multi-account UAT, Phase 7 staging.
+**Local self-test re-run (2026-08-03):** green on Windows PostgreSQL 17 (`localhost:5432`, DB `salanca_cms`, same host/user pattern as `batdongsan-cms`). Campaign date invariant already in code. Seed script fixes applied (location EN slug, campaign `shared.cta` shape).
+
+Still open (ops/human): Phase 0 Admin UAT (manual), named host/DB/S3 providers, 4C multi-account UAT, Phase 7 staging.
 
 ## Implemented baseline
 
@@ -47,7 +49,21 @@ npm run build
 npm run check:phase3
 ```
 
-This status summarizes committed evidence; it does not claim every command was rerun on the date above. Re-run proportional gates for every behavior change.
+**Re-run 2026-08-03 (local Postgres `salanca_cms` on 5432, Node 22.22.3):**
+
+| Gate | Result |
+| --- | --- |
+| `npm run verify:schema` | Pass |
+| `npm run typecheck` | Pass |
+| `npm run test` (40 tests) | Pass |
+| `npm run smoke:crud` | Pass |
+| `npm run smoke:i18n` | Pass |
+| `npm run build` | Pass |
+| `npm run seed:demo` | Pass (after seed script fixes) |
+| `npm run verify:seed` | Pass |
+| `npm run smoke:api` | Pass (public read 200; public write 403) |
+
+Local env notes: `.env` aligned with batdongsan local Postgres (port `5432`, user `postgres`); Docker Compose on `5433` remains optional. Do not commit `.env`.
 
 ## Open acceptance gates
 
@@ -88,16 +104,17 @@ See [`security-baseline.md`](security-baseline.md).
 
 ## Known functional follow-up
 
-- Cross-field campaign validation for `endsAt >= startsAt` is not implemented (triage in Phase 0; implement in 4A or defer with owner).
-- Production API permissions, media storage, seed content, frontend integration, staging, backup, and handoff belong to Phase 4–7 specs above.
+- Cross-field campaign validation for `endsAt >= startsAt` **is implemented** (`campaign-invariants.helper` + Document Service middleware + unit tests).
+- Production media storage (S3 every env like batdongsan), staging, backup, and FE integration remain ops / later phases.
+- Manual Admin UAT checklist still open (human click-through).
 
 ## Next authorized work
 
-1. With Postgres up: `npm run check:phase6` (or at least `seed:demo` + `verify:seed` + `smoke:api`).
-2. Phase 0 manual Admin UAT + named platform decisions (host/DB/S3).
-3. Wire real `S3_*` on a bucket and smoke Admin upload.
+1. ~~With Postgres up: seed + smoke:api~~ — done 2026-08-03 local.
+2. Phase 0 manual Admin UAT (`docs/cms-editor-guide.md`) + create first Admin user via `/admin`.
+3. Named platform decisions (host/DB/S3) when client ready; optional local S3 mirror of batdongsan CloudFly vars.
 4. Phase 4C multi-account Admin UAT per `docs/admin-roles.md`.
-5. Phase 7 staging + FE handoff pack — then FE integration.
+5. Phase 7 staging + FE handoff pack — then FE integration (no design required for API adapters).
 
 ## Evidence
 

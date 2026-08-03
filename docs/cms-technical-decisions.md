@@ -11,8 +11,8 @@
 | Validated local Node | `22.12.0` |
 | Node policy | `>=22 <25`; evaluate Node 24 before staging |
 | Database | PostgreSQL only |
-| Local PostgreSQL | Docker Compose, PostgreSQL 16 |
-| Local PostgreSQL port | `5433`, avoiding the machine's existing PostgreSQL on `5432` |
+| Local PostgreSQL | Prefer machine PostgreSQL (same pattern as batdongsan-cms: `localhost:5432`, user `postgres`, DB `salanca_cms`). Optional Docker Compose PostgreSQL 16 on port `5433` via `compose.yaml` |
+| Local PostgreSQL port | `5432` (Windows/local install) or `5433` (Compose) |
 | Default locale | `vi` |
 | Secondary locale | `en` |
 | i18n implementation | Built-in `@strapi/i18n` bundled with Strapi `5.50.2` |
