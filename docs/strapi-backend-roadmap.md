@@ -338,12 +338,15 @@ Không dùng `populate=*` như API contract production mặc định. Chỉ popu
 | Phase 1 | Chốt baseline, khởi tạo Strapi TypeScript và PostgreSQL | 1–2 ngày dev | [Phase 1 — Foundation](./phases/phase-01-foundation.md) |
 | Phase 2 | Dựng content model và CRUD trong Strapi Admin | 2–4 ngày dev | [Phase 2 — Content Model](./phases/phase-02-content-model.md) |
 | Phase 3 | Hoàn thiện VI/EN và editorial workflow | 1–2 ngày dev + editor UAT | [Phase 3 — Internationalization](./phases/phase-03-internationalization.md) |
-| Phase 4 | Admin roles, API permissions và media production | Chốt sau Phase 3 | Viết chi tiết sau Phase 3 |
-| Phase 5 | Seed nội dung prototype | Chốt sau Phase 3 | Viết chi tiết sau Phase 3 |
-| Phase 6 | API contract và backend QA | Chốt sau Phase 3 | Viết chi tiết sau Phase 3 |
-| Phase 7 | Staging, backup và handoff | Chốt sau Phase 3 | Viết chi tiết sau Phase 3 |
+| Phase 0 | Đóng UAT Phase 1–3 + platform decisions (trước code Phase 4) | 0.5–1 ngày + owner | [Phase 0 — Close UAT](./phases/phase-00-close-uat-and-decisions.md) |
+| Phase 4 | Hardening (`/api/v1`, CORS, tests), S3 media, Admin roles | 3–5 ngày dev | [Phase 4 — Hardening, media, roles](./phases/phase-04-hardening-media-roles.md) |
+| Phase 5 | Seed nội dung prototype idempotent | 2–3 ngày dev | [Phase 5 — Seed content](./phases/phase-05-seed-content.md) |
+| Phase 6 | API contract, public read allowlist, backend QA | 2–3 ngày dev | [Phase 6 — API contract and QA](./phases/phase-06-api-contract-and-qa.md) |
+| Phase 7 | Staging, backup/restore, FE handoff pack | 2–4 ngày + infra | [Phase 7 — Staging and handoff](./phases/phase-07-staging-and-handoff.md) |
 
-Chỉ ba phase đầu được đặc tả chi tiết ở thời điểm hiện tại. Phase sau vẫn có boundary và gate tổng quan để không mất hướng, nhưng không được triển khai trước khi Phase 1–3 được nghiệm thu.
+Overview pattern-lift (từ backend Nhà Thật, domain Salanca): [BE pattern lift plan](./plans/be-pattern-lift-plan.md).
+
+Phase 1–3 đã có implementation; đóng UAT qua Phase 0 trước khi implement Phase 4. Spec Phase 4–7 đã draft (2026-08-03) — implement theo spec đó, không theo bullet roadmap cũ.
 
 Ước lượng trên giả định một backend developer đã có môi trường chạy PostgreSQL, stakeholder phản hồi schema trong ngày và không bao gồm thời gian biên dịch nội dung tiếng Anh. Nếu ba điều kiện đó không đúng, cộng thêm buffer thay vì ép team chạy theo con số giả.
 
@@ -403,78 +406,25 @@ Chỉ ba phase đầu được đặc tả chi tiết ở thời điểm hiện 
 - Slug và relation hoạt động theo policy đã định.
 - Editor hoàn thành được luồng tạo VI → thêm EN → publish độc lập mà không cần developer.
 
-### Phase 4 — Admin roles, API permissions và media
+### Phase 4 — Hardening, media, Admin roles
 
-#### Công việc
+Chi tiết: [phase-04-hardening-media-roles.md](./phases/phase-04-hardening-media-roles.md).
 
-- Cấu hình Super Admin, Content Editor và Publisher.
-- Kiểm thử permissions bằng tài khoản thật cho từng role.
-- Giữ public API deny-by-default.
-- Cấu hình upload provider cho staging.
-- Cấu hình CORS, secrets, token policy và upload limits.
-
-#### Gate hoàn tất
-
-- Editor không truy cập cấu hình hệ thống.
-- Publisher có đúng quyền publish cần thiết.
-- Anonymous request không đọc/ghi được dữ liệu khi chưa mở contract.
-- Upload, replace và delete ảnh hoạt động ở staging.
-- Không có secret trong repository hoặc build output.
+Tóm tắt: Track **4A** API prefix `/api/v1`, CORS allowlist, bootstrap modules, Vitest; **4B** S3 mọi env + CDN CSP + delete guard; **4C** Admin role matrix. Public Content API vẫn deny cho đến Phase 6.
 
 ### Phase 5 — Seed nội dung prototype
 
-#### Công việc
-
-- Viết seed script idempotent.
-- Seed global settings, menu, package, campaigns, gallery và page content tiếng Việt.
-- Tạo bản tiếng Anh chỉ cho nội dung đã có bản dịch được duyệt.
-- Thêm script verify seed.
-- Kiểm tra dữ liệu trực tiếp trong Strapi Admin.
-
-#### Gate hoàn tất
-
-- Seed lần một tạo đúng dữ liệu.
-- Seed lần hai không tạo duplicate.
-- Giá được lưu dạng số.
-- Record EN chưa hoàn chỉnh vẫn ở Draft.
-- Media relation và alt text đầy đủ.
+Chi tiết: [phase-05-seed-content.md](./phases/phase-05-seed-content.md).
 
 ### Phase 6 — API contract và backend QA
 
-#### Công việc
+Chi tiết: [phase-06-api-contract-and-qa.md](./phases/phase-06-api-contract-and-qa.md).
 
-- Viết `docs/cms-api-contract.md`.
-- Mở read-only permissions cần cho việc kiểm thử contract bằng role/token riêng; chưa mở public production nếu chưa có frontend.
-- Thêm smoke tests cho locale, filters, sort, pagination và populate.
-- Kiểm thử empty database bootstrap và database đã có dữ liệu.
-- Chạy security sanity checks cho permissions và secrets.
-
-#### Gate hoàn tất
-
-- API examples chạy được trên staging.
-- Response VI/EN đúng contract.
-- Anonymous không thể create/update/delete.
-- Không có endpoint hoặc field nhạy cảm bị expose.
-- Build và smoke tests pass từ checkout sạch.
+Tóm tắt: hoàn thiện contract, bootstrap Public `find`/`findOne` allowlist, smoke dương/âm, webhook ký số (optional).
 
 ### Phase 7 — Staging và handoff
 
-#### Công việc
-
-- Deploy CMS, PostgreSQL và object storage lên staging.
-- Cấu hình domain admin/API và HTTPS.
-- Thiết lập backup database, kiểm tra restore tối thiểu một lần.
-- Viết `docs/cms-editor-guide.md`.
-- Viết `docs/cms-operations-runbook.md`.
-- Tổ chức UAT cho editor/publisher.
-
-#### Gate hoàn tất
-
-- Editor tự tạo, dịch, lưu draft và publish một campaign mà không cần developer.
-- Dữ liệu vẫn còn sau restart/redeploy.
-- Backup tạo được và restore test thành công.
-- Có danh sách known limitations.
-- Team frontend nhận được staging URL và API contract, nhưng chưa tích hợp trong phase này.
+Chi tiết: [phase-07-staging-and-handoff.md](./phases/phase-07-staging-and-handoff.md).
 
 ## 12. Definition of Done của CMS-first milestone
 

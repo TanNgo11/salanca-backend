@@ -46,14 +46,31 @@ The scaffold-created local `.env` is already ignored. Replace it from `.env.exam
 ## Quality gates
 
 ```powershell
+npm run test
 npm run check
 npm run smoke:crud
 npm run check:phase3
 ```
 
-`npm run check` verifies the schema, TypeScript and production Admin build. `smoke:crud`
+`npm run test` runs Vitest unit tests for config and domain helpers. `npm run check`
+verifies the schema, TypeScript, unit tests, and production Admin build. `smoke:crud`
 checks persistence and relation integrity on PostgreSQL. `check:phase3` runs the complete
-Phase 1-3 automated gate, including the disposable VI/EN API and media dataset.
+Phase 1-3 automated gate (plus unit tests), including the disposable VI/EN API and media
+dataset.
+
+Demo content and public API:
+
+```powershell
+npm run seed:demo
+npm run verify:seed
+npm run smoke:api
+# or
+npm run check:phase6
+```
+
+REST Content API paths use **`/api/v1`** (`API_REST_PREFIX`). Public role gets
+read-only published content via bootstrap allowlist. See
+[API contract](docs/cms-api-contract.md) and [architecture](docs/architecture.md).
 
 ## Repository boundaries
 
@@ -70,7 +87,9 @@ Phase 1-3 automated gate, including the disposable VI/EN API and media dataset.
 - [Product context](docs/product-context.md)
 - [Technical decisions](docs/cms-technical-decisions.md)
 - [Backend roadmap](docs/strapi-backend-roadmap.md)
+- [BE pattern-lift plan (Phases 0, 4–7)](docs/plans/be-pattern-lift-plan.md)
 - [Execution plan template](PLANS.md)
 - [Phase 1](docs/phases/phase-01-foundation.md)
 - [Phase 2](docs/phases/phase-02-content-model.md)
 - [Phase 3](docs/phases/phase-03-internationalization.md)
+- [Phase 0](docs/phases/phase-00-close-uat-and-decisions.md) · [Phase 4](docs/phases/phase-04-hardening-media-roles.md) · [Phase 5](docs/phases/phase-05-seed-content.md) · [Phase 6](docs/phases/phase-06-api-contract-and-qa.md) · [Phase 7](docs/phases/phase-07-staging-and-handoff.md)

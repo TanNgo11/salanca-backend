@@ -62,7 +62,7 @@ Quan hệ category/item là `menu-category.items` one-to-many mapped by `menu-it
 
 ### `campaign`
 
-Ưu đãi/sự kiện/private event với `kind`, title/slug, summary/body, media, thời gian, điều khoản, CTA, featured/order và SEO. `kind` chỉ nhận `promotion`, `event`, `private_event`. Rule liên trường `endsAt >= startsAt` cần lifecycle validation và được hoãn, không được coi là đã enforce bởi schema.
+Ưu đãi/sự kiện/private event với `kind`, title/slug, summary/body, media, thời gian, điều khoản, CTA, featured/order và SEO. `kind` chỉ nhận `promotion`, `event`, `private_event`. Rule liên trường `endsAt >= startsAt` được enforce bởi Document Service middleware (`src/domain/document-invariants/`), không chỉ schema.
 
 ### `gallery-item`
 

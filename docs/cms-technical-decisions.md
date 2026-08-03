@@ -17,6 +17,11 @@
 | Secondary locale | `en` |
 | i18n implementation | Built-in `@strapi/i18n` bundled with Strapi `5.50.2` |
 | API style | REST first |
+| REST prefix | `/api/v1` via `API_REST_PREFIX` (validated) |
+| CORS | `FRONTEND_URLS` bare-origin allowlist (default `http://localhost:3000`) |
+| Media local default | Local disk when `S3_BUCKET` unset |
+| Media staging/production | S3-compatible via `@strapi/provider-upload-aws-s3` when `S3_BUCKET` set |
+| Unit tests | Vitest for config/domain helpers |
 | Admin | Generated Strapi Admin CRUD |
 | Source prototype | Read-only sibling `../salanca-cms` |
 

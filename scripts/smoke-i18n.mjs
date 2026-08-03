@@ -407,8 +407,8 @@ try {
     populate: 'category',
   });
   const [viItemResponse, enItemResponse] = await Promise.all([
-    apiRequest(`/api/menu-items?${viItemQuery}`),
-    apiRequest(`/api/menu-items?${enItemQuery}`),
+    apiRequest(`/api/v1/menu-items?${viItemQuery}`),
+    apiRequest(`/api/v1/menu-items?${enItemQuery}`),
   ]);
   assert.equal(viItemResponse.response.status, 200);
   assert.equal(enItemResponse.response.status, 200);
@@ -421,11 +421,11 @@ try {
     locale: 'en',
     'filters[documentId][$eq]': viOnlyItem.documentId,
   });
-  const missingEnResponse = await apiRequest(`/api/menu-items?${missingEnQuery}`);
+  const missingEnResponse = await apiRequest(`/api/v1/menu-items?${missingEnQuery}`);
   assert.equal(missingEnResponse.response.status, 200);
   assert.equal(missingEnResponse.body.data.length, 0);
 
-  const duplicateSlugResponse = await apiRequest('/api/menu-categories?locale=vi', {
+  const duplicateSlugResponse = await apiRequest('/api/v1/menu-categories?locale=vi', {
     method: 'POST',
     body: JSON.stringify({
       data: {
@@ -444,7 +444,7 @@ try {
   }
   assert.equal(duplicateSlugResponse.response.status, 400);
 
-  const missingCategoryResponse = await apiRequest('/api/menu-items?locale=vi', {
+  const missingCategoryResponse = await apiRequest('/api/v1/menu-items?locale=vi', {
     method: 'POST',
     body: JSON.stringify({
       data: {
@@ -466,7 +466,7 @@ try {
     documentId: fullItems[0].vi.documentId,
     locale: 'en',
   });
-  const enAfterUnpublish = await apiRequest(`/api/menu-items?${enItemQuery}`);
+  const enAfterUnpublish = await apiRequest(`/api/v1/menu-items?${enItemQuery}`);
   assert.equal(enAfterUnpublish.response.status, 200);
   assert.equal(enAfterUnpublish.body.data.length, 0);
   assert.ok(await app.documents('api::menu-item.menu-item').findOne({
