@@ -40,6 +40,11 @@ Start with [`STATUS.md`](STATUS.md). The roadmap describes intended direction; i
 - [`Phase 6 - API contract and QA`](phases/phase-06-api-contract-and-qa.md)
 - [`Phase 7 - Staging and handoff`](phases/phase-07-staging-and-handoff.md)
 
+### Forms
+
+- [`Forms MVP - Contact message`](phases/phase-forms-contact-message.md)
+- [`Forms-2 - Reservation request`](phases/phase-forms-reservation-request.md)
+
 Overview: [`plans/be-pattern-lift-plan.md`](plans/be-pattern-lift-plan.md). Do not implement Phase 4+ from roadmap bullets alone; use these specs. Phase 0 must pass before Phase 4 implementation.
 
 ## Source-of-truth rules

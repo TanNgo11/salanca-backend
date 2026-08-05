@@ -15,8 +15,8 @@ export function link(label, url) {
   return { label, url, openInNewTab: false };
 }
 
-export function image(mediaId, alt, caption = null) {
-  return { media: mediaId, alt, caption };
+export function image(mediaId, alt, caption = null, focalPointX = 50, focalPointY = 50) {
+  return { media: mediaId, alt, caption, focalPointX, focalPointY };
 }
 
 export function hero(mediaId, title, description, ctaLabel, ctaUrl) {

@@ -1,6 +1,6 @@
-import type { Core } from '@strapi/strapi';
+import { requireEnvValue, type ConfigEnvironment } from './env.helper';
 
-type Environment = Core.Config.Shared.ConfigParams['env'];
+type Environment = ConfigEnvironment;
 
 /**
  * The bucket prefix every stored object shares. It must stay stable after the
@@ -47,18 +47,6 @@ export interface MediaStorageConfig {
     delete: Record<string, never>;
   };
 }
-
-const requireEnvValue = (env: Environment, key: string): string => {
-  const value = env(key)?.trim();
-
-  if (!value) {
-    throw new Error(
-      `${key} is required when S3 object storage is enabled (S3_BUCKET is set).`,
-    );
-  }
-
-  return value;
-};
 
 const parseAbsoluteUrl = (value: string): URL | null => {
   try {
@@ -215,4 +203,29 @@ export const resolveMediaStorageConfig = (env: Environment): MediaStorageConfig 
       delete: {},
     },
   };
+};
+
+/**
+ * Staging/production (and operators who opt in with MEDIA_STORAGE_MODE=s3) must
+ * use S3-compatible object storage. Local development may keep disk when
+ * S3_BUCKET is unset. Does not echo secret values.
+ */
+export const assertProductionMediaStorage = (env: Environment): void => {
+  const nodeEnv = env('NODE_ENV')?.trim();
+  const storageMode = env('MEDIA_STORAGE_MODE')?.trim();
+  const requiresObjectStorage = nodeEnv === 'production' || storageMode === 's3';
+
+  if (!requiresObjectStorage) {
+    return;
+  }
+
+  if (!isObjectStorageEnabled(env)) {
+    throw new Error(
+      'S3_BUCKET is required when NODE_ENV=production or MEDIA_STORAGE_MODE=s3. ' +
+        'Local disk is allowed only outside production when S3_BUCKET is unset.',
+    );
+  }
+
+  // Fail-fast on incomplete S3/CDN configuration rather than at first upload.
+  resolveMediaStorageConfig(env);
 };

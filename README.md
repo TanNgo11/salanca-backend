@@ -4,8 +4,9 @@ Standalone Strapi backend for the Salanca Churrascaria website.
 
 ## Stack
 
-- Strapi 5.50.2.
+- Strapi 5.51.1 (aligned with Nhà Thật `backend-bds`).
 - TypeScript.
+- pnpm 11.7.0 (`packageManager` + committed `pnpm-lock.yaml`).
 - PostgreSQL 16 for local development.
 - Vietnamese (`vi`) as the default locale and English (`en`) as the secondary locale.
 
@@ -14,8 +15,8 @@ Start with the [current status](docs/STATUS.md), then use the [documentation map
 ## Prerequisites
 
 - Node.js 22 or 24; this bootstrap was validated with Node 22.12.0.
-- npm 10 or newer.
-- Docker Desktop for the local PostgreSQL service.
+- pnpm 11.7.0 or newer (`corepack enable` then `corepack prepare pnpm@11.7.0 --activate`).
+- Docker Desktop for the local PostgreSQL service (optional; local Postgres also works).
 
 ## Local setup
 
@@ -30,13 +31,13 @@ Start with the [current status](docs/STATUS.md), then use the [documentation map
 4. Install the exact locked dependencies:
 
    ```powershell
-   npm ci
+   pnpm install --frozen-lockfile
    ```
 
 5. Start Strapi in development mode:
 
    ```powershell
-   npm run develop
+   pnpm run develop
    ```
 
 6. Create the first local admin through Strapi's setup screen. Do not seed or commit an admin credential.
@@ -46,13 +47,13 @@ The scaffold-created local `.env` is already ignored. Replace it from `.env.exam
 ## Quality gates
 
 ```powershell
-npm run test
-npm run check
-npm run smoke:crud
-npm run check:phase3
+pnpm run test
+pnpm run check
+pnpm run smoke:crud
+pnpm run check:phase3
 ```
 
-`npm run test` runs Vitest unit tests for config and domain helpers. `npm run check`
+`pnpm run test` runs Vitest unit tests for config and domain helpers. `pnpm run check`
 verifies the schema, TypeScript, unit tests, and production Admin build. `smoke:crud`
 checks persistence and relation integrity on PostgreSQL. `check:phase3` runs the complete
 Phase 1-3 automated gate (plus unit tests), including the disposable VI/EN API and media
@@ -61,11 +62,11 @@ dataset.
 Demo content and public API:
 
 ```powershell
-npm run seed:demo
-npm run verify:seed
-npm run smoke:api
+pnpm run seed:demo
+pnpm run verify:seed
+pnpm run smoke:api
 # or
-npm run check:phase6
+pnpm run check:phase6
 ```
 
 REST Content API paths use **`/api/v1`** (`API_REST_PREFIX`). Public role gets

@@ -40,10 +40,13 @@ The first milestone manages:
 The first milestone does not implement:
 
 - Frontend API consumption.
-- Contact or booking form submissions.
-- Email, SMS, Zalo, CAPTCHA, or rate limiting.
-- Table availability, slot reservation, deposits, payments, or refunds.
+- Email, SMS, Zalo, CAPTCHA, or distributed rate limiting (Automation phase).
+- Table availability, hard slot reservation, deposits, payments, or refunds.
 - Custom Strapi Admin dashboards, calendars, or Kanban views.
+
+**Forms MVP (opened):** public `contact-message` create intake + Admin triage. No email notify.
+
+**Forms-2 (opened):** public `reservation-request` lead intake (optional menu packages/items or “chọn món sau”), soft same-slot overlap flags, in-process IP rate limit. Not a booking engine.
 
 ## Editorial decisions
 

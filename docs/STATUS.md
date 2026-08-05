@@ -1,6 +1,6 @@
 # Salanca Backend Current Status
 
-Last reviewed against repository documentation: 2026-08-03
+Last reviewed against repository documentation: 2026-08-05
 
 ## Executive status
 
@@ -8,13 +8,27 @@ Last reviewed against repository documentation: 2026-08-03
 
 **Pattern-lift follow-up (2026-08-03, post-seed real client data):** modular seed (`scripts/seed-salanca-demo/*`), Admin VI labels + field-hint hide, Content Manager label bootstrap (auto-discover schemas with `config.metadatas`; empty placeholder/description stripped), ESLint in `npm run check`, `data:export|import|transfer`, read-only `media:reconcile`. Review fixes: no ghost managedModels allowlist, warn on missing CM fields, dead shim/example/types removed. Automated: lint + unit tests + typecheck + verify:schema (seed/smoke need Postgres).
 
+**Recent BDS lift Waves 0–4 (2026-08-04):** Plan at [`plans/be-recent-bds-lift-plan.md`](plans/be-recent-bds-lift-plan.md). Implemented:
+
+- Wave 1: `env.helper`, normalization, production S3 assert, provider contract tests
+- Wave 2: safe map URL normalize, social hostname policy, `shared.image` focal points + document middleware
+- Wave 3: slim signed CMS webhooks (publish/unpublish, HMAC, no audit CT)
+- Wave 4: opt-in editorial WebP pipeline (`MEDIA_PROCESSING_ENABLED`, sharp, no watermark/private-source)
+
+Still not ported (by design): end-user auth/email, projects, property watermark.  
+**Tooling align (2026-08-04):** Strapi **5.51.1**, pnpm **11.7.0**, full `plugins`/`middlewares` config test suite.
+
+**Forms MVP contact intake (2026-08-04):** `contact-message` lead CT + Public create-only + validation/honeypot + `smoke:contact-form`. Spec: [`phases/phase-forms-contact-message.md`](phases/phase-forms-contact-message.md). No email/CAPTCHA.
+
+**Forms-2 reservation intake (2026-08-05):** `reservation-request` lead CT + menu later/now + soft same-slot overlap + in-process IP rate limit + `smoke:reservation-form`. Spec: [`phases/phase-forms-reservation-request.md`](phases/phase-forms-reservation-request.md). Not a booking engine; no email/CAPTCHA/Redis.
+
 **Local self-test re-run (2026-08-03):** green on Windows PostgreSQL 17 (`localhost:5432`, DB `salanca_cms`, same host/user pattern as `batdongsan-cms`). Campaign date invariant already in code. Seed script fixes applied (location EN slug, campaign `shared.cta` shape).
 
-Still open (ops/human): Phase 0 Admin UAT (manual), named host/DB/S3 providers, 4C multi-account UAT, Phase 7 staging.
+Still open (ops/human): Phase 0 Admin UAT (manual), named host/DB/S3 providers, 4C multi-account UAT, Phase 7 staging. Wave 2+ (map URL, focal points, webhooks, WebP) per recent-lift plan.
 
 ## Implemented baseline
 
-- Standalone Strapi `5.50.2` TypeScript backend.
+- Standalone Strapi `5.51.1` TypeScript backend (pnpm 11.7.0; aligned with `backend-bds`).
 - PostgreSQL-only configuration with PostgreSQL 16 used locally.
 - Vietnamese (`vi`) default locale and English (`en`) secondary locale.
 - Fixed content types and shared components with generated Strapi Admin CRUD.
@@ -113,10 +127,14 @@ See [`security-baseline.md`](security-baseline.md).
 ## Next authorized work
 
 1. ~~With Postgres up: seed + smoke:api~~ — done 2026-08-03 local.
-2. Phase 0 manual Admin UAT (`docs/cms-editor-guide.md`) + create first Admin user via `/admin`.
-3. Named platform decisions (host/DB/S3) when client ready; optional local S3 mirror of batdongsan CloudFly vars.
-4. Phase 4C multi-account Admin UAT per `docs/admin-roles.md`.
-5. Phase 7 staging + FE handoff pack — then FE integration (no design required for API adapters).
+2. ~~Recent BDS lift Waves 0–4~~ — 2026-08-04 (see plan; Wave 5 Strapi patch optional/separate).
+3. ~~Forms MVP contact-message BE~~ — code in tree 2026-08-04; run `pnpm run smoke:contact-form` with Postgres; manual Admin triage UAT open.
+4. ~~Forms-2 reservation-request BE~~ — code in tree 2026-08-05; run `pnpm run smoke:reservation-form` with Postgres; manual Admin triage UAT open.
+5. Phase 0 manual Admin UAT (`docs/cms-editor-guide.md`) + create first Admin user via `/admin`.
+6. Named platform decisions (host/DB/S3) when client ready; optional local S3 mirror of batdongsan CloudFly vars.
+7. Phase 4C multi-account Admin UAT per `docs/admin-roles.md`.
+8. Phase 7 staging + FE handoff pack — then FE integration (contact + reservation POSTs).
+9. Automation: CAPTCHA, Redis/distributed rate limit, email notify.
 
 ## Evidence
 
@@ -126,3 +144,4 @@ See [`security-baseline.md`](security-baseline.md).
 - [`cms-technical-decisions.md`](cms-technical-decisions.md)
 - [`security-baseline.md`](security-baseline.md)
 - [`plans/be-pattern-lift-plan.md`](plans/be-pattern-lift-plan.md)
+- [`plans/be-recent-bds-lift-plan.md`](plans/be-recent-bds-lift-plan.md)

@@ -11,23 +11,42 @@ and operational configuration. The sibling Next.js application at
 end-user features appear. The design prototype at `../salanca-cms` is
 read-only reference only.
 
-End-user membership, booking engines, and write-form APIs are out of the
-CMS-first milestone.
+End-user membership and booking engines remain out of the CMS-first milestone.
+Public form **lead** APIs (`contact-message`, `reservation-request`) are opened
+as Forms phases; they are not booking engines.
 
 ## Startup composition
 
 ```text
 src/index.ts
 ├─ register
-│  └─ registerDocumentInvariants        # menu relations, campaign dates
+│  ├─ getOrCreateMediaProcessingRuntime # opt-in WebP pipeline
+│  └─ registerDocumentInvariants        # single documents.use stack
 └─ bootstrap
    ├─ provisionContentLocales           # vi default + en
-   └─ provisionPublicContentPermissions # Public find/findOne allowlist
+   ├─ provisionPublicContentPermissions # Public find/findOne allowlist
+   ├─ provisionPublicFormPermissions    # Public create-only form intake
+   ├─ synchronizeContentManagerLabels
+   └─ enforceMediaProcessingUploadSettings
 ```
 
-`register` extends the Document Service before boot. `bootstrap` runs only
-idempotent provisioning. Add startup work here only when repeated runs are safe
-and failure should block startup.
+`register` extends the Document Service before boot via **one** middleware that
+runs ordered handlers (menu, campaign dates, map/social boundaries, then CMS
+webhook emit after `next`). Do not add another `strapi.documents.use` for new
+invariants — register a handler instead.
+
+`bootstrap` runs only idempotent provisioning. Add startup work here only when
+repeated runs are safe and failure should block startup.
+
+Form leads (`contact-message`, `reservation-request`) are not marketing content:
+no i18n, no Draft & Publish, Public create only (REST routers use `only: ['create']`).
+Shared intake primitives live in `src/domain/form-intake/`; feature validation in
+`src/domain/contact-message/` and `src/domain/reservation-request/`. Reservation
+uses soft same-slot peer counts (`overlapCount`) and a lazy in-process IP rate
+limiter (`src/domain/rate-limit/` + reservation wiring). Public permission grants
+(content reads + form creates) share `provisionPublicRoleActions` in
+`src/bootstrap/public-permissions/`. Signed CMS webhooks live under
+`src/domain/cms-webhook/` (not under `src/api/`).
 
 ## Versioned REST and sessions
 
@@ -58,35 +77,46 @@ CSP `img-src` / `media-src` append the CDN origin when CDN is configured.
 
 ## Document invariants
 
-`src/domain/document-invariants/` holds pure helpers plus the Document Service
-middleware registration:
+`src/domain/document-middleware/` owns the single Document Service middleware.
+`src/domain/document-invariants/` holds pure helpers and before-handlers;
+`src/domain/cms-webhook/` owns after-handler emit + HMAC helpers:
 
 - Menu items require a category on create/update when category is present.
 - Menu categories with linked items cannot be deleted.
 - Campaign `endsAt` must be ≥ `startsAt` when both are provided.
+- Location / global-setting `mapUrl` and global-setting social links are normalized.
+- Publish/unpublish on allowlisted UIDs emit signed webhooks when env is set.
 
 ## Public content
 
 `src/bootstrap/public-content-permissions/` grants Public role `find` /
 `findOne` on an allowlisted set of content types (published only via Strapi
-Draft & Publish). Create/update/delete remain denied for Public.
+Draft & Publish). Create/update/delete remain denied for Public marketing
+content.
 
-Demo data: `npm run seed:demo` then `npm run verify:seed`. Contract smoke:
-`npm run smoke:api`.
+## Public form intake
+
+`src/bootstrap/public-form-permissions/` grants Public role **create only** on
+`api::contact-message.contact-message` and
+`api::reservation-request.reservation-request`. Smokes:
+`pnpm run smoke:contact-form`, `pnpm run smoke:reservation-form`.
+
+Demo data: `pnpm run seed:demo` then `pnpm run verify:seed`. Contract smoke:
+`pnpm run smoke:api`.
 
 ## Quality gates
 
 ```powershell
-npm run test          # Vitest unit tests for helpers
-npm run verify:schema
-npm run typecheck
-npm run build
-npm run check         # schema + typecheck + test + build
-npm run check:phase3  # + CRUD/i18n smokes against PostgreSQL
-npm run seed:demo
-npm run verify:seed
-npm run smoke:api
-npm run check:phase6  # check + seed + verify + public API smoke
+pnpm run test          # Vitest unit tests for helpers
+pnpm run verify:schema
+pnpm run typecheck
+pnpm run build
+pnpm run check         # schema + typecheck + test + build
+pnpm run check:phase3  # + CRUD/i18n smokes against PostgreSQL
+pnpm run seed:demo
+pnpm run verify:seed
+pnpm run smoke:api
+pnpm run check:phase6  # check + seed + verify + public API smoke
 ```
 
 ## Documentation routing

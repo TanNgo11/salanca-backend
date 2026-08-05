@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Salanca multilingual content backend powered by Strapi",
+  "packageManager": "pnpm@11.7.0",
   "scripts": {
     "build": "strapi build",
     "console": "strapi console",
@@ -15,7 +16,7 @@
     "start": "strapi start",
     "strapi": "strapi",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit --incremental false",
     "test": "vitest run",
     "test:watch": "vitest",
     "verify:schema": "node scripts/verify-content-model.mjs",
@@ -25,26 +26,32 @@
     "smoke:crud": "node scripts/smoke-content-crud.mjs",
     "smoke:i18n": "node scripts/smoke-i18n.mjs",
     "smoke:api": "node scripts/smoke-api.mjs",
-    "check": "npm run lint && npm run verify:schema && npm run typecheck && npm run test && npm run build",
-    "check:phase3": "npm run verify:schema && npm run smoke:crud && npm run smoke:i18n && npm run typecheck && npm run test && npm run build",
-    "check:phase6": "npm run check && npm run seed:demo && npm run verify:seed && npm run smoke:api",
+    "smoke:contact-form": "node scripts/smoke-contact-form.mjs",
+    "smoke:reservation-form": "node scripts/smoke-reservation-form.mjs",
+    "check": "pnpm run lint && pnpm run verify:schema && pnpm run typecheck && pnpm run test && pnpm run build",
+    "check:phase3": "pnpm run verify:schema && pnpm run smoke:crud && pnpm run smoke:i18n && pnpm run typecheck && pnpm run test && pnpm run build",
+    "check:phase6": "pnpm run check && pnpm run seed:demo && pnpm run verify:seed && pnpm run smoke:api",
+    "check:forms": "pnpm run test && pnpm run verify:schema && pnpm run smoke:contact-form && pnpm run smoke:reservation-form",
     "upgrade": "npx @strapi/upgrade latest",
     "upgrade:dry": "npx @strapi/upgrade latest --dry"
   },
   "dependencies": {
-    "@strapi/plugin-documentation": "^5.50.2",
-    "@strapi/plugin-users-permissions": "5.50.2",
-    "@strapi/provider-upload-aws-s3": "5.50.2",
-    "@strapi/strapi": "5.50.2",
-    "@strapi/utils": "^5.50.2",
+    "@strapi/plugin-documentation": "5.51.1",
+    "@strapi/plugin-users-permissions": "5.51.1",
+    "@strapi/provider-upload-aws-s3": "5.51.1",
+    "@strapi/strapi": "5.51.1",
+    "@strapi/utils": "5.51.1",
+    "parse5": "7.3.0",
     "pg": "8.20.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "react-router-dom": "^6.0.0",
+    "react-router-dom": "^6.30.3",
+    "sharp": "0.34.5",
     "styled-components": "^6.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "@strapi/typescript-utils": "5.51.1",
     "@types/node": "^22.20.1",
     "@types/react": "^18",
     "@types/react-dom": "^18",
@@ -55,7 +62,7 @@
   },
   "engines": {
     "node": ">=22.0.0 <25.0.0",
-    "npm": ">=10.0.0"
+    "pnpm": ">=11.0.0"
   },
   "strapi": {
     "uuid": "27bed92b-394e-4b43-bc8c-4d2f68a0c79c",

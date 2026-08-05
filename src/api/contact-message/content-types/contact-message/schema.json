@@ -1,0 +1,51 @@
+{
+  "kind": "collectionType",
+  "collectionName": "contact_messages",
+  "info": {
+    "singularName": "contact-message",
+    "pluralName": "contact-messages",
+    "displayName": "Tin nhắn liên hệ",
+    "description": "Public contact form lead intake (not marketing content)"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "fullName": {
+      "type": "string",
+      "required": true,
+      "maxLength": 120
+    },
+    "email": {
+      "type": "email"
+    },
+    "phone": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "topic": {
+      "type": "string",
+      "maxLength": 80
+    },
+    "message": {
+      "type": "text",
+      "required": true,
+      "maxLength": 4000
+    },
+    "sourceLocale": {
+      "type": "enumeration",
+      "enum": ["vi", "en"],
+      "required": true
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["new", "read", "archived"],
+      "required": true,
+      "default": "new"
+    },
+    "sourcePath": {
+      "type": "string",
+      "maxLength": 200
+    }
+  }
+}

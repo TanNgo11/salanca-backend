@@ -8,7 +8,8 @@
 - Vietnamese (`vi`) is the default locale; English (`en`) is secondary.
 - PostgreSQL is required everywhere. Never add SQLite as a fallback.
 - Use Strapi Admin's generated CRUD. Build custom Admin UI only after a documented workflow gap is accepted.
-- Reservation, contact submission, availability, payment, and booking-engine models remain deferred.
+- Availability, table inventory, payment, and booking-engine models remain deferred.
+- Form leads in scope: `contact-message` (Forms MVP) and `reservation-request` (Forms-2, Public create-only, soft-overlap + in-memory IP rate limit). Email/CAPTCHA/Redis rate limit stay deferred.
 
 ## Read before changing code
 

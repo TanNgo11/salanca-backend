@@ -432,6 +432,8 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
     publishedAt: Schema.Attribute.DateTime;
     registrationToken: Schema.Attribute.String & Schema.Attribute.Private;
     resetPasswordToken: Schema.Attribute.String & Schema.Attribute.Private;
+    resetPasswordTokenExpiresAt: Schema.Attribute.DateTime &
+      Schema.Attribute.Private;
     roles: Schema.Attribute.Relation<'manyToMany', 'admin::role'> &
       Schema.Attribute.Private;
     updatedAt: Schema.Attribute.DateTime;
@@ -445,7 +447,7 @@ export interface ApiBookingPageBookingPage extends Struct.SingleTypeSchema {
   collectionName: 'booking_pages';
   info: {
     description: 'Booking-page copy and form presentation options only';
-    displayName: 'Booking Page';
+    displayName: 'Trang \u0111\u1EB7t b\u00E0n';
     pluralName: 'booking-pages';
     singularName: 'booking-page';
   };
@@ -591,7 +593,7 @@ export interface ApiCampaignPageCampaignPage extends Struct.SingleTypeSchema {
   collectionName: 'campaign_pages';
   info: {
     description: 'Headings and featured content for promotions and events';
-    displayName: 'Campaign Page';
+    displayName: 'Trang \u01B0u \u0111\u00E3i';
     pluralName: 'campaign-pages';
     singularName: 'campaign-page';
   };
@@ -673,8 +675,8 @@ export interface ApiCampaignPageCampaignPage extends Struct.SingleTypeSchema {
 export interface ApiCampaignCampaign extends Struct.CollectionTypeSchema {
   collectionName: 'campaigns';
   info: {
-    description: 'Promotion, event, or private-event offering';
-    displayName: 'Campaign';
+    description: 'Khuy\u1EBFn m\u00E3i, s\u1EF1 ki\u1EC7n v\u00E0 ti\u1EC7c ri\u00EAng';
+    displayName: '\u01AFu \u0111\u00E3i / s\u1EF1 ki\u1EC7n';
     pluralName: 'campaigns';
     singularName: 'campaign';
   };
@@ -782,11 +784,145 @@ export interface ApiCampaignCampaign extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiContactMessageContactMessage
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'contact_messages';
+  info: {
+    description: 'Public contact form lead intake (not marketing content)';
+    displayName: 'Tin nh\u1EAFn li\u00EAn h\u1EC7';
+    pluralName: 'contact-messages';
+    singularName: 'contact-message';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    email: Schema.Attribute.Email;
+    fullName: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 120;
+      }>;
+    message: Schema.Attribute.Text &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 4000;
+      }>;
+    phone: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 40;
+      }>;
+    sourceLocale: Schema.Attribute.Enumeration<['vi', 'en']> &
+      Schema.Attribute.Required;
+    sourcePath: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 200;
+      }>;
+    status: Schema.Attribute.Enumeration<['new', 'read', 'archived']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'new'>;
+    topic: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 80;
+      }>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiReservationRequestReservationRequest
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'reservation_requests';
+  info: {
+    description: 'Public reservation lead intake (not a booking engine)';
+    displayName: 'Y\u00EAu c\u1EA7u \u0111\u1EB7t b\u00E0n';
+    pluralName: 'reservation-requests';
+    singularName: 'reservation-request';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    email: Schema.Attribute.Email;
+    fullName: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 120;
+      }>;
+    guestCount: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 1;
+          max: 100;
+        },
+        number
+      >;
+    menuItems: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::menu-item.menu-item'
+    >;
+    menuPackages: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::menu-package.menu-package'
+    >;
+    menuSelectionMode: Schema.Attribute.Enumeration<['later', 'now']> &
+      Schema.Attribute.Required;
+    note: Schema.Attribute.Text &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 2000;
+      }>;
+    occasion: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 80;
+      }>;
+    overlapCount: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0> &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      >;
+    phone: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 40;
+      }>;
+    preferredDate: Schema.Attribute.Date & Schema.Attribute.Required;
+    preferredTime: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 40;
+      }>;
+    sourceLocale: Schema.Attribute.Enumeration<['vi', 'en']> &
+      Schema.Attribute.Required;
+    sourcePath: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 200;
+      }>;
+    status: Schema.Attribute.Enumeration<['new', 'read', 'archived']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'new'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiContactPageContactPage extends Struct.SingleTypeSchema {
   collectionName: 'contact_pages';
   info: {
     description: 'Contact-page copy and form presentation options only';
-    displayName: 'Contact Page';
+    displayName: 'Trang li\u00EAn h\u1EC7';
     pluralName: 'contact-pages';
     singularName: 'contact-page';
   };
@@ -912,7 +1048,7 @@ export interface ApiExperiencePageExperiencePage
   collectionName: 'experience_pages';
   info: {
     description: 'Fixed editorial structure for the Churrascaria experience';
-    displayName: 'Experience Page';
+    displayName: 'Trang tr\u1EA3i nghi\u1EC7m';
     pluralName: 'experience-pages';
     singularName: 'experience-page';
   };
@@ -1078,7 +1214,7 @@ export interface ApiGalleryItemGalleryItem extends Struct.CollectionTypeSchema {
   collectionName: 'gallery_items';
   info: {
     description: 'Ordered image assigned to a restaurant area';
-    displayName: 'Gallery Item';
+    displayName: '\u1EA2nh gallery';
     pluralName: 'gallery-items';
     singularName: 'gallery-item';
   };
@@ -1152,8 +1288,8 @@ export interface ApiGalleryItemGalleryItem extends Struct.CollectionTypeSchema {
 export interface ApiGlobalSettingGlobalSetting extends Struct.SingleTypeSchema {
   collectionName: 'global_settings';
   info: {
-    description: 'Brand, navigation, contact, and footer content used site-wide';
-    displayName: 'Global Setting';
+    description: 'Th\u01B0\u01A1ng hi\u1EC7u, \u0111i\u1EC1u h\u01B0\u1EDBng, li\u00EAn h\u1EC7 v\u00E0 footer d\u00F9ng to\u00E0n site';
+    displayName: 'C\u1EA5u h\u00ECnh chung';
     pluralName: 'global-settings';
     singularName: 'global-setting';
   };
@@ -1235,9 +1371,9 @@ export interface ApiGlobalSettingGlobalSetting extends Struct.SingleTypeSchema {
       'oneToOne',
       'api::location.location'
     >;
-    mapUrl: Schema.Attribute.String &
+    mapUrl: Schema.Attribute.Text &
       Schema.Attribute.SetMinMaxLength<{
-        maxLength: 500;
+        maxLength: 2048;
       }>;
     openingHours: Schema.Attribute.Component<'shared.operating-period', true> &
       Schema.Attribute.SetPluginOptions<{
@@ -1271,7 +1407,7 @@ export interface ApiHomePageHomePage extends Struct.SingleTypeSchema {
   collectionName: 'home_pages';
   info: {
     description: 'Fixed editorial structure for the Salanca home page';
-    displayName: 'Home Page';
+    displayName: 'Trang ch\u1EE7';
     pluralName: 'home-pages';
     singularName: 'home-page';
   };
@@ -1431,8 +1567,8 @@ export interface ApiHomePageHomePage extends Struct.SingleTypeSchema {
 export interface ApiLocationLocation extends Struct.CollectionTypeSchema {
   collectionName: 'locations';
   info: {
-    description: 'Restaurant branch and operating information';
-    displayName: 'Location';
+    description: 'Chi nh\u00E1nh nh\u00E0 h\u00E0ng v\u00E0 gi\u1EDD ho\u1EA1t \u0111\u1ED9ng';
+    displayName: 'Chi nh\u00E1nh';
     pluralName: 'locations';
     singularName: 'location';
   };
@@ -1492,9 +1628,9 @@ export interface ApiLocationLocation extends Struct.CollectionTypeSchema {
       'oneToMany',
       'api::location.location'
     >;
-    mapUrl: Schema.Attribute.String &
+    mapUrl: Schema.Attribute.Text &
       Schema.Attribute.SetMinMaxLength<{
-        maxLength: 500;
+        maxLength: 2048;
       }>;
     name: Schema.Attribute.String &
       Schema.Attribute.Required &
@@ -1544,7 +1680,7 @@ export interface ApiMenuCategoryMenuCategory
   collectionName: 'menu_categories';
   info: {
     description: 'Ordered group of menu items';
-    displayName: 'Menu Category';
+    displayName: 'Nh\u00F3m m\u00F3n';
     pluralName: 'menu-categories';
     singularName: 'menu-category';
   };
@@ -1621,7 +1757,7 @@ export interface ApiMenuItemMenuItem extends Struct.CollectionTypeSchema {
   collectionName: 'menu_items';
   info: {
     description: 'Individual menu item with numeric VND price';
-    displayName: 'Menu Item';
+    displayName: 'M\u00F3n';
     pluralName: 'menu-items';
     singularName: 'menu-item';
   };
@@ -1719,7 +1855,7 @@ export interface ApiMenuPackageMenuPackage extends Struct.CollectionTypeSchema {
   collectionName: 'menu_packages';
   info: {
     description: 'Buffet or fixed menu package';
-    displayName: 'Menu Package';
+    displayName: 'G\u00F3i buffet';
     pluralName: 'menu-packages';
     singularName: 'menu-package';
   };
@@ -1822,7 +1958,7 @@ export interface ApiMenuPageMenuPage extends Struct.SingleTypeSchema {
   collectionName: 'menu_pages';
   info: {
     description: 'Headings and featured content surrounding menu collections';
-    displayName: 'Menu Page';
+    displayName: 'Trang th\u1EF1c \u0111\u01A1n';
     pluralName: 'menu-pages';
     singularName: 'menu-page';
   };
@@ -1908,7 +2044,7 @@ export interface ApiSpacePageSpacePage extends Struct.SingleTypeSchema {
   collectionName: 'space_pages';
   info: {
     description: 'Fixed editorial structure for restaurant spaces';
-    displayName: 'Space Page';
+    displayName: 'Trang kh\u00F4ng gian';
     pluralName: 'space-pages';
     singularName: 'space-page';
   };
@@ -2065,7 +2201,7 @@ export interface ApiStoryPageStoryPage extends Struct.SingleTypeSchema {
   collectionName: 'story_pages';
   info: {
     description: 'Fixed editorial structure for the Salanca story';
-    displayName: 'Story Page';
+    displayName: 'Trang c\u00E2u chuy\u1EC7n';
     pluralName: 'story-pages';
     singularName: 'story-page';
   };
@@ -2737,6 +2873,7 @@ declare module '@strapi/strapi' {
       'api::booking-page.booking-page': ApiBookingPageBookingPage;
       'api::campaign-page.campaign-page': ApiCampaignPageCampaignPage;
       'api::campaign.campaign': ApiCampaignCampaign;
+      'api::contact-message.contact-message': ApiContactMessageContactMessage;
       'api::contact-page.contact-page': ApiContactPageContactPage;
       'api::experience-page.experience-page': ApiExperiencePageExperiencePage;
       'api::gallery-item.gallery-item': ApiGalleryItemGalleryItem;
@@ -2747,6 +2884,7 @@ declare module '@strapi/strapi' {
       'api::menu-item.menu-item': ApiMenuItemMenuItem;
       'api::menu-package.menu-package': ApiMenuPackageMenuPackage;
       'api::menu-page.menu-page': ApiMenuPageMenuPage;
+      'api::reservation-request.reservation-request': ApiReservationRequestReservationRequest;
       'api::space-page.space-page': ApiSpacePageSpacePage;
       'api::story-page.story-page': ApiStoryPageStoryPage;
       'plugin::content-releases.release': PluginContentReleasesRelease;

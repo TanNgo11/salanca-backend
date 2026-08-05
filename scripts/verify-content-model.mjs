@@ -16,6 +16,7 @@ const components = [
   'step',
   'timeline-entry',
 ];
+/** Localized marketing content: Draft & Publish + i18n required. */
 const contentTypes = {
   'booking-page': 'singleType',
   campaign: 'collectionType',
@@ -32,6 +33,11 @@ const contentTypes = {
   'menu-page': 'singleType',
   'space-page': 'singleType',
   'story-page': 'singleType',
+};
+/** Lead / form intake: no i18n plugin, no Draft & Publish. */
+const leadContentTypes = {
+  'contact-message': 'collectionType',
+  'reservation-request': 'collectionType',
 };
 const nonLocalizedByContentType = {
   'booking-page': [],
@@ -54,7 +60,7 @@ const nonLocalizedByComponent = {
   cta: [],
   'editorial-card': [],
   hero: [],
-  image: ['media'],
+  image: ['media', 'focalPointX', 'focalPointY'],
   link: ['openInNewTab'],
   'list-item': [],
   'operating-period': ['opensAt', 'closesAt'],
@@ -66,10 +72,8 @@ const nonLocalizedByComponent = {
 };
 const forbiddenTypes = [
   'availability-slot',
-  'contact-message',
   'page',
   'payment',
-  'reservation-request',
   'table',
 ];
 const errors = [];
@@ -144,9 +148,90 @@ for (const [component, schema] of Object.entries(componentSchemas)) {
   }
 }
 
+const leadSchemas = {};
+for (const [name, expectedKind] of Object.entries(leadContentTypes)) {
+  const schemaPath = join(
+    root,
+    'src',
+    'api',
+    name,
+    'content-types',
+    name,
+    'schema.json',
+  );
+  const schema = loadJson(schemaPath, `lead content type ${name}`);
+  if (!schema) continue;
+  leadSchemas[name] = schema;
+  assert(schema.kind === expectedKind, `${name}: expected kind ${expectedKind}`);
+  assert(
+    schema.options?.draftAndPublish === false,
+    `${name}: Draft & Publish must be disabled for lead intake`,
+  );
+  assert(schema.info?.singularName === name, `${name}: singularName must match directory name`);
+  assert(
+    schema.pluginOptions?.i18n?.localized !== true,
+    `${name}: i18n must not be enabled for lead intake`,
+  );
+
+  for (const layer of ['controllers', 'routes', 'services']) {
+    const path = join(root, 'src', 'api', name, layer, `${name}.ts`);
+    assert(existsSync(path), `${name}: missing ${layer}/${name}.ts`);
+  }
+}
+
+const contactMessage = leadSchemas['contact-message']?.attributes;
+assert(contactMessage?.fullName?.required === true, 'contact-message.fullName must be required');
+assert(contactMessage?.message?.required === true, 'contact-message.message must be required');
+assert(
+  JSON.stringify(contactMessage?.sourceLocale?.enum) === JSON.stringify(['vi', 'en']),
+  'contact-message.sourceLocale enum is invalid',
+);
+assert(contactMessage?.locale === undefined, 'contact-message must not use locale attribute name');
+assert(
+  JSON.stringify(contactMessage?.status?.enum) === JSON.stringify(['new', 'read', 'archived']),
+  'contact-message.status enum is invalid',
+);
+assert(contactMessage?.status?.default === 'new', 'contact-message.status default must be new');
+assert(contactMessage?.website === undefined, 'contact-message must not persist honeypot website field');
+
+const reservationRequest = leadSchemas['reservation-request']?.attributes;
+assert(reservationRequest?.fullName?.required === true, 'reservation-request.fullName must be required');
+assert(reservationRequest?.phone?.required === true, 'reservation-request.phone must be required');
+assert(reservationRequest?.preferredDate?.type === 'date', 'reservation-request.preferredDate must be date');
+assert(reservationRequest?.preferredTime?.required === true, 'reservation-request.preferredTime must be required');
+assert(reservationRequest?.guestCount?.type === 'integer', 'reservation-request.guestCount must be integer');
+assert(
+  JSON.stringify(reservationRequest?.menuSelectionMode?.enum) === JSON.stringify(['later', 'now']),
+  'reservation-request.menuSelectionMode enum is invalid',
+);
+assert(
+  JSON.stringify(reservationRequest?.sourceLocale?.enum) === JSON.stringify(['vi', 'en']),
+  'reservation-request.sourceLocale enum is invalid',
+);
+assert(reservationRequest?.locale === undefined, 'reservation-request must not use locale attribute name');
+assert(
+  JSON.stringify(reservationRequest?.status?.enum) === JSON.stringify(['new', 'read', 'archived']),
+  'reservation-request.status enum is invalid',
+);
+assert(reservationRequest?.status?.default === 'new', 'reservation-request.status default must be new');
+assert(reservationRequest?.hasOverlap === undefined, 'reservation-request must not persist derived hasOverlap');
+assert(reservationRequest?.clientIpHash === undefined, 'reservation-request must not persist clientIpHash');
+assert(reservationRequest?.overlapCount?.type === 'integer', 'reservation-request.overlapCount must be integer');
+assert(reservationRequest?.website === undefined, 'reservation-request must not persist honeypot website field');
+assert(
+  reservationRequest?.menuPackages?.relation === 'manyToMany'
+    && reservationRequest?.menuPackages?.target === 'api::menu-package.menu-package',
+  'reservation-request.menuPackages must be manyToMany menu-package',
+);
+assert(
+  reservationRequest?.menuItems?.relation === 'manyToMany'
+    && reservationRequest?.menuItems?.target === 'api::menu-item.menu-item',
+  'reservation-request.menuItems must be manyToMany menu-item',
+);
+
 for (const forbidden of forbiddenTypes) {
   const path = join(root, 'src', 'api', forbidden);
-  assert(!existsSync(path), `Forbidden Phase 2 content type exists: ${forbidden}`);
+  assert(!existsSync(path), `Forbidden content type exists: ${forbidden}`);
 }
 
 const menuItem = schemas['menu-item']?.attributes;
@@ -175,4 +260,6 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(`Content model verified: ${components.length} components, ${Object.keys(contentTypes).length} localized content types, localization matrix, and all core CRUD layers.`);
+console.log(
+  `Content model verified: ${components.length} components, ${Object.keys(contentTypes).length} localized content types, ${Object.keys(leadContentTypes).length} lead type(s), localization matrix, and all core CRUD layers.`,
+);

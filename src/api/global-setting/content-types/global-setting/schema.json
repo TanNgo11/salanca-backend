@@ -65,8 +65,8 @@
       "maxLength": 500
     },
     "mapUrl": {
-      "type": "string",
-      "maxLength": 500
+      "type": "text",
+      "maxLength": 2048
     },
     "openingHours": {
       "pluginOptions": {

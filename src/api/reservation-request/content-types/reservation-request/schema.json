@@ -1,0 +1,87 @@
+{
+  "kind": "collectionType",
+  "collectionName": "reservation_requests",
+  "info": {
+    "singularName": "reservation-request",
+    "pluralName": "reservation-requests",
+    "displayName": "Yêu cầu đặt bàn",
+    "description": "Public reservation lead intake (not a booking engine)"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "fullName": {
+      "type": "string",
+      "required": true,
+      "maxLength": 120
+    },
+    "phone": {
+      "type": "string",
+      "required": true,
+      "maxLength": 40
+    },
+    "email": {
+      "type": "email"
+    },
+    "preferredDate": {
+      "type": "date",
+      "required": true
+    },
+    "preferredTime": {
+      "type": "string",
+      "required": true,
+      "maxLength": 40
+    },
+    "guestCount": {
+      "type": "integer",
+      "required": true,
+      "min": 1,
+      "max": 100
+    },
+    "occasion": {
+      "type": "string",
+      "maxLength": 80
+    },
+    "note": {
+      "type": "text",
+      "maxLength": 2000
+    },
+    "menuSelectionMode": {
+      "type": "enumeration",
+      "enum": ["later", "now"],
+      "required": true
+    },
+    "menuPackages": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::menu-package.menu-package"
+    },
+    "menuItems": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::menu-item.menu-item"
+    },
+    "sourceLocale": {
+      "type": "enumeration",
+      "enum": ["vi", "en"],
+      "required": true
+    },
+    "sourcePath": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["new", "read", "archived"],
+      "required": true,
+      "default": "new"
+    },
+    "overlapCount": {
+      "type": "integer",
+      "required": true,
+      "default": 0,
+      "min": 0
+    }
+  }
+}

@@ -1,7 +1,11 @@
 import type { Core } from '@strapi/strapi';
 
 import { resolveRestApiPrefix } from './api-prefix.helper';
-import { isObjectStorageEnabled, resolveMediaStorageConfig } from './media-storage.helper';
+import {
+  assertProductionMediaStorage,
+  isObjectStorageEnabled,
+  resolveMediaStorageConfig,
+} from './media-storage.helper';
 
 const allowedMediaTypes = [
   'image/*',
@@ -65,6 +69,8 @@ export const resolveAuthCookieConfig = (env: Core.Config.Shared.ConfigParams['en
 };
 
 const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Plugin => {
+  assertProductionMediaStorage(env);
+
   const uploadSecurity = {
     security: {
       allowedTypes: allowedMediaTypes,

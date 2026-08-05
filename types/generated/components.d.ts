@@ -3,8 +3,8 @@ import type { Schema, Struct } from '@strapi/strapi';
 export interface SharedCta extends Struct.ComponentSchema {
   collectionName: 'components_shared_ctas';
   info: {
-    description: 'Heading, supporting copy and destination link';
-    displayName: 'Call to Action';
+    description: 'Kh\u1ED1i k\u00EAu g\u1ECDi h\u00E0nh \u0111\u1ED9ng';
+    displayName: 'CTA';
   };
   attributes: {
     body: Schema.Attribute.Text &
@@ -89,7 +89,7 @@ export interface SharedEditorialCard extends Struct.ComponentSchema {
 export interface SharedHero extends Struct.ComponentSchema {
   collectionName: 'components_shared_heroes';
   info: {
-    description: 'Fixed page hero content';
+    description: 'Kh\u1ED1i hero trang';
     displayName: 'Hero';
   };
   attributes: {
@@ -146,8 +146,8 @@ export interface SharedHero extends Struct.ComponentSchema {
 export interface SharedImage extends Struct.ComponentSchema {
   collectionName: 'components_shared_images';
   info: {
-    description: 'Image with editorial accessibility metadata';
-    displayName: 'Image';
+    description: '\u1EA2nh k\u00E8m alt/caption bi\u00EAn t\u1EADp';
+    displayName: '\u1EA2nh';
   };
   attributes: {
     alt: Schema.Attribute.String &
@@ -169,6 +169,26 @@ export interface SharedImage extends Struct.ComponentSchema {
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 300;
       }>;
+    focalPointX: Schema.Attribute.Float &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 100;
+          min: 0;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<50>;
+    focalPointY: Schema.Attribute.Float &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 100;
+          min: 0;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<50>;
     media: Schema.Attribute.Media<'images'> & Schema.Attribute.Required;
   };
 }
@@ -176,8 +196,8 @@ export interface SharedImage extends Struct.ComponentSchema {
 export interface SharedLink extends Struct.ComponentSchema {
   collectionName: 'components_shared_links';
   info: {
-    description: 'A labeled internal or external link';
-    displayName: 'Link';
+    description: 'Link \u0111i\u1EC1u h\u01B0\u1EDBng';
+    displayName: 'Li\u00EAn k\u1EBFt';
   };
   attributes: {
     label: Schema.Attribute.String &
@@ -238,8 +258,8 @@ export interface SharedListItem extends Struct.ComponentSchema {
 export interface SharedOperatingPeriod extends Struct.ComponentSchema {
   collectionName: 'components_shared_operating_periods';
   info: {
-    description: 'One named opening period such as lunch or dinner';
-    displayName: 'Operating Period';
+    description: 'M\u1ED9t khung gi\u1EDD m\u1EDF c\u1EEDa';
+    displayName: 'Khung gi\u1EDD';
   };
   attributes: {
     closesAt: Schema.Attribute.Time & Schema.Attribute.Required;
@@ -294,7 +314,7 @@ export interface SharedOption extends Struct.ComponentSchema {
 export interface SharedSeo extends Struct.ComponentSchema {
   collectionName: 'components_shared_seos';
   info: {
-    description: 'Search and social metadata shared by public content';
+    description: 'Metadata t\u00ECm ki\u1EBFm / chia s\u1EBB';
     displayName: 'SEO';
   };
   attributes: {
@@ -334,8 +354,8 @@ export interface SharedSeo extends Struct.ComponentSchema {
 export interface SharedSocialLink extends Struct.ComponentSchema {
   collectionName: 'components_shared_social_links';
   info: {
-    description: 'A named social channel and URL';
-    displayName: 'Social Link';
+    description: 'K\u00EAnh social + URL';
+    displayName: 'M\u1EA1ng x\u00E3 h\u1ED9i';
   };
   attributes: {
     label: Schema.Attribute.String &

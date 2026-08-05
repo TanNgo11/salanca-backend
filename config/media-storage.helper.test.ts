@@ -2,6 +2,7 @@ import type { Core } from '@strapi/strapi';
 import { describe, expect, it } from 'vitest';
 
 import {
+  assertProductionMediaStorage,
   isObjectStorageEnabled,
   resolveMediaCdnOrigin,
   resolveMediaStorageConfig,
@@ -143,5 +144,34 @@ describe('resolveOptionalMediaCdnOrigin', () => {
     expect(
       resolveOptionalMediaCdnOrigin(createEnv({ CDN_URL: 'https://media.example.com' })),
     ).toBe('https://media.example.com');
+  });
+});
+
+describe('assertProductionMediaStorage', () => {
+  it('allows local disk outside production when S3 is unset', () => {
+    expect(() => assertProductionMediaStorage(createEnv({ NODE_ENV: 'development' }))).not.toThrow();
+  });
+
+  it('requires S3_BUCKET in production', () => {
+    expect(() => assertProductionMediaStorage(createEnv({ NODE_ENV: 'production' }))).toThrow(
+      'S3_BUCKET is required when NODE_ENV=production',
+    );
+  });
+
+  it('requires S3_BUCKET when MEDIA_STORAGE_MODE=s3', () => {
+    expect(() =>
+      assertProductionMediaStorage(createEnv({ MEDIA_STORAGE_MODE: 's3' })),
+    ).toThrow('S3_BUCKET is required');
+  });
+
+  it('accepts a complete production S3 environment', () => {
+    expect(() =>
+      assertProductionMediaStorage(
+        createEnv({
+          ...awsEnvironment,
+          NODE_ENV: 'production',
+        }),
+      ),
+    ).not.toThrow();
   });
 });

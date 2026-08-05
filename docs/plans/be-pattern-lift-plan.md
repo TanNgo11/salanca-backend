@@ -36,8 +36,8 @@ Kết quả: Phase 4–7 có spec chi tiết, BE-first, design prototype (`../sa
 | D2 | Media: **S3/R2-compatible mọi environment** (kể cả local dev bucket/prefix riêng). Không coi local-disk là path production; tránh drift SQLite-style cho media. |
 | D3 | REST prefix chuẩn hóa **`/api/v1`** trước khi frontend lock contract. |
 | D4 | Public read permissions **provision bằng bootstrap code** (allowlist `find`/`findOne`), không cấu hình tay một lần trên Admin rồi quên. |
-| D5 | Package manager: giữ **npm + lockfile** hiện tại trong plan này trừ khi owner yêu cầu chuyển pnpm (đồng bộ salanca-web). Đổi package manager = change riêng. |
-| D6 | Strapi upgrade (5.50.2 → newer patch) = change riêng, không gộp vào Phase 4 feature work. |
+| D5 | Package manager: **pnpm 11.7.0** (aligned with `backend-bds`; committed `pnpm-lock.yaml`). |
+| D6 | Strapi **5.51.1** aligned with `backend-bds` (2026-08-04). |
 | D7 | BE-first: FE integration chỉ sau Phase 7 handoff pack. |
 
 ### Assumptions
@@ -165,6 +165,6 @@ salanca-backend/
 
 - [x] Overview plan drafted (2026-08-03).  
 - [x] Phase 0, 4, 5, 6, 7 detailed specs drafted.  
-- [ ] Owner review / approve.  
-- [ ] Phase 0 gates closed.  
-- [ ] Implementation starts at Phase 4A only after Phase 0 entry for 4 is met.
+- [x] Phase 4–6 pattern code in tree (2026-08-03); seed/smoke verified locally.  
+- [ ] Phase 0 manual Admin UAT + named platform decisions still open.  
+- [x] Follow-up for **recent** Nhà Thật Phase 9–15 patterns: [`be-recent-bds-lift-plan.md`](be-recent-bds-lift-plan.md) (2026-08-04).

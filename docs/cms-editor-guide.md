@@ -35,6 +35,32 @@ Strapi lưu một số field kỹ thuật nằm trong component theo từng loca
 - Không đổi slug chỉ để “trông đẹp” sau khi URL đã public nếu chưa có redirect plan.
 - Nếu Admin báo trùng slug trong cùng locale, chọn slug khác; không thêm số ngẫu nhiên mà không hiểu URL.
 
+## Tin nhắn liên hệ (form intake)
+
+Collection **Tin nhắn liên hệ** (`contact-message`) nhận lead từ website.
+
+1. Mở Content Manager → **Tin nhắn liên hệ**.
+2. Bản ghi mới có `status = new`.
+3. Đọc nội dung; đổi `status` thành `read` khi đã xử lý, `archived` khi xong.
+4. Không xóa lead trừ khi có quy trình PII/retention; ưu tiên archive.
+5. Public không xem được danh sách — chỉ Admin/Authenticated roles.
+
+Form **không** gửi email tự động trong MVP. Copy trang form (heading, topic) vẫn nằm ở **Trang liên hệ**.
+
+## Yêu cầu đặt bàn (form intake)
+
+Collection **Yêu cầu đặt bàn** (`reservation-request`) nhận lead đặt bàn từ website.
+
+1. Mở Content Manager → **Yêu cầu đặt bàn**.
+2. Bản ghi mới có `status = new`.
+3. Kiểm tra `preferredDate`, `preferredTime`, `guestCount`, `phone`.
+4. `menuSelectionMode = later` → khách chọn món tại nhà hàng; `now` → xem relation gói buffet / món lẻ.
+5. Lọc `overlapCount > 0` để ưu tiên các khung giờ có nhiều request (cảnh báo mềm — **không** tự chặn chỗ).
+6. Đổi `status` thành `read` khi đã gọi khách, `archived` khi xong.
+7. Public không xem được danh sách — chỉ Admin.
+
+Form **không** kiểm tra bàn trống realtime và **không** gửi email tự động. Copy trang đặt bàn vẫn nằm ở **Trang đặt bàn**.
+
 ## Trước khi publish
 
 - Đúng locale và đúng trạng thái Draft/Published.

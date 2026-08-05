@@ -32,6 +32,20 @@
       },
       "type": "text",
       "maxLength": 300
+    },
+    "focalPointX": {
+      "type": "float",
+      "required": true,
+      "default": 50,
+      "min": 0,
+      "max": 100
+    },
+    "focalPointY": {
+      "type": "float",
+      "required": true,
+      "default": 50,
+      "min": 0,
+      "max": 100
     }
   },
   "config": {
@@ -58,6 +72,26 @@
         },
         "list": {
           "label": "Chú thích"
+        }
+      },
+      "focalPointX": {
+        "edit": {
+          "label": "Điểm lấy nét ngang (%)",
+          "description": "Vị trí chủ thể theo chiều ngang khi crop (0 = trái, 100 = phải). Mặc định 50.",
+          "placeholder": "50"
+        },
+        "list": {
+          "label": "Lấy nét X"
+        }
+      },
+      "focalPointY": {
+        "edit": {
+          "label": "Điểm lấy nét dọc (%)",
+          "description": "Vị trí chủ thể theo chiều dọc khi crop (0 = trên, 100 = dưới). Mặc định 50.",
+          "placeholder": "50"
+        },
+        "list": {
+          "label": "Lấy nét Y"
         }
       }
     }

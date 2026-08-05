@@ -1,7 +1,10 @@
 # CMS API contract
 
-Anonymous Public role receives **read-only** access to published content after bootstrap
-(`provisionPublicContentPermissions`). Writes stay denied.
+Anonymous Public role receives **read-only** access to published **marketing content** after bootstrap
+(`provisionPublicContentPermissions`). Content writes stay denied.
+
+**Exception — form intake:** Public may `POST` create on `contact-messages` and `reservation-requests` only
+(`provisionPublicFormPermissions`). Public cannot list, read, update, or delete leads.
 
 ## Base path
 
@@ -129,23 +132,114 @@ GET /api/v1/locations?locale=vi&filters[slug][$eq]=salanca-quan-1
 
 - With object storage: public URLs use `CDN_URL` origin.
 - Editorial images should expose alt via `shared.image.alt`.
+- `shared.image` also exposes `focalPointX` / `focalPointY` (0–100, default 50) for responsive crop.
+- `mapUrl` on location/global-setting accepts a Google Maps share URL, embed URL, or a single pasted iframe; the CMS persists only a normalized HTTPS URL (never raw HTML).
+- `socialLinks[].url` must be HTTPS and match the platform hostname policy (facebook/instagram/tiktok/youtube; `other` = any HTTPS host).
 
 ## Errors
 
 Strapi standard error JSON. Do not branch client logic on localized message text.
 
+## Public form intake (contact)
+
+```http
+POST /api/v1/contact-messages
+Content-Type: application/json
+
+{
+  "data": {
+    "fullName": "Nguyen Van A",
+    "email": "a@example.com",
+    "phone": "0901234567",
+    "topic": "private_event",
+    "message": "Muon dat tiec 30 khach.",
+    "sourceLocale": "vi",
+    "sourcePath": "/vi/lien-he",
+    "website": ""
+  }
+}
+```
+
+| Rule | Detail |
+| --- | --- |
+| Success | `201` `{ data: { documentId, status: "new" } }` |
+| Required | `fullName`, `message`, `sourceLocale` (`vi`\|`en`), and **email or phone** |
+| Alias | Body key `locale` accepted as alias for `sourceLocale` (prefer `sourceLocale`) |
+| Honeypot | `website` must be empty/absent; non-empty → `400` |
+| Client `status` | Ignored; server forces `new` |
+| `GET /contact-messages` | Public denied (`401`/`403`) |
+| Email / CAPTCHA / rate limit | **Not in MVP** (Automation phase residual risk) |
+
+## Public form intake (reservation)
+
+```http
+POST /api/v1/reservation-requests
+Content-Type: application/json
+
+{
+  "data": {
+    "fullName": "Nguyen Van A",
+    "phone": "0901234567",
+    "email": "a@example.com",
+    "preferredDate": "2026-08-20",
+    "preferredTime": "19:00",
+    "guestCount": 4,
+    "occasion": "birthday",
+    "note": "Gan cua so neu con",
+    "menuSelectionMode": "now",
+    "menuPackages": ["pkgDocumentId"],
+    "menuItems": ["itemDocumentId"],
+    "sourceLocale": "vi",
+    "sourcePath": "/vi/dat-ban",
+    "website": ""
+  }
+}
+```
+
+| Rule | Detail |
+| --- | --- |
+| Success | `201` `{ data: { documentId, status: "new", overlapCount, hasOverlap } }` (`hasOverlap` derived, not stored) |
+| Required | `fullName`, `phone`, `preferredDate`, `preferredTime`, `guestCount`, `menuSelectionMode`, `sourceLocale` |
+| `menuSelectionMode` | `later` (no menu ids) or `now` (at least one package or item documentId, published+active) |
+| Soft overlap | Same date+time with status `new`\|`read` → store `overlapCount` via DB count; **does not reject** |
+| Rate limit | After successful validation; in-process per IP; default 5 / 10 min; env `RESERVATION_RATE_LIMIT_*`; over → `429` Strapi-shaped `{ error: { name: ApplicationError, details.code: RESERVATION_RATE_LIMITED } }` |
+| Honeypot | `website` empty/absent; non-empty → `400` (does not consume rate limit) |
+| Client `status` | Ignored; server forces `new` |
+| `GET /reservation-requests` | Public denied (`401`/`403`) |
+| Email / CAPTCHA / Redis RL | **Not in Forms-2** (Automation / later) |
+
 ## Security
 
 | Action | Public |
 | --- | --- |
-| `find` / `findOne` on allowlist | Yes (published only) |
-| `create` / `update` / `delete` | No |
+| `find` / `findOne` on content allowlist | Yes (published only) |
+| `create` / `update` / `delete` on marketing content | No |
+| `create` on `contact-messages` | Yes (validated intake) |
+| `find` / `update` / `delete` on `contact-messages` | No |
+| `create` on `reservation-requests` | Yes (validated intake + soft overlap + IP rate limit) |
+| `find` / `update` / `delete` on `reservation-requests` | No |
 | Auth register/login | Users & Permissions defaults (not product end-user flows yet) |
+
+## Signed CMS webhooks (optional)
+
+When both `CMS_WEBHOOK_URL` and `CMS_WEBHOOK_SECRET` are set, publish/unpublish of public content types POSTs:
+
+```json
+{
+  "uid": "api::home-page.home-page",
+  "locale": "vi",
+  "documentId": "…",
+  "event": "entry.publish"
+}
+```
+
+Header: `x-cms-signature: sha256=<hmac-sha256-hex-of-raw-body>`.  
+Delivery is fire-and-forget (does not block publish); failures are logged and never roll back the CMS write. FE verifies the signature before revalidating.
 
 ## Cache expectations (for future FE)
 
 - Published content is cacheable at the edge with short TTL or tag revalidation.
-- Signed CMS webhooks for revalidate are optional follow-up (not required for this contract).
+- Prefer signed CMS webhooks above for on-publish revalidation.
 
 ## Verification
 

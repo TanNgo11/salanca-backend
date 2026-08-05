@@ -5,9 +5,9 @@
 | Decision | Value |
 | --- | --- |
 | Repository | Standalone `salanca-backend` Git repository |
-| Framework | Strapi `5.50.2` |
+| Framework | Strapi `5.51.1` (aligned with `backend-bds`) |
 | Language | TypeScript |
-| Package manager | npm with committed lockfile |
+| Package manager | pnpm `11.7.0` with committed `pnpm-lock.yaml` (same as Nhà Thật) |
 | Validated local Node | `22.12.0` |
 | Node policy | `>=22 <25`; evaluate Node 24 before staging |
 | Database | PostgreSQL only |
@@ -15,12 +15,18 @@
 | Local PostgreSQL port | `5432` (Windows/local install) or `5433` (Compose) |
 | Default locale | `vi` |
 | Secondary locale | `en` |
-| i18n implementation | Built-in `@strapi/i18n` bundled with Strapi `5.50.2` |
+| i18n implementation | Built-in `@strapi/i18n` bundled with Strapi `5.51.1` |
 | API style | REST first |
 | REST prefix | `/api/v1` via `API_REST_PREFIX` (validated) |
 | CORS | `FRONTEND_URLS` bare-origin allowlist (default `http://localhost:3000`) |
-| Media local default | Local disk when `S3_BUCKET` unset |
-| Media staging/production | S3-compatible via `@strapi/provider-upload-aws-s3` when `S3_BUCKET` set |
+| Media local default | Local disk when `S3_BUCKET` unset (developer machines without bucket) |
+| Media staging/production | S3-compatible **required** when `NODE_ENV=production` or `MEDIA_STORAGE_MODE=s3` (`assertProductionMediaStorage`); provider `@strapi/provider-upload-aws-s3` when `S3_BUCKET` set |
+| Media ACL | Omit object ACL (AWS ACL-disabled buckets) or `S3_ACL=public-read` (CloudFly-style) |
+| Map URL | Normalized Google Maps share/embed/iframe → HTTPS URL only (`src/shared/map-url`) |
+| Social URL | Platform hostname allowlist (`src/shared/social-url`); `other` = any HTTPS |
+| Image focal | `shared.image.focalPointX/Y` 0–100 default 50 (schema min/max; no payload tree walk) |
+| CMS webhooks | Optional HMAC-signed publish/unpublish when `CMS_WEBHOOK_URL` + `CMS_WEBHOOK_SECRET` set |
+| Media WebP | Opt-in `MEDIA_PROCESSING_ENABLED` editorial-clean only (no watermark; no private source retention) |
 | Unit tests | Vitest for config/domain helpers |
 | Admin | Generated Strapi Admin CRUD |
 | Source prototype | Read-only sibling `../salanca-cms` |

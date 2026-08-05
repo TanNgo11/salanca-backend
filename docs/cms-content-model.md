@@ -1,6 +1,6 @@
 # Salanca CMS content model
 
-Tài liệu này mô tả schema đang chạy trong `src/components` và `src/api`. Đây không phải wishlist. Phase 2 chỉ quản lý nội dung; submission đặt bàn, liên hệ, thanh toán và tồn bàn chưa thuộc CMS.
+Tài liệu này mô tả schema đang chạy trong `src/components` và `src/api`. Đây không phải wishlist. Marketing content (Phase 2–3) quản lý copy/public pages. Lead forms: `contact-message` (Forms MVP) và `reservation-request` (Forms-2, create public). Booking engine (tồn bàn, hard slot, thanh toán) vẫn deferred.
 
 ## Quy ước chung
 
@@ -19,7 +19,7 @@ Tài liệu này mô tả schema đang chạy trong `src/components` và `src/ap
 | --- | --- | --- |
 | `shared.seo` | Metadata từng trang/record | `metaTitle`, `metaDescription`, `shareImage`, `canonicalPath`, `noIndex` |
 | `shared.link` | Link có nhãn | `label`, `url`, `openInNewTab` |
-| `shared.image` | Ảnh có accessibility metadata | `media`, `alt`, `caption` |
+| `shared.image` | Ảnh có accessibility + focal crop | `media`, `alt`, `caption`, `focalPointX` (0–100, default 50), `focalPointY` (0–100, default 50) |
 | `shared.hero` | Hero cố định của page | eyebrow, title, description, hai ảnh, primary link |
 | `shared.cta` | Khối kêu gọi hành động | `heading`, `body`, `link` |
 | `shared.operating-period` | Khung giờ hoạt động | `label`, `opensAt`, `closesAt` |
@@ -42,7 +42,7 @@ Tài liệu này mô tả schema đang chạy trong `src/components` và `src/ap
 | `experience-page` | Giới thiệu, quy trình, nghi thức, hương vị, manifesto, bàn ăn và CTA |
 | `space-page` | Giới thiệu, gallery, sự kiện, trải nghiệm, tiện ích và CTA |
 | `contact-page` | Nội dung thăm nhà hàng, bản đồ, topic form tĩnh, trợ giúp, social và CTA |
-| `booking-page` | Nội dung form đặt bàn, option giờ/khách/dịp, các bước, lưu ý và hỗ trợ; không lưu booking |
+| `booking-page` | Nội dung form đặt bàn, option giờ/khách/dịp, các bước, lưu ý và hỗ trợ; submission nằm ở `reservation-request` |
 
 `menu-page` và `campaign-page` là schema riêng vì prototype có hero, heading và CTA riêng. Bỏ hai model này sẽ buộc frontend hardcode nội dung public, trái mục tiêu CMS.
 
@@ -79,15 +79,56 @@ Quan hệ category/item là `menu-category.items` one-to-many mapped by `menu-it
 | Câu chuyện | `story-page` |
 | Trải nghiệm | `experience-page` |
 | Không gian | `space-page`, `gallery-item`, `location` |
-| Liên hệ | `contact-page`, `location`; không lưu submission |
-| Đặt bàn | `booking-page`; không lưu submission/availability |
+| Liên hệ (copy trang) | `contact-page`, `location` |
+| Liên hệ (lead form) | `contact-message` (POST public; xem bên dưới) |
+| Đặt bàn (copy trang) | `booking-page` |
+| Đặt bàn (lead form) | `reservation-request` (POST public; xem bên dưới) |
 
 CSS class, breakpoint, animation, grid và decoration không phải content nên không được đưa vào schema.
 
+## Lead / form intake
+
+### `contact-message`
+
+Collection lead nhận form liên hệ từ website. **Không** i18n plugin, **không** Draft & Publish.
+
+| Field | Ghi chú |
+| --- | --- |
+| `fullName` | Bắt buộc, max 120 |
+| `email` / `phone` | Ít nhất một (enforce controller/validation) |
+| `topic` | String tự do; FE map từ `contact-page.formTopics` |
+| `message` | Bắt buộc, max 4000 |
+| `sourceLocale` | `vi` \| `en` (ngôn ngữ trang gửi form; **không** phải i18n plugin) |
+| `status` | `new` \| `read` \| `archived`; public create luôn `new` |
+| `sourcePath` | Optional, ví dụ `/vi/lien-he` |
+
+Honeypot `website` chỉ có trên request body, **không** có cột schema. Public chỉ `create`; không `find`/`findOne`/`update`/`delete`.
+
+### `reservation-request`
+
+Collection lead nhận form đặt bàn từ website. **Không** i18n plugin, **không** Draft & Publish. **Không** phải booking engine.
+
+| Field | Ghi chú |
+| --- | --- |
+| `fullName` | Bắt buộc, max 120 |
+| `phone` | Bắt buộc, max 40 (nhà hàng gọi xác nhận) |
+| `email` | Optional |
+| `preferredDate` | Date bắt buộc; validation reject ngày trước “hôm nay” `Asia/Ho_Chi_Minh` |
+| `preferredTime` | String bắt buộc (value từ `booking-page.arrivalTimes`) |
+| `guestCount` | Integer 1–100 |
+| `occasion` / `note` | Optional |
+| `menuSelectionMode` | `later` (chọn món sau) \| `now` (chọn gói/món ngay) |
+| `menuPackages` / `menuItems` | M2M tới `menu-package` / `menu-item`; chỉ khi `now`; tối đa 5 gói / 20 món |
+| `sourceLocale` | `vi` \| `en` |
+| `status` | `new` \| `read` \| `archived`; public create luôn `new` |
+| `overlapCount` | Soft detect: số lead peers cùng date+time (status `new`\|`read`) lúc create; không reject. API derive `hasOverlap = overlapCount > 0` |
+
+Honeypot `website` request-only. Public chỉ `create`. Rate limit in-process theo IP **sau** validate thành công (env `RESERVATION_RATE_LIMIT_*`). Shared form primitives: `src/domain/form-intake/`.
+
 ## Model cố ý hoãn
 
-`reservation-request`, `contact-message`, `availability-slot`, `table`, `payment`, generic `page` và unrestricted Dynamic Zone đều ngoài Phase 2. Khi workflow được chốt, dữ liệu giao dịch phải được thiết kế như domain API, không nhét vội vào content collection.
+`availability-slot`, `table`, `payment`, generic `page` và unrestricted Dynamic Zone vẫn deferred. Hard capacity / booking engine là phase sau.
 
 ## Kiểm tra tự động
 
-Chạy `npm run verify:schema`. Gate này kiểm tra 12 component, 15 content type, Draft & Publish, localization matrix, core CRUD layers, các inverse relation chính, price type, campaign enum và bảo đảm model ngoài scope chưa bị tạo. Chạy thêm `npm run smoke:i18n` để kiểm tra locale, relation, slug, component, missing translation và publish state trên PostgreSQL.
+Chạy `npm run verify:schema`. Gate này kiểm tra 12 component, 15 localized content type, lead types `contact-message` + `reservation-request`, Draft & Publish / localization matrix cho marketing content, core CRUD layers, inverse relation chính, và model ngoài scope. Chạy `npm run smoke:i18n` cho locale; `npm run smoke:contact-form` và `npm run smoke:reservation-form` cho form intake.
