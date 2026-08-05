@@ -4,6 +4,7 @@ import sharp from 'sharp';
 import { resolveMediaProcessingConfig } from './config';
 import { MediaProcessingError, MediaProcessingErrorCode } from './errors';
 import { createMediaProcessor } from './processor';
+import { bytesToKbytes } from './upload-optimize';
 
 const createEnv = (values: Record<string, string | undefined> = {}) => {
   const env = ((key: string, defaultValue?: string) =>
@@ -85,8 +86,12 @@ describe('resolveMediaProcessingConfig', () => {
 });
 
 describe('bytesToKbytes', () => {
-  it('matches Strapi Media Library kilobyte rounding', async () => {
-    const { bytesToKbytes } = await import('./upload-optimize');
+  /*
+   * Static import on purpose: loading upload-optimize pulls in the whole
+   * @strapi/strapi graph, which took ~3s and intermittently blew the 5s test
+   * timeout when the dynamic import happened inside the test body.
+   */
+  it('matches Strapi Media Library kilobyte rounding', () => {
     expect(bytesToKbytes(1500)).toBe(1.5);
     expect(bytesToKbytes(1000)).toBe(1);
     expect(bytesToKbytes(500)).toBe(0.5);
