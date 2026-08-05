@@ -15,7 +15,10 @@ Last reviewed against repository documentation: 2026-08-05
 - Wave 3: slim signed CMS webhooks (publish/unpublish, HMAC, no audit CT)
 - Wave 4: opt-in editorial WebP pipeline (`MEDIA_PROCESSING_ENABLED`, sharp, no watermark/private-source)
 
-Still not ported (by design): end-user auth/email, projects, property watermark.  
+Still not ported (by design): end-user auth/email, projects, property watermark.
+
+**Code review of the Phase 11–15 lift (2026-08-06):** 11 findings (3 P1) recorded in [`plans/be-phase-11-15-review-fix-plan.md`](plans/be-phase-11-15-review-fix-plan.md) — webhook locale fan-out, buffer-before-size-check on upload, `mapUrl` column narrower than the iframe paste limit, plus focal-point backfill and wiring test gaps. Not yet implemented.
+
 **Tooling align (2026-08-04):** Strapi **5.51.1**, pnpm **11.7.0**, full `plugins`/`middlewares` config test suite.
 
 **Forms MVP contact intake (2026-08-04):** `contact-message` lead CT + Public create-only + validation/honeypot + `smoke:contact-form`. Spec: [`phases/phase-forms-contact-message.md`](phases/phase-forms-contact-message.md). No email/CAPTCHA.
