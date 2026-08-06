@@ -131,8 +131,9 @@ field-level adapters + static fallback. Home seed copy in
 `scripts/seed-salanca-demo/pages.mjs` is aligned with FE `homePageCopy` for
 mapped fields. Forms POSTs (contact/reservation) were already in tree.
 
-Still FE follow-up (not BE phase work): CMS SEO → `generateMetadata`, collection
-media URLs, campaign detail indexability.
+FE follow-up: ~~CMS SEO → `generateMetadata`~~ (done 2026-08-06 in web:
+`buildRouteMetadata` + `loadPageSeo`). Still open: collection media URLs,
+campaign detail indexability, Restaurant JSON-LD.
 
 ## Next authorized work
 
@@ -141,11 +142,13 @@ media URLs, campaign detail indexability.
 3. ~~Forms MVP contact-message BE~~ — code in tree 2026-08-04; run `pnpm run smoke:contact-form` with Postgres; manual Admin triage UAT open.
 4. ~~Forms-2 reservation-request BE~~ — code in tree 2026-08-05; run `pnpm run smoke:reservation-form` with Postgres; manual Admin triage UAT open.
 5. ~~FE Phase 20 CMS page wiring~~ — done 2026-08-06 in `salanca-web` (fallback when CMS off).
-6. Phase 0 manual Admin UAT (`docs/cms-editor-guide.md`) + create first Admin user via `/admin`.
-7. Named platform decisions (host/DB/S3) when client ready; optional local S3 mirror of batdongsan CloudFly vars.
-8. Phase 4C multi-account Admin UAT per `docs/admin-roles.md`.
-9. Phase 7 staging + ops handoff pack.
-10. Automation: CAPTCHA, Redis/distributed rate limit, email notify.
+6. ~~FE CMS SEO metadata~~ — done 2026-08-06 (`buildRouteMetadata` / `loadPageSeo` on 8 marketing routes).
+7. Phase 0 manual Admin UAT (`docs/cms-editor-guide.md`) + create first Admin user via `/admin`.
+8. Named platform decisions (host/DB/S3) when client ready; optional local S3 mirror of batdongsan CloudFly vars.
+9. Phase 4C multi-account Admin UAT per `docs/admin-roles.md`.
+10. Phase 7 staging + ops handoff pack.
+11. Automation: CAPTCHA, Redis/distributed rate limit, email notify.
+12. FE remaining: collection media URLs, campaign detail indexability, Restaurant JSON-LD.
 
 ## Evidence
 
