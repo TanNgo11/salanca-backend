@@ -152,7 +152,8 @@ contact fields only; hours/price still open).
 11. Phase 7 staging + ops handoff pack.
 12. Automation: CAPTCHA, Redis/distributed rate limit, email notify.
 13. ~~Optional FE: global-setting → header/footer/contact~~ — done 2026-08-06 in `salanca-web`.
-14. Optional FE: full collection content replace (beyond media overlay); Restaurant hours/price after client confirm; draft preview shell.
+14. ~~Optional FE: full menu collection content~~ — done 2026-08-06 (`menu-packages` + `menu-items` replace buffet/rodizio/cuts/a-la-carte when published).
+15. Optional FE: full campaign collection content; Restaurant hours/price after client confirm; draft preview shell.
 
 ## Evidence
 
