@@ -131,9 +131,10 @@ field-level adapters + static fallback. Home seed copy in
 `scripts/seed-salanca-demo/pages.mjs` is aligned with FE `homePageCopy` for
 mapped fields. Forms POSTs (contact/reservation) were already in tree.
 
-FE follow-up: ~~CMS SEO → `generateMetadata`~~ (done 2026-08-06 in web:
-`buildRouteMetadata` + `loadPageSeo`). Still open: collection media URLs,
-campaign detail indexability, Restaurant JSON-LD.
+FE follow-up: ~~CMS SEO → `generateMetadata`~~ (done 2026-08-06).
+~~Collection media URLs~~ (menu/gallery/campaign overlay by slug/index).
+~~Campaign detail indexability + sitemap~~. ~~Restaurant JSON-LD~~ (confirmed
+contact fields only; hours/price still open).
 
 ## Next authorized work
 
@@ -143,12 +144,13 @@ campaign detail indexability, Restaurant JSON-LD.
 4. ~~Forms-2 reservation-request BE~~ — code in tree 2026-08-05; run `pnpm run smoke:reservation-form` with Postgres; manual Admin triage UAT open.
 5. ~~FE Phase 20 CMS page wiring~~ — done 2026-08-06 in `salanca-web` (fallback when CMS off).
 6. ~~FE CMS SEO metadata~~ — done 2026-08-06 (`buildRouteMetadata` / `loadPageSeo` on 8 marketing routes).
-7. Phase 0 manual Admin UAT (`docs/cms-editor-guide.md`) + create first Admin user via `/admin`.
-8. Named platform decisions (host/DB/S3) when client ready; optional local S3 mirror of batdongsan CloudFly vars.
-9. Phase 4C multi-account Admin UAT per `docs/admin-roles.md`.
-10. Phase 7 staging + ops handoff pack.
-11. Automation: CAPTCHA, Redis/distributed rate limit, email notify.
-12. FE remaining: collection media URLs, campaign detail indexability, Restaurant JSON-LD.
+7. ~~FE collection media + campaign detail SEO + Restaurant JSON-LD~~ — done 2026-08-06.
+8. Phase 0 manual Admin UAT (`docs/cms-editor-guide.md`) + create first Admin user via `/admin`.
+9. Named platform decisions (host/DB/S3) when client ready; optional local S3 mirror of batdongsan CloudFly vars.
+10. Phase 4C multi-account Admin UAT per `docs/admin-roles.md`.
+11. Phase 7 staging + ops handoff pack.
+12. Automation: CAPTCHA, Redis/distributed rate limit, email notify.
+13. Optional FE: full collection content replace (beyond media overlay); Restaurant hours/price after client confirm.
 
 ## Evidence
 
