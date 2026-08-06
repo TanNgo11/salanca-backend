@@ -135,6 +135,7 @@ FE follow-up: ~~CMS SEO → `generateMetadata`~~ (done 2026-08-06).
 ~~Collection media URLs~~ (menu/gallery/campaign overlay by slug/index).
 ~~Campaign detail indexability + sitemap~~. ~~Restaurant JSON-LD~~ (confirmed
 contact fields only; hours/price still open).
+~~global-setting → header/footer/contact~~ (done 2026-08-06).
 
 ## Next authorized work
 
@@ -150,7 +151,8 @@ contact fields only; hours/price still open).
 10. Phase 4C multi-account Admin UAT per `docs/admin-roles.md`.
 11. Phase 7 staging + ops handoff pack.
 12. Automation: CAPTCHA, Redis/distributed rate limit, email notify.
-13. Optional FE: full collection content replace (beyond media overlay); Restaurant hours/price after client confirm.
+13. ~~Optional FE: global-setting → header/footer/contact~~ — done 2026-08-06 in `salanca-web`.
+14. Optional FE: full collection content replace (beyond media overlay); Restaurant hours/price after client confirm; draft preview shell.
 
 ## Evidence
 
