@@ -12,6 +12,8 @@ async function seedPage(app, summary, uid, viData, enData) {
 }
 
 export async function seedPages(app, summary, mediaId, pkgDocumentId) {
+  // Home copy aligned with salanca-web `homePageCopy` for fields the Phase 20
+  // adapter maps, so CMS-on visual tests stay on the same baseline as static fallback.
   await seedPage(
     app,
     summary,
@@ -19,34 +21,63 @@ export async function seedPages(app, summary, mediaId, pkgDocumentId) {
     {
       hero: hero(
         mediaId,
-        'Thịt nướng Brazil đúng điệu',
-        'Rodizio không giới hạn tại 49 Phan Bội Châu, Hà Nội.',
-        'Xem thực đơn',
-        '/vi/thuc-don',
+        'TINH HOA\nCHURRASCARIA\nBRAZIL',
+        'Trải nghiệm hơn 12 loại thịt nướng phục vụ trực tiếp tại bàn theo phong cách Brazil truyền thống.',
+        'Đặt bàn ngay',
+        '/vi/dat-ban',
       ),
-      experienceHeading: 'Trải nghiệm churrasco',
-      experienceBody: 'Thịt được nướng trên que sắt và phục vụ tận bàn.',
-      experienceImage: image(mediaId, 'Trải nghiệm churrasco'),
-      experienceLink: link('Khám phá', '/vi/trai-nghiem'),
+      experienceHeading:
+        'Không chỉ là một bữa ăn, mà là một trải nghiệm Brazil trọn vẹn',
+      experienceBody:
+        'Từng xiên thịt hảo hạng nướng chậm trên than hồng, mang đến tận bàn và thái lát trực tiếp trước mặt bạn — đúng tinh thần Churrascaria đích thực.',
+      experienceImage: image(mediaId, 'Đầu bếp chuẩn bị món tại bếp mở'),
+      experienceLink: link('Tìm hiểu thêm', '/vi/trai-nghiem'),
       featuredPackage: pkgDocumentId,
-      featuredMenuHeading: 'Món nổi bật',
-      closingCta: cta('Đặt bàn tối nay', 'Giữ chỗ trước để có bàn đẹp.', 'Đặt bàn', '/vi/dat-ban'),
+      featuredMenuHeading: 'Những hương vị không thể bỏ lỡ',
+      storyHeading: 'Câu chuyện Salanca',
+      storyBody:
+        'Từ năm 2003, tiên thân là Au Lac do Brazil, chúng tôi đã mang tinh hoa ẩm thực Brazil đến TP. Hồ Chí Minh. Năm 2022, Salanca chính thức trở thành thương hiệu tiếp nối sứ mệnh mang đến trải nghiệm Churrascaria đích thực cho khách Việt.',
+      storyImage: image(mediaId, 'Câu chuyện Salanca'),
+      storyLink: link('Đọc tiếp câu chuyện', '/vi/cau-chuyen'),
+      spaceHeading: 'Một góc Brazil giữa lòng thành phố',
+      spaceImage: image(mediaId, 'Không gian sảnh chính Salanca'),
+      spaceLink: link('Xem thêm hình ảnh', '/vi/khong-gian'),
+      closingCta: cta(
+        'Sẵn sàng cho một bữa tiệc đậm chất Brazil?',
+        'Đặt bàn ngay để giữ chỗ và tận hưởng trải nghiệm Churrascaria trọn vẹn.',
+        'Đặt bàn ngay',
+        '/vi/dat-ban',
+      ),
       seo: seo('Salanca Brazil — Trang chủ', 'Churrascaria Brazil tại Hà Nội.', '/vi'),
     },
     {
       hero: hero(
         mediaId,
-        'Authentic Brazilian grill',
-        'Unlimited rodizio at 49 Phan Boi Chau, Hanoi.',
-        'View menu',
-        '/en/menu',
+        'THE ESSENCE OF\nBRAZILIAN\nCHURRASCARIA',
+        'Experience more than 12 grilled meats carved tableside in the traditional Brazilian style.',
+        'Book a table',
+        '/en/booking',
       ),
-      experienceHeading: 'The churrasco experience',
-      experienceBody: 'Meats grilled on skewers and carved tableside.',
-      experienceImage: image(mediaId, 'Churrasco experience'),
-      experienceLink: link('Explore', '/en/experience'),
-      featuredMenuHeading: 'Featured dishes',
-      closingCta: cta('Book tonight', 'Reserve ahead for the best tables.', 'Book', '/en/booking'),
+      experienceHeading: 'Not just a meal — a complete Brazilian experience',
+      experienceBody:
+        'Premium cuts slow-grilled over charcoal, brought to your table and carved before you — true Churrascaria spirit.',
+      experienceImage: image(mediaId, 'Chef plating a dish at the open kitchen'),
+      experienceLink: link('Learn more', '/en/experience'),
+      featuredMenuHeading: 'Flavors you cannot miss',
+      storyHeading: 'The Salanca story',
+      storyBody:
+        'Since 2003, from our roots as Au Lac do Brazil, we have brought Brazilian dining craft to Ho Chi Minh City. In 2022, Salanca continued that mission — authentic Churrascaria for Vietnamese guests.',
+      storyImage: image(mediaId, 'The Salanca story'),
+      storyLink: link('Read our story', '/en/story'),
+      spaceHeading: 'A corner of Brazil in the city',
+      spaceImage: image(mediaId, 'Salanca main dining room'),
+      spaceLink: link('See more photos', '/en/spaces'),
+      closingCta: cta(
+        'Ready for a true Brazilian feast?',
+        'Reserve a table to secure your seat and enjoy the full Churrascaria experience.',
+        'Book now',
+        '/en/booking',
+      ),
       seo: seo('Salanca Brazil — Home', 'Brazilian churrascaria in Hanoi.', '/en'),
     },
   );
