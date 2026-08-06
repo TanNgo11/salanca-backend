@@ -40,11 +40,11 @@ The first milestone manages:
 The first milestone does not implement:
 
 - Frontend API consumption.
-- Email, SMS, Zalo, CAPTCHA, or distributed rate limiting (Automation phase).
+- SMS, Zalo, or distributed rate limiting (Automation phase). Cloudflare Turnstile and Resend staff notify are optional via env.
 - Table availability, hard slot reservation, deposits, payments, or refunds.
 - Custom Strapi Admin dashboards, calendars, or Kanban views.
 
-**Forms MVP (opened):** public `contact-message` create intake + Admin triage. No email notify.
+**Forms MVP (opened):** public `contact-message` create intake + Admin triage. Optional staff email notify via Resend + `FORM_NOTIFY_TO`.
 
 **Forms-2 (opened):** public `reservation-request` lead intake (optional menu packages/items or “chọn món sau”), soft same-slot overlap flags, in-process IP rate limit. Not a booking engine.
 

@@ -2,8 +2,15 @@ import type { Core } from '@strapi/strapi';
 import { factories } from '@strapi/strapi';
 import { errors } from '@strapi/utils';
 
-import { parseContactMessageInput } from '../../../domain/contact-message/contact-message.validation';
+import {
+  ContactMessageValidationErrorCode,
+  parseContactMessageInput,
+} from '../../../domain/contact-message/contact-message.validation';
+import { resolveClientIp } from '../../../domain/form-intake/client-ip';
+import { toContactLeadNotifyPayload } from '../../../domain/form-intake/form-lead-notify';
 import { FormValidationError } from '../../../domain/form-intake/form-validation-error';
+import { scheduleFormLeadNotify } from '../../../domain/form-intake/send-form-lead-notify';
+import { assertEnvTurnstile } from '../../../domain/form-intake/turnstile';
 
 const { ApplicationError } = errors;
 
@@ -11,12 +18,18 @@ const UID = 'api::contact-message.contact-message' as const;
 
 export default factories.createCoreController(UID, ({ strapi }: { strapi: Core.Strapi }) => ({
   /**
-   * Public contact form intake: validate, force status new, return minimal payload.
+   * Public contact form intake: validate, optional Turnstile, force status new, return minimal payload.
    */
   async create(ctx) {
+    const rawData = ctx.request.body?.data;
     let data;
     try {
-      data = parseContactMessageInput(ctx.request.body?.data);
+      data = parseContactMessageInput(rawData);
+      await assertEnvTurnstile({
+        rawData,
+        remoteip: resolveClientIp(ctx),
+        errorCode: ContactMessageValidationErrorCode.Turnstile,
+      });
     } catch (error) {
       if (error instanceof FormValidationError) {
         throw new ApplicationError(error.message, { code: error.code });
@@ -36,5 +49,11 @@ export default factories.createCoreController(UID, ({ strapi }: { strapi: Core.S
         status: document.status ?? 'new',
       },
     };
+
+    // Off critical path: SMTP must not delay the public 201.
+    scheduleFormLeadNotify(
+      strapi,
+      toContactLeadNotifyPayload(document.documentId, data),
+    );
   },
 }));

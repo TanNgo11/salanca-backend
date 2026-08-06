@@ -6,6 +6,10 @@ import {
   isObjectStorageEnabled,
   resolveMediaStorageConfig,
 } from './media-storage.helper';
+import {
+  isTransactionalEmailConfigured,
+  resolveTransactionalEmailConfig,
+} from './transactional-email.helper';
 
 const allowedMediaTypes = [
   'image/*',
@@ -95,6 +99,14 @@ const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Plugin =>
         },
       },
     },
+    // Opt-in Resend SMTP (BDS pattern). Set EMAIL_SMTP_HOST to enable; leave unset for form-only local.
+    ...(isTransactionalEmailConfigured(env)
+      ? {
+          email: {
+            config: resolveTransactionalEmailConfig(env),
+          },
+        }
+      : {}),
     upload: {
       config: uploadConfig,
     },

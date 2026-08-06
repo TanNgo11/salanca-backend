@@ -78,6 +78,8 @@ export enum ReservationRequestValidationErrorCode {
   SourceLocaleInvalid = 'RESERVATION_SOURCE_LOCALE_INVALID',
   SourcePathTooLong = 'RESERVATION_SOURCE_PATH_TOO_LONG',
   RateLimited = 'RESERVATION_RATE_LIMITED',
+  /** Cloudflare Turnstile failed or missing when TURNSTILE_SECRET_KEY is set. */
+  Turnstile = 'RESERVATION_TURNSTILE',
 }
 
 /** @deprecated Use FormValidationError — kept as alias for call sites/tests. */

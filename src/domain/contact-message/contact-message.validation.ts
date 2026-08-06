@@ -53,6 +53,8 @@ export enum ContactMessageValidationErrorCode {
   TopicTooLong = 'CONTACT_TOPIC_TOO_LONG',
   SourceLocaleInvalid = 'CONTACT_SOURCE_LOCALE_INVALID',
   SourcePathTooLong = 'CONTACT_SOURCE_PATH_TOO_LONG',
+  /** Cloudflare Turnstile failed or missing when TURNSTILE_SECRET_KEY is set. */
+  Turnstile = 'CONTACT_TURNSTILE',
 }
 
 /** @deprecated Use FormValidationError — kept as alias for call sites/tests. */

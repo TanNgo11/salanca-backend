@@ -45,7 +45,7 @@ Collection **Tin nhắn liên hệ** (`contact-message`) nhận lead từ websit
 4. Không xóa lead trừ khi có quy trình PII/retention; ưu tiên archive.
 5. Public không xem được danh sách — chỉ Admin/Authenticated roles.
 
-Form **không** gửi email tự động trong MVP. Copy trang form (heading, topic) vẫn nằm ở **Trang liên hệ**.
+Email staff notify **opt-in** (Resend + `FORM_NOTIFY_TO`); lead vẫn luôn lưu trong Admin dù mail lỗi. Copy trang form (heading, topic) vẫn nằm ở **Trang liên hệ**.
 
 ## Yêu cầu đặt bàn (form intake)
 
@@ -59,7 +59,7 @@ Collection **Yêu cầu đặt bàn** (`reservation-request`) nhận lead đặt
 6. Đổi `status` thành `read` khi đã gọi khách, `archived` khi xong.
 7. Public không xem được danh sách — chỉ Admin.
 
-Form **không** kiểm tra bàn trống realtime và **không** gửi email tự động. Copy trang đặt bàn vẫn nằm ở **Trang đặt bàn**.
+Form **không** kiểm tra bàn trống realtime. Email staff notify **opt-in** (cùng Resend + `FORM_NOTIFY_TO` như liên hệ). Copy trang đặt bàn vẫn nằm ở **Trang đặt bàn**.
 
 ## Trước khi publish
 

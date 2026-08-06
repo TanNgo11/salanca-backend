@@ -150,7 +150,7 @@ contact fields only; hours/price still open).
 9. Named platform decisions (host/DB/S3) when client ready; optional local S3 mirror of batdongsan CloudFly vars.
 10. Phase 4C multi-account Admin UAT per `docs/admin-roles.md`.
 11. Phase 7 staging + ops handoff pack.
-12. Automation: CAPTCHA, Redis/distributed rate limit, email notify.
+12. Automation: ~~CAPTCHA~~ Cloudflare Turnstile (opt-in, 2026-08-06); ~~email notify~~ Resend SMTP + `FORM_NOTIFY_TO` (opt-in BDS pattern, 2026-08-06); Redis/distributed rate limit still open.
 13. ~~Optional FE: global-setting → header/footer/contact~~ — done 2026-08-06 in `salanca-web`.
 14. ~~Optional FE: full menu collection content~~ — done 2026-08-06 (`menu-packages` + `menu-items` replace buffet/rodizio/cuts/a-la-carte when published).
 15. ~~Optional FE: full campaign + draft preview + logo + Restaurant hours JSON-LD~~ — done 2026-08-06 in `salanca-web`.

@@ -101,6 +101,17 @@ content.
 `api::reservation-request.reservation-request`. Smokes:
 `pnpm run smoke:contact-form`, `pnpm run smoke:reservation-form`.
 
+Optional Cloudflare Turnstile: `src/domain/form-intake/turnstile.ts`. When
+`TURNSTILE_SECRET_KEY` is set, both form controllers verify the request-only
+token before create (reservation: before IP rate limit). Leave unset for local
+smoke. Pair with `NEXT_PUBLIC_TURNSTILE_SITE_KEY` on the web app.
+
+Optional Resend SMTP (BDS pattern): `config/transactional-email.helper.ts` +
+`@strapi/provider-email-nodemailer` when `EMAIL_SMTP_HOST` is set. Staff lead
+notify: `src/domain/form-intake/form-lead-notify.ts` + `send-form-lead-notify.ts`
+after successful create when `FORM_NOTIFY_TO` is set. Mail failure is absorbed.
+Ops: [`resend-email-operations.md`](./resend-email-operations.md).
+
 Demo data: `pnpm run seed:demo` then `pnpm run verify:seed`. Contract smoke:
 `pnpm run smoke:api`.
 

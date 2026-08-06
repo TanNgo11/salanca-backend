@@ -15,13 +15,14 @@ Public website can submit a contact lead; Strapi Admin can triage it. No FE UI i
 ## Non-goals
 
 - Reservation / booking leads.
-- Email notify, CAPTCHA vendor, distributed rate limit (Automation phase).
-- Frontend form.
+- Distributed rate limit (Redis) — still Automation residual.
+- Frontend form (shipped later in salanca-web).
 
 ## Residual risk (accepted for MVP)
 
-- No rate limiting beyond field limits + honeypot — production spam risk until Automation phase.
-- No CAPTCHA / email notify.
+- No rate limiting beyond field limits + honeypot — production spam risk until Redis.
+- Cloudflare Turnstile is **opt-in** (`TURNSTILE_SECRET_KEY`); leave unset for smoke; set in staging/production.
+- Staff email notify is **opt-in** (`EMAIL_SMTP_HOST` + `FORM_NOTIFY_TO`); see `docs/resend-email-operations.md`.
 - Security gate remains Users-Permissions **create only**; do not grant Public find/update/delete.
 
 ## Acceptance

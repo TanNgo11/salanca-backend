@@ -18,15 +18,16 @@ Public website can submit a **table reservation lead** (optionally with menu sel
 ## Non-goals
 
 - Booking engine: table inventory, hard capacity, deposits, payments.
-- Email/Zalo/SMS notify, CAPTCHA vendor, Redis distributed rate limit.
-- Frontend booking form UI.
+- Zalo/SMS notify; Redis distributed rate limit.
+- Frontend booking form UI (shipped in salanca-web).
 - Hard reject on overlap.
 
 ## Residual risk (accepted)
 
 - Soft-overlap race under concurrent creates may leave both rows with `overlapCount = 0`.
 - In-memory rate limit resets on process restart and does not share across instances.
-- No CAPTCHA / email notify until Automation phase.
+- Cloudflare Turnstile is opt-in (`TURNSTILE_SECRET_KEY`).
+- Staff email notify is opt-in (`EMAIL_SMTP_HOST` + `FORM_NOTIFY_TO`); see `docs/resend-email-operations.md`.
 - Security gate remains Users-Permissions **create only**; do not grant Public find/update/delete.
 
 ## Acceptance

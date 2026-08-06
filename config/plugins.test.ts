@@ -162,3 +162,36 @@ describe('users-permissions plugin configuration', () => {
     );
   });
 });
+
+describe('email plugin configuration', () => {
+  it('omits email plugin when EMAIL_SMTP_HOST is unset', () => {
+    expect(config(createParams(s3Environment)).email).toBeUndefined();
+  });
+
+  it('configures Resend nodemailer when host is set (capture in development)', () => {
+    const { email } = config(
+      createParams({
+        ...s3Environment,
+        EMAIL_SMTP_HOST: 'localhost',
+        EMAIL_SMTP_PORT: '1025',
+        EMAIL_FROM_NAME: 'Salanca',
+        EMAIL_FROM_ADDRESS: 'no-reply@salanca.local',
+        EMAIL_REPLY_TO: 'booking@salanca.local',
+      }),
+    );
+
+    expect(email).toEqual({
+      config: expect.objectContaining({
+        provider: 'nodemailer',
+        providerOptions: expect.objectContaining({
+          host: 'localhost',
+          port: 1025,
+        }),
+        settings: {
+          defaultFrom: 'Salanca <no-reply@salanca.local>',
+          defaultReplyTo: 'booking@salanca.local',
+        },
+      }),
+    });
+  });
+});

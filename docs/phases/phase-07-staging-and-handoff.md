@@ -154,5 +154,5 @@ Aligned with roadmap Definition of Done:
 1. FE-1: integrate global, menu, campaigns, gallery, pages.  
 2. FE-2: routing/SEO/cache/revalidate.  
 3. Forms BE: contact/reservation lead endpoints + rate limit.  
-4. Automation: notify channels, CAPTCHA.  
+4. Automation: notify channels; enable Turnstile keys in staging/production.  
 5. Booking engine only with real product requirements.

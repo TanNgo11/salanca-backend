@@ -9,7 +9,7 @@
 - PostgreSQL is required everywhere. Never add SQLite as a fallback.
 - Use Strapi Admin's generated CRUD. Build custom Admin UI only after a documented workflow gap is accepted.
 - Availability, table inventory, payment, and booking-engine models remain deferred.
-- Form leads in scope: `contact-message` (Forms MVP) and `reservation-request` (Forms-2, Public create-only, soft-overlap + in-memory IP rate limit). Email/CAPTCHA/Redis rate limit stay deferred.
+- Form leads in scope: `contact-message` (Forms MVP) and `reservation-request` (Forms-2, Public create-only, soft-overlap + in-memory IP rate limit). Optional Cloudflare Turnstile via `TURNSTILE_SECRET_KEY` (skip when unset). Optional Resend SMTP staff notify via `EMAIL_SMTP_HOST` + `FORM_NOTIFY_TO` (skip when unset; mail failure never fails create). Redis rate limit stays deferred.
 
 ## Read before changing code
 

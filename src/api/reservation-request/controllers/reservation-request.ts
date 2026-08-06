@@ -2,8 +2,11 @@ import type { Core } from '@strapi/strapi';
 import { factories } from '@strapi/strapi';
 import { errors } from '@strapi/utils';
 
-import { FormValidationError } from '../../../domain/form-intake/form-validation-error';
 import { resolveClientIp } from '../../../domain/form-intake/client-ip';
+import { toReservationLeadNotifyPayload } from '../../../domain/form-intake/form-lead-notify';
+import { FormValidationError } from '../../../domain/form-intake/form-validation-error';
+import { scheduleFormLeadNotify } from '../../../domain/form-intake/send-form-lead-notify';
+import { assertEnvTurnstile } from '../../../domain/form-intake/turnstile';
 import { countSlotPeers } from '../../../domain/reservation-request/count-slot-peers';
 import { getReservationRateLimit } from '../../../domain/reservation-request/reservation-rate-limit';
 import {
@@ -48,12 +51,20 @@ const writeApplicationError = (
 
 export default factories.createCoreController(UID, ({ strapi }: { strapi: Core.Strapi }) => ({
   /**
-   * Public reservation lead intake: validate → rate limit → menu resolve → soft-overlap → create.
+   * Public reservation lead intake: validate → Turnstile (if configured) → rate limit → menu → create.
    */
   async create(ctx) {
+    const rawData = ctx.request.body?.data;
+    const clientIp = resolveClientIp(ctx);
     let parsed;
     try {
-      parsed = parseReservationRequestInput(ctx.request.body?.data);
+      parsed = parseReservationRequestInput(rawData);
+      // Turnstile before rate limit so bots without a token do not burn quota.
+      await assertEnvTurnstile({
+        rawData,
+        remoteip: clientIp,
+        errorCode: ReservationRequestValidationErrorCode.Turnstile,
+      });
     } catch (error) {
       if (error instanceof FormValidationError) {
         throw new ApplicationError(error.message, { code: error.code });
@@ -62,7 +73,6 @@ export default factories.createCoreController(UID, ({ strapi }: { strapi: Core.S
     }
 
     // Rate limit only after successful parse so invalid/honeypot traffic does not burn quota.
-    const clientIp = resolveClientIp(ctx);
     const rate = getReservationRateLimit().tryConsume(`reservation-request:${clientIp}`);
     if (!rate.allowed) {
       writeApplicationError(
@@ -113,5 +123,24 @@ export default factories.createCoreController(UID, ({ strapi }: { strapi: Core.S
         hasOverlap: storedOverlap > 0,
       },
     };
+
+    // Off critical path: SMTP must not delay the public 201.
+    scheduleFormLeadNotify(
+      strapi,
+      toReservationLeadNotifyPayload(document.documentId, {
+        fullName: parsed.fullName,
+        phone: parsed.phone,
+        ...(parsed.email ? { email: parsed.email } : {}),
+        preferredDate: parsed.preferredDate,
+        preferredTime: parsed.preferredTime,
+        guestCount: parsed.guestCount,
+        ...(parsed.occasion ? { occasion: parsed.occasion } : {}),
+        ...(parsed.note ? { note: parsed.note } : {}),
+        menuSelectionMode: parsed.menuSelectionMode,
+        sourceLocale: parsed.sourceLocale,
+        ...(parsed.sourcePath ? { sourcePath: parsed.sourcePath } : {}),
+        overlapCount: storedOverlap,
+      }),
+    );
   },
 }));

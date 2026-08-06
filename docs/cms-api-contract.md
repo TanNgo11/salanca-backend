@@ -155,7 +155,8 @@ Content-Type: application/json
     "message": "Muon dat tiec 30 khach.",
     "sourceLocale": "vi",
     "sourcePath": "/vi/lien-he",
-    "website": ""
+    "website": "",
+    "turnstileToken": ""
   }
 }
 ```
@@ -166,9 +167,11 @@ Content-Type: application/json
 | Required | `fullName`, `message`, `sourceLocale` (`vi`\|`en`), and **email or phone** |
 | Alias | Body key `locale` accepted as alias for `sourceLocale` (prefer `sourceLocale`) |
 | Honeypot | `website` must be empty/absent; non-empty → `400` |
+| Turnstile | When `TURNSTILE_SECRET_KEY` is set: require `turnstileToken` or `cf-turnstile-response`; invalid/missing → `400` `CONTACT_TURNSTILE`. When unset, skipped (dev/smoke). Token is request-only (never stored). |
 | Client `status` | Ignored; server forces `new` |
 | `GET /contact-messages` | Public denied (`401`/`403`) |
-| Email / CAPTCHA / rate limit | **Not in MVP** (Automation phase residual risk) |
+| Email notify | **Opt-in:** Resend SMTP + `FORM_NOTIFY_TO` staff alert after create; delivery failure does not change `201` |
+| Redis rate limit | **Deferred** |
 
 ## Public form intake (reservation)
 
@@ -191,7 +194,8 @@ Content-Type: application/json
     "menuItems": ["itemDocumentId"],
     "sourceLocale": "vi",
     "sourcePath": "/vi/dat-ban",
-    "website": ""
+    "website": "",
+    "turnstileToken": ""
   }
 }
 ```
@@ -202,11 +206,13 @@ Content-Type: application/json
 | Required | `fullName`, `phone`, `preferredDate`, `preferredTime`, `guestCount`, `menuSelectionMode`, `sourceLocale` |
 | `menuSelectionMode` | `later` (no menu ids) or `now` (at least one package or item documentId, published+active) |
 | Soft overlap | Same date+time with status `new`\|`read` → store `overlapCount` via DB count; **does not reject** |
-| Rate limit | After successful validation; in-process per IP; default 5 / 10 min; env `RESERVATION_RATE_LIMIT_*`; over → `429` Strapi-shaped `{ error: { name: ApplicationError, details.code: RESERVATION_RATE_LIMITED } }` |
+| Rate limit | After successful validation + Turnstile; in-process per IP; default 5 / 10 min; env `RESERVATION_RATE_LIMIT_*`; over → `429` Strapi-shaped `{ error: { name: ApplicationError, details.code: RESERVATION_RATE_LIMITED } }` |
 | Honeypot | `website` empty/absent; non-empty → `400` (does not consume rate limit) |
+| Turnstile | When `TURNSTILE_SECRET_KEY` is set: require token before rate limit; fail → `400` `RESERVATION_TURNSTILE` (does not consume rate limit). When unset, skipped. |
 | Client `status` | Ignored; server forces `new` |
 | `GET /reservation-requests` | Public denied (`401`/`403`) |
-| Email / CAPTCHA / Redis RL | **Not in Forms-2** (Automation / later) |
+| Email notify | **Opt-in:** same Resend + `FORM_NOTIFY_TO` as contact; failure does not change `201` |
+| Redis RL | **Deferred** |
 
 ## Security
 
