@@ -66,6 +66,7 @@ export enum ReservationRequestValidationErrorCode {
   PreferredDatePast = 'RESERVATION_PREFERRED_DATE_PAST',
   PreferredTimeRequired = 'RESERVATION_PREFERRED_TIME_REQUIRED',
   PreferredTimeTooLong = 'RESERVATION_PREFERRED_TIME_TOO_LONG',
+  PreferredTimeInvalid = 'RESERVATION_PREFERRED_TIME_INVALID',
   GuestCountRequired = 'RESERVATION_GUEST_COUNT_REQUIRED',
   GuestCountInvalid = 'RESERVATION_GUEST_COUNT_INVALID',
   OccasionTooLong = 'RESERVATION_OCCASION_TOO_LONG',
@@ -85,6 +86,13 @@ export const ReservationRequestValidationError = FormValidationError;
 
 /** Strict calendar date YYYY-MM-DD. */
 const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/**
+ * Canonical 24-hour HH:mm. Soft-overlap counting matches on exact string
+ * equality, so "19:00", "7:00 PM" and "19h" would otherwise be three distinct
+ * slots and `overlapCount` would silently under-report.
+ */
+const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 const isMenuMode = (value: string): value is ReservationMenuSelectionMode =>
   value === 'later' || value === 'now';
@@ -167,6 +175,27 @@ const parseDocumentIdList = (
     ids.push(id);
   }
   return ids;
+};
+
+/** Required bounded string, then pinned to canonical 24-hour HH:mm. */
+const parsePreferredTime = (value: unknown): string => {
+  const preferredTime = requiredBoundedString(
+    fail,
+    value,
+    RESERVATION_REQUEST_LIMITS.preferredTime,
+    ReservationRequestValidationErrorCode.PreferredTimeRequired,
+    ReservationRequestValidationErrorCode.PreferredTimeTooLong,
+    'preferredTime',
+  );
+
+  if (!TIME_PATTERN.test(preferredTime)) {
+    return fail(
+      ReservationRequestValidationErrorCode.PreferredTimeInvalid,
+      'preferredTime must be 24-hour HH:mm (e.g. "19:00").',
+    );
+  }
+
+  return preferredTime;
 };
 
 export type ParseReservationRequestOptions = {
@@ -253,14 +282,7 @@ export function parseReservationRequestInput(
     );
   }
 
-  const preferredTime = requiredBoundedString(
-    fail,
-    raw.preferredTime,
-    RESERVATION_REQUEST_LIMITS.preferredTime,
-    ReservationRequestValidationErrorCode.PreferredTimeRequired,
-    ReservationRequestValidationErrorCode.PreferredTimeTooLong,
-    'preferredTime',
-  );
+  const preferredTime = parsePreferredTime(raw.preferredTime);
 
   const guestCount = parseBoundedInt(fail, raw.guestCount, {
     min: RESERVATION_REQUEST_LIMITS.guestCountMin,

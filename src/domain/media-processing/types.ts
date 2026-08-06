@@ -1,3 +1,19 @@
+/**
+ * Structural shape of Strapi's `env` reader (`@strapi/utils`), narrowed to what
+ * media processing needs so tests can inject a fake.
+ */
+export type MediaProcessingEnvReader = {
+  (key: string, defaultValue?: string): string | undefined;
+  int: (key: string, defaultValue: number) => number;
+  bool: (key: string, defaultValue: boolean) => boolean;
+};
+
+/** Structural subset of `strapi.log`. */
+export type MediaProcessingLogger = {
+  info: (message: string) => void;
+  warn: (message: string) => void;
+};
+
 export type MediaProcessingConfig = Readonly<{
   concurrency: number;
   enabled: boolean;

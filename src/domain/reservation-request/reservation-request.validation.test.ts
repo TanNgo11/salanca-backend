@@ -43,6 +43,38 @@ describe('todayInHoChiMinh', () => {
   });
 });
 
+describe('preferredTime format', () => {
+  /*
+   * Soft-overlap counting matches on exact string equality, so a free-text
+   * time would split one real slot across "19:00" / "7:00 PM" / "19h" and
+   * make overlapCount silently under-report.
+   */
+  it('accepts canonical 24-hour HH:mm', () => {
+    for (const preferredTime of ['00:00', '09:05', '19:00', '23:59']) {
+      expect(parse({ ...base, preferredTime }).preferredTime).toBe(preferredTime);
+    }
+  });
+
+  it('rejects any other spelling of a time', () => {
+    for (const preferredTime of ['7:00 PM', '19h', '24:00', '19:60', '19.00', '1900']) {
+      expect(() => parse({ ...base, preferredTime })).toThrow(
+        ReservationRequestValidationError,
+      );
+    }
+  });
+
+  it('reports the dedicated invalid-format code', () => {
+    try {
+      parse({ ...base, preferredTime: '7:00 PM' });
+      expect.unreachable('expected a validation error');
+    } catch (error) {
+      expect((error as { code: string }).code).toBe(
+        ReservationRequestValidationErrorCode.PreferredTimeInvalid,
+      );
+    }
+  });
+});
+
 describe('parseReservationRequestInput', () => {
   it('accepts later mode and forces status new', () => {
     const result = parse({

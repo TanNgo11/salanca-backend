@@ -148,6 +148,12 @@ export const normalizeSocialLinksInPlace = (data: Record<string, unknown>): void
   }
 
   const value = data.socialLinks;
+
+  // An explicitly undefined key means "not being written", same as an absent one.
+  if (value === undefined) {
+    return;
+  }
+
   if (value === null) {
     data.socialLinks = [];
     return;

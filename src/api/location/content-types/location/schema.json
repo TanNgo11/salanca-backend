@@ -48,7 +48,7 @@
     },
     "mapUrl": {
       "type": "text",
-      "maxLength": 2048
+      "maxLength": 4096
     },
     "phone": {
       "type": "string",

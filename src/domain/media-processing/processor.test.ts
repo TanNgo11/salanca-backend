@@ -55,6 +55,36 @@ describe('createMediaProcessor', () => {
     expect(result.buffer.byteLength).toBeGreaterThan(0);
   });
 
+  it('times out slow work and still serves the next job', async () => {
+    const config = resolveMediaProcessingConfig(
+      createEnv({
+        MEDIA_PROCESSING_ENABLED: 'true',
+        MEDIA_PROCESSING_TIMEOUT_MS: '1',
+        MEDIA_PROCESSING_CONCURRENCY: '1',
+      }),
+    );
+    const processor = createMediaProcessor(config);
+    const png = await sharp({
+      create: { width: 900, height: 900, channels: 3, background: { r: 4, g: 5, b: 6 } },
+    })
+      .png()
+      .toBuffer();
+
+    await expect(
+      processor.processRaster({ buffer: png, correlationId: 'test-timeout' }),
+    ).rejects.toMatchObject({ code: MediaProcessingErrorCode.Timeout });
+
+    /*
+     * The timed-out job holds its semaphore slot until sharp actually settles,
+     * so the slot is not double-booked. A following job must still run.
+     */
+    const relaxed = createMediaProcessor(
+      resolveMediaProcessingConfig(createEnv({ MEDIA_PROCESSING_ENABLED: 'true' })),
+    );
+    const next = await relaxed.processRaster({ buffer: png, correlationId: 'test-after-timeout' });
+    expect(next.mime).toBe('image/webp');
+  });
+
   it('rejects oversized input', async () => {
     const config = resolveMediaProcessingConfig(
       createEnv({

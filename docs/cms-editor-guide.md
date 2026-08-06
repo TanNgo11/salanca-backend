@@ -35,6 +35,23 @@ Strapi lưu một số field kỹ thuật nằm trong component theo từng loca
 - Không đổi slug chỉ để “trông đẹp” sau khi URL đã public nếu chưa có redirect plan.
 - Nếu Admin báo trùng slug trong cùng locale, chọn slug khác; không thêm số ngẫu nhiên mà không hiểu URL.
 
+## Link Google Maps (`mapUrl`)
+
+Ô này nhận **một** trong ba dạng, hệ thống tự chuẩn hóa và chỉ lưu URL HTTPS
+(không bao giờ lưu HTML):
+
+1. Link chia sẻ (`https://maps.app.goo.gl/...`, `https://www.google.com/maps/...`).
+2. Link nhúng (`https://www.google.com/maps/embed?pb=...`).
+3. **Nguyên thẻ `<iframe>`** copy từ Google Maps → *Chia sẻ* → *Nhúng bản đồ* →
+   *Sao chép HTML*. Dán thẳng vào ô; hệ thống bóc `src` ra và bỏ phần HTML.
+
+Ô cho phép tới 4096 ký tự vì thẻ iframe dài hơn URL bên trong nó nhiều.
+
+Bị từ chối khi lưu: nhiều hơn một thẻ, thẻ không phải iframe, thuộc tính sự kiện
+(`onload`...), `srcdoc`, link không phải HTTPS, host ngoài Google Maps, hoặc URL
+chứa tham số bí mật (`key`, `token`, `api_key`...). Nếu Admin báo lỗi, dán lại
+đúng một link hoặc đúng một thẻ iframe, không kèm chữ nào khác.
+
 ## Tin nhắn liên hệ (form intake)
 
 Collection **Tin nhắn liên hệ** (`contact-message`) nhận lead từ website.
@@ -55,7 +72,7 @@ Collection **Yêu cầu đặt bàn** (`reservation-request`) nhận lead đặt
 2. Bản ghi mới có `status = new`.
 3. Kiểm tra `preferredDate`, `preferredTime`, `guestCount`, `phone`.
 4. `menuSelectionMode = later` → khách chọn món tại nhà hàng; `now` → xem relation gói buffet / món lẻ.
-5. Lọc `overlapCount > 0` để ưu tiên các khung giờ có nhiều request (cảnh báo mềm — **không** tự chặn chỗ).
+5. Lọc `overlapCount > 0` để ưu tiên các khung giờ có nhiều request (cảnh báo mềm — **không** tự chặn chỗ). `preferredTime` luôn ở dạng 24 giờ `HH:mm` (`19:00`), nhờ vậy hai request cùng khung giờ mới đếm chung được.
 6. Đổi `status` thành `read` khi đã gọi khách, `archived` khi xong.
 7. Public không xem được danh sách — chỉ Admin.
 

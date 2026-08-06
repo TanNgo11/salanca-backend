@@ -1,11 +1,5 @@
-import type { MediaProcessingConfig } from './types';
+import type { MediaProcessingConfig, MediaProcessingEnvReader } from './types';
 import { MediaProcessingError, MediaProcessingErrorCode } from './errors';
-
-type EnvReader = {
-  (key: string, defaultValue?: string): string | undefined;
-  int: (key: string, defaultValue: number) => number;
-  bool: (key: string, defaultValue: boolean) => boolean;
-};
 
 const requirePositiveInt = (
   value: number,
@@ -26,7 +20,7 @@ const requirePositiveInt = (
  * Parse media-processing settings. Default disabled so local disk boot stays simple.
  */
 export const resolveMediaProcessingConfig = (
-  env: EnvReader,
+  env: MediaProcessingEnvReader,
   correlationId = 'startup',
 ): MediaProcessingConfig => {
   const enabled = env.bool('MEDIA_PROCESSING_ENABLED', false);

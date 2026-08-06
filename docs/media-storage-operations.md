@@ -22,6 +22,42 @@ Optional:
 - `S3_ACCESS_KEY_ID` + `S3_ACCESS_SECRET` (or ambient role credentials)
 - `S3_ACL=public-read` for ACL-based vendors
 
+## WebP processing (opt-in)
+
+Off unless `MEDIA_PROCESSING_ENABLED=true`. When on, uploads are re-encoded to
+WebP (orient → sRGB → edge cap → WebP, no watermark) before storage.
+
+**Not everything becomes WebP.** Strapi only calls the upload plugin's
+`optimize` for jpeg/png/webp/tiff/avif, so **SVG and GIF bypass the pipeline
+entirely** and are stored as uploaded. The FE must still expect non-WebP assets.
+Animated/multi-frame input that *does* reach the pipeline is rejected, not
+flattened.
+
+Enabling it rewrites the upload-plugin settings in the database
+(`sizeOptimization: false`, `autoOrientation: false`, `responsiveDimensions:
+true`) because our pipeline owns compression and orientation. Turning it off
+restores Strapi's stock values on the next boot. Both directions log at `info` —
+this silently reverts changes an operator makes in the Media Library settings
+UI, so check the boot log before debugging "my setting did not stick".
+
+Tuning: `MEDIA_PROCESSING_MAX_EDGE`, `_WEBP_QUALITY`, `_MAX_INPUT_BYTES`,
+`_MAX_PIXELS`, `_TIMEOUT_MS`, `_CONCURRENCY`, `_VERSION` (see `.env.example`).
+Oversized uploads are rejected from the declared file size before the file is
+read into memory.
+
+## Focal point backfill
+
+`shared.image.focalPointX/Y` are `required` with default 50. Schema sync adds
+the columns but does not populate existing rows, so component rows written
+before the field existed keep `NULL` — exposed as `null` by the public API, and
+failing `required` the next time an editor saves the parent entry.
+
+```bash
+pnpm run backfill:focal-points
+```
+
+Idempotent: a second run reports 0 rows.
+
 ## Safety
 
 - Upload MIME allow/deny lists live in `config/plugins.ts`.

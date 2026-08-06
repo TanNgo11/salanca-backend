@@ -168,7 +168,8 @@ Content-Type: application/json
 | Honeypot | `website` must be empty/absent; non-empty → `400` |
 | Client `status` | Ignored; server forces `new` |
 | `GET /contact-messages` | Public denied (`401`/`403`) |
-| Email / CAPTCHA / rate limit | **Not in MVP** (Automation phase residual risk) |
+| Rate limit | After successful validation; in-process per client IP; default 5 / 10 min; env `CONTACT_RATE_LIMIT_*`; over → `429` Strapi-shaped `{ error: { name: ApplicationError, details.code: CONTACT_RATE_LIMITED } }` with `Retry-After` |
+| Email / CAPTCHA | **Not in MVP** (Automation phase residual risk) |
 
 ## Public form intake (reservation)
 
@@ -200,9 +201,12 @@ Content-Type: application/json
 | --- | --- |
 | Success | `201` `{ data: { documentId, status: "new", overlapCount, hasOverlap } }` (`hasOverlap` derived, not stored) |
 | Required | `fullName`, `phone`, `preferredDate`, `preferredTime`, `guestCount`, `menuSelectionMode`, `sourceLocale` |
+| `preferredTime` | Canonical 24-hour `HH:mm` (`"19:00"`). Anything else (`"7:00 PM"`, `"19h"`, `"24:00"`) → `400` `RESERVATION_PREFERRED_TIME_INVALID`. Required so soft-overlap counting compares like with like |
 | `menuSelectionMode` | `later` (no menu ids) or `now` (at least one package or item documentId, published+active) |
+| Menu locale | Menu ids are resolved in `sourceLocale`, so an EN page submits the EN rows it displayed |
 | Soft overlap | Same date+time with status `new`\|`read` → store `overlapCount` via DB count; **does not reject** |
-| Rate limit | After successful validation; in-process per IP; default 5 / 10 min; env `RESERVATION_RATE_LIMIT_*`; over → `429` Strapi-shaped `{ error: { name: ApplicationError, details.code: RESERVATION_RATE_LIMITED } }` |
+| Rate limit | After successful validation; in-process per client IP; default 5 / 10 min; env `RESERVATION_RATE_LIMIT_*`; over → `429` Strapi-shaped `{ error: { name: ApplicationError, details.code: RESERVATION_RATE_LIMITED } }` with `Retry-After` |
+| Quota accounting | Consumed **before** menu resolution, so a request that then fails `RESERVATION_MENU_IDS_INVALID` still costs a slot. A limiter that ran after the database work would not protect the database |
 | Honeypot | `website` empty/absent; non-empty → `400` (does not consume rate limit) |
 | Client `status` | Ignored; server forces `new` |
 | `GET /reservation-requests` | Public denied (`401`/`403`) |
@@ -235,6 +239,8 @@ When both `CMS_WEBHOOK_URL` and `CMS_WEBHOOK_SECRET` are set, publish/unpublish 
 
 Header: `x-cms-signature: sha256=<hmac-sha256-hex-of-raw-body>`.  
 Delivery is fire-and-forget (does not block publish); failures are logged and never roll back the CMS write. FE verifies the signature before revalidating.
+
+**One payload per locale.** Publishing all locales (`locale: '*'`) or relying on the default locale fans out to every allowed locale (`vi`, `en`) as separate signed POSTs; an explicit locale sends one. The FE revalidate route must therefore be idempotent and safe to call twice in quick succession. An explicit locale outside the allowlist is logged and skipped.
 
 ## Cache expectations (for future FE)
 

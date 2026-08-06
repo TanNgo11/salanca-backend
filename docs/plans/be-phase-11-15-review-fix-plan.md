@@ -1,7 +1,7 @@
 # Review fixes — BDS Phase 11–15 lift (Waves 1–4)
 
-Status: Draft
-Owner: Tan Ngo (dev) — owner decision needed on F3 only
+Status: Implemented 2026-08-06 (F1–F11); backfill run + manual UAT still open
+Owner: Tan Ngo (dev) — F3 taken at its documented default (widen)
 Last updated: 2026-08-06
 Related phase: [`be-recent-bds-lift-plan.md`](be-recent-bds-lift-plan.md)
 
@@ -236,4 +236,28 @@ social URL, normalization, webhook sign/verify. Untested: `createMediaProcessing
 
 ## Completion record
 
-- (pending implementation)
+Implemented 2026-08-06 on branch `fix/flaky-media-processing-test`. Gates:
+`lint`, `verify:schema`, `typecheck`, `test` (31 files / 211 tests), `build` — all pass.
+
+| ID | Outcome |
+| --- | --- |
+| F1 | `resolveWebhookLocales` fans `'*'` and an omitted locale out to the full allowlist, filters arrays, warns only on an explicit bad locale; 8 tests |
+| F2 | `resolveDeclaredBytes` rejects from `sizeInBytes` → `size × 1000` → `fs.stat` before the read; the post-read check stays as the stream-path backstop |
+| F3 | Widened (default taken). Both schemas now `maxLength: 4096`; the normalized URL is still capped at 2048 by `parseHttpsMapUrl` |
+| F4 | `enforceMediaProcessingUploadSettings` restores stock values when disabled, skips no-op writes, and logs every write at `info` |
+| F5 | `scripts/backfill-focal-points.mjs` + `pnpm run backfill:focal-points` |
+| F6 | `metadata()` moved inside the timeout via `inspectSource`; `withTimeout` returns `settled` so the semaphore slot is held until sharp really finishes |
+| F7 | New `upload-optimize.test.ts` (10), `enforce-content-boundaries.test.ts` (7), `emit-cms-webhook.test.ts` (8) |
+| F8 | `socialLinks: undefined` now treated as an absent key |
+| F9 | Logged with the correlation id in `upload-optimize.ts` via `runtime.logger` |
+| F10 | `runtime.ts` takes `env` from `@strapi/utils`; the duplicated `EnvReader` type is now one `MediaProcessingEnvReader` in `types.ts`; `MEDIA_PROCESSING_VERSION` documented |
+| F11 | SVG/GIF bypass documented in `media-storage-operations.md` |
+
+Deviations from the plan: `toEditorSafeMessage` lost its duplicated
+`correlationId` parameter (it reads `error.correlationId`), and `processor.ts`
+was restructured into `inspectSource` / `transformToWebp` rather than patched in
+place — F6 needed both under one timeout and the nesting was already deep.
+
+Still open (needs a real environment): `pnpm run backfill:focal-points` against
+Postgres, and the manual UAT — iframe paste into `mapUrl`, 4000px JPEG → capped
+WebP, SVG stored unchanged.

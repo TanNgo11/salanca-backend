@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { InMemoryRateLimit, parsePositiveIntEnv } from './in-memory-rate-limit';
+import { parsePositiveIntEnv } from '../../shared/env/parse-positive-int';
+import { InMemoryRateLimit } from './in-memory-rate-limit';
 
 describe('InMemoryRateLimit', () => {
   const limiter = new InMemoryRateLimit({ max: 3, windowMs: 1000 });

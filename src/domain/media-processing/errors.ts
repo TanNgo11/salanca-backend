@@ -28,10 +28,9 @@ export class MediaProcessingError extends Error {
 }
 
 /** Editor-facing message without internal paths or buffers. */
-export const toEditorSafeMessage = (
-  error: MediaProcessingError,
-  correlationId: string,
-): string => {
+export const toEditorSafeMessage = (error: MediaProcessingError): string => {
+  const { correlationId } = error;
+
   switch (error.code) {
     case MediaProcessingErrorCode.InputTooLarge:
       return `Ảnh vượt quá dung lượng cho phép (mã ${correlationId}).`;

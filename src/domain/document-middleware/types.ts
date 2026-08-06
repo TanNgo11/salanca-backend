@@ -10,7 +10,11 @@ export type DocumentMiddlewareContext = {
   params: {
     data?: Record<string, unknown>;
     documentId?: string;
-    locale?: string;
+    /**
+     * Strapi 5 accepts a single locale, an array, `'*'` for every locale, or
+     * nothing at all when the caller relies on the default locale.
+     */
+    locale?: string | string[] | null;
   };
 };
 

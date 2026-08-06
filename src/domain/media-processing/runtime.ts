@@ -1,56 +1,24 @@
 import type { Core } from '@strapi/strapi';
+import { env } from '@strapi/utils';
 
 import { resolveMediaProcessingConfig } from './config';
 import { createMediaProcessor, type MediaProcessor } from './processor';
-import type { MediaProcessingConfig } from './types';
+import type { MediaProcessingConfig, MediaProcessingLogger } from './types';
 
 export type MediaProcessingRuntime = Readonly<{
   config: MediaProcessingConfig;
+  logger?: MediaProcessingLogger;
   processor: MediaProcessor;
 }>;
 
-type EnvReader = {
-  (key: string, defaultValue?: string): string | undefined;
-  int: (key: string, defaultValue: number) => number;
-  bool: (key: string, defaultValue: boolean) => boolean;
-};
-
 const runtimeByStrapi = new WeakMap<Core.Strapi, MediaProcessingRuntime>();
 
-const readProcessEnv = (): EnvReader => {
-  const env = process.env;
-
-  const reader = ((key: string, defaultValue?: string): string | undefined => {
-    const value = env[key];
-    return value === undefined || value === '' ? defaultValue : value;
-  }) as EnvReader;
-
-  reader.int = (key: string, defaultValue: number): number => {
-    const raw = env[key];
-    if (raw === undefined || raw === '') {
-      return defaultValue;
-    }
-    const parsed = Number.parseInt(raw, 10);
-    return Number.isNaN(parsed) ? defaultValue : parsed;
-  };
-
-  reader.bool = (key: string, defaultValue: boolean): boolean => {
-    const raw = env[key];
-    if (raw === undefined || raw === '') {
-      return defaultValue;
-    }
-    if (raw === 'true' || raw === '1') {
-      return true;
-    }
-    if (raw === 'false' || raw === '0') {
-      return false;
-    }
-    return defaultValue;
-  };
-
-  return reader;
-};
-
+/**
+ * One runtime per Strapi instance. The env reader is Strapi's own
+ * (`@strapi/utils`), not a private process.env wrapper: this is constructed
+ * lazily at request time, so `config/env.helper.ts` — which needs the injected
+ * `ConfigParams['env']` callable — does not apply here.
+ */
 export const getOrCreateMediaProcessingRuntime = (
   strapi: Core.Strapi,
 ): MediaProcessingRuntime => {
@@ -59,9 +27,10 @@ export const getOrCreateMediaProcessingRuntime = (
     return existing;
   }
 
-  const config = resolveMediaProcessingConfig(readProcessEnv());
+  const config = resolveMediaProcessingConfig(env);
   const runtime: MediaProcessingRuntime = {
     config,
+    logger: strapi.log,
     processor: createMediaProcessor(config),
   };
   runtimeByStrapi.set(strapi, runtime);

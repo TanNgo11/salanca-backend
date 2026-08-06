@@ -17,13 +17,15 @@ Last reviewed against repository documentation: 2026-08-05
 
 Still not ported (by design): end-user auth/email, projects, property watermark.
 
-**Code review of the Phase 11–15 lift (2026-08-06):** 11 findings (3 P1) recorded in [`plans/be-phase-11-15-review-fix-plan.md`](plans/be-phase-11-15-review-fix-plan.md) — webhook locale fan-out, buffer-before-size-check on upload, `mapUrl` column narrower than the iframe paste limit, plus focal-point backfill and wiring test gaps. Not yet implemented.
+**Code review of the Phase 11–15 lift (2026-08-06):** 11 findings (3 P1) recorded in [`plans/be-phase-11-15-review-fix-plan.md`](plans/be-phase-11-15-review-fix-plan.md) — webhook locale fan-out, buffer-before-size-check on upload, `mapUrl` column narrower than the iframe paste limit, plus focal-point backfill and wiring test gaps. **All 11 implemented 2026-08-06**; the focal backfill (`pnpm run backfill:focal-points`) still needs a run against a real database.
 
 **Tooling align (2026-08-04):** Strapi **5.51.1**, pnpm **11.7.0**, full `plugins`/`middlewares` config test suite.
 
 **Forms MVP contact intake (2026-08-04):** `contact-message` lead CT + Public create-only + validation/honeypot + `smoke:contact-form`. Spec: [`phases/phase-forms-contact-message.md`](phases/phase-forms-contact-message.md). No email/CAPTCHA.
 
 **Forms-2 reservation intake (2026-08-05):** `reservation-request` lead CT + menu later/now + soft same-slot overlap + in-process IP rate limit + `smoke:reservation-form`. Spec: [`phases/phase-forms-reservation-request.md`](phases/phase-forms-reservation-request.md). Not a booking engine; no email/CAPTCHA/Redis.
+
+**Code review of the Forms MVP (2026-08-06):** 9 findings (1 P1) recorded in [`plans/be-forms-review-fix-plan.md`](plans/be-forms-review-fix-plan.md) — rate limit keys on the reverse proxy IP (one global bucket off localhost), locale-blind menu validation, unconstrained `preferredTime` behind `overlapCount`, plus untested controllers. **All 9 implemented 2026-08-06.** Both owner decisions were taken at their documented defaults: `preferredTime` is pinned to `HH:mm`, and the contact form is now rate limited. New env knob `KOA_TRUST_PROXY` must be set to `true` on any deployment behind a reverse proxy, or every visitor shares one rate-limit bucket.
 
 **Local self-test re-run (2026-08-03):** green on Windows PostgreSQL 17 (`localhost:5432`, DB `salanca_cms`, same host/user pattern as `batdongsan-cms`). Campaign date invariant already in code. Seed script fixes applied (location EN slug, campaign `shared.cta` shape).
 
@@ -81,6 +83,20 @@ npm run check:phase3
 | `npm run seed:demo` | Pass (after seed script fixes) |
 | `npm run verify:seed` | Pass |
 | `npm run smoke:api` | Pass (public read 200; public write 403) |
+
+**Review-fix run 2026-08-06 (both plans implemented, no database required):**
+
+| Gate | Result |
+| --- | --- |
+| `pnpm run lint` | Pass |
+| `pnpm run verify:schema` | Pass (12 components, 15 localized types, 2 lead types) |
+| `pnpm run typecheck` | Pass |
+| `pnpm run test` | Pass — 31 files / 211 tests (was 167) |
+| `pnpm run build` | Pass |
+
+Not yet run (needs Postgres / a deployed proxy): `check:forms`, `seed:demo` +
+`verify:seed`, `backfill:focal-points`, and the manual UAT rows in both plans —
+per-locale menu submit, iframe paste into `mapUrl`, forwarded-IP quota split.
 
 Local env notes: `.env` aligned with batdongsan local Postgres (port `5432`, user `postgres`); Docker Compose on `5433` remains optional. Do not commit `.env`.
 

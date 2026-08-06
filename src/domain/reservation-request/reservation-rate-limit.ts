@@ -2,10 +2,8 @@
  * Reservation-specific rate limit config (env + lazy process singleton).
  */
 
-import {
-  InMemoryRateLimit,
-  parsePositiveIntEnv,
-} from '../rate-limit/in-memory-rate-limit';
+import { parsePositiveIntEnv } from '../../shared/env/parse-positive-int';
+import { InMemoryRateLimit } from '../rate-limit/in-memory-rate-limit';
 
 export const DEFAULT_RESERVATION_RATE_LIMIT_MAX = 5;
 export const DEFAULT_RESERVATION_RATE_LIMIT_WINDOW_MS = 600_000;

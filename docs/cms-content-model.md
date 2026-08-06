@@ -102,7 +102,7 @@ Collection lead nhận form liên hệ từ website. **Không** i18n plugin, **k
 | `status` | `new` \| `read` \| `archived`; public create luôn `new` |
 | `sourcePath` | Optional, ví dụ `/vi/lien-he` |
 
-Honeypot `website` chỉ có trên request body, **không** có cột schema. Public chỉ `create`; không `find`/`findOne`/`update`/`delete`.
+Honeypot `website` chỉ có trên request body, **không** có cột schema. Public chỉ `create`; không `find`/`findOne`/`update`/`delete`. Rate limit in-process theo IP **sau** validate thành công (env `CONTACT_RATE_LIMIT_*`).
 
 ### `reservation-request`
 
@@ -114,7 +114,7 @@ Collection lead nhận form đặt bàn từ website. **Không** i18n plugin, **
 | `phone` | Bắt buộc, max 40 (nhà hàng gọi xác nhận) |
 | `email` | Optional |
 | `preferredDate` | Date bắt buộc; validation reject ngày trước “hôm nay” `Asia/Ho_Chi_Minh` |
-| `preferredTime` | String bắt buộc (value từ `booking-page.arrivalTimes`) |
+| `preferredTime` | String bắt buộc, **định dạng 24 giờ `HH:mm`** (`19:00`); value từ `booking-page.arrivalTimes`. `overlapCount` so khớp bằng chuỗi nên format phải chuẩn hóa |
 | `guestCount` | Integer 1–100 |
 | `occasion` / `note` | Optional |
 | `menuSelectionMode` | `later` (chọn món sau) \| `now` (chọn gói/món ngay) |
@@ -123,7 +123,7 @@ Collection lead nhận form đặt bàn từ website. **Không** i18n plugin, **
 | `status` | `new` \| `read` \| `archived`; public create luôn `new` |
 | `overlapCount` | Soft detect: số lead peers cùng date+time (status `new`\|`read`) lúc create; không reject. API derive `hasOverlap = overlapCount > 0` |
 
-Honeypot `website` request-only. Public chỉ `create`. Rate limit in-process theo IP **sau** validate thành công (env `RESERVATION_RATE_LIMIT_*`). Shared form primitives: `src/domain/form-intake/`.
+Honeypot `website` request-only. Public chỉ `create`. Rate limit in-process theo IP **sau** validate thành công (env `RESERVATION_RATE_LIMIT_*`). `menuPackages` / `menuItems` được resolve theo `sourceLocale` nên trang EN gửi đúng row EN. Shared form primitives: `src/domain/form-intake/`.
 
 ## Model cố ý hoãn
 

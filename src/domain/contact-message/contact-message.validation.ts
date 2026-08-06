@@ -53,6 +53,7 @@ export enum ContactMessageValidationErrorCode {
   TopicTooLong = 'CONTACT_TOPIC_TOO_LONG',
   SourceLocaleInvalid = 'CONTACT_SOURCE_LOCALE_INVALID',
   SourcePathTooLong = 'CONTACT_SOURCE_PATH_TOO_LONG',
+  RateLimited = 'CONTACT_RATE_LIMITED',
 }
 
 /** @deprecated Use FormValidationError — kept as alias for call sites/tests. */

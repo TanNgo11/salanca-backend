@@ -27,6 +27,34 @@ const replaceExtension = (filename: string, nextExt: string): string => {
   return `${base}${nextExt.startsWith('.') ? nextExt : `.${nextExt}`}`;
 };
 
+/**
+ * Declared byte size before any read: `sizeInBytes` when the plugin set it,
+ * else Strapi's kilobyte `size`, else the temp file on disk. Returns undefined
+ * only when none of the three is available (pure stream path).
+ */
+export const resolveDeclaredBytes = async (
+  file: UploadWorkingFile,
+  stat: (filepath: string) => Promise<{ size: number }> = fs.stat,
+): Promise<number | undefined> => {
+  if (typeof file.sizeInBytes === 'number' && Number.isFinite(file.sizeInBytes)) {
+    return file.sizeInBytes;
+  }
+
+  if (typeof file.size === 'number' && Number.isFinite(file.size)) {
+    return file.size * 1000;
+  }
+
+  if (typeof file.filepath === 'string' && file.filepath.length > 0) {
+    try {
+      return (await stat(file.filepath)).size;
+    } catch {
+      return undefined;
+    }
+  }
+
+  return undefined;
+};
+
 const readWorkingFileBuffer = async (file: UploadWorkingFile): Promise<Buffer> => {
   if (file.filepath) {
     return fs.readFile(file.filepath);
@@ -66,13 +94,27 @@ export const createMediaProcessingOptimize = (
           new MediaProcessingError(MediaProcessingErrorCode.ConfigInvalid, correlationId, {
             reason: 'missing_tmp_working_directory',
           }),
-          correlationId,
         ),
         { correlationId, code: MediaProcessingErrorCode.ConfigInvalid },
       );
     }
 
     try {
+      /*
+       * Reject on the declared size before reading. Strapi's own sizeLimit
+       * defaults to 200 MB, so without this a 200 MB upload is fully resident
+       * in memory — times the upload concurrency — before processRaster's
+       * byteLength check rejects it. That check stays as the backstop for the
+       * stream path, where no size is declared up front.
+       */
+      const declaredBytes = await resolveDeclaredBytes(file);
+      if (declaredBytes !== undefined && declaredBytes > runtime.config.maxInputBytes) {
+        throw new MediaProcessingError(MediaProcessingErrorCode.InputTooLarge, correlationId, {
+          bytes: declaredBytes,
+          maxInputBytes: runtime.config.maxInputBytes,
+        });
+      }
+
       const sourceBuffer = await readWorkingFileBuffer(file);
       const result = await runtime.processor.processRaster({
         buffer: sourceBuffer,
@@ -91,6 +133,13 @@ export const createMediaProcessingOptimize = (
       const nextName =
         typeof file.name === 'string' ? replaceExtension(file.name, '.webp') : outName;
 
+      // The only place processingVersion is observable: no media record CT stores it (D3).
+      runtime.logger?.info(
+        `Media processed [${correlationId}] v${result.processingVersion}: `
+          + `${result.source.format} ${result.source.width}x${result.source.height} `
+          + `→ webp ${result.width}x${result.height} (${result.bytes} bytes)`,
+      );
+
       return {
         ...file,
         ext: '.webp',
@@ -106,7 +155,7 @@ export const createMediaProcessingOptimize = (
       };
     } catch (error) {
       if (error instanceof MediaProcessingError) {
-        throw new errors.ApplicationError(toEditorSafeMessage(error, correlationId), {
+        throw new errors.ApplicationError(toEditorSafeMessage(error), {
           correlationId,
           code: error.code,
         });
@@ -116,28 +165,63 @@ export const createMediaProcessingOptimize = (
   };
 };
 
+/** Stock Strapi upload settings, restored when our pipeline is switched off. */
+const STOCK_UPLOAD_SETTINGS = {
+  sizeOptimization: true,
+  responsiveDimensions: true,
+  autoOrientation: true,
+} as const;
+
+/** Our pipeline owns compression and orientation; keep Strapi's responsive formats. */
+const MANAGED_UPLOAD_SETTINGS = {
+  sizeOptimization: false,
+  responsiveDimensions: true,
+  autoOrientation: false,
+} as const;
+
+type PluginSettingsStore = {
+  get: (params: Record<string, unknown>) => Promise<unknown>;
+  set: (params: { value: unknown }) => Promise<unknown>;
+};
+
 /**
- * Prefer Strapi responsive formats; turn off sizeOptimization when our pipeline owns compression.
+ * Writes the upload-plugin settings our pipeline requires, and restores the
+ * stock values when it is disabled.
+ *
+ * Both directions are needed: writing only on enable left sizeOptimization
+ * false in the database after MEDIA_PROCESSING_ENABLED was turned off, so stock
+ * optimization stayed silently disabled. Every write is logged, because this
+ * silently reverts operator changes made in the Media Library settings UI.
  */
 export const enforceMediaProcessingUploadSettings = async (
   strapi: Core.Strapi,
+  store?: PluginSettingsStore,
 ): Promise<void> => {
   const runtime = getOrCreateMediaProcessingRuntime(strapi);
-  if (!runtime.config.enabled) {
-    return;
-  }
+  const desired = runtime.config.enabled ? MANAGED_UPLOAD_SETTINGS : STOCK_UPLOAD_SETTINGS;
 
   try {
-    const pluginStore = strapi.store({ type: 'plugin', name: 'upload', key: 'settings' });
+    const pluginStore =
+      store
+      ?? (strapi.store({
+        type: 'plugin',
+        name: 'upload',
+        key: 'settings',
+      }) as unknown as PluginSettingsStore);
     const current = (await pluginStore.get({})) as Record<string, unknown> | null;
-    await pluginStore.set({
-      value: {
-        ...(current ?? {}),
-        sizeOptimization: false,
-        responsiveDimensions: true,
-        autoOrientation: false,
-      },
-    });
+
+    const unchanged =
+      current
+      && Object.entries(desired).every(([key, value]) => current[key] === value);
+    if (unchanged) {
+      return;
+    }
+
+    await pluginStore.set({ value: { ...(current ?? {}), ...desired } });
+    strapi.log.info(
+      `Upload settings set to ${runtime.config.enabled ? 'media-processing' : 'stock Strapi'} `
+        + `values: ${JSON.stringify(desired)}.`,
+    );
   } catch (error) {
     strapi.log.warn(
       `Could not enforce upload settings for media processing: ${

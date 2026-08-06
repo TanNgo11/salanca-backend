@@ -8,6 +8,45 @@ import {
   CmsWebhookEvent,
 } from './cms-webhook.types';
 
+/**
+ * Strapi 5 `documents.publish` accepts `locale: '*'` (every locale), an array,
+ * a single string, or nothing at all when the caller relies on the default
+ * locale. Anything but the single-string case used to fall through to a
+ * hardcoded `vi` or be dropped entirely, so publish-all revalidated nothing.
+ *
+ * `'*'` and an omitted locale both fan out to the full allowlist; an explicit
+ * locale outside it is still warned about and skipped.
+ */
+export const resolveWebhookLocales = (
+  strapi: Core.Strapi,
+  uid: string,
+  rawLocale: unknown,
+): string[] => {
+  const allowed = [...CMS_WEBHOOK_ALLOWED_LOCALES];
+
+  if (rawLocale == null || rawLocale === '*') {
+    return allowed;
+  }
+
+  const requested = Array.isArray(rawLocale) ? rawLocale : [rawLocale];
+  const locales: string[] = [];
+
+  for (const entry of requested) {
+    if (typeof entry === 'string' && CMS_WEBHOOK_ALLOWED_LOCALES.has(entry)) {
+      if (!locales.includes(entry)) {
+        locales.push(entry);
+      }
+      continue;
+    }
+
+    strapi.log.warn(
+      `CMS webhook skipped: unsupported locale "${String(entry)}" for ${uid}.`,
+    );
+  }
+
+  return locales;
+};
+
 const resolveEvent = (action: string): CmsWebhookEvent | null => {
   if (action === 'publish') {
     return CmsWebhookEvent.Publish;
@@ -74,11 +113,8 @@ export const emitCmsWebhook = async (
     return;
   }
 
-  const locale = ctx.params.locale ?? 'vi';
-  if (!CMS_WEBHOOK_ALLOWED_LOCALES.has(locale)) {
-    strapi.log.warn(
-      `CMS webhook skipped: unsupported locale "${locale}" for ${ctx.uid}.`,
-    );
+  const locales = resolveWebhookLocales(strapi, ctx.uid, ctx.params.locale);
+  if (locales.length === 0) {
     return;
   }
 
@@ -96,6 +132,7 @@ export const emitCmsWebhook = async (
     return;
   }
 
-  const payload = buildCmsWebhookPayload(ctx.uid, locale, documentId, event);
-  void deliverWebhook(strapi, payload);
+  for (const locale of locales) {
+    void deliverWebhook(strapi, buildCmsWebhookPayload(ctx.uid, locale, documentId, event));
+  }
 };

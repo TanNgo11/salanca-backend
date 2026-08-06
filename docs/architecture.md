@@ -101,6 +101,19 @@ content.
 `api::reservation-request.reservation-request`. Smokes:
 `pnpm run smoke:contact-form`, `pnpm run smoke:reservation-form`.
 
+Controller bodies live in `src/domain/{contact-message,reservation-request}/handle-*-create.ts`
+so the 429 envelope, forced `status`, and error mapping are unit-testable; the
+`src/api/**/controllers/` files are thin wrappers.
+
+**Rate limiting keys on `ctx.request.ip`.** Koa only derives that from
+`X-Forwarded-For` when `server.proxy.koa` is true, which `config/server.ts`
+reads from `KOA_TRUST_PROXY` (default `false`). Behind a reverse proxy with the
+flag unset, every request reports the proxy's address and all visitors share one
+bucket; with the flag set but no trusted proxy in front, a client can rotate the
+header and bypass the limiter. Set it to `true` **only** where a trusted proxy
+rewrites the header. The limiter itself is in-process and per instance — it
+degrades to per-node quotas, never to a single global bucket.
+
 Demo data: `pnpm run seed:demo` then `pnpm run verify:seed`. Contract smoke:
 `pnpm run smoke:api`.
 

@@ -20,7 +20,10 @@ Public website can submit a contact lead; Strapi Admin can triage it. No FE UI i
 
 ## Residual risk (accepted for MVP)
 
-- No rate limiting beyond field limits + honeypot — production spam risk until Automation phase.
+- ~~No rate limiting beyond field limits + honeypot~~ — **closed 2026-08-06**. Forms-2 shipped
+  `InMemoryRateLimit` + `resolveClientIp` as reusable primitives, so the endpoint now consumes an
+  in-process per-IP quota after validation (`CONTACT_RATE_LIMIT_*`, default 5 / 10 min). Still
+  per instance, not distributed.
 - No CAPTCHA / email notify.
 - Security gate remains Users-Permissions **create only**; do not grant Public find/update/delete.
 

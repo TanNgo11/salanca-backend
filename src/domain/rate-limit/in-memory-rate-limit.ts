@@ -86,18 +86,3 @@ export class InMemoryRateLimit {
     return this.store.size;
   }
 }
-
-/** Parse positive int env with fallback (shared by feature limit factories). */
-export const parsePositiveIntEnv = (
-  raw: string | undefined,
-  fallback: number,
-): number => {
-  if (raw == null || raw.trim() === '') {
-    return fallback;
-  }
-  const n = Number.parseInt(raw, 10);
-  if (!Number.isFinite(n) || n < 1) {
-    return fallback;
-  }
-  return n;
-};

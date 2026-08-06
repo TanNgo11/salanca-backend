@@ -23,6 +23,7 @@
     "seed:demo": "node scripts/seed-salanca-demo/index.mjs",
     "verify:seed": "node scripts/verify-seed.mjs",
     "media:reconcile": "node scripts/reconcile-media/index.mjs",
+    "backfill:focal-points": "node scripts/backfill-focal-points.mjs",
     "smoke:crud": "node scripts/smoke-content-crud.mjs",
     "smoke:i18n": "node scripts/smoke-i18n.mjs",
     "smoke:api": "node scripts/smoke-api.mjs",

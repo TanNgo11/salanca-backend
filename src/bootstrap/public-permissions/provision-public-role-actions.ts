@@ -63,7 +63,13 @@ export const provisionPublicRoleActions = async (
     throw new Error('The public end-user role was not found.');
   }
 
-  await Promise.all(
-    actions.map((action) => ensurePublicPermission(strapi, publicRole.documentId, action)),
-  );
+  /*
+   * Sequential on purpose: ensurePublicPermission is check-then-create with no
+   * unique constraint behind it, so concurrent passes can insert duplicate
+   * permission rows. Boot-time work over a handful of actions — the wall clock
+   * cost is irrelevant next to the duplicate rows.
+   */
+  for (const action of actions) {
+    await ensurePublicPermission(strapi, publicRole.documentId, action);
+  }
 };
