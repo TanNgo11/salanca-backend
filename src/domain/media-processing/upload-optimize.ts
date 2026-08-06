@@ -165,17 +165,22 @@ export const createMediaProcessingOptimize = (
   };
 };
 
-/** Stock Strapi upload settings, restored when our pipeline is switched off. */
+/*
+ * Only the two keys our pipeline actually owns are managed. `responsiveDimensions`
+ * is deliberately absent from both sets: it is an operator's storage/bandwidth
+ * choice, not ours, and pinning it here reverted their Media Library setting on
+ * every boot — including on installs that never enabled the pipeline.
+ */
+
+/** Stock Strapi values, restored when our pipeline is switched off. */
 const STOCK_UPLOAD_SETTINGS = {
   sizeOptimization: true,
-  responsiveDimensions: true,
   autoOrientation: true,
 } as const;
 
-/** Our pipeline owns compression and orientation; keep Strapi's responsive formats. */
+/** Our pipeline owns compression and orientation. */
 const MANAGED_UPLOAD_SETTINGS = {
   sizeOptimization: false,
-  responsiveDimensions: true,
   autoOrientation: false,
 } as const;
 

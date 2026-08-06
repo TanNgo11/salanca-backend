@@ -189,14 +189,19 @@ describe('enforceMediaProcessingUploadSettings', () => {
   it('restores stock settings when media processing is disabled', async () => {
     delete process.env.MEDIA_PROCESSING_ENABLED;
     const strapi = createStrapi();
-    const store = createStore({ sizeOptimization: false, autoOrientation: false });
+    const store = createStore({
+      sizeOptimization: false,
+      autoOrientation: false,
+      responsiveDimensions: false,
+    });
 
     await enforceMediaProcessingUploadSettings(strapi, store);
 
     expect(store.current()).toMatchObject({
       sizeOptimization: true,
-      responsiveDimensions: true,
       autoOrientation: true,
+      // Not ours to own: an operator's responsive-formats choice must survive.
+      responsiveDimensions: false,
     });
     expect(strapi.log.info).toHaveBeenCalledTimes(1);
   });
@@ -204,7 +209,11 @@ describe('enforceMediaProcessingUploadSettings', () => {
   it('writes the managed settings when media processing is enabled', async () => {
     process.env.MEDIA_PROCESSING_ENABLED = 'true';
     const strapi = createStrapi();
-    const store = createStore({ sizeOptimization: true, autoOrientation: true });
+    const store = createStore({
+      sizeOptimization: true,
+      autoOrientation: true,
+      responsiveDimensions: false,
+    });
 
     try {
       await enforceMediaProcessingUploadSettings(strapi, store);
@@ -214,18 +223,19 @@ describe('enforceMediaProcessingUploadSettings', () => {
 
     expect(store.current()).toMatchObject({
       sizeOptimization: false,
-      responsiveDimensions: true,
       autoOrientation: false,
+      responsiveDimensions: false,
     });
   });
 
-  it('does not write when the store already matches', async () => {
+  it('does not write when the two managed keys already match', async () => {
     delete process.env.MEDIA_PROCESSING_ENABLED;
     const strapi = createStrapi();
     const store = createStore({
       sizeOptimization: true,
-      responsiveDimensions: true,
       autoOrientation: true,
+      // Would have forced a pointless write back to true before the fix.
+      responsiveDimensions: false,
     });
 
     await enforceMediaProcessingUploadSettings(strapi, store);

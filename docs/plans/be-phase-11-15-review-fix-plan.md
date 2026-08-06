@@ -244,14 +244,14 @@ Implemented 2026-08-06 on branch `fix/flaky-media-processing-test`. Gates:
 | F1 | `resolveWebhookLocales` fans `'*'` and an omitted locale out to the full allowlist, filters arrays, warns only on an explicit bad locale; 8 tests |
 | F2 | `resolveDeclaredBytes` rejects from `sizeInBytes` → `size × 1000` → `fs.stat` before the read; the post-read check stays as the stream-path backstop |
 | F3 | Widened (default taken). Both schemas now `maxLength: 4096`; the normalized URL is still capped at 2048 by `parseHttpsMapUrl` |
-| F4 | `enforceMediaProcessingUploadSettings` restores stock values when disabled, skips no-op writes, and logs every write at `info` |
+| F4 | `enforceMediaProcessingUploadSettings` restores stock values when disabled, skips no-op writes, and logs every write at `info`. **Follow-up fix:** only `sizeOptimization` + `autoOrientation` are managed — pinning `responsiveDimensions: true` in both directions reproduced F4 the other way round (it reverted the operator's Media Library choice on every boot, including on installs that never enabled the pipeline) |
 | F5 | `scripts/backfill-focal-points.mjs` + `pnpm run backfill:focal-points` |
 | F6 | `metadata()` moved inside the timeout via `inspectSource`; `withTimeout` returns `settled` so the semaphore slot is held until sharp really finishes |
 | F7 | New `upload-optimize.test.ts` (10), `enforce-content-boundaries.test.ts` (7), `emit-cms-webhook.test.ts` (8) |
 | F8 | `socialLinks: undefined` now treated as an absent key |
 | F9 | Logged with the correlation id in `upload-optimize.ts` via `runtime.logger` |
 | F10 | `runtime.ts` takes `env` from `@strapi/utils`; the duplicated `EnvReader` type is now one `MediaProcessingEnvReader` in `types.ts`; `MEDIA_PROCESSING_VERSION` documented |
-| F11 | SVG/GIF bypass documented in `media-storage-operations.md` |
+| F11 | SVG/GIF bypass documented in `media-storage-operations.md` and — **follow-up fix**, the plan named both files — in the FE-facing `cms-api-contract.md` Media section |
 
 Deviations from the plan: `toEditorSafeMessage` lost its duplicated
 `correlationId` parameter (it reads `error.correlationId`), and `processor.ts`

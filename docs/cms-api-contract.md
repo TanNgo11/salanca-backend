@@ -135,6 +135,7 @@ GET /api/v1/locations?locale=vi&filters[slug][$eq]=salanca-quan-1
 - `shared.image` also exposes `focalPointX` / `focalPointY` (0–100, default 50) for responsive crop.
 - `mapUrl` on location/global-setting accepts a Google Maps share URL, embed URL, or a single pasted iframe; the CMS persists only a normalized HTTPS URL (never raw HTML).
 - `socialLinks[].url` must be HTTPS and match the platform hostname policy (facebook/instagram/tiktok/youtube; `other` = any HTTPS host).
+- **Asset format is not guaranteed to be WebP.** With `MEDIA_PROCESSING_ENABLED=true` the CMS re-encodes uploads to WebP before storage, but Strapi only routes jpeg/png/webp/tiff/avif through that step: **SVG and GIF are stored as uploaded**, and everything uploaded before the pipeline was enabled keeps its original format. Branch on `mime` / `ext`, never on the assumption that every asset is `.webp`. See [`media-storage-operations.md`](media-storage-operations.md).
 
 ## Errors
 

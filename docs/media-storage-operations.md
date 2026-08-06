@@ -33,12 +33,15 @@ entirely** and are stored as uploaded. The FE must still expect non-WebP assets.
 Animated/multi-frame input that *does* reach the pipeline is rejected, not
 flattened.
 
-Enabling it rewrites the upload-plugin settings in the database
-(`sizeOptimization: false`, `autoOrientation: false`, `responsiveDimensions:
-true`) because our pipeline owns compression and orientation. Turning it off
-restores Strapi's stock values on the next boot. Both directions log at `info` —
-this silently reverts changes an operator makes in the Media Library settings
-UI, so check the boot log before debugging "my setting did not stick".
+Enabling it rewrites two upload-plugin settings in the database
+(`sizeOptimization: false`, `autoOrientation: false`) because our pipeline owns
+compression and orientation. Turning it off restores Strapi's stock values
+(`true` / `true`) on the next boot. Both directions log at `info` — these two
+keys silently revert changes an operator makes in the Media Library settings UI,
+so check the boot log before debugging "my setting did not stick".
+
+`responsiveDimensions` is **not** managed: it is a storage/bandwidth choice and
+whatever the operator sets in the UI is left alone in both directions.
 
 Tuning: `MEDIA_PROCESSING_MAX_EDGE`, `_WEBP_QUALITY`, `_MAX_INPUT_BYTES`,
 `_MAX_PIXELS`, `_TIMEOUT_MS`, `_CONCURRENCY`, `_VERSION` (see `.env.example`).
