@@ -41,6 +41,10 @@ Start with [`STATUS.md`](STATUS.md). The roadmap describes intended direction; i
 - [`Phase 6 - API contract and QA`](phases/phase-06-api-contract-and-qa.md)
 - [`Phase 7 - Staging and handoff`](phases/phase-07-staging-and-handoff.md)
 
+### Optional follow-up specs
+
+- [`Phase 8 - Vietnamese Admin editor UX`](phases/phase-08-vietnamese-admin-editor-ux.md)
+
 ### Forms
 
 - [`Forms MVP - Contact message`](phases/phase-forms-contact-message.md)

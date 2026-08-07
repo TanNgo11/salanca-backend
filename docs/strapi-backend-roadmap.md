@@ -343,6 +343,7 @@ Không dùng `populate=*` như API contract production mặc định. Chỉ popu
 | Phase 5 | Seed nội dung prototype idempotent | 2–3 ngày dev | [Phase 5 — Seed content](./phases/phase-05-seed-content.md) |
 | Phase 6 | API contract, public read allowlist, backend QA | 2–3 ngày dev | [Phase 6 — API contract and QA](./phases/phase-06-api-contract-and-qa.md) |
 | Phase 7 | Staging, backup/restore, FE handoff pack | 2–4 ngày + infra | [Phase 7 — Staging and handoff](./phases/phase-07-staging-and-handoff.md) |
+| Phase 8 | Việt hóa các luồng Strapi Admin dành cho editor | 0.5–1.5 ngày dev + editor UAT | [Phase 8 — Vietnamese Admin editor UX](./phases/phase-08-vietnamese-admin-editor-ux.md) |
 
 Overview pattern-lift (từ backend Nhà Thật, domain Salanca): [BE pattern lift plan](./plans/be-pattern-lift-plan.md).
 
@@ -425,6 +426,12 @@ Tóm tắt: hoàn thiện contract, bootstrap Public `find`/`findOne` allowlist,
 ### Phase 7 — Staging và handoff
 
 Chi tiết: [phase-07-staging-and-handoff.md](./phases/phase-07-staging-and-handoff.md).
+
+### Phase 8 — Việt hóa trải nghiệm editor trong Strapi Admin
+
+Chi tiết: [phase-08-vietnamese-admin-editor-ux.md](./phases/phase-08-vietnamese-admin-editor-ux.md).
+
+Tóm tắt: dịch các hành trình Content Editor/Publisher thực sự dùng, đồng bộ nhãn field qua metadata hiện có và giữ nguyên schema/API. Đây là follow-up optional, không chặn Phase 7 và không đặt mục tiêu dịch toàn bộ khu vực kỹ thuật của Strapi.
 
 ## 12. Definition of Done của CMS-first milestone
 

@@ -806,6 +806,12 @@ export interface ApiContactMessageContactMessage
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 120;
       }>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::contact-message.contact-message'
+    > &
+      Schema.Attribute.Private;
     message: Schema.Attribute.Text &
       Schema.Attribute.Required &
       Schema.Attribute.SetMinMaxLength<{
@@ -815,6 +821,7 @@ export interface ApiContactMessageContactMessage
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 40;
       }>;
+    publishedAt: Schema.Attribute.DateTime;
     sourceLocale: Schema.Attribute.Enumeration<['vi', 'en']> &
       Schema.Attribute.Required;
     sourcePath: Schema.Attribute.String &
@@ -828,90 +835,6 @@ export interface ApiContactMessageContactMessage
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 80;
       }>;
-    updatedAt: Schema.Attribute.DateTime;
-    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-  };
-}
-
-export interface ApiReservationRequestReservationRequest
-  extends Struct.CollectionTypeSchema {
-  collectionName: 'reservation_requests';
-  info: {
-    description: 'Public reservation lead intake (not a booking engine)';
-    displayName: 'Y\u00EAu c\u1EA7u \u0111\u1EB7t b\u00E0n';
-    pluralName: 'reservation-requests';
-    singularName: 'reservation-request';
-  };
-  options: {
-    draftAndPublish: false;
-  };
-  attributes: {
-    createdAt: Schema.Attribute.DateTime;
-    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    email: Schema.Attribute.Email;
-    fullName: Schema.Attribute.String &
-      Schema.Attribute.Required &
-      Schema.Attribute.SetMinMaxLength<{
-        maxLength: 120;
-      }>;
-    guestCount: Schema.Attribute.Integer &
-      Schema.Attribute.Required &
-      Schema.Attribute.SetMinMax<
-        {
-          min: 1;
-          max: 100;
-        },
-        number
-      >;
-    menuItems: Schema.Attribute.Relation<
-      'manyToMany',
-      'api::menu-item.menu-item'
-    >;
-    menuPackages: Schema.Attribute.Relation<
-      'manyToMany',
-      'api::menu-package.menu-package'
-    >;
-    menuSelectionMode: Schema.Attribute.Enumeration<['later', 'now']> &
-      Schema.Attribute.Required;
-    note: Schema.Attribute.Text &
-      Schema.Attribute.SetMinMaxLength<{
-        maxLength: 2000;
-      }>;
-    occasion: Schema.Attribute.String &
-      Schema.Attribute.SetMinMaxLength<{
-        maxLength: 80;
-      }>;
-    overlapCount: Schema.Attribute.Integer &
-      Schema.Attribute.Required &
-      Schema.Attribute.DefaultTo<0> &
-      Schema.Attribute.SetMinMax<
-        {
-          min: 0;
-        },
-        number
-      >;
-    phone: Schema.Attribute.String &
-      Schema.Attribute.Required &
-      Schema.Attribute.SetMinMaxLength<{
-        maxLength: 40;
-      }>;
-    preferredDate: Schema.Attribute.Date & Schema.Attribute.Required;
-    preferredTime: Schema.Attribute.String &
-      Schema.Attribute.Required &
-      Schema.Attribute.SetMinMaxLength<{
-        maxLength: 40;
-      }>;
-    sourceLocale: Schema.Attribute.Enumeration<['vi', 'en']> &
-      Schema.Attribute.Required;
-    sourcePath: Schema.Attribute.String &
-      Schema.Attribute.SetMinMaxLength<{
-        maxLength: 200;
-      }>;
-    status: Schema.Attribute.Enumeration<['new', 'read', 'archived']> &
-      Schema.Attribute.Required &
-      Schema.Attribute.DefaultTo<'new'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -2034,6 +1957,97 @@ export interface ApiMenuPageMenuPage extends Struct.SingleTypeSchema {
           localized: true;
         };
       }>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiReservationRequestReservationRequest
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'reservation_requests';
+  info: {
+    description: 'Public reservation lead intake (not a booking engine)';
+    displayName: 'Y\u00EAu c\u1EA7u \u0111\u1EB7t b\u00E0n';
+    pluralName: 'reservation-requests';
+    singularName: 'reservation-request';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    email: Schema.Attribute.Email;
+    fullName: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 120;
+      }>;
+    guestCount: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 100;
+          min: 1;
+        },
+        number
+      >;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::reservation-request.reservation-request'
+    > &
+      Schema.Attribute.Private;
+    menuItems: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::menu-item.menu-item'
+    >;
+    menuPackages: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::menu-package.menu-package'
+    >;
+    menuSelectionMode: Schema.Attribute.Enumeration<['later', 'now']> &
+      Schema.Attribute.Required;
+    note: Schema.Attribute.Text &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 2000;
+      }>;
+    occasion: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 80;
+      }>;
+    overlapCount: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<0>;
+    phone: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 40;
+      }>;
+    preferredDate: Schema.Attribute.Date & Schema.Attribute.Required;
+    preferredTime: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 40;
+      }>;
+    publishedAt: Schema.Attribute.DateTime;
+    sourceLocale: Schema.Attribute.Enumeration<['vi', 'en']> &
+      Schema.Attribute.Required;
+    sourcePath: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 200;
+      }>;
+    status: Schema.Attribute.Enumeration<['new', 'read', 'archived']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'new'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

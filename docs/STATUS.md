@@ -51,6 +51,7 @@ Still open (ops/human): Phase 0 Admin UAT (manual), named host/DB/S3 providers, 
 | [`phases/phase-05-seed-content.md`](phases/phase-05-seed-content.md) | Idempotent seed from prototype |
 | [`phases/phase-06-api-contract-and-qa.md`](phases/phase-06-api-contract-and-qa.md) | Public read allowlist + API contract + smokes |
 | [`phases/phase-07-staging-and-handoff.md`](phases/phase-07-staging-and-handoff.md) | Staging, backup drill, FE handoff pack |
+| [`phases/phase-08-vietnamese-admin-editor-ux.md`](phases/phase-08-vietnamese-admin-editor-ux.md) | Optional editor-facing Vietnamese Admin UX; planned only, not authorized implementation |
 
 ## Recorded automated verification
 
