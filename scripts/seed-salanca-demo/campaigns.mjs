@@ -27,7 +27,12 @@ export async function seedCampaigns(app, summary, mediaId) {
     ),
     slug: 'opening-promotion',
     coverImage: image(mediaId, 'Salanca new space celebration'),
-    cta: cta('Book a table', 'Reserve to claim the celebration offer.', 'Book a table', '/en/booking'),
+    cta: cta(
+      'Book a table',
+      'Reserve to claim the celebration offer.',
+      'Book a table',
+      '/en/reservations',
+    ),
     seo: seo('New space offer', 'Booking offer at Salanca Brazil Hanoi.', '/en/offers/opening-promotion'),
   });
   summary.record('updated');

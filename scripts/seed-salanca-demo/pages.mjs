@@ -56,7 +56,7 @@ export async function seedPages(app, summary, mediaId, pkgDocumentId) {
         'THE ESSENCE OF\nBRAZILIAN\nCHURRASCARIA',
         'Experience more than 12 grilled meats carved tableside in the traditional Brazilian style.',
         'Book a table',
-        '/en/booking',
+        '/en/reservations',
       ),
       experienceHeading: 'Not just a meal — a complete Brazilian experience',
       experienceBody:
@@ -68,15 +68,15 @@ export async function seedPages(app, summary, mediaId, pkgDocumentId) {
       storyBody:
         'Since 2003, from our roots as Au Lac do Brazil, we have brought Brazilian dining craft to Ho Chi Minh City. In 2022, Salanca continued that mission — authentic Churrascaria for Vietnamese guests.',
       storyImage: image(mediaId, 'The Salanca story'),
-      storyLink: link('Read our story', '/en/story'),
+      storyLink: link('Read our story', '/en/our-story'),
       spaceHeading: 'A corner of Brazil in the city',
       spaceImage: image(mediaId, 'Salanca main dining room'),
-      spaceLink: link('See more photos', '/en/spaces'),
+      spaceLink: link('See more photos', '/en/space'),
       closingCta: cta(
         'Ready for a true Brazilian feast?',
         'Reserve a table to secure your seat and enjoy the full Churrascaria experience.',
         'Book now',
-        '/en/booking',
+        '/en/reservations',
       ),
       seo: seo('Salanca Brazil — Home', 'Brazilian churrascaria in Hanoi.', '/en'),
     },
@@ -94,10 +94,21 @@ export async function seedPages(app, summary, mediaId, pkgDocumentId) {
       seo: seo('Thực đơn Salanca', 'Buffet và món nướng.', '/vi/thuc-don'),
     },
     {
-      hero: hero(mediaId, 'Menu', 'Buffet packages and signature cuts.', 'Book', '/en/booking'),
+      hero: hero(
+        mediaId,
+        'Menu',
+        'Buffet packages and signature cuts.',
+        'Book',
+        '/en/reservations',
+      ),
       packageSectionHeading: 'Buffet packages',
       itemSectionHeading: 'Featured items',
-      bookingCta: cta('Ready to book?', 'Pick a package and reserve.', 'Book', '/en/booking'),
+      bookingCta: cta(
+        'Ready to book?',
+        'Pick a package and reserve.',
+        'Book',
+        '/en/reservations',
+      ),
       seo: seo('Salanca menu', 'Buffet and grilled dishes.', '/en/menu'),
     },
   );
@@ -157,8 +168,17 @@ export async function seedPages(app, summary, mediaId, pkgDocumentId) {
         '/en/experience',
       ),
       originHeading: 'Origins',
-      closingCta: cta('Visit us', 'An evening of proper grill in Hanoi.', 'Book', '/en/booking'),
-      seo: seo('Salanca story', 'About Salanca Brazil churrascaria in Hanoi.', '/en/story'),
+      closingCta: cta(
+        'Visit us',
+        'An evening of proper grill in Hanoi.',
+        'Book',
+        '/en/reservations',
+      ),
+      seo: seo(
+        'Salanca story',
+        'About Salanca Brazil churrascaria in Hanoi.',
+        '/en/our-story',
+      ),
     },
   );
 
@@ -173,9 +193,20 @@ export async function seedPages(app, summary, mediaId, pkgDocumentId) {
       seo: seo('Trải nghiệm Salanca', 'Quy trình rodizio tại Salanca.', '/vi/trai-nghiem'),
     },
     {
-      hero: hero(mediaId, 'Experience', 'Rodizio, ritual and flavour.', 'Book', '/en/booking'),
+      hero: hero(
+        mediaId,
+        'Experience',
+        'Rodizio, ritual and flavour.',
+        'Book',
+        '/en/reservations',
+      ),
       introHeading: 'A churrasco evening',
-      closingCta: cta('Taste it tonight', 'Reserve for your group.', 'Book', '/en/booking'),
+      closingCta: cta(
+        'Taste it tonight',
+        'Reserve for your group.',
+        'Book',
+        '/en/reservations',
+      ),
       seo: seo('Salanca experience', 'The rodizio flow at Salanca.', '/en/experience'),
     },
   );
@@ -191,10 +222,16 @@ export async function seedPages(app, summary, mediaId, pkgDocumentId) {
       seo: seo('Không gian Salanca', 'Gallery và khu vực nhà hàng.', '/vi/khong-gian'),
     },
     {
-      hero: hero(mediaId, 'Spaces', 'Main hall, bar and private rooms.', 'Book', '/en/booking'),
+      hero: hero(
+        mediaId,
+        'Spaces',
+        'Main hall, bar and private rooms.',
+        'Book',
+        '/en/reservations',
+      ),
       introHeading: 'Restaurant spaces',
       closingCta: cta('Visit & reserve', 'Ideal for dates and groups.', 'Contact', '/en/contact'),
-      seo: seo('Salanca spaces', 'Gallery and dining areas.', '/en/spaces'),
+      seo: seo('Salanca spaces', 'Gallery and dining areas.', '/en/space'),
     },
   );
 
@@ -264,7 +301,11 @@ export async function seedPages(app, summary, mediaId, pkgDocumentId) {
         'tel:02438455224',
       ),
       formHeading: 'Reservation details',
-      seo: seo('Book Salanca Brazil', 'How to reserve at Salanca Hanoi.', '/en/booking'),
+      seo: seo(
+        'Book Salanca Brazil',
+        'How to reserve at Salanca Hanoi.',
+        '/en/reservations',
+      ),
     },
   );
 }

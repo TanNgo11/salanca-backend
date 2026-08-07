@@ -52,10 +52,16 @@ export async function seedGlobalSetting(app, summary, locationDocumentId) {
     headerLinks: [
       link('Menu', '/en/menu'),
       link('Offers', '/en/offers'),
-      link('Booking', '/en/booking'),
+      link('Booking', '/en/reservations'),
     ],
-    footerExploreLinks: [link('Our story', '/en/story'), link('Spaces', '/en/spaces')],
-    footerInfoLinks: [link('Contact', '/en/contact'), link('Booking', '/en/booking')],
+    footerExploreLinks: [
+      link('Our story', '/en/our-story'),
+      link('Spaces', '/en/space'),
+    ],
+    footerInfoLinks: [
+      link('Contact', '/en/contact'),
+      link('Booking', '/en/reservations'),
+    ],
     defaultSeo: seo(
       'Salanca Brazil',
       'Brazilian churrascaria at 49 Phan Boi Chau, Hanoi. Booking: +84 24 3845 5224.',
