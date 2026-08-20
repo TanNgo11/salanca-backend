@@ -21,7 +21,13 @@ Start with the [current status](docs/STATUS.md), then use the [documentation map
 ## Local setup
 
 1. Copy `.env.example` to `.env`.
-2. Replace every `replace-*` value with a local secret. Keep `.env` untracked.
+2. Generate unique secrets and paste them into `.env` (and the matching webhook / preview keys into `salanca-web/.env`):
+
+   ```powershell
+   pnpm run generate:secrets
+   ```
+
+   Keep `.env` untracked. Never reuse generated values across environments.
 3. Start PostgreSQL:
 
    ```powershell
