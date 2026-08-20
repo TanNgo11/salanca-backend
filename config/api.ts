@@ -12,6 +12,7 @@ const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Api => ({
   },
   documents: {
     strictParams: true,
+    strictRelations: true,
   },
 });
 

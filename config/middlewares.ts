@@ -50,7 +50,16 @@ const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Middlewar
     },
     'strapi::poweredBy',
     'strapi::query',
-    'strapi::body',
+    {
+      // contact-message and reservation-request are unauthenticated create
+      // endpoints. Bound the parsed body so a single request cannot pin memory.
+      name: 'strapi::body',
+      config: {
+        jsonLimit: '256kb',
+        formLimit: '256kb',
+        textLimit: '256kb',
+      },
+    },
     'strapi::session',
     'strapi::favicon',
     'strapi::public',
