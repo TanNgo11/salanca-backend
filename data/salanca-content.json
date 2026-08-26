@@ -1,0 +1,3900 @@
+{
+  "generatedFrom": "salanca-web shipped copy + asset registry",
+  "locales": [
+    "vi",
+    "en"
+  ],
+  "pages": {
+    "api::home-page.home-page": {
+      "vi": {
+        "hero": {
+          "eyebrow": "Trải nghiệm Churrascaria",
+          "title": "TINH HOA\nCHURRASCARIA\nBRAZIL",
+          "description": "Trải nghiệm hơn 12 loại thịt nướng phục vụ trực tiếp tại bàn theo phong cách Brazil truyền thống.",
+          "backgroundImage": {
+            "__media": "hero-churrasco-service-v2.png",
+            "alt": "TINH HOA CHURRASCARIA BRAZIL",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "decorativeImage": {
+            "__media": "hero-decor-right.png",
+            "alt": "TINH HOA — decor",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "primaryLink": {
+            "label": "Đặt bàn ngay",
+            "url": "/vi/vi/dat-ban",
+            "openInNewTab": false
+          }
+        },
+        "experienceHeading": "Không chỉ là một bữa ăn, mà là một trải nghiệm Brazil trọn vẹn",
+        "experienceBody": "Từng xiên thịt hảo hạng nướng chậm trên than hồng, mang đến tận bàn và thái lát trực tiếp trước mặt bạn — đúng tinh thần Churrascaria đích thực.",
+        "experienceImage": {
+          "__media": "dining-friends.jpg",
+          "alt": "Thực khách dùng bữa với món nướng tại bàn",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "experienceLink": {
+          "label": "Tìm hiểu thêm",
+          "url": "/vi/vi/trai-nghiem",
+          "openInNewTab": false
+        },
+        "featuredPackage": {
+          "__ref": {
+            "uid": "api::menu-package.menu-package",
+            "key": "buffet"
+          }
+        },
+        "featuredMenuHeading": "Những hương vị không thể bỏ lỡ",
+        "featuredMenuItems": {
+          "__ref": {
+            "uid": "api::menu-item.menu-item",
+            "keys": [
+              "picanha",
+              "costela",
+              "cupim",
+              "panceta",
+              "cordeiro",
+              "camarao"
+            ],
+            "many": true
+          }
+        },
+        "storyHeading": "Câu chuyện Salanca",
+        "storyBody": "Từ năm 2003, tiên thân là Au Lac do Brazil, chúng tôi đã mang tinh hoa ẩm thực Brazil đến TP. Hồ Chí Minh. Năm 2022, Salanca chính thức trở thành thương hiệu tiếp nối sứ mệnh mang đến trải nghiệm Churrascaria đích thực cho khách Việt.",
+        "storyImage": {
+          "__media": "restaurant-night.jpg",
+          "alt": "Câu chuyện Salanca",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "storyLink": {
+          "label": "Đọc tiếp câu chuyện",
+          "url": "/vi/vi/cau-chuyen",
+          "openInNewTab": false
+        },
+        "spaceHeading": "Một góc Brazil giữa lòng thành phố",
+        "spaceImage": {
+          "__media": "restaurant-interior.jpg",
+          "alt": "Không gian sảnh chính Salanca",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "spaceLink": {
+          "label": "Xem thêm hình ảnh",
+          "url": "/vi/vi/khong-gian",
+          "openInNewTab": false
+        },
+        "closingCta": {
+          "heading": "Sẵn sàng cho một bữa tiệc đậm chất Brazil?",
+          "body": "Đặt bàn ngay để giữ chỗ và tận hưởng trải nghiệm Churrascaria trọn vẹn.",
+          "link": {
+            "label": "Đặt bàn ngay",
+            "url": "/vi/vi/dat-ban",
+            "openInNewTab": false
+          }
+        },
+        "seo": {
+          "metaTitle": "Tinh hoa Churrascaria Brazil",
+          "metaDescription": "Salanca — trải nghiệm hơn 12 loại thịt nướng phục vụ tại bàn theo phong cách Brazil truyền thống tại Hà Nội.",
+          "canonicalPath": "/vi/vi",
+          "noIndex": false
+        }
+      },
+      "en": {
+        "hero": {
+          "eyebrow": "The Churrascaria experience",
+          "title": "THE ESSENCE OF\nBRAZILIAN\nCHURRASCARIA",
+          "description": "Experience more than 12 grilled meats carved tableside in the traditional Brazilian style.",
+          "backgroundImage": {
+            "__media": "hero-churrasco-service-v2.png",
+            "alt": "THE ESSENCE OF BRAZILIAN CHURRASCARIA",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "decorativeImage": {
+            "__media": "hero-decor-right.png",
+            "alt": "THE ESSENCE OF — decor",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "primaryLink": {
+            "label": "Book a table",
+            "url": "/en/en/reservations",
+            "openInNewTab": false
+          }
+        },
+        "experienceHeading": "Not just a meal — a complete Brazilian experience",
+        "experienceBody": "Premium cuts slow-grilled over charcoal, brought to your table and carved before you — true Churrascaria spirit.",
+        "experienceImage": {
+          "__media": "dining-friends.jpg",
+          "alt": "Diners enjoying a grilled dish at the table",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "experienceLink": {
+          "label": "Learn more",
+          "url": "/en/en/experience",
+          "openInNewTab": false
+        },
+        "featuredPackage": {
+          "__ref": {
+            "uid": "api::menu-package.menu-package",
+            "key": "buffet"
+          }
+        },
+        "featuredMenuHeading": "Flavors you cannot miss",
+        "featuredMenuItems": {
+          "__ref": {
+            "uid": "api::menu-item.menu-item",
+            "keys": [
+              "picanha",
+              "costela",
+              "cupim",
+              "panceta",
+              "cordeiro",
+              "camarao"
+            ],
+            "many": true
+          }
+        },
+        "storyHeading": "The Salanca story",
+        "storyBody": "Since 2003, from our roots as Au Lac do Brazil, we have brought Brazilian dining craft to Ho Chi Minh City. In 2022, Salanca continued that mission — authentic Churrascaria for Vietnamese guests.",
+        "storyImage": {
+          "__media": "restaurant-night.jpg",
+          "alt": "The Salanca story",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "storyLink": {
+          "label": "Read our story",
+          "url": "/en/en/our-story",
+          "openInNewTab": false
+        },
+        "spaceHeading": "A corner of Brazil in the city",
+        "spaceImage": {
+          "__media": "restaurant-interior.jpg",
+          "alt": "Salanca main dining room",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "spaceLink": {
+          "label": "See more photos",
+          "url": "/en/en/space",
+          "openInNewTab": false
+        },
+        "closingCta": {
+          "heading": "Ready for a true Brazilian feast?",
+          "body": "Reserve a table to secure your seat and enjoy the full Churrascaria experience.",
+          "link": {
+            "label": "Book now",
+            "url": "/en/en/reservations",
+            "openInNewTab": false
+          }
+        },
+        "seo": {
+          "metaTitle": "The essence of Brazilian Churrascaria",
+          "metaDescription": "Salanca — experience more than 12 grilled meats carved tableside in the traditional Brazilian style in Hanoi.",
+          "canonicalPath": "/en/en",
+          "noIndex": false
+        }
+      }
+    },
+    "api::menu-page.menu-page": {
+      "vi": {
+        "hero": {
+          "eyebrow": "TINH HOA ẨM THỰC BRAZIL",
+          "title": "Thực đơn\nChurrascaria",
+          "description": "Hơn 12 loại thịt nướng trên than hồng, phục vụ liên tục tại bàn.",
+          "backgroundImage": {
+            "__media": "hero-grill.jpg",
+            "alt": "Thực đơn\nChurrascaria",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "decorativeImage": {
+            "__media": "menu-hero-decor-right.png",
+            "alt": "TINH HOA ẨM THỰC BRAZIL — decor",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "primaryLink": {
+            "label": "Đặt bàn ngay",
+            "url": "/vi/vi/dat-ban",
+            "openInNewTab": false
+          }
+        },
+        "packageSectionHeading": "Buffet Churrascaria",
+        "featuredPackage": {
+          "__ref": {
+            "uid": "api::menu-package.menu-package",
+            "key": "buffet"
+          }
+        },
+        "itemSectionHeading": "Các món nướng đặc trưng",
+        "packageListingHeading": "Rodizio Menu",
+        "bookingCta": {
+          "heading": "Sẵn sàng cho một bữa tiệc đậm chất Brazil?",
+          "body": "Đặt bàn ngay để giữ chỗ và tận hưởng trải nghiệm Churrascaria trọn vẹn.",
+          "link": {
+            "label": "Đặt bàn ngay",
+            "url": "/vi/vi/dat-ban",
+            "openInNewTab": false
+          }
+        },
+        "seo": {
+          "metaTitle": "Thực đơn",
+          "metaDescription": "Khám phá thực đơn Salanca — buffet churrascaria, rodizio, a la carte và các món nướng đặc trưng.",
+          "canonicalPath": "/vi/vi/thuc-don",
+          "noIndex": false
+        }
+      },
+      "en": {
+        "hero": {
+          "eyebrow": "THE BEST OF BRAZILIAN GRILLING",
+          "title": "Churrascaria\nMenu",
+          "description": "More than twelve cuts over charcoal, carved continuously at your table.",
+          "backgroundImage": {
+            "__media": "hero-grill.jpg",
+            "alt": "Churrascaria\nMenu",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "decorativeImage": {
+            "__media": "menu-hero-decor-right.png",
+            "alt": "THE BEST OF BRAZILIAN GRILLING — decor",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "primaryLink": {
+            "label": "Book now",
+            "url": "/en/en/reservations",
+            "openInNewTab": false
+          }
+        },
+        "packageSectionHeading": "Buffet Churrascaria",
+        "featuredPackage": {
+          "__ref": {
+            "uid": "api::menu-package.menu-package",
+            "key": "buffet"
+          }
+        },
+        "itemSectionHeading": "Signature cuts",
+        "packageListingHeading": "Rodizio Menu",
+        "bookingCta": {
+          "heading": "Ready for a night of Brazilian flavour?",
+          "body": "Reserve a table to hold your place and enjoy the full Churrascaria experience.",
+          "link": {
+            "label": "Book now",
+            "url": "/en/en/reservations",
+            "openInNewTab": false
+          }
+        },
+        "seo": {
+          "metaTitle": "Menu",
+          "metaDescription": "Explore the Salanca menu — churrascaria buffet, rodizio, a la carte, and signature grilled cuts.",
+          "canonicalPath": "/en/en/menu",
+          "noIndex": false
+        }
+      }
+    },
+    "api::story-page.story-page": {
+      "vi": {
+        "hero": {
+          "eyebrow": "Hành trình của chúng tôi",
+          "title": "Câu chuyện Salanca",
+          "description": "Một góc Brazil giữa lòng Việt Nam",
+          "backgroundImage": {
+            "__media": "restaurant-night.jpg",
+            "alt": "Câu chuyện Salanca",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "decorativeImage": {
+            "__media": "story-hero-decor-right.png",
+            "alt": "Câu chuyện Salanca — decor",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "primaryLink": {
+            "label": "Đặt bàn ngay",
+            "url": "/vi/vi/dat-ban",
+            "openInNewTab": false
+          }
+        },
+        "originHeading": "Khởi nguồn\ntừ tinh thần Brazil",
+        "originBody": [
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "text": "Từ ngành chăn nuôi bò đồng cỏ Brazil, tinh thần trân trọng nguyên liệu và nghệ thuật nướng đã được gìn giữ qua nhiều thế hệ."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "text": "Salanca mang tinh thần đó đến Việt Nam — tạo nên một nơi lửa, thịt và con người kết nối trong những bữa tiệc trọn vẹn."
+              }
+            ]
+          }
+        ],
+        "originImage": {
+          "__media": "restaurant-interior.jpg",
+          "alt": "Không gian nhà hàng Salanca với bàn dài và lò nướng than",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "timelineHeading": "Hành trình của chúng tôi",
+        "timelineEntries": [
+          {
+            "label": "2003",
+            "title": "2003",
+            "body": "Những viên gạch đầu tiên của Salanca."
+          },
+          {
+            "label": "Đến Việt Nam",
+            "title": "Đến Việt Nam",
+            "body": "Mang tinh thần Brazil đến Việt Nam."
+          },
+          {
+            "label": "2022",
+            "title": "2022",
+            "body": "Bước ngoặt mới, mở rộng hành trình."
+          },
+          {
+            "label": "Hôm nay",
+            "title": "Hôm nay",
+            "body": "Tiếp tục lan tỏa đam mê và những bữa tiệc đáng nhớ."
+          }
+        ],
+        "philosophyHeading": "Không chỉ là một bữa ăn",
+        "philosophyBody": [
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "text": "Mỗi bữa tiệc là một cuộc gặp gỡ,"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "text": "mỗi ngọn lửa là một câu chuyện."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "text": "Chúng tôi tin rằng bàn ăn là nơi tình bạn, gia đình và những mối quan hệ đẹp được nuôi dưỡng. Cùng nhau tận hưởng hương vị, tiếng cười và khoảnh khắc trọn vẹn."
+              }
+            ]
+          }
+        ],
+        "philosophyImage": {
+          "__media": "churrasco-gathering-v2.jpg",
+          "alt": "Nhóm bạn quây quần khi nhân viên phục vụ thịt nướng xiên tại bàn",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "ingredientsHeading": "Hành trình của hương vị",
+        "ingredientImages": [
+          {
+            "__media": "steak-sliced.jpg",
+            "alt": "Lát thịt nướng trên đĩa",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          {
+            "__media": "buffet-picanha.jpg",
+            "alt": "Khay thịt nướng buffet",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          {
+            "__media": "hero-grill.jpg",
+            "alt": "Vỉ nướng than hồng với thịt đang chín",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          }
+        ],
+        "craftHeading": "Giữ trọn ngọn lửa",
+        "craftBody": [
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "text": "Kỹ thuật tạo nên hương vị,"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "text": "đam mê tạo nên trải nghiệm."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "text": "Với kỹ thuật chuẩn mực và tình yêu với lửa, chúng tôi gìn giữ tinh hoa churrasco trong từng xiên thịt."
+              }
+            ]
+          }
+        ],
+        "craftImage": {
+          "__media": "hero-grill.jpg",
+          "alt": "Vỉ nướng than với thịt đang chín",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "valuesHeading": "Giá trị chúng tôi theo đuổi",
+        "values": [
+          {
+            "number": "01",
+            "title": "Chân thành",
+            "body": "Tiếp đón bằng sự chân thành, xây dựng niềm tin bền vững."
+          },
+          {
+            "number": "02",
+            "title": "Hào sảng",
+            "body": "Chia sẻ những phong vị trọn vẹn, đánh thức những khoảnh khắc đặc biệt."
+          },
+          {
+            "number": "03",
+            "title": "Rực lửa",
+            "body": "Giữ ngọn lửa đam mê, lan tỏa năng lượng tích cực."
+          }
+        ],
+        "closingCta": {
+          "heading": "Viết tiếp câu chuyện cùng Salanca",
+          "body": "Hãy để Salanca là nơi khởi đầu cho những kỷ niệm đáng nhớ.",
+          "link": {
+            "label": "Đặt bàn ngay",
+            "url": "/vi/vi/dat-ban",
+            "openInNewTab": false
+          }
+        },
+        "seo": {
+          "metaTitle": "Câu chuyện",
+          "metaDescription": "Câu chuyện và giá trị của Salanca — hành trình từ tinh thần Brazil đến bàn tiệc tại Việt Nam.",
+          "canonicalPath": "/vi/vi/cau-chuyen",
+          "noIndex": false
+        }
+      },
+      "en": {
+        "hero": {
+          "eyebrow": "Our journey",
+          "title": "The Salanca story",
+          "description": "A corner of Brazil in the heart of Vietnam",
+          "backgroundImage": {
+            "__media": "restaurant-night.jpg",
+            "alt": "The Salanca story",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "decorativeImage": {
+            "__media": "story-hero-decor-right.png",
+            "alt": "The Salanca story — decor",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "primaryLink": {
+            "label": "Book a table",
+            "url": "/en/en/reservations",
+            "openInNewTab": false
+          }
+        },
+        "originHeading": "Born from\nthe Brazilian spirit",
+        "originBody": [
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "text": "From Brazil’s open-range cattle tradition, respect for ingredients and the craft of grilling have been carried through generations."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "text": "Salanca brings that spirit to Vietnam — a place where fire, meat, and people meet in complete evenings at the table."
+              }
+            ]
+          }
+        ],
+        "originImage": {
+          "__media": "restaurant-interior.jpg",
+          "alt": "Salanca dining room with long tables and the charcoal grill",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "timelineHeading": "Our journey",
+        "timelineEntries": [
+          {
+            "label": "2003",
+            "title": "2003",
+            "body": "The first foundations of what would become Salanca."
+          },
+          {
+            "label": "To Vietnam",
+            "title": "To Vietnam",
+            "body": "Bringing the Brazilian spirit to Vietnam."
+          },
+          {
+            "label": "2022",
+            "title": "2022",
+            "body": "A new chapter, a wider journey."
+          },
+          {
+            "label": "Today",
+            "title": "Today",
+            "body": "Still sharing passion and unforgettable tables."
+          }
+        ],
+        "philosophyHeading": "More than a meal",
+        "philosophyBody": [
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "text": "Every feast is a gathering,"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "text": "every flame is a story."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "text": "We believe the table is where friendship, family, and meaningful bonds grow. Share flavour, laughter, and moments that feel complete."
+              }
+            ]
+          }
+        ],
+        "philosophyImage": {
+          "__media": "churrasco-gathering-v2.jpg",
+          "alt": "Friends gather as a server carves fire-grilled meat tableside",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "ingredientsHeading": "The journey of flavour",
+        "ingredientImages": [
+          {
+            "__media": "steak-sliced.jpg",
+            "alt": "Sliced grilled steak on a plate",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          {
+            "__media": "buffet-picanha.jpg",
+            "alt": "Buffet tray of grilled meats",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          {
+            "__media": "hero-grill.jpg",
+            "alt": "Meat cooking over glowing charcoal",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          }
+        ],
+        "craftHeading": "Keeping the fire alive",
+        "craftBody": [
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "text": "Technique shapes the flavour,"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "text": "passion shapes the experience."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "text": "With disciplined craft and a love of fire, we hold the essence of churrasco in every skewer."
+              }
+            ]
+          }
+        ],
+        "craftImage": {
+          "__media": "hero-grill.jpg",
+          "alt": "Meat cooking over a charcoal grill",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "valuesHeading": "The values we live by",
+        "values": [
+          {
+            "number": "01",
+            "title": "Sincerity",
+            "body": "Welcome with honesty and build lasting trust."
+          },
+          {
+            "number": "02",
+            "title": "Generosity",
+            "body": "Share full flavours and awaken special moments."
+          },
+          {
+            "number": "03",
+            "title": "Fire",
+            "body": "Keep the passion burning and pass on the energy."
+          }
+        ],
+        "closingCta": {
+          "heading": "Write the next chapter with Salanca",
+          "body": "Let Salanca be where unforgettable memories begin.",
+          "link": {
+            "label": "Book a table",
+            "url": "/en/en/reservations",
+            "openInNewTab": false
+          }
+        },
+        "seo": {
+          "metaTitle": "Our story",
+          "metaDescription": "The story and values behind Salanca — from the Brazilian spirit to the table in Vietnam.",
+          "canonicalPath": "/en/en/our-story",
+          "noIndex": false
+        }
+      }
+    },
+    "api::space-page.space-page": {
+      "vi": {
+        "hero": {
+          "eyebrow": "Không gian Salanca",
+          "title": "Một góc Brazil\ngiữa lòng thành phố",
+          "description": "Mỗi chi tiết tại Salanca được chăm chút để mang đến trải nghiệm trọn vẹn.",
+          "backgroundImage": {
+            "__media": "restaurant-night.jpg",
+            "alt": "Một góc Brazil\ngiữa lòng thành phố",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "decorativeImage": {
+            "__media": "space-hero-decor-right.png",
+            "alt": "Không gian Salanca — decor",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "primaryLink": {
+            "label": "Đặt bàn",
+            "url": "/vi/vi/dat-ban",
+            "openInNewTab": false
+          }
+        },
+        "introHeading": "Nơi lửa, hương vị\nvà những cuộc gặp gỡ\nhội tụ",
+        "introBody": [
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "text": "Mỗi chi tiết tại Salanca được chăm chút để mang đến trải nghiệm trọn vẹn."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "text": "Không gian mở ấm áp, sắc xanh nhiệt đới và hương thơm từ bếp nướng than hồng hòa quyện, đánh thức mọi giác quan."
+              }
+            ]
+          }
+        ],
+        "introImage": {
+          "__media": "restaurant-interior.jpg",
+          "alt": "Nội thất Salanca với cây xanh và ánh đèn ấm",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "galleryHeading": "Khám phá từng góc nhỏ",
+        "galleryItems": {
+          "__ref": {
+            "uid": "api::gallery-item.gallery-item",
+            "keys": [
+              "space-01",
+              "space-02",
+              "space-03",
+              "space-04",
+              "space-05",
+              "space-06"
+            ],
+            "many": true
+          }
+        },
+        "eventHeading": "Trải nghiệm không gian",
+        "eventBody": "Bước vào Salanca trước khi bạn ghé thăm",
+        "eventImage": {
+          "__media": "restaurant-interior.jpg",
+          "alt": "Toàn cảnh sảnh chính Salanca về đêm",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "eventLink": {
+          "label": "Xem toàn bộ hình ảnh",
+          "url": "/vi/vi/khong-gian",
+          "openInNewTab": false
+        },
+        "experienceHeading": "Không gian cho mọi cuộc hẹn",
+        "experienceImage": {
+          "__media": "restaurant-interior.jpg",
+          "alt": "Sảnh chính Salanca với nhiều bàn và ánh đèn vàng",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "amenitiesHeading": "Mọi chi tiết đều được chuẩn bị",
+        "amenities": [
+          {
+            "title": "Không gian",
+            "body": "riêng tư"
+          },
+          {
+            "title": "Bàn tiệc",
+            "body": "linh hoạt"
+          },
+          {
+            "title": "Hỗ trợ",
+            "body": "sự kiện"
+          },
+          {
+            "title": "Phục vụ",
+            "body": "tận tâm"
+          }
+        ],
+        "closingCta": {
+          "heading": "Chọn không gian\ncho bữa tiệc của bạn",
+          "link": {
+            "label": "Đặt bàn",
+            "url": "/vi/vi/dat-ban",
+            "openInNewTab": false
+          }
+        },
+        "seo": {
+          "metaTitle": "Không gian",
+          "metaDescription": "Không gian Salanca — sảnh chính, phòng riêng, tiệc nhóm và từng góc nhỏ trong nhà hàng.",
+          "canonicalPath": "/vi/vi/khong-gian",
+          "noIndex": false
+        }
+      },
+      "en": {
+        "hero": {
+          "eyebrow": "Salanca spaces",
+          "title": "A corner of Brazil\nin the heart of the city",
+          "description": "Every detail at Salanca is prepared with care so the evening feels complete.",
+          "backgroundImage": {
+            "__media": "restaurant-night.jpg",
+            "alt": "A corner of Brazil\nin the heart of the city",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "decorativeImage": {
+            "__media": "space-hero-decor-right.png",
+            "alt": "Salanca spaces — decor",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "primaryLink": {
+            "label": "Book a table",
+            "url": "/en/en/reservations",
+            "openInNewTab": false
+          }
+        },
+        "introHeading": "Where fire, flavour\nand gatherings\ncome together",
+        "introBody": [
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "text": "Every detail at Salanca is prepared with care so the evening feels complete."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "text": "An open, warm room, tropical greens, and the scent of charcoal from the grill awaken every sense."
+              }
+            ]
+          }
+        ],
+        "introImage": {
+          "__media": "restaurant-interior.jpg",
+          "alt": "Salanca interior with greenery and warm lighting",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "galleryHeading": "Explore every corner",
+        "galleryItems": {
+          "__ref": {
+            "uid": "api::gallery-item.gallery-item",
+            "keys": [
+              "space-01",
+              "space-02",
+              "space-03",
+              "space-04",
+              "space-05",
+              "space-06"
+            ],
+            "many": true
+          }
+        },
+        "eventHeading": "Experience the space",
+        "eventBody": "Step into Salanca before you visit",
+        "eventImage": {
+          "__media": "restaurant-interior.jpg",
+          "alt": "Wide view of Salanca’s main hall at night",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "eventLink": {
+          "label": "View all photos",
+          "url": "/en/en/space",
+          "openInNewTab": false
+        },
+        "experienceHeading": "Spaces for every occasion",
+        "experienceImage": {
+          "__media": "restaurant-interior.jpg",
+          "alt": "Salanca main hall with many tables and warm lighting",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "amenitiesHeading": "Every detail, prepared",
+        "amenities": [
+          {
+            "title": "Private",
+            "body": "spaces"
+          },
+          {
+            "title": "Flexible",
+            "body": "tables"
+          },
+          {
+            "title": "Event",
+            "body": "support"
+          },
+          {
+            "title": "Attentive",
+            "body": "service"
+          }
+        ],
+        "closingCta": {
+          "heading": "Choose the space\nfor your gathering",
+          "link": {
+            "label": "Book a table",
+            "url": "/en/en/reservations",
+            "openInNewTab": false
+          }
+        },
+        "seo": {
+          "metaTitle": "Space",
+          "metaDescription": "Salanca spaces — main hall, private rooms, group events, and every corner of the restaurant.",
+          "canonicalPath": "/en/en/space",
+          "noIndex": false
+        }
+      }
+    },
+    "api::experience-page.experience-page": {
+      "vi": {
+        "hero": {
+          "eyebrow": "Salanca",
+          "title": "Trải nghiệm\nChurrascaria",
+          "description": "Nghệ thuật phục vụ thịt nướng tại bàn",
+          "backgroundImage": {
+            "__media": "hero-grill.jpg",
+            "alt": "Trải nghiệm\nChurrascaria",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "decorativeImage": {
+            "__media": "experience-hero-decor-right.png",
+            "alt": "Trải nghiệm — decor",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "primaryLink": {
+            "label": "Đặt bàn ngay",
+            "url": "/vi/vi/dat-ban",
+            "openInNewTab": false
+          }
+        },
+        "introHeading": "Churrascaria là gì?",
+        "introBody": [
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "text": "Churrascaria là nhà hàng nướng kiểu Brazil, nơi những miếng thịt thượng hạng được nướng trên than hồng và mang đến tận bàn."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "text": "Các “gaucho” sẽ liên tục phục vụ, cắt lát tinh tế theo đúng chuẩn mực Brazil — để bạn thưởng thức trọn vẹn hương vị nguyên bản của thịt nướng."
+              }
+            ]
+          }
+        ],
+        "introImage": {
+          "__media": "buffet-picanha.jpg",
+          "alt": "Nhân viên Salanca phục vụ xiên thịt nướng tại bàn",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "processHeading": "Từ than hồng đến bàn ăn",
+        "processSteps": [
+          {
+            "number": "01",
+            "title": "Nguyên liệu",
+            "body": "Tuyển chọn kỹ lưỡng"
+          },
+          {
+            "number": "02",
+            "title": "Ướp thịt",
+            "body": "Gia vị Brazil đặc trưng"
+          },
+          {
+            "number": "03",
+            "title": "Xiên thủ công",
+            "body": "Kiểm soát chuẩn mỗi xiên thịt"
+          },
+          {
+            "number": "04",
+            "title": "Nướng than hồng",
+            "body": "Lửa than hồng đều và ổn định"
+          },
+          {
+            "number": "05",
+            "title": "Cắt tại bàn",
+            "body": "Phục vụ trực tiếp bởi Gaucho"
+          },
+          {
+            "number": "06",
+            "title": "Phục vụ liên tục",
+            "body": "Thưởng thức không giới hạn"
+          }
+        ],
+        "ritualHeading": "Nghi thức Rodizio",
+        "ritualBody": "Bạn kiểm soát bữa ăn của mình bằng tín hiệu tại bàn.",
+        "ritualImage": {
+          "__media": "hero-grill.jpg",
+          "alt": "Gaucho mang xiên thịt nướng đến bàn khách",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "ritualLink": {
+          "label": "Đặt bàn ngay",
+          "url": "/vi/vi/dat-ban",
+          "openInNewTab": false
+        },
+        "flavorsHeading": "Mỗi lát cắt, một hương vị",
+        "flavorItems": {
+          "__ref": {
+            "uid": "api::menu-item.menu-item",
+            "keys": [
+              "picanha",
+              "cupim",
+              "costela",
+              "cordeiro"
+            ],
+            "many": true
+          }
+        },
+        "manifestoHeading": "Không chỉ là một bữa ăn,\nmà là nhịp điệu của Brazil.",
+        "tableHeading": "Trải nghiệm tại bàn",
+        "tableBody": "Thư giãn, trò chuyện và tận hưởng những lát thịt nướng hảo hạng được phục vụ không ngừng — đúng tinh thần hiếu khách của Brazil.",
+        "tableImage": {
+          "__media": "dining-friends.jpg",
+          "alt": "Khách dùng bữa cùng nhau tại Salanca",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "closingCta": {
+          "heading": "Sẵn sàng cho một đêm đậm chất Brazil?",
+          "body": "Đặt bàn ngay để giữ chỗ và tận hưởng trải nghiệm Churrascaria trọn vẹn.",
+          "link": {
+            "label": "Đặt bàn ngay",
+            "url": "/vi/vi/dat-ban",
+            "openInNewTab": false
+          }
+        },
+        "seo": {
+          "metaTitle": "Trải nghiệm",
+          "metaDescription": "Trải nghiệm churrascaria tại Salanca — nghi thức rodizio, phục vụ tại bàn và nghệ thuật thịt nướng Brazil.",
+          "canonicalPath": "/vi/vi/trai-nghiem",
+          "noIndex": false
+        }
+      },
+      "en": {
+        "hero": {
+          "eyebrow": "Salanca",
+          "title": "The Churrascaria\nExperience",
+          "description": "The art of tableside grilled meats",
+          "backgroundImage": {
+            "__media": "hero-grill.jpg",
+            "alt": "The Churrascaria\nExperience",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "decorativeImage": {
+            "__media": "experience-hero-decor-right.png",
+            "alt": "The Churrascaria — decor",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "primaryLink": {
+            "label": "Book now",
+            "url": "/en/en/reservations",
+            "openInNewTab": false
+          }
+        },
+        "introHeading": "What is a churrascaria?",
+        "introBody": [
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "text": "A churrascaria is a Brazilian grill house where premium cuts roast over charcoal and arrive at your table still warm from the fire."
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "children": [
+              {
+                "type": "text",
+                "text": "Gauchos carve continuously, slice by slice, in the Brazilian tradition — so you taste each cut at its peak."
+              }
+            ]
+          }
+        ],
+        "introImage": {
+          "__media": "buffet-picanha.jpg",
+          "alt": "A Salanca host carving a skewer at the table",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "processHeading": "From ember to table",
+        "processSteps": [
+          {
+            "number": "01",
+            "title": "Ingredients",
+            "body": "Carefully selected cuts"
+          },
+          {
+            "number": "02",
+            "title": "Seasoning",
+            "body": "Signature Brazilian spices"
+          },
+          {
+            "number": "03",
+            "title": "Hand skewering",
+            "body": "Precision on every skewer"
+          },
+          {
+            "number": "04",
+            "title": "Charcoal grill",
+            "body": "Even, steady ember heat"
+          },
+          {
+            "number": "05",
+            "title": "Tableside carve",
+            "body": "Served directly by the gaucho"
+          },
+          {
+            "number": "06",
+            "title": "Continuous service",
+            "body": "Enjoy without limits"
+          }
+        ],
+        "ritualHeading": "The rodizio ritual",
+        "ritualBody": "You set the pace of the meal with a signal at your table.",
+        "ritualImage": {
+          "__media": "hero-grill.jpg",
+          "alt": "A gaucho bringing a skewer of grilled meat to the table",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "ritualLink": {
+          "label": "Book now",
+          "url": "/en/en/reservations",
+          "openInNewTab": false
+        },
+        "flavorsHeading": "Every slice, a flavour",
+        "flavorItems": {
+          "__ref": {
+            "uid": "api::menu-item.menu-item",
+            "keys": [
+              "picanha",
+              "cupim",
+              "costela",
+              "cordeiro"
+            ],
+            "many": true
+          }
+        },
+        "manifestoHeading": "Not just a meal,\nbut the rhythm of Brazil.",
+        "tableHeading": "Experience at the table",
+        "tableBody": "Relax, talk, and savour premium grilled slices served without pause — Brazilian hospitality in every pass of the skewer.",
+        "tableImage": {
+          "__media": "dining-friends.jpg",
+          "alt": "Guests dining together at Salanca",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "closingCta": {
+          "heading": "Ready for a night steeped in Brazil?",
+          "body": "Reserve a table to hold your place and enjoy the full Churrascaria experience.",
+          "link": {
+            "label": "Book now",
+            "url": "/en/en/reservations",
+            "openInNewTab": false
+          }
+        },
+        "seo": {
+          "metaTitle": "Experience",
+          "metaDescription": "The Salanca churrascaria experience — rodizio ritual, tableside service, and Brazilian grilled meats.",
+          "canonicalPath": "/en/en/experience",
+          "noIndex": false
+        }
+      }
+    },
+    "api::campaign-page.campaign-page": {
+      "vi": {
+        "hero": {
+          "eyebrow": "Lọc chương trình",
+          "title": "Ưu đãi & Sự kiện",
+          "description": "Những lý do mới để gặp nhau tại Salanca",
+          "backgroundImage": {
+            "__media": "dining-friends.jpg",
+            "alt": "Ưu đãi & Sự kiện",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "decorativeImage": {
+            "__media": "campaigns-hero-decor-right.png",
+            "alt": "Ưu đãi & Sự kiện — decor",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "primaryLink": {
+            "label": "Đặt bàn ngay",
+            "url": "/vi/vi/dat-ban",
+            "openInNewTab": false
+          }
+        },
+        "featuredHeading": "Sự kiện nổi bật",
+        "featuredCampaign": {
+          "__ref": {
+            "uid": "api::campaign.campaign",
+            "key": "brazil-night"
+          }
+        },
+        "listingHeading": "Chương trình dành cho bạn",
+        "eventCta": {
+          "heading": "Tổ chức sự kiện của riêng bạn",
+          "body": "Tiệc công ty, họp mặt bạn bè đến những dịp kỷ niệm đáng nhớ, Salanca mang đến trải nghiệm ẩm thực và không gian được thiết kế riêng cho bạn.",
+          "link": {
+            "label": "Xem không gian",
+            "url": "/vi/vi/khong-gian",
+            "openInNewTab": false
+          }
+        },
+        "closingCta": {
+          "heading": "Hẹn nhau tại Salanca",
+          "link": {
+            "label": "Đặt bàn ngay",
+            "url": "/vi/vi/dat-ban",
+            "openInNewTab": false
+          }
+        },
+        "seo": {
+          "metaTitle": "Ưu đãi",
+          "metaDescription": "Ưu đãi và chương trình tại Salanca — sự kiện, ưu đãi và tiệc nhóm đang diễn ra.",
+          "canonicalPath": "/vi/vi/uu-dai",
+          "noIndex": false
+        }
+      },
+      "en": {
+        "hero": {
+          "eyebrow": "Filter programs",
+          "title": "Offers & Events",
+          "description": "New reasons to gather at Salanca",
+          "backgroundImage": {
+            "__media": "dining-friends.jpg",
+            "alt": "Offers & Events",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "decorativeImage": {
+            "__media": "campaigns-hero-decor-right.png",
+            "alt": "Offers & Events — decor",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "primaryLink": {
+            "label": "Book a table",
+            "url": "/en/en/reservations",
+            "openInNewTab": false
+          }
+        },
+        "featuredHeading": "Featured event",
+        "featuredCampaign": {
+          "__ref": {
+            "uid": "api::campaign.campaign",
+            "key": "brazil-night"
+          }
+        },
+        "listingHeading": "Programs for you",
+        "eventCta": {
+          "heading": "Host your own event",
+          "body": "From company dinners and reunions to milestones worth remembering, Salanca brings the food experience and a room shaped around you.",
+          "link": {
+            "label": "See the space",
+            "url": "/en/en/space",
+            "openInNewTab": false
+          }
+        },
+        "closingCta": {
+          "heading": "See you at Salanca",
+          "link": {
+            "label": "Book a table",
+            "url": "/en/en/reservations",
+            "openInNewTab": false
+          }
+        },
+        "seo": {
+          "metaTitle": "Offers",
+          "metaDescription": "Offers and campaigns at Salanca — events, promotions, and group dining currently on.",
+          "canonicalPath": "/en/en/offers",
+          "noIndex": false
+        }
+      }
+    },
+    "api::booking-page.booking-page": {
+      "vi": {
+        "hero": {
+          "eyebrow": "Đặt bàn chỉ trong 3 bước",
+          "title": "Đặt bàn tại Salanca",
+          "description": "Chọn thời gian. Salanca chuẩn bị trải nghiệm.",
+          "backgroundImage": {
+            "__media": "restaurant-night.jpg",
+            "alt": "Đặt bàn tại Salanca",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "decorativeImage": {
+            "__media": "booking-hero-decor-right.png",
+            "alt": "Đặt bàn tại Salanca — decor",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "primaryLink": {
+            "label": "Gọi ngay",
+            "url": "/vi/vi/lien-he",
+            "openInNewTab": false
+          }
+        },
+        "formHeading": "Thông tin đặt bàn",
+        "stepsHeading": "Đặt bàn chỉ trong 3 bước",
+        "steps": [
+          {
+            "number": "01",
+            "title": "Chọn thời gian",
+            "body": "Chọn ngày, giờ đến và số lượng khách."
+          },
+          {
+            "number": "02",
+            "title": "Gửi yêu cầu",
+            "body": "Điền thông tin để gửi yêu cầu đặt bàn."
+          },
+          {
+            "number": "03",
+            "title": "Nhận xác nhận",
+            "body": "Chúng tôi sẽ liên hệ xác nhận qua điện thoại."
+          }
+        ],
+        "occasionHeading": "Một bàn tiệc dành riêng cho bạn",
+        "occasionImage": {
+          "__media": "restaurant-table.jpg",
+          "alt": "Nhân viên Salanca chuẩn bị bàn ăn",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "bookingNotice": "Yêu cầu của bạn sẽ được xác nhận qua điện thoại.",
+        "supportHeading": "Cần Salanca hỗ trợ?",
+        "supportBody": "Liên hệ hotline, đội ngũ của chúng tôi luôn sẵn sàng hỗ trợ bạn.",
+        "supportImage": {
+          "__media": "restaurant-interior.jpg",
+          "alt": "Không gian quầy bar tại Salanca",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "seo": {
+          "metaTitle": "Đặt bàn",
+          "metaDescription": "Đặt bàn tại Salanca — chọn thời gian, gửi yêu cầu và nhận xác nhận qua điện thoại.",
+          "canonicalPath": "/vi/vi/dat-ban",
+          "noIndex": false
+        }
+      },
+      "en": {
+        "hero": {
+          "eyebrow": "Three steps to a table",
+          "title": "Reserve a table at Salanca",
+          "description": "Pick your time. We will have the fire ready.",
+          "backgroundImage": {
+            "__media": "restaurant-night.jpg",
+            "alt": "Reserve a table at Salanca",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "decorativeImage": {
+            "__media": "booking-hero-decor-right.png",
+            "alt": "Reserve a table at Salanca — decor",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "primaryLink": {
+            "label": "Call now",
+            "url": "/en/en/contact",
+            "openInNewTab": false
+          }
+        },
+        "formHeading": "Reservation details",
+        "stepsHeading": "Three steps to a table",
+        "steps": [
+          {
+            "number": "01",
+            "title": "Pick a time",
+            "body": "Choose the date, arrival time, and party size."
+          },
+          {
+            "number": "02",
+            "title": "Send the request",
+            "body": "Fill in your details and send it over."
+          },
+          {
+            "number": "03",
+            "title": "Get confirmation",
+            "body": "We call you back to confirm the table."
+          }
+        ],
+        "occasionHeading": "A table set for your occasion",
+        "occasionImage": {
+          "__media": "restaurant-table.jpg",
+          "alt": "A Salanca host setting a table",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "bookingNotice": "We will confirm your request by phone.",
+        "supportHeading": "Need a hand?",
+        "supportBody": "Call the hotline and our team will sort it out with you.",
+        "supportImage": {
+          "__media": "restaurant-interior.jpg",
+          "alt": "The bar area at Salanca",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "seo": {
+          "metaTitle": "Reservations",
+          "metaDescription": "Reserve a table at Salanca — pick a time, send a request, and we will confirm by phone.",
+          "canonicalPath": "/en/en/reservations",
+          "noIndex": false
+        }
+      }
+    },
+    "api::contact-page.contact-page": {
+      "vi": {
+        "hero": {
+          "eyebrow": "GHÉ THĂM SALANCA",
+          "title": "LIÊN HỆ SALANCA",
+          "description": "CHÚNG TÔI LUÔN SẴN SÀNG ĐÓN TIẾP BẠN.",
+          "backgroundImage": {
+            "__media": "restaurant-night.jpg",
+            "alt": "Salanca",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "decorativeImage": {
+            "__media": "contact-hero-decor-right.png",
+            "alt": "LIÊN HỆ SALANCA — decor",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "primaryLink": {
+            "label": "ĐẶT BÀN NGAY",
+            "url": "/vi/vi/dat-ban",
+            "openInNewTab": false
+          }
+        },
+        "visitHeading": "GHÉ THĂM SALANCA",
+        "featuredLocation": {
+          "__ref": {
+            "uid": "api::location.location",
+            "key": "salanca-hanoi"
+          }
+        },
+        "mapHeading": "TÌM ĐƯỜNG ĐẾN SALANCA",
+        "formHeading": "GỬI LỜI NHẮN",
+        "helpHeading": "SALANCA CÓ THỂ GIÚP GÌ CHO BẠN?",
+        "helpImage": {
+          "__media": "restaurant-table.jpg",
+          "alt": "Không gian bàn ăn ấm cúng tại Salanca.",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "socialHeading": "KẾT NỐI CÙNG SALANCA",
+        "closingCta": {
+          "heading": "HẸN GẶP BẠN TẠI SALANCA",
+          "link": {
+            "label": "ĐẶT BÀN NGAY",
+            "url": "/vi/vi/dat-ban",
+            "openInNewTab": false
+          }
+        },
+        "seo": {
+          "metaTitle": "Liên hệ",
+          "metaDescription": "Liên hệ Salanca — địa chỉ Hà Nội, hotline, form gửi tin nhắn và hướng dẫn đến nhà hàng.",
+          "canonicalPath": "/vi/vi/lien-he",
+          "noIndex": false
+        }
+      },
+      "en": {
+        "hero": {
+          "eyebrow": "VISIT SALANCA",
+          "title": "CONTACT SALANCA",
+          "description": "WE ARE ALWAYS READY TO WELCOME YOU.",
+          "backgroundImage": {
+            "__media": "restaurant-night.jpg",
+            "alt": "Salanca",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "decorativeImage": {
+            "__media": "contact-hero-decor-right.png",
+            "alt": "CONTACT SALANCA — decor",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          "primaryLink": {
+            "label": "BOOK A TABLE",
+            "url": "/en/en/reservations",
+            "openInNewTab": false
+          }
+        },
+        "visitHeading": "VISIT SALANCA",
+        "featuredLocation": {
+          "__ref": {
+            "uid": "api::location.location",
+            "key": "salanca-hanoi"
+          }
+        },
+        "mapHeading": "FIND YOUR WAY TO SALANCA",
+        "formHeading": "SEND A MESSAGE",
+        "helpHeading": "HOW CAN SALANCA HELP YOU?",
+        "helpImage": {
+          "__media": "restaurant-table.jpg",
+          "alt": "Warm dining tables at Salanca.",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "socialHeading": "CONNECT WITH SALANCA",
+        "closingCta": {
+          "heading": "SEE YOU AT SALANCA",
+          "link": {
+            "label": "BOOK A TABLE",
+            "url": "/en/en/reservations",
+            "openInNewTab": false
+          }
+        },
+        "seo": {
+          "metaTitle": "Contact",
+          "metaDescription": "Contact Salanca — Hanoi address, hotline, message form, and directions to the restaurant.",
+          "canonicalPath": "/en/en/contact",
+          "noIndex": false
+        }
+      }
+    }
+  },
+  "collections": {
+    "api::menu-category.menu-category": {
+      "matchField": "slug",
+      "entries": [
+        {
+          "key": "grill",
+          "vi": {
+            "slug": "thit-nuong",
+            "name": "Các món nướng đặc trưng",
+            "description": "Hơn 12 loại thịt nướng trên than hồng, phục vụ liên tục tại bàn.",
+            "image": {
+              "__media": "panceta-skewers.jpg",
+              "alt": "Các xiên thịt nướng Brazil trên nền lửa than",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "displayOrder": 1,
+            "isActive": true
+          },
+          "en": {
+            "slug": "grilled-meats",
+            "name": "Signature cuts",
+            "description": "More than twelve cuts over charcoal, carved continuously at your table.",
+            "image": {
+              "__media": "panceta-skewers.jpg",
+              "alt": "Brazilian grilled meat skewers over charcoal",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "displayOrder": 1,
+            "isActive": true
+          }
+        },
+        {
+          "key": "sides",
+          "vi": {
+            "slug": "mon-kem",
+            "name": "Steak Salanca",
+            "description": "Rib eye steak nướng theo độ chín yêu cầu, dùng kèm sốt nấm hoặc sốt tiêu. Phần thịt đậm vị, mềm mọng và có lớp cháy cạnh thơm.",
+            "image": {
+              "__media": "steak-sliced.jpg",
+              "alt": "Bít tết thái lát với rosemary và nĩa phục vụ",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "displayOrder": 2,
+            "isActive": true
+          },
+          "en": {
+            "slug": "sides",
+            "name": "Steak Salanca",
+            "description": "Rib eye steak grilled to your preferred doneness, served with mushroom or pepper sauce. Richly flavoured, tender, and finished with a fragrant charred crust.",
+            "image": {
+              "__media": "steak-sliced.jpg",
+              "alt": "Sliced steak with rosemary and a serving fork",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "displayOrder": 2,
+            "isActive": true
+          }
+        }
+      ]
+    },
+    "api::menu-item.menu-item": {
+      "matchField": "slug",
+      "entries": [
+        {
+          "key": "picanha",
+          "vi": {
+            "slug": "picanha",
+            "name": "Picanha",
+            "shortDescription": "Phần ngon nhất của mông bò",
+            "description": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Phần ngon nhất của mông bò"
+                  }
+                ]
+              }
+            ],
+            "price": 0,
+            "image": {
+              "__media": "steak-sliced.jpg",
+              "alt": "Thịt bò nướng thái lát (minh họa picanha)",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "category": {
+              "__ref": {
+                "uid": "api::menu-category.menu-category",
+                "key": "grill"
+              }
+            },
+            "isFeatured": true,
+            "isActive": true,
+            "displayOrder": 1
+          },
+          "en": {
+            "slug": "picanha",
+            "name": "Picanha",
+            "shortDescription": "The prized cut from the rump cap",
+            "description": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "The prized cut from the rump cap"
+                  }
+                ]
+              }
+            ],
+            "price": 0,
+            "image": {
+              "__media": "steak-sliced.jpg",
+              "alt": "Sliced grilled beef (illustrative of picanha)",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "category": {
+              "__ref": {
+                "uid": "api::menu-category.menu-category",
+                "key": "grill"
+              }
+            },
+            "isFeatured": true,
+            "isActive": true,
+            "displayOrder": 1
+          }
+        },
+        {
+          "key": "costela",
+          "vi": {
+            "slug": "costela",
+            "name": "Costela",
+            "shortDescription": "Sườn bò nướng",
+            "description": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Sườn bò nướng"
+                  }
+                ]
+              }
+            ],
+            "price": 0,
+            "image": {
+              "__media": "buffet-picanha.jpg",
+              "alt": "Sườn bò nướng trên than (minh họa costela)",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "category": {
+              "__ref": {
+                "uid": "api::menu-category.menu-category",
+                "key": "grill"
+              }
+            },
+            "isFeatured": true,
+            "isActive": true,
+            "displayOrder": 2
+          },
+          "en": {
+            "slug": "costela",
+            "name": "Costela",
+            "shortDescription": "Grilled beef ribs",
+            "description": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Grilled beef ribs"
+                  }
+                ]
+              }
+            ],
+            "price": 0,
+            "image": {
+              "__media": "buffet-picanha.jpg",
+              "alt": "Charcoal-grilled beef ribs (illustrative of costela)",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "category": {
+              "__ref": {
+                "uid": "api::menu-category.menu-category",
+                "key": "grill"
+              }
+            },
+            "isFeatured": true,
+            "isActive": true,
+            "displayOrder": 2
+          }
+        },
+        {
+          "key": "cupim",
+          "vi": {
+            "slug": "cupim",
+            "name": "Cupim",
+            "shortDescription": "Nạc vai bò",
+            "description": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Nạc vai bò"
+                  }
+                ]
+              }
+            ],
+            "price": 0,
+            "image": {
+              "__media": "steak-sliced.jpg",
+              "alt": "Thịt cừu / nướng thái (minh họa cupim)",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "category": {
+              "__ref": {
+                "uid": "api::menu-category.menu-category",
+                "key": "grill"
+              }
+            },
+            "isFeatured": true,
+            "isActive": true,
+            "displayOrder": 3
+          },
+          "en": {
+            "slug": "cupim",
+            "name": "Cupim",
+            "shortDescription": "Beef hump",
+            "description": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Beef hump"
+                  }
+                ]
+              }
+            ],
+            "price": 0,
+            "image": {
+              "__media": "steak-sliced.jpg",
+              "alt": "Roasted meat slices (illustrative of cupim)",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "category": {
+              "__ref": {
+                "uid": "api::menu-category.menu-category",
+                "key": "grill"
+              }
+            },
+            "isFeatured": true,
+            "isActive": true,
+            "displayOrder": 3
+          }
+        },
+        {
+          "key": "panceta",
+          "vi": {
+            "slug": "panceta",
+            "name": "Panceta",
+            "shortDescription": "Ba chỉ heo nướng",
+            "description": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Ba chỉ heo nướng"
+                  }
+                ]
+              }
+            ],
+            "price": 0,
+            "image": {
+              "__media": "panceta-skewers.jpg",
+              "alt": "Xiên ba chỉ heo nướng kiểu Brazil",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "category": {
+              "__ref": {
+                "uid": "api::menu-category.menu-category",
+                "key": "grill"
+              }
+            },
+            "isFeatured": true,
+            "isActive": true,
+            "displayOrder": 4
+          },
+          "en": {
+            "slug": "panceta",
+            "name": "Panceta",
+            "shortDescription": "Grilled pork belly",
+            "description": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Grilled pork belly"
+                  }
+                ]
+              }
+            ],
+            "price": 0,
+            "image": {
+              "__media": "panceta-skewers.jpg",
+              "alt": "Brazilian-style pork belly skewers",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "category": {
+              "__ref": {
+                "uid": "api::menu-category.menu-category",
+                "key": "grill"
+              }
+            },
+            "isFeatured": true,
+            "isActive": true,
+            "displayOrder": 4
+          }
+        },
+        {
+          "key": "cordeiro",
+          "vi": {
+            "slug": "cordeiro",
+            "name": "Cordeiro",
+            "shortDescription": "Đùi cừu",
+            "description": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Đùi cừu"
+                  }
+                ]
+              }
+            ],
+            "price": 0,
+            "image": {
+              "__media": "cordeiro.jpg",
+              "alt": "Thịt cừu nướng thái lát",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "category": {
+              "__ref": {
+                "uid": "api::menu-category.menu-category",
+                "key": "grill"
+              }
+            },
+            "isFeatured": true,
+            "isActive": true,
+            "displayOrder": 5
+          },
+          "en": {
+            "slug": "cordeiro",
+            "name": "Cordeiro",
+            "shortDescription": "Lamb leg",
+            "description": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Lamb leg"
+                  }
+                ]
+              }
+            ],
+            "price": 0,
+            "image": {
+              "__media": "cordeiro.jpg",
+              "alt": "Sliced roasted lamb",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "category": {
+              "__ref": {
+                "uid": "api::menu-category.menu-category",
+                "key": "grill"
+              }
+            },
+            "isFeatured": true,
+            "isActive": true,
+            "displayOrder": 5
+          }
+        },
+        {
+          "key": "camarao",
+          "vi": {
+            "slug": "camarao",
+            "name": "Camarão",
+            "shortDescription": "Tôm cuộn bacon",
+            "description": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Tôm cuộn bacon"
+                  }
+                ]
+              }
+            ],
+            "price": 0,
+            "image": {
+              "__media": "camarao.jpg",
+              "alt": "Tôm nướng cuộn bacon",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "category": {
+              "__ref": {
+                "uid": "api::menu-category.menu-category",
+                "key": "grill"
+              }
+            },
+            "isFeatured": true,
+            "isActive": true,
+            "displayOrder": 6
+          },
+          "en": {
+            "slug": "camarao",
+            "name": "Camarão",
+            "shortDescription": "Bacon-wrapped prawns",
+            "description": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Bacon-wrapped prawns"
+                  }
+                ]
+              }
+            ],
+            "price": 0,
+            "image": {
+              "__media": "camarao.jpg",
+              "alt": "Grilled prawns wrapped in bacon",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "category": {
+              "__ref": {
+                "uid": "api::menu-category.menu-category",
+                "key": "grill"
+              }
+            },
+            "isFeatured": true,
+            "isActive": true,
+            "displayOrder": 6
+          }
+        },
+        {
+          "key": "a-la-carte",
+          "vi": {
+            "slug": "a-la-carte",
+            "name": "Steak Salanca",
+            "shortDescription": "Rib eye steak nướng theo độ chín yêu cầu, dùng kèm sốt nấm hoặc sốt tiêu. Phần thịt đậm vị, mềm mọng và có lớp cháy cạnh thơm.",
+            "description": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Rib eye steak nướng theo độ chín yêu cầu, dùng kèm sốt nấm hoặc sốt tiêu. Phần thịt đậm vị, mềm mọng và có lớp cháy cạnh thơm."
+                  }
+                ]
+              }
+            ],
+            "price": 850000,
+            "image": {
+              "__media": "steak-sliced.jpg",
+              "alt": "Bít tết thái lát với rosemary và nĩa phục vụ",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "category": {
+              "__ref": {
+                "uid": "api::menu-category.menu-category",
+                "key": "sides"
+              }
+            },
+            "isFeatured": false,
+            "isActive": true,
+            "displayOrder": 90
+          },
+          "en": {
+            "slug": "a-la-carte",
+            "name": "Steak Salanca",
+            "shortDescription": "Rib eye steak grilled to your preferred doneness, served with mushroom or pepper sauce. Richly flavoured, tender, and finished with a fragrant charred crust.",
+            "description": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Rib eye steak grilled to your preferred doneness, served with mushroom or pepper sauce. Richly flavoured, tender, and finished with a fragrant charred crust."
+                  }
+                ]
+              }
+            ],
+            "price": 850000,
+            "image": {
+              "__media": "steak-sliced.jpg",
+              "alt": "Sliced steak with rosemary and a serving fork",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "category": {
+              "__ref": {
+                "uid": "api::menu-category.menu-category",
+                "key": "sides"
+              }
+            },
+            "isFeatured": false,
+            "isActive": true,
+            "displayOrder": 90
+          }
+        }
+      ]
+    },
+    "api::menu-package.menu-package": {
+      "matchField": "slug",
+      "entries": [
+        {
+          "key": "buffet",
+          "vi": {
+            "slug": "buffet",
+            "name": "Buffet Churrascaria",
+            "description": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Các xiên thịt nướng Brazil trên nền lửa than"
+                  }
+                ]
+              }
+            ],
+            "adultPrice": 950000,
+            "childPrice": 590000,
+            "includedItems": [
+              {
+                "title": "Hơn 12 loại thịt nướng",
+                "description": null
+              },
+              {
+                "title": "Salad bar đa dạng",
+                "description": null
+              },
+              {
+                "title": "Dứa nướng Brazil",
+                "description": null
+              },
+              {
+                "title": "Phục vụ không giới hạn",
+                "description": null
+              }
+            ],
+            "image": {
+              "__media": "panceta-skewers.jpg",
+              "alt": "Các xiên thịt nướng Brazil trên nền lửa than",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "isFeatured": true,
+            "isActive": true,
+            "displayOrder": 1,
+            "seo": {
+              "metaTitle": "Buffet Churrascaria",
+              "metaDescription": "Hơn 12 loại thịt nướng trên than hồng, phục vụ liên tục tại bàn.",
+              "canonicalPath": "/vi/vi/thuc-don",
+              "noIndex": false
+            }
+          },
+          "en": {
+            "slug": "buffet",
+            "name": "Buffet Churrascaria",
+            "description": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Brazilian grilled meat skewers over charcoal"
+                  }
+                ]
+              }
+            ],
+            "adultPrice": 950000,
+            "childPrice": 590000,
+            "includedItems": [
+              {
+                "title": "12+ grilled meats",
+                "description": null
+              },
+              {
+                "title": "Generous salad bar",
+                "description": null
+              },
+              {
+                "title": "Brazilian grilled pineapple",
+                "description": null
+              },
+              {
+                "title": "Unlimited tableside service",
+                "description": null
+              }
+            ],
+            "image": {
+              "__media": "panceta-skewers.jpg",
+              "alt": "Brazilian grilled meat skewers over charcoal",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "isFeatured": true,
+            "isActive": true,
+            "displayOrder": 1,
+            "seo": {
+              "metaTitle": "Buffet Churrascaria",
+              "metaDescription": "More than twelve cuts over charcoal, carved continuously at your table.",
+              "canonicalPath": "/en/en/menu",
+              "noIndex": false
+            }
+          }
+        },
+        {
+          "key": "rodizio",
+          "vi": {
+            "slug": "rodizio",
+            "name": "Rodizio Menu",
+            "description": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Miếng thịt nướng lớn trên xiên gần lửa than"
+                  }
+                ]
+              }
+            ],
+            "adultPrice": 850000,
+            "childPrice": 490000,
+            "includedItems": [
+              {
+                "title": "Xúc xích Calabresa",
+                "description": null
+              },
+              {
+                "title": "Cupim",
+                "description": null
+              },
+              {
+                "title": "Thăn bò cuộn bacon",
+                "description": null
+              },
+              {
+                "title": "Cánh gà",
+                "description": null
+              },
+              {
+                "title": "Ba chỉ heo",
+                "description": null
+              },
+              {
+                "title": "Đùi heo muối",
+                "description": null
+              },
+              {
+                "title": "Mông bò",
+                "description": null
+              },
+              {
+                "title": "Dứa nướng",
+                "description": null
+              }
+            ],
+            "image": {
+              "__media": "buffet-picanha.jpg",
+              "alt": "Miếng thịt nướng lớn trên xiên gần lửa than",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "isFeatured": false,
+            "isActive": true,
+            "displayOrder": 2,
+            "seo": {
+              "metaTitle": "Rodizio Menu",
+              "metaDescription": "Hơn 12 loại thịt nướng trên than hồng, phục vụ liên tục tại bàn.",
+              "canonicalPath": "/vi/vi/thuc-don",
+              "noIndex": false
+            }
+          },
+          "en": {
+            "slug": "rodizio",
+            "name": "Rodizio Menu",
+            "description": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Large grilled meat on a skewer near the charcoal fire"
+                  }
+                ]
+              }
+            ],
+            "adultPrice": 850000,
+            "childPrice": 490000,
+            "includedItems": [
+              {
+                "title": "Calabresa sausage",
+                "description": null
+              },
+              {
+                "title": "Cupim",
+                "description": null
+              },
+              {
+                "title": "Bacon-wrapped beef",
+                "description": null
+              },
+              {
+                "title": "Chicken wings",
+                "description": null
+              },
+              {
+                "title": "Pork belly",
+                "description": null
+              },
+              {
+                "title": "Salted pork leg",
+                "description": null
+              },
+              {
+                "title": "Beef rump",
+                "description": null
+              },
+              {
+                "title": "Grilled pineapple",
+                "description": null
+              }
+            ],
+            "image": {
+              "__media": "buffet-picanha.jpg",
+              "alt": "Large grilled meat on a skewer near the charcoal fire",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "isFeatured": false,
+            "isActive": true,
+            "displayOrder": 2,
+            "seo": {
+              "metaTitle": "Rodizio Menu",
+              "metaDescription": "More than twelve cuts over charcoal, carved continuously at your table.",
+              "canonicalPath": "/en/en/menu",
+              "noIndex": false
+            }
+          }
+        }
+      ]
+    },
+    "api::campaign.campaign": {
+      "matchField": "slug",
+      "entries": [
+        {
+          "key": "brazil-night",
+          "vi": {
+            "slug": "brazil-night",
+            "kind": "event",
+            "title": "Đêm Brazil rực lửa",
+            "summary": "Một bàn tiệc cuối tuần ấm cúng, những món nướng đậm vị và thời gian gặp gỡ trọn vẹn.",
+            "body": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Một bàn tiệc cuối tuần ấm cúng, những món nướng đậm vị và thời gian gặp gỡ trọn vẹn."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Một bàn tiệc cuối tuần ấm cúng, những món nướng đậm vị và thời gian gặp gỡ trọn vẹn."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Một buổi tối mang tinh thần Brazil qua hương vị nướng và nhịp gặp gỡ thư thả."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Đặt bàn trước để giữ chỗ gần lò nướng — nơi câu chuyện và hương khói quyện vào nhau."
+                  }
+                ]
+              }
+            ],
+            "coverImage": {
+              "__media": "dining-friends.jpg",
+              "alt": "Nhóm khách nâng ly và dùng bữa trong không khí tiệc tại Salanca",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "cta": {
+              "heading": "Đêm Brazil rực lửa",
+              "body": "Một bàn tiệc cuối tuần ấm cúng, những món nướng đậm vị và thời gian gặp gỡ trọn vẹn.",
+              "link": {
+                "label": "Xem chi tiết",
+                "url": "/vi/vi/dat-ban",
+                "openInNewTab": false
+              }
+            },
+            "isFeatured": true,
+            "displayOrder": 1,
+            "seo": {
+              "metaTitle": "Đêm Brazil rực lửa",
+              "metaDescription": "Một bàn tiệc cuối tuần ấm cúng, những món nướng đậm vị và thời gian gặp gỡ trọn vẹn.",
+              "canonicalPath": "/vi/vi/uu-dai/brazil-night",
+              "noIndex": false
+            }
+          },
+          "en": {
+            "slug": "brazil-night",
+            "kind": "event",
+            "title": "Blazing Brazil night",
+            "summary": "A warm weekend table, bold grilled flavours, and unhurried time together.",
+            "body": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "A warm weekend table, bold grilled flavours, and unhurried time together."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "A warm weekend table, bold grilled flavours, and unhurried time together."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "An evening with a Brazilian spirit through fire-grilled flavours and good company."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Book ahead for seats near the grill — where smoke, stories, and conversation meet."
+                  }
+                ]
+              }
+            ],
+            "coverImage": {
+              "__media": "dining-friends.jpg",
+              "alt": "Guests toasting and dining in a festive Salanca setting",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "cta": {
+              "heading": "Blazing Brazil night",
+              "body": "A warm weekend table, bold grilled flavours, and unhurried time together.",
+              "link": {
+                "label": "View details",
+                "url": "/en/en/reservations",
+                "openInNewTab": false
+              }
+            },
+            "isFeatured": true,
+            "displayOrder": 1,
+            "seo": {
+              "metaTitle": "Blazing Brazil night",
+              "metaDescription": "A warm weekend table, bold grilled flavours, and unhurried time together.",
+              "canonicalPath": "/en/en/offers/brazil-night",
+              "noIndex": false
+            }
+          }
+        },
+        {
+          "key": "brazil-weekend",
+          "vi": {
+            "slug": "brazil-weekend",
+            "kind": "event",
+            "title": "Đêm Brazil cuối tuần",
+            "summary": "Cuối tuần thăng hoa với vũ điệu, âm nhạc và những xiên nướng hảo hạng.",
+            "body": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Cuối tuần thăng hoa với vũ điệu, âm nhạc và những xiên nướng hảo hạng."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Mỗi cuối tuần, Salanca thắp sáng không gian bằng nhạc Brazil, xiên nướng liên tục và năng lượng của bàn tiệc đông vui."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Đặt bàn trước để giữ chỗ ở khu vực gần lò nướng — nơi câu chuyện và hương khói quyện vào nhau."
+                  }
+                ]
+              }
+            ],
+            "coverImage": {
+              "__media": "buffet-picanha.jpg",
+              "alt": "Khay thịt nướng buffet trên bàn tối ấm",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "cta": {
+              "heading": "Đêm Brazil cuối tuần",
+              "body": "Cuối tuần thăng hoa với vũ điệu, âm nhạc và những xiên nướng hảo hạng.",
+              "link": {
+                "label": "Xem chi tiết",
+                "url": "/vi/vi/dat-ban",
+                "openInNewTab": false
+              }
+            },
+            "isFeatured": false,
+            "displayOrder": 2,
+            "seo": {
+              "metaTitle": "Đêm Brazil cuối tuần",
+              "metaDescription": "Cuối tuần thăng hoa với vũ điệu, âm nhạc và những xiên nướng hảo hạng.",
+              "canonicalPath": "/vi/vi/uu-dai/brazil-weekend",
+              "noIndex": false
+            }
+          },
+          "en": {
+            "slug": "brazil-weekend",
+            "kind": "event",
+            "title": "Brazil weekend night",
+            "summary": "A soaring weekend of dance, music, and exceptional skewers.",
+            "body": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "A soaring weekend of dance, music, and exceptional skewers."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Every weekend Salanca lights up with Brazilian music, continuous rodizio, and a lively dining room."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Book ahead for seats near the grill — where smoke, stories, and conversation meet."
+                  }
+                ]
+              }
+            ],
+            "coverImage": {
+              "__media": "buffet-picanha.jpg",
+              "alt": "Buffet grill spread on a warm evening table",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "cta": {
+              "heading": "Brazil weekend night",
+              "body": "A soaring weekend of dance, music, and exceptional skewers.",
+              "link": {
+                "label": "View details",
+                "url": "/en/en/reservations",
+                "openInNewTab": false
+              }
+            },
+            "isFeatured": false,
+            "displayOrder": 2,
+            "seo": {
+              "metaTitle": "Brazil weekend night",
+              "metaDescription": "A soaring weekend of dance, music, and exceptional skewers.",
+              "canonicalPath": "/en/en/offers/brazil-weekend",
+              "noIndex": false
+            }
+          }
+        },
+        {
+          "key": "birthday-brazil",
+          "vi": {
+            "slug": "birthday-brazil",
+            "kind": "event",
+            "title": "Sinh nhật đậm chất Brazil",
+            "summary": "Ngày đặc biệt thêm trọn vẹn với không gian ấm áp, ẩm thực tinh tế và bất ngờ dành riêng cho bạn.",
+            "body": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Ngày đặc biệt thêm trọn vẹn với không gian ấm áp, ẩm thực tinh tế và bất ngờ dành riêng cho bạn."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Sinh nhật tại Salanca là bữa tiệc có lửa, có thịt nướng và có người thân bên cạnh."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Đội ngũ hỗ trợ trang trí nhẹ, bánh và lịch trình phục vụ để khoảnh khắc của bạn trọn vẹn hơn."
+                  }
+                ]
+              }
+            ],
+            "coverImage": {
+              "__media": "wine-dinner.jpg",
+              "alt": "Bàn tiệc sinh nhật với bánh và khách đang chúc mừng",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "cta": {
+              "heading": "Sinh nhật đậm chất Brazil",
+              "body": "Ngày đặc biệt thêm trọn vẹn với không gian ấm áp, ẩm thực tinh tế và bất ngờ dành riêng cho bạn.",
+              "link": {
+                "label": "Xem chi tiết",
+                "url": "/vi/vi/dat-ban",
+                "openInNewTab": false
+              }
+            },
+            "isFeatured": false,
+            "displayOrder": 3,
+            "seo": {
+              "metaTitle": "Sinh nhật đậm chất Brazil",
+              "metaDescription": "Ngày đặc biệt thêm trọn vẹn với không gian ấm áp, ẩm thực tinh tế và bất ngờ dành riêng cho bạn.",
+              "canonicalPath": "/vi/vi/uu-dai/birthday-brazil",
+              "noIndex": false
+            }
+          },
+          "en": {
+            "slug": "birthday-brazil",
+            "kind": "event",
+            "title": "A birthday with Brazil soul",
+            "summary": "Make the day complete with a warm room, refined food, and a surprise just for you.",
+            "body": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Make the day complete with a warm room, refined food, and a surprise just for you."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "A Salanca birthday is fire, grilled meat, and the people you love at the table."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Our team can help with light décor, cake, and service timing so the moment feels complete."
+                  }
+                ]
+              }
+            ],
+            "coverImage": {
+              "__media": "wine-dinner.jpg",
+              "alt": "Birthday table with cake and celebrating guests",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "cta": {
+              "heading": "A birthday with Brazil soul",
+              "body": "Make the day complete with a warm room, refined food, and a surprise just for you.",
+              "link": {
+                "label": "View details",
+                "url": "/en/en/reservations",
+                "openInNewTab": false
+              }
+            },
+            "isFeatured": false,
+            "displayOrder": 3,
+            "seo": {
+              "metaTitle": "A birthday with Brazil soul",
+              "metaDescription": "Make the day complete with a warm room, refined food, and a surprise just for you.",
+              "canonicalPath": "/en/en/offers/birthday-brazil",
+              "noIndex": false
+            }
+          }
+        },
+        {
+          "key": "lunch-meetup",
+          "vi": {
+            "slug": "lunch-meetup",
+            "kind": "promotion",
+            "title": "Bữa trưa gặp gỡ",
+            "summary": "Khoảnh khắc thư giãn giữa ngày với thực đơn hương vị đậm và không gian xanh mát.",
+            "body": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Khoảnh khắc thư giãn giữa ngày với thực đơn hương vị đậm và không gian xanh mát."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Buổi trưa tại Salanca dành cho những cuộc gặp gỡ gọn gàng nhưng vẫn đủ đầy hương vị Brazil."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Phù hợp cho đồng nghiệp, đối tác hoặc bữa hẹn ngắn — vẫn có rodizio và salad bar."
+                  }
+                ]
+              }
+            ],
+            "coverImage": {
+              "__media": "wine-dinner.jpg",
+              "alt": "Hai khách dùng bữa trưa bên ly vang",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "cta": {
+              "heading": "Bữa trưa gặp gỡ",
+              "body": "Khoảnh khắc thư giãn giữa ngày với thực đơn hương vị đậm và không gian xanh mát.",
+              "link": {
+                "label": "Xem chi tiết",
+                "url": "/vi/vi/dat-ban",
+                "openInNewTab": false
+              }
+            },
+            "isFeatured": false,
+            "displayOrder": 4,
+            "seo": {
+              "metaTitle": "Bữa trưa gặp gỡ",
+              "metaDescription": "Khoảnh khắc thư giãn giữa ngày với thực đơn hương vị đậm và không gian xanh mát.",
+              "canonicalPath": "/vi/vi/uu-dai/lunch-meetup",
+              "noIndex": false
+            }
+          },
+          "en": {
+            "slug": "lunch-meetup",
+            "kind": "promotion",
+            "title": "Midday meetup lunch",
+            "summary": "A relaxed midday pause with bold flavours and a calm room.",
+            "body": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "A relaxed midday pause with bold flavours and a calm room."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Lunch at Salanca is for meetings that stay efficient without skipping Brazilian flavour."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Ideal for colleagues, partners, or a short date — rodizio and the salad bar still included."
+                  }
+                ]
+              }
+            ],
+            "coverImage": {
+              "__media": "wine-dinner.jpg",
+              "alt": "Two guests sharing a lunch with wine",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "cta": {
+              "heading": "Midday meetup lunch",
+              "body": "A relaxed midday pause with bold flavours and a calm room.",
+              "link": {
+                "label": "View details",
+                "url": "/en/en/reservations",
+                "openInNewTab": false
+              }
+            },
+            "isFeatured": false,
+            "displayOrder": 4,
+            "seo": {
+              "metaTitle": "Midday meetup lunch",
+              "metaDescription": "A relaxed midday pause with bold flavours and a calm room.",
+              "canonicalPath": "/en/en/offers/lunch-meetup",
+              "noIndex": false
+            }
+          }
+        },
+        {
+          "key": "private-party",
+          "vi": {
+            "slug": "private-party",
+            "kind": "private_event",
+            "title": "Tiệc riêng tại Salanca",
+            "summary": "Không gian riêng tư, dịch vụ chu đáo và thực đơn thiết kế cho mọi buổi tiệc đáng nhớ.",
+            "body": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Không gian riêng tư, dịch vụ chu đáo và thực đơn thiết kế cho mọi buổi tiệc đáng nhớ."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Phòng riêng và bàn dài sẵn sàng cho tiệc công ty, họp mặt bạn bè hay kỷ niệm gia đình."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Chúng tôi hỗ trợ menu theo ngân sách, timeline phục vụ và bố trí chỗ ngồi."
+                  }
+                ]
+              }
+            ],
+            "coverImage": {
+              "__media": "restaurant-table.jpg",
+              "alt": "Bàn dài trong không gian tiệc riêng của nhà hàng",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "cta": {
+              "heading": "Tiệc riêng tại Salanca",
+              "body": "Không gian riêng tư, dịch vụ chu đáo và thực đơn thiết kế cho mọi buổi tiệc đáng nhớ.",
+              "link": {
+                "label": "Xem chi tiết",
+                "url": "/vi/vi/dat-ban",
+                "openInNewTab": false
+              }
+            },
+            "isFeatured": false,
+            "displayOrder": 5,
+            "seo": {
+              "metaTitle": "Tiệc riêng tại Salanca",
+              "metaDescription": "Không gian riêng tư, dịch vụ chu đáo và thực đơn thiết kế cho mọi buổi tiệc đáng nhớ.",
+              "canonicalPath": "/vi/vi/uu-dai/private-party",
+              "noIndex": false
+            }
+          },
+          "en": {
+            "slug": "private-party",
+            "kind": "private_event",
+            "title": "Private dining at Salanca",
+            "summary": "A private room, attentive service, and a menu designed for memorable gatherings.",
+            "body": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "A private room, attentive service, and a menu designed for memorable gatherings."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Private rooms and long tables are ready for company dinners, friend reunions, or family milestones."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "We help with budget menus, service timing, and seating layouts."
+                  }
+                ]
+              }
+            ],
+            "coverImage": {
+              "__media": "restaurant-table.jpg",
+              "alt": "Long table set for a private party in the restaurant",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "cta": {
+              "heading": "Private dining at Salanca",
+              "body": "A private room, attentive service, and a menu designed for memorable gatherings.",
+              "link": {
+                "label": "View details",
+                "url": "/en/en/reservations",
+                "openInNewTab": false
+              }
+            },
+            "isFeatured": false,
+            "displayOrder": 5,
+            "seo": {
+              "metaTitle": "Private dining at Salanca",
+              "metaDescription": "A private room, attentive service, and a menu designed for memorable gatherings.",
+              "canonicalPath": "/en/en/offers/private-party",
+              "noIndex": false
+            }
+          }
+        },
+        {
+          "key": "family-moments",
+          "vi": {
+            "slug": "family-moments",
+            "kind": "promotion",
+            "title": "Khoảnh khắc gia đình",
+            "summary": "Quây quần bên nhau, thưởng thức món ngon trong không gian ấm cúng và gần gũi.",
+            "body": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Quây quần bên nhau, thưởng thức món ngon trong không gian ấm cúng và gần gũi."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Salanca là nơi cả nhà ngồi lại, chia sẻ xiên thịt và những câu chuyện dài."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Thực đơn buffet thân thiện với mọi lứa tuổi, kèm không gian đủ rộng cho bàn đông người."
+                  }
+                ]
+              }
+            ],
+            "coverImage": {
+              "__media": "dining-friends.jpg",
+              "alt": "Gia đình và bạn bè dùng bữa cùng nhau tại bàn",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "cta": {
+              "heading": "Khoảnh khắc gia đình",
+              "body": "Quây quần bên nhau, thưởng thức món ngon trong không gian ấm cúng và gần gũi.",
+              "link": {
+                "label": "Xem chi tiết",
+                "url": "/vi/vi/dat-ban",
+                "openInNewTab": false
+              }
+            },
+            "isFeatured": false,
+            "displayOrder": 6,
+            "seo": {
+              "metaTitle": "Khoảnh khắc gia đình",
+              "metaDescription": "Quây quần bên nhau, thưởng thức món ngon trong không gian ấm cúng và gần gũi.",
+              "canonicalPath": "/vi/vi/uu-dai/family-moments",
+              "noIndex": false
+            }
+          },
+          "en": {
+            "slug": "family-moments",
+            "kind": "promotion",
+            "title": "Family moments",
+            "summary": "Gather close, share great food in a warm and welcoming room.",
+            "body": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Gather close, share great food in a warm and welcoming room."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Salanca is where the whole family sits down, shares skewers, and lets the stories run long."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "The buffet is friendly across ages, with space enough for a full table."
+                  }
+                ]
+              }
+            ],
+            "coverImage": {
+              "__media": "dining-friends.jpg",
+              "alt": "Family and friends dining together at the table",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "cta": {
+              "heading": "Family moments",
+              "body": "Gather close, share great food in a warm and welcoming room.",
+              "link": {
+                "label": "View details",
+                "url": "/en/en/reservations",
+                "openInNewTab": false
+              }
+            },
+            "isFeatured": false,
+            "displayOrder": 6,
+            "seo": {
+              "metaTitle": "Family moments",
+              "metaDescription": "Gather close, share great food in a warm and welcoming room.",
+              "canonicalPath": "/en/en/offers/family-moments",
+              "noIndex": false
+            }
+          }
+        },
+        {
+          "key": "date-night",
+          "vi": {
+            "slug": "date-night",
+            "kind": "event",
+            "title": "Hẹn hò bên ánh lửa",
+            "summary": "Không gian lãng mạn, ánh nến lung linh và hương vị nướng Brazil say đắm.",
+            "body": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Không gian lãng mạn, ánh nến lung linh và hương vị nướng Brazil say đắm."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Ánh lửa lò nướng, ly vang và xiên thịt nóng hổi — một buổi hẹn khác biệt giữa lòng Hà Nội."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Gợi ý đặt bàn khu vực yên tĩnh hơn khi bạn muốn cuộc trò chuyện kéo dài."
+                  }
+                ]
+              }
+            ],
+            "coverImage": {
+              "__media": "dining-friends.jpg",
+              "alt": "Cặp đôi dùng bữa trong không gian quầy bar ấm áp",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "cta": {
+              "heading": "Hẹn hò bên ánh lửa",
+              "body": "Không gian lãng mạn, ánh nến lung linh và hương vị nướng Brazil say đắm.",
+              "link": {
+                "label": "Xem chi tiết",
+                "url": "/vi/vi/dat-ban",
+                "openInNewTab": false
+              }
+            },
+            "isFeatured": false,
+            "displayOrder": 7,
+            "seo": {
+              "metaTitle": "Hẹn hò bên ánh lửa",
+              "metaDescription": "Không gian lãng mạn, ánh nến lung linh và hương vị nướng Brazil say đắm.",
+              "canonicalPath": "/vi/vi/uu-dai/date-night",
+              "noIndex": false
+            }
+          },
+          "en": {
+            "slug": "date-night",
+            "kind": "event",
+            "title": "Date night by the fire",
+            "summary": "A romantic room, soft candlelight, and Brazilian grill flavours to linger over.",
+            "body": [
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "A romantic room, soft candlelight, and Brazilian grill flavours to linger over."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Grill-fire glow, a glass of wine, and hot skewers — a different kind of date in Hanoi."
+                  }
+                ]
+              },
+              {
+                "type": "paragraph",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Ask for a quieter corner when you want the conversation to stretch."
+                  }
+                ]
+              }
+            ],
+            "coverImage": {
+              "__media": "dining-friends.jpg",
+              "alt": "Couple dining in a warm bar-side setting",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "cta": {
+              "heading": "Date night by the fire",
+              "body": "A romantic room, soft candlelight, and Brazilian grill flavours to linger over.",
+              "link": {
+                "label": "View details",
+                "url": "/en/en/reservations",
+                "openInNewTab": false
+              }
+            },
+            "isFeatured": false,
+            "displayOrder": 7,
+            "seo": {
+              "metaTitle": "Date night by the fire",
+              "metaDescription": "A romantic room, soft candlelight, and Brazilian grill flavours to linger over.",
+              "canonicalPath": "/en/en/offers/date-night",
+              "noIndex": false
+            }
+          }
+        }
+      ]
+    },
+    "api::gallery-item.gallery-item": {
+      "matchField": "title",
+      "entries": [
+        {
+          "key": "space-01",
+          "vi": {
+            "title": "Góc sảnh chính với bàn dài và ánh đèn vàng",
+            "description": "Khám phá từng góc nhỏ",
+            "image": {
+              "__media": "restaurant-interior.jpg",
+              "alt": "Góc sảnh chính với bàn dài và ánh đèn vàng",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "area": "main_hall",
+            "location": {
+              "__ref": {
+                "uid": "api::location.location",
+                "key": "salanca-hanoi"
+              }
+            },
+            "displayOrder": 1,
+            "isActive": true
+          },
+          "en": {
+            "title": "Main hall with a long table and warm lights",
+            "description": "Explore every corner",
+            "image": {
+              "__media": "restaurant-interior.jpg",
+              "alt": "Main hall with a long table and warm lights",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "area": "main_hall",
+            "location": {
+              "__ref": {
+                "uid": "api::location.location",
+                "key": "salanca-hanoi"
+              }
+            },
+            "displayOrder": 1,
+            "isActive": true
+          }
+        },
+        {
+          "key": "space-02",
+          "vi": {
+            "title": "Quầy bar và kệ rượu trong không gian tối ấm",
+            "description": "Khám phá từng góc nhỏ",
+            "image": {
+              "__media": "restaurant-night.jpg",
+              "alt": "Quầy bar và kệ rượu trong không gian tối ấm",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "area": "bar",
+            "location": {
+              "__ref": {
+                "uid": "api::location.location",
+                "key": "salanca-hanoi"
+              }
+            },
+            "displayOrder": 2,
+            "isActive": true
+          },
+          "en": {
+            "title": "Bar and wine shelves in a dark, warm room",
+            "description": "Explore every corner",
+            "image": {
+              "__media": "restaurant-night.jpg",
+              "alt": "Bar and wine shelves in a dark, warm room",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "area": "bar",
+            "location": {
+              "__ref": {
+                "uid": "api::location.location",
+                "key": "salanca-hanoi"
+              }
+            },
+            "displayOrder": 2,
+            "isActive": true
+          }
+        },
+        {
+          "key": "space-03",
+          "vi": {
+            "title": "Bàn tiệc đã bày trí với nến và đồ uống",
+            "description": "Khám phá từng góc nhỏ",
+            "image": {
+              "__media": "restaurant-table.jpg",
+              "alt": "Bàn tiệc đã bày trí với nến và đồ uống",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "area": "private_room",
+            "location": {
+              "__ref": {
+                "uid": "api::location.location",
+                "key": "salanca-hanoi"
+              }
+            },
+            "displayOrder": 3,
+            "isActive": true
+          },
+          "en": {
+            "title": "A set banquet table with candles and glasses",
+            "description": "Explore every corner",
+            "image": {
+              "__media": "restaurant-table.jpg",
+              "alt": "A set banquet table with candles and glasses",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "area": "private_room",
+            "location": {
+              "__ref": {
+                "uid": "api::location.location",
+                "key": "salanca-hanoi"
+              }
+            },
+            "displayOrder": 3,
+            "isActive": true
+          }
+        },
+        {
+          "key": "space-04",
+          "vi": {
+            "title": "Không gian nhà hàng ban đêm nhìn toàn cảnh",
+            "description": "Khám phá từng góc nhỏ",
+            "image": {
+              "__media": "restaurant-table.jpg",
+              "alt": "Không gian nhà hàng ban đêm nhìn toàn cảnh",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "area": "night",
+            "location": {
+              "__ref": {
+                "uid": "api::location.location",
+                "key": "salanca-hanoi"
+              }
+            },
+            "displayOrder": 4,
+            "isActive": true
+          },
+          "en": {
+            "title": "Full view of the restaurant at night",
+            "description": "Explore every corner",
+            "image": {
+              "__media": "restaurant-table.jpg",
+              "alt": "Full view of the restaurant at night",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "area": "night",
+            "location": {
+              "__ref": {
+                "uid": "api::location.location",
+                "key": "salanca-hanoi"
+              }
+            },
+            "displayOrder": 4,
+            "isActive": true
+          }
+        },
+        {
+          "key": "space-05",
+          "vi": {
+            "title": "Bữa tối bên ly vang trong không gian ấm",
+            "description": "Khám phá từng góc nhỏ",
+            "image": {
+              "__media": "restaurant-interior.jpg",
+              "alt": "Bữa tối bên ly vang trong không gian ấm",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "area": "food",
+            "location": {
+              "__ref": {
+                "uid": "api::location.location",
+                "key": "salanca-hanoi"
+              }
+            },
+            "displayOrder": 5,
+            "isActive": true
+          },
+          "en": {
+            "title": "Wine dinner in a warm dining room",
+            "description": "Explore every corner",
+            "image": {
+              "__media": "restaurant-interior.jpg",
+              "alt": "Wine dinner in a warm dining room",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "area": "food",
+            "location": {
+              "__ref": {
+                "uid": "api::location.location",
+                "key": "salanca-hanoi"
+              }
+            },
+            "displayOrder": 5,
+            "isActive": true
+          }
+        },
+        {
+          "key": "space-06",
+          "vi": {
+            "title": "Nhóm khách nâng ly trong buổi tiệc",
+            "description": "Khám phá từng góc nhỏ",
+            "image": {
+              "__media": "restaurant-night.jpg",
+              "alt": "Nhóm khách nâng ly trong buổi tiệc",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "area": "experience",
+            "location": {
+              "__ref": {
+                "uid": "api::location.location",
+                "key": "salanca-hanoi"
+              }
+            },
+            "displayOrder": 6,
+            "isActive": true
+          },
+          "en": {
+            "title": "Guests raising glasses at a celebration",
+            "description": "Explore every corner",
+            "image": {
+              "__media": "restaurant-night.jpg",
+              "alt": "Guests raising glasses at a celebration",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            "area": "experience",
+            "location": {
+              "__ref": {
+                "uid": "api::location.location",
+                "key": "salanca-hanoi"
+              }
+            },
+            "displayOrder": 6,
+            "isActive": true
+          }
+        }
+      ]
+    },
+    "api::location.location": {
+      "vi": {
+        "slug": "salanca-hanoi",
+        "name": "Salanca Hanoi",
+        "address": "49 Phan Bội Châu, phường Cửa Nam, TP. Hà Nội",
+        "mapUrl": "https://www.google.com/maps?q=49+Phan+B%E1%BB%99i+Ch%C3%A2u,+Hanoi,+Vietnam",
+        "phone": "0989 561 159",
+        "email": "booking@salanca.com.vn",
+        "operatingHours": [
+          {
+            "label": "Trưa / Lunch",
+            "opensAt": "11:00:00.000",
+            "closesAt": "14:00:00.000"
+          },
+          {
+            "label": "Tối / Dinner",
+            "opensAt": "17:30:00.000",
+            "closesAt": "22:00:00.000"
+          }
+        ],
+        "heroImage": {
+          "__media": "restaurant-night.jpg",
+          "alt": "Salanca",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "isActive": true,
+        "displayOrder": 1,
+        "seo": {
+          "metaTitle": "Liên hệ",
+          "metaDescription": "Liên hệ Salanca — địa chỉ Hà Nội, hotline, form gửi tin nhắn và hướng dẫn đến nhà hàng.",
+          "canonicalPath": "/vi/vi/lien-he",
+          "noIndex": false
+        }
+      },
+      "en": {
+        "slug": "salanca-hanoi",
+        "name": "Salanca Hanoi",
+        "address": "49 Phan Bội Châu, phường Cửa Nam, TP. Hà Nội",
+        "mapUrl": "https://www.google.com/maps?q=49+Phan+B%E1%BB%99i+Ch%C3%A2u,+Hanoi,+Vietnam",
+        "phone": "0989 561 159",
+        "email": "booking@salanca.com.vn",
+        "operatingHours": [
+          {
+            "label": "Trưa / Lunch",
+            "opensAt": "11:00:00.000",
+            "closesAt": "14:00:00.000"
+          },
+          {
+            "label": "Tối / Dinner",
+            "opensAt": "17:30:00.000",
+            "closesAt": "22:00:00.000"
+          }
+        ],
+        "heroImage": {
+          "__media": "restaurant-night.jpg",
+          "alt": "Salanca",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
+        "isActive": true,
+        "displayOrder": 1,
+        "seo": {
+          "metaTitle": "Contact",
+          "metaDescription": "Contact Salanca — Hanoi address, hotline, message form, and directions to the restaurant.",
+          "canonicalPath": "/en/en/contact",
+          "noIndex": false
+        }
+      }
+    }
+  },
+  "globalSetting": {
+    "vi": {
+      "brandName": "Salanca",
+      "tagline": "Không chỉ là một bữa ăn, mà là một trải nghiệm Brazil trọn vẹn",
+      "logo": {
+        "__media": "logo-salanca-brazil.png",
+        "alt": "Salanca",
+        "caption": null,
+        "focalPointX": 50,
+        "focalPointY": 50
+      },
+      "hotline": "0989 561 159",
+      "email": "booking@salanca.com.vn",
+      "address": "49 Phan Bội Châu, phường Cửa Nam, TP. Hà Nội",
+      "mapUrl": "https://www.google.com/maps?q=49+Phan+B%E1%BB%99i+Ch%C3%A2u,+Hanoi,+Vietnam",
+      "openingHours": [
+        {
+          "label": "Trưa / Lunch",
+          "opensAt": "11:00:00.000",
+          "closesAt": "14:00:00.000"
+        },
+        {
+          "label": "Tối / Dinner",
+          "opensAt": "17:30:00.000",
+          "closesAt": "22:00:00.000"
+        }
+      ],
+      "socialLinks": [
+        {
+          "platform": "facebook",
+          "label": "Facebook",
+          "url": "https://www.facebook.com/Salancarest/"
+        }
+      ],
+      "headerLinks": [
+        {
+          "label": "Menu",
+          "url": "/vi/vi/thuc-don",
+          "openInNewTab": false
+        },
+        {
+          "label": "Experience",
+          "url": "/vi/vi/trai-nghiem",
+          "openInNewTab": false
+        },
+        {
+          "label": "Story",
+          "url": "/vi/vi/cau-chuyen",
+          "openInNewTab": false
+        },
+        {
+          "label": "Space",
+          "url": "/vi/vi/khong-gian",
+          "openInNewTab": false
+        },
+        {
+          "label": "Campaigns",
+          "url": "/vi/vi/uu-dai",
+          "openInNewTab": false
+        },
+        {
+          "label": "Contact",
+          "url": "/vi/vi/lien-he",
+          "openInNewTab": false
+        }
+      ],
+      "footerExploreLinks": [
+        {
+          "label": "Menu",
+          "url": "/vi/vi/thuc-don",
+          "openInNewTab": false
+        },
+        {
+          "label": "Experience",
+          "url": "/vi/vi/trai-nghiem",
+          "openInNewTab": false
+        },
+        {
+          "label": "Space",
+          "url": "/vi/vi/khong-gian",
+          "openInNewTab": false
+        }
+      ],
+      "footerInfoLinks": [
+        {
+          "label": "Story",
+          "url": "/vi/vi/cau-chuyen",
+          "openInNewTab": false
+        },
+        {
+          "label": "Campaigns",
+          "url": "/vi/vi/uu-dai",
+          "openInNewTab": false
+        },
+        {
+          "label": "Contact",
+          "url": "/vi/vi/lien-he",
+          "openInNewTab": false
+        }
+      ],
+      "mainLocation": {
+        "__ref": {
+          "uid": "api::location.location",
+          "key": "salanca-hanoi"
+        }
+      },
+      "defaultSeo": {
+        "metaTitle": "Tinh hoa Churrascaria Brazil",
+        "metaDescription": "Salanca — trải nghiệm hơn 12 loại thịt nướng phục vụ tại bàn theo phong cách Brazil truyền thống tại Hà Nội.",
+        "canonicalPath": "/vi/vi",
+        "noIndex": false
+      }
+    },
+    "en": {
+      "brandName": "Salanca",
+      "tagline": "Not just a meal — a complete Brazilian experience",
+      "logo": {
+        "__media": "logo-salanca-brazil.png",
+        "alt": "Salanca",
+        "caption": null,
+        "focalPointX": 50,
+        "focalPointY": 50
+      },
+      "hotline": "0989 561 159",
+      "email": "booking@salanca.com.vn",
+      "address": "49 Phan Bội Châu, phường Cửa Nam, TP. Hà Nội",
+      "mapUrl": "https://www.google.com/maps?q=49+Phan+B%E1%BB%99i+Ch%C3%A2u,+Hanoi,+Vietnam",
+      "openingHours": [
+        {
+          "label": "Trưa / Lunch",
+          "opensAt": "11:00:00.000",
+          "closesAt": "14:00:00.000"
+        },
+        {
+          "label": "Tối / Dinner",
+          "opensAt": "17:30:00.000",
+          "closesAt": "22:00:00.000"
+        }
+      ],
+      "socialLinks": [
+        {
+          "platform": "facebook",
+          "label": "Facebook",
+          "url": "https://www.facebook.com/Salancarest/"
+        }
+      ],
+      "headerLinks": [
+        {
+          "label": "Menu",
+          "url": "/en/en/menu",
+          "openInNewTab": false
+        },
+        {
+          "label": "Experience",
+          "url": "/en/en/experience",
+          "openInNewTab": false
+        },
+        {
+          "label": "Story",
+          "url": "/en/en/our-story",
+          "openInNewTab": false
+        },
+        {
+          "label": "Space",
+          "url": "/en/en/space",
+          "openInNewTab": false
+        },
+        {
+          "label": "Campaigns",
+          "url": "/en/en/offers",
+          "openInNewTab": false
+        },
+        {
+          "label": "Contact",
+          "url": "/en/en/contact",
+          "openInNewTab": false
+        }
+      ],
+      "footerExploreLinks": [
+        {
+          "label": "Menu",
+          "url": "/en/en/menu",
+          "openInNewTab": false
+        },
+        {
+          "label": "Experience",
+          "url": "/en/en/experience",
+          "openInNewTab": false
+        },
+        {
+          "label": "Space",
+          "url": "/en/en/space",
+          "openInNewTab": false
+        }
+      ],
+      "footerInfoLinks": [
+        {
+          "label": "Story",
+          "url": "/en/en/our-story",
+          "openInNewTab": false
+        },
+        {
+          "label": "Campaigns",
+          "url": "/en/en/offers",
+          "openInNewTab": false
+        },
+        {
+          "label": "Contact",
+          "url": "/en/en/contact",
+          "openInNewTab": false
+        }
+      ],
+      "mainLocation": {
+        "__ref": {
+          "uid": "api::location.location",
+          "key": "salanca-hanoi"
+        }
+      },
+      "defaultSeo": {
+        "metaTitle": "The essence of Brazilian Churrascaria",
+        "metaDescription": "Salanca — experience more than 12 grilled meats carved tableside in the traditional Brazilian style in Hanoi.",
+        "canonicalPath": "/en/en",
+        "noIndex": false
+      }
+    }
+  },
+  "media": [
+    "booking-hero-decor-right.png",
+    "buffet-picanha.jpg",
+    "camarao.jpg",
+    "campaigns-hero-decor-right.png",
+    "churrasco-gathering-v2.jpg",
+    "contact-hero-decor-right.png",
+    "cordeiro.jpg",
+    "dining-friends.jpg",
+    "experience-hero-decor-right.png",
+    "hero-churrasco-service-v2.png",
+    "hero-decor-right.png",
+    "hero-grill.jpg",
+    "logo-salanca-brazil.png",
+    "menu-hero-decor-right.png",
+    "panceta-skewers.jpg",
+    "restaurant-interior.jpg",
+    "restaurant-night.jpg",
+    "restaurant-table.jpg",
+    "space-hero-decor-right.png",
+    "steak-sliced.jpg",
+    "story-hero-decor-right.png",
+    "wine-dinner.jpg"
+  ]
+}

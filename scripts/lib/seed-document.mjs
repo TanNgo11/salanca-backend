@@ -103,13 +103,16 @@ export function createSummary() {
     created: 0,
     updated: 0,
     skipped: 0,
+    deleted: 0,
     record(action) {
       if (action === 'created') this.created += 1;
       else if (action === 'updated') this.updated += 1;
+      else if (action === 'deleted') this.deleted += 1;
       else this.skipped += 1;
     },
     toString() {
-      return `created=${this.created} updated=${this.updated} skipped=${this.skipped}`;
+      const base = `created=${this.created} updated=${this.updated} skipped=${this.skipped}`;
+      return this.deleted > 0 ? `${base} deleted=${this.deleted}` : base;
     },
   };
 }
