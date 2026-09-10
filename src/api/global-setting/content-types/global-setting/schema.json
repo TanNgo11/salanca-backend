@@ -5,7 +5,7 @@
     "singularName": "global-setting",
     "pluralName": "global-settings",
     "displayName": "Cấu hình chung",
-    "description": "Thương hiệu, điều hướng, liên hệ và footer dùng toàn site"
+    "description": "Thương hiệu, liên hệ, địa điểm và SEO mặc định. Header và footer có single type riêng."
   },
   "options": {
     "draftAndPublish": true
@@ -86,36 +86,6 @@
       },
       "type": "component",
       "component": "shared.social-link",
-      "repeatable": true
-    },
-    "headerLinks": {
-      "pluginOptions": {
-        "i18n": {
-          "localized": true
-        }
-      },
-      "type": "component",
-      "component": "shared.link",
-      "repeatable": true
-    },
-    "footerExploreLinks": {
-      "pluginOptions": {
-        "i18n": {
-          "localized": true
-        }
-      },
-      "type": "component",
-      "component": "shared.link",
-      "repeatable": true
-    },
-    "footerInfoLinks": {
-      "pluginOptions": {
-        "i18n": {
-          "localized": true
-        }
-      },
-      "type": "component",
-      "component": "shared.link",
       "repeatable": true
     },
     "mainLocation": {
@@ -213,30 +183,6 @@
         },
         "list": {
           "label": "Mạng xã hội"
-        }
-      },
-      "headerLinks": {
-        "edit": {
-          "label": "Menu header"
-        },
-        "list": {
-          "label": "Menu header"
-        }
-      },
-      "footerExploreLinks": {
-        "edit": {
-          "label": "Footer — khám phá"
-        },
-        "list": {
-          "label": "Footer — khám phá"
-        }
-      },
-      "footerInfoLinks": {
-        "edit": {
-          "label": "Footer — thông tin"
-        },
-        "list": {
-          "label": "Footer — thông tin"
         }
       },
       "mainLocation": {

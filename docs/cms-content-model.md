@@ -34,7 +34,9 @@ Tài liệu này mô tả schema đang chạy trong `src/components` và `src/ap
 
 | API ID | Vai trò |
 | --- | --- |
-| `global-setting` | Thương hiệu, logo, liên hệ, giờ mở cửa, social, navigation, địa điểm chính và SEO mặc định |
+| `header-setting` | Brand, logo, and header navigation for the site chrome |
+| `footer-setting` | Footer brand, link columns, contact facts, hours, and social |
+| `global-setting` | Shared contact, main location, and default SEO (not header/footer chrome) |
 | `home-page` | Hero, trải nghiệm, menu/package nổi bật, câu chuyện, không gian và CTA trang chủ |
 | `menu-page` | Copy/hero/section heading/CTA của trang menu; record món nằm ở collection riêng |
 | `campaign-page` | Copy/hero/section heading/CTA của trang ưu đãi & sự kiện; campaign nằm ở collection riêng |
@@ -72,7 +74,9 @@ Quan hệ category/item là `menu-category.items` one-to-many mapped by `menu-it
 
 | Khu vực prototype | Owner trong CMS |
 | --- | --- |
-| Header, footer, brand, contact dùng chung | `global-setting` |
+| Header | `header-setting` |
+| Footer, brand/contact column in the footer | `footer-setting` |
+| Contact facts reused on Contact/Booking, default SEO | `global-setting` |
 | Trang chủ | `home-page` + relation tới menu/package |
 | Trang thực đơn | `menu-page`, `menu-category`, `menu-item`, `menu-package` |
 | Ưu đãi & sự kiện | `campaign-page`, `campaign` |

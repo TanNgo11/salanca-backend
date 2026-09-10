@@ -135,6 +135,8 @@ try {
   assert.equal(await localeService.getDefaultLocale(), 'vi');
 
   await assertSingletonEmpty('api::global-setting.global-setting');
+  await assertSingletonEmpty('api::header-setting.header-setting');
+  await assertSingletonEmpty('api::footer-setting.footer-setting');
   await assertSingletonEmpty('api::campaign-page.campaign-page');
 
   const imagePath = resolve('favicon.png');
@@ -298,6 +300,16 @@ try {
     address: 'Địa chỉ thương hiệu tiếng Việt',
     mainLocation: locationVi.documentId,
     defaultSeo: seo('Vietnamese global'),
+  });
+  await create('api::header-setting.header-setting', 'vi', {
+    brandName: `Header ${suffix}`,
+    tagline: 'Churrascaria Brazil',
+  });
+  await create('api::footer-setting.footer-setting', 'vi', {
+    brandName: `Footer ${suffix}`,
+    hotline: '0900000000',
+    email: 'smoke@example.com',
+    address: 'Địa chỉ footer tiếng Việt',
   });
   await localize('api::global-setting.global-setting', globalVi.documentId, {
     brandName: `Salanca test ${suffix}`,
