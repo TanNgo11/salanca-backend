@@ -16,6 +16,12 @@ import { resolve } from 'node:path';
 
 import { createSummary, upsertBySlug, upsertLocalization, upsertSingleType } from '../lib/seed-document.mjs';
 import { loadStrapiApp } from '../lib/strapi-load.mjs';
+import {
+  adaptGlobalSettingForCurrentSchema,
+  adaptHomePageForCurrentSchema,
+  footerSettingFromGlobal,
+  headerSettingFromGlobal,
+} from './adapt-current-schema.mjs';
 import { ensureContentMedia, mediaDirectory } from './media.mjs';
 import { resolvePlaceholders } from './resolve.mjs';
 
@@ -36,6 +42,9 @@ const COLLECTION_ORDER = [
 ];
 
 const GLOBAL_SETTING_UID = 'api::global-setting.global-setting';
+const HEADER_SETTING_UID = 'api::header-setting.header-setting';
+const FOOTER_SETTING_UID = 'api::footer-setting.footer-setting';
+const HOME_PAGE_UID = 'api::home-page.home-page';
 const LOCATION_UID = 'api::location.location';
 
 /**
@@ -203,10 +212,43 @@ try {
     await seedCollection(uid, collection, mediaIds);
   }
 
-  await seedLocalizedSingleType(GLOBAL_SETTING_UID, payload.globalSetting, mediaIds);
+  const globalByLocale = Object.fromEntries(
+    Object.entries(payload.globalSetting).map(([locale, data]) => [
+      locale,
+      adaptGlobalSettingForCurrentSchema(data),
+    ]),
+  );
+  await seedLocalizedSingleType(GLOBAL_SETTING_UID, globalByLocale, mediaIds);
+
+  const headerSource = payload.headerSetting ?? payload.globalSetting;
+  const headerByLocale = Object.fromEntries(
+    Object.entries(headerSource).map(([locale, data]) => [
+      locale,
+      payload.headerSetting ? data : headerSettingFromGlobal(data),
+    ]),
+  );
+  await seedLocalizedSingleType(HEADER_SETTING_UID, headerByLocale, mediaIds);
+
+  const footerSource = payload.footerSetting ?? payload.globalSetting;
+  const footerByLocale = Object.fromEntries(
+    Object.entries(footerSource).map(([locale, data]) => [
+      locale,
+      payload.footerSetting ? data : footerSettingFromGlobal(data),
+    ]),
+  );
+  await seedLocalizedSingleType(FOOTER_SETTING_UID, footerByLocale, mediaIds);
 
   for (const [uid, byLocale] of Object.entries(payload.pages)) {
-    await seedLocalizedSingleType(uid, byLocale, mediaIds);
+    const adapted =
+      uid === HOME_PAGE_UID
+        ? Object.fromEntries(
+            Object.entries(byLocale).map(([locale, data]) => [
+              locale,
+              adaptHomePageForCurrentSchema(data),
+            ]),
+          )
+        : byLocale;
+    await seedLocalizedSingleType(uid, adapted, mediaIds);
   }
 
   console.log(`seed:content complete — ${summary.toString()}`);
