@@ -37,6 +37,16 @@
       "required": true,
       "maxLength": 180
     },
+    "visitImage": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "type": "component",
+      "component": "shared.image",
+      "repeatable": false
+    },
     "featuredLocation": {
       "type": "relation",
       "relation": "oneToOne",
