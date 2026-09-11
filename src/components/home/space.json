@@ -1,0 +1,33 @@
+{
+  "collectionName": "components_home_spaces",
+  "info": {
+    "displayName": "Home Space",
+    "description": "Space teaser: heading, CTA, and photo set"
+  },
+  "options": {},
+  "attributes": {
+    "eyebrow": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "string",
+      "maxLength": 100
+    },
+    "title": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "text",
+      "required": true,
+      "maxLength": 240
+    },
+    "link": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "component",
+      "component": "shared.link",
+      "repeatable": false
+    },
+    "images": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "component",
+      "component": "shared.image",
+      "repeatable": true
+    }
+  }
+}

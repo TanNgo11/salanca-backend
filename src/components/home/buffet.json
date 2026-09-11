@@ -1,0 +1,43 @@
+{
+  "collectionName": "components_home_buffets",
+  "info": {
+    "displayName": "Home Buffet",
+    "description": "Buffet price band copy, features, image, and CTA. Price comes from featuredPackage."
+  },
+  "options": {},
+  "attributes": {
+    "eyebrow": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "string",
+      "maxLength": 100
+    },
+    "heading": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "string",
+      "maxLength": 180
+    },
+    "priceUnit": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "string",
+      "maxLength": 80
+    },
+    "features": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "component",
+      "component": "shared.list-item",
+      "repeatable": true
+    },
+    "image": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "component",
+      "component": "shared.image",
+      "repeatable": false
+    },
+    "link": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "component",
+      "component": "shared.link",
+      "repeatable": false
+    }
+  }
+}

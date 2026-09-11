@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const root = process.cwd();
-const components = [
+const sharedComponents = [
   'cta',
   'editorial-card',
   'hero',
@@ -15,6 +15,15 @@ const components = [
   'social-link',
   'step',
   'timeline-entry',
+];
+const homeComponents = [
+  'hero',
+  'experience',
+  'buffet',
+  'menu-highlights',
+  'story',
+  'process',
+  'space',
 ];
 /** Localized marketing content: Draft & Publish + i18n required. */
 const contentTypes = {
@@ -73,6 +82,13 @@ const nonLocalizedByComponent = {
   'social-link': ['platform', 'url'],
   step: ['number'],
   'timeline-entry': [],
+  'home.hero': [],
+  'home.experience': ['video'],
+  'home.buffet': [],
+  'home.menu-highlights': [],
+  'home.story': [],
+  'home.process': [],
+  'home.space': [],
 };
 const forbiddenTypes = [
   'availability-slot',
@@ -100,10 +116,16 @@ function assert(condition, message) {
 }
 
 const componentSchemas = {};
-for (const component of components) {
+for (const component of sharedComponents) {
   const path = join(root, 'src', 'components', 'shared', `${component}.json`);
   const schema = loadJson(path, `component shared.${component}`);
   if (schema) componentSchemas[component] = schema;
+}
+for (const component of homeComponents) {
+  const path = join(root, 'src', 'components', 'home', `${component}.json`);
+  const uid = `home.${component}`;
+  const schema = loadJson(path, `component ${uid}`);
+  if (schema) componentSchemas[uid] = schema;
 }
 
 const schemas = {};
@@ -143,11 +165,12 @@ for (const [name, expectedKind] of Object.entries(contentTypes)) {
 
 for (const [component, schema] of Object.entries(componentSchemas)) {
   const nonLocalizedFields = new Set(nonLocalizedByComponent[component]);
+  const label = component.includes('.') ? component : `shared.${component}`;
   for (const [field, attribute] of Object.entries(schema.attributes ?? {})) {
     const isLocalized = attribute.pluginOptions?.i18n?.localized === true;
     assert(
       nonLocalizedFields.has(field) ? !isLocalized : isLocalized,
-      `shared.${component}.${field}: localization setting does not match the Phase 3 matrix`,
+      `${label}.${field}: localization setting does not match the Phase 3 matrix`,
     );
   }
 }
@@ -264,6 +287,7 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
+const componentCount = sharedComponents.length + homeComponents.length;
 console.log(
-  `Content model verified: ${components.length} components, ${Object.keys(contentTypes).length} localized content types, ${Object.keys(leadContentTypes).length} lead type(s), localization matrix, and all core CRUD layers.`,
+  `Content model verified: ${componentCount} components, ${Object.keys(contentTypes).length} localized content types, ${Object.keys(leadContentTypes).length} lead type(s), localization matrix, and all core CRUD layers.`,
 );

@@ -1,0 +1,45 @@
+{
+  "collectionName": "components_home_heroes",
+  "info": {
+    "displayName": "Home Hero",
+    "description": "Homepage hero: title, intro, two CTAs, scroll hint, photo"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "text",
+      "required": true,
+      "maxLength": 200
+    },
+    "description": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "text",
+      "maxLength": 500
+    },
+    "backgroundImage": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "component",
+      "component": "shared.image",
+      "repeatable": false,
+      "required": true
+    },
+    "primaryLink": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "component",
+      "component": "shared.link",
+      "repeatable": false
+    },
+    "secondaryLink": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "component",
+      "component": "shared.link",
+      "repeatable": false
+    },
+    "scrollHint": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "string",
+      "maxLength": 80
+    }
+  }
+}

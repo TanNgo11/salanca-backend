@@ -1,0 +1,27 @@
+{
+  "collectionName": "components_home_processes",
+  "info": {
+    "displayName": "Home Process",
+    "description": "Farm-to-table steps (shared.step). Icons stay in the frontend."
+  },
+  "options": {},
+  "attributes": {
+    "eyebrow": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "string",
+      "maxLength": 100
+    },
+    "title": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "text",
+      "required": true,
+      "maxLength": 240
+    },
+    "steps": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "component",
+      "component": "shared.step",
+      "repeatable": true
+    }
+  }
+}

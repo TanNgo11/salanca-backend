@@ -1,0 +1,44 @@
+{
+  "collectionName": "components_home_experiences",
+  "info": {
+    "displayName": "Home Experience",
+    "description": "Experience split: eyebrow, title, body, link, poster, optional video"
+  },
+  "options": {},
+  "attributes": {
+    "eyebrow": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "string",
+      "maxLength": 100
+    },
+    "title": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "text",
+      "required": true,
+      "maxLength": 240
+    },
+    "body": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "text",
+      "maxLength": 800
+    },
+    "image": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "component",
+      "component": "shared.image",
+      "repeatable": false
+    },
+    "video": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["videos"]
+    },
+    "link": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "component",
+      "component": "shared.link",
+      "repeatable": false
+    }
+  }
+}

@@ -37,7 +37,7 @@ Tài liệu này mô tả schema đang chạy trong `src/components` và `src/ap
 | `header-setting` | Brand, logo, and header navigation for the site chrome |
 | `footer-setting` | Footer brand, link columns, contact facts, hours, and social |
 | `global-setting` | Shared contact, main location, and default SEO (not header/footer chrome) |
-| `home-page` | Hero, trải nghiệm, menu/package nổi bật, câu chuyện, không gian và CTA trang chủ |
+| `home-page` | Eight mockup sections via `home.*` components: hero, experience, buffet, menu highlights, story, process, space, booking strip; plus `featuredPackage`, `featuredMenuItems`, and `shared.seo` |
 | `menu-page` | Copy/hero/section heading/CTA của trang menu; record món nằm ở collection riêng |
 | `campaign-page` | Copy/hero/section heading/CTA của trang ưu đãi & sự kiện; campaign nằm ở collection riêng |
 | `story-page` | Nguồn gốc, timeline, triết lý, nguyên liệu, kỹ nghệ, giá trị và CTA |
@@ -77,7 +77,7 @@ Quan hệ category/item là `menu-category.items` one-to-many mapped by `menu-it
 | Header | `header-setting` |
 | Footer, brand/contact column in the footer | `footer-setting` |
 | Contact facts reused on Contact/Booking, default SEO | `global-setting` |
-| Trang chủ | `home-page` + relation tới menu/package |
+| Trang chủ | `home-page` (`home.hero` … `home.space` + `bookingStrip`) and relations to menu-package / menu-item |
 | Trang thực đơn | `menu-page`, `menu-category`, `menu-item`, `menu-package` |
 | Ưu đãi & sự kiện | `campaign-page`, `campaign` |
 | Câu chuyện | `story-page` |

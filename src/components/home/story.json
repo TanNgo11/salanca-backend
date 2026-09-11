@@ -1,0 +1,27 @@
+{
+  "collectionName": "components_home_stories",
+  "info": {
+    "displayName": "Home Story",
+    "description": "Story band: title, body, and continue link"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "string",
+      "required": true,
+      "maxLength": 180
+    },
+    "body": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "text",
+      "maxLength": 800
+    },
+    "link": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "component",
+      "component": "shared.link",
+      "repeatable": false
+    }
+  }
+}
