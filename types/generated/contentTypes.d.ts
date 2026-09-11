@@ -1133,6 +1133,107 @@ export interface ApiExperiencePageExperiencePage
   };
 }
 
+export interface ApiFooterSettingFooterSetting extends Struct.SingleTypeSchema {
+  collectionName: 'footer_settings';
+  info: {
+    description: 'Footer brand, link columns, contact facts, hours, and social';
+    displayName: 'Footer Setting';
+    pluralName: 'footer-settings';
+    singularName: 'footer-setting';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  pluginOptions: {
+    i18n: {
+      localized: true;
+    };
+  };
+  attributes: {
+    address: Schema.Attribute.Text &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }> &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 500;
+      }>;
+    brandName: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }> &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 120;
+      }>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    email: Schema.Attribute.Email & Schema.Attribute.Required;
+    footerExploreLinks: Schema.Attribute.Component<'shared.link', true> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
+    footerInfoLinks: Schema.Attribute.Component<'shared.link', true> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
+    hotline: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 40;
+      }>;
+    locale: Schema.Attribute.String;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::footer-setting.footer-setting'
+    >;
+    logo: Schema.Attribute.Component<'shared.image', false> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
+    mapUrl: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 500;
+      }>;
+    openingHours: Schema.Attribute.Component<'shared.operating-period', true> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
+    publishedAt: Schema.Attribute.DateTime;
+    socialLinks: Schema.Attribute.Component<'shared.social-link', true> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
+    tagline: Schema.Attribute.String &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }> &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 180;
+      }>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiGalleryItemGalleryItem extends Struct.CollectionTypeSchema {
   collectionName: 'gallery_items';
   info: {
@@ -1211,7 +1312,7 @@ export interface ApiGalleryItemGalleryItem extends Struct.CollectionTypeSchema {
 export interface ApiGlobalSettingGlobalSetting extends Struct.SingleTypeSchema {
   collectionName: 'global_settings';
   info: {
-    description: 'Th\u01B0\u01A1ng hi\u1EC7u, \u0111i\u1EC1u h\u01B0\u1EDBng, li\u00EAn h\u1EC7 v\u00E0 footer d\u00F9ng to\u00E0n site';
+    description: 'Th\u01B0\u01A1ng hi\u1EC7u, li\u00EAn h\u1EC7, \u0111\u1ECBa \u0111i\u1EC3m v\u00E0 SEO m\u1EB7c \u0111\u1ECBnh. Header v\u00E0 footer c\u00F3 single type ri\u00EAng.';
     displayName: 'C\u1EA5u h\u00ECnh chung';
     pluralName: 'global-settings';
     singularName: 'global-setting';
@@ -1256,24 +1357,6 @@ export interface ApiGlobalSettingGlobalSetting extends Struct.SingleTypeSchema {
         };
       }>;
     email: Schema.Attribute.Email & Schema.Attribute.Required;
-    footerExploreLinks: Schema.Attribute.Component<'shared.link', true> &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }>;
-    footerInfoLinks: Schema.Attribute.Component<'shared.link', true> &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }>;
-    headerLinks: Schema.Attribute.Component<'shared.link', true> &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }>;
     hotline: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.SetMinMaxLength<{
@@ -1326,10 +1409,73 @@ export interface ApiGlobalSettingGlobalSetting extends Struct.SingleTypeSchema {
   };
 }
 
+export interface ApiHeaderSettingHeaderSetting extends Struct.SingleTypeSchema {
+  collectionName: 'header_settings';
+  info: {
+    description: 'Header brand, logo, and primary navigation';
+    displayName: 'Header Setting';
+    pluralName: 'header-settings';
+    singularName: 'header-setting';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  pluginOptions: {
+    i18n: {
+      localized: true;
+    };
+  };
+  attributes: {
+    brandName: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }> &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 120;
+      }>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    headerLinks: Schema.Attribute.Component<'shared.link', true> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
+    locale: Schema.Attribute.String;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::header-setting.header-setting'
+    >;
+    logo: Schema.Attribute.Component<'shared.image', false> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
+    publishedAt: Schema.Attribute.DateTime;
+    tagline: Schema.Attribute.String &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }> &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 180;
+      }>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiHomePageHomePage extends Struct.SingleTypeSchema {
   collectionName: 'home_pages';
   info: {
-    description: 'Fixed editorial structure for the Salanca home page';
+    description: 'Eight mockup sections: hero, experience, buffet, menu, story, process, space, booking';
     displayName: 'Trang ch\u1EE7';
     pluralName: 'home-pages';
     singularName: 'home-page';
@@ -1343,8 +1489,14 @@ export interface ApiHomePageHomePage extends Struct.SingleTypeSchema {
     };
   };
   attributes: {
-    closingCta: Schema.Attribute.Component<'shared.cta', false> &
+    bookingStrip: Schema.Attribute.Component<'shared.cta', false> &
       Schema.Attribute.Required &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
+    buffet: Schema.Attribute.Component<'home.buffet', false> &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
           localized: true;
@@ -1353,45 +1505,11 @@ export interface ApiHomePageHomePage extends Struct.SingleTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    experienceBody: Schema.Attribute.Text &
+    experience: Schema.Attribute.Component<'home.experience', false> &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
           localized: true;
         };
-      }> &
-      Schema.Attribute.SetMinMaxLength<{
-        maxLength: 800;
-      }>;
-    experienceHeading: Schema.Attribute.String &
-      Schema.Attribute.Required &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }> &
-      Schema.Attribute.SetMinMaxLength<{
-        maxLength: 180;
-      }>;
-    experienceImage: Schema.Attribute.Component<'shared.image', false> &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }>;
-    experienceLink: Schema.Attribute.Component<'shared.link', false> &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }>;
-    featuredMenuHeading: Schema.Attribute.String &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }> &
-      Schema.Attribute.SetMinMaxLength<{
-        maxLength: 180;
       }>;
     featuredMenuItems: Schema.Attribute.Relation<
       'oneToMany',
@@ -1401,7 +1519,7 @@ export interface ApiHomePageHomePage extends Struct.SingleTypeSchema {
       'oneToOne',
       'api::menu-package.menu-package'
     >;
-    hero: Schema.Attribute.Component<'shared.hero', false> &
+    hero: Schema.Attribute.Component<'home.hero', false> &
       Schema.Attribute.Required &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
@@ -1413,6 +1531,18 @@ export interface ApiHomePageHomePage extends Struct.SingleTypeSchema {
       'oneToMany',
       'api::home-page.home-page'
     >;
+    menuHighlights: Schema.Attribute.Component<'home.menu-highlights', false> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
+    process: Schema.Attribute.Component<'home.process', false> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
     publishedAt: Schema.Attribute.DateTime;
     seo: Schema.Attribute.Component<'shared.seo', false> &
       Schema.Attribute.Required &
@@ -1421,61 +1551,13 @@ export interface ApiHomePageHomePage extends Struct.SingleTypeSchema {
           localized: true;
         };
       }>;
-    spaceBody: Schema.Attribute.Text &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }> &
-      Schema.Attribute.SetMinMaxLength<{
-        maxLength: 800;
-      }>;
-    spaceHeading: Schema.Attribute.String &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }> &
-      Schema.Attribute.SetMinMaxLength<{
-        maxLength: 180;
-      }>;
-    spaceImage: Schema.Attribute.Component<'shared.image', false> &
+    space: Schema.Attribute.Component<'home.space', false> &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
           localized: true;
         };
       }>;
-    spaceLink: Schema.Attribute.Component<'shared.link', false> &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }>;
-    storyBody: Schema.Attribute.Text &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }> &
-      Schema.Attribute.SetMinMaxLength<{
-        maxLength: 800;
-      }>;
-    storyHeading: Schema.Attribute.String &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }> &
-      Schema.Attribute.SetMinMaxLength<{
-        maxLength: 180;
-      }>;
-    storyImage: Schema.Attribute.Component<'shared.image', false> &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }>;
-    storyLink: Schema.Attribute.Component<'shared.link', false> &
+    story: Schema.Attribute.Component<'home.story', false> &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
           localized: true;
@@ -2890,8 +2972,10 @@ declare module '@strapi/strapi' {
       'api::contact-message.contact-message': ApiContactMessageContactMessage;
       'api::contact-page.contact-page': ApiContactPageContactPage;
       'api::experience-page.experience-page': ApiExperiencePageExperiencePage;
+      'api::footer-setting.footer-setting': ApiFooterSettingFooterSetting;
       'api::gallery-item.gallery-item': ApiGalleryItemGalleryItem;
       'api::global-setting.global-setting': ApiGlobalSettingGlobalSetting;
+      'api::header-setting.header-setting': ApiHeaderSettingHeaderSetting;
       'api::home-page.home-page': ApiHomePageHomePage;
       'api::location.location': ApiLocationLocation;
       'api::menu-category.menu-category': ApiMenuCategoryMenuCategory;
