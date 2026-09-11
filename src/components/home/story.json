@@ -2,7 +2,7 @@
   "collectionName": "components_home_stories",
   "info": {
     "displayName": "Home Story",
-    "description": "Story band: title, body, and continue link"
+    "description": "Story band: title, body, photo, and continue link"
   },
   "options": {},
   "attributes": {
@@ -16,6 +16,12 @@
       "pluginOptions": { "i18n": { "localized": true } },
       "type": "text",
       "maxLength": 800
+    },
+    "image": {
+      "pluginOptions": { "i18n": { "localized": true } },
+      "type": "component",
+      "component": "shared.image",
+      "repeatable": false
     },
     "link": {
       "pluginOptions": { "i18n": { "localized": true } },
