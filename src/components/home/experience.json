@@ -1,7 +1,7 @@
 {
   "collectionName": "components_home_experiences",
   "info": {
-    "displayName": "Home Experience",
+    "displayName": "Trang chủ - Trải nghiệm",
     "description": "Experience split: eyebrow, title, body, link, poster, optional video"
   },
   "options": {},

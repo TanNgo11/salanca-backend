@@ -1,20 +1,19 @@
 {
-  "collectionName": "components_shared_timeline_entries",
+  "collectionName": "components_shared_feature_blocks",
   "info": {
-    "displayName": "Mốc thời gian",
-    "description": "Dated milestone in the Salanca story"
+    "displayName": "Khối nội dung nổi bật",
+    "description": "Editorial band with optional price and call to action"
   },
   "options": {},
   "attributes": {
-    "label": {
+    "eyebrow": {
       "pluginOptions": {
         "i18n": {
           "localized": true
         }
       },
       "type": "string",
-      "required": true,
-      "maxLength": 40
+      "maxLength": 80
     },
     "title": {
       "pluginOptions": {
@@ -33,8 +32,16 @@
         }
       },
       "type": "text",
-      "required": true,
       "maxLength": 800
+    },
+    "price": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": false
+        }
+      },
+      "type": "decimal",
+      "min": 0
     },
     "image": {
       "pluginOptions": {
@@ -44,6 +51,16 @@
       },
       "type": "component",
       "component": "shared.image",
+      "repeatable": false
+    },
+    "link": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "type": "component",
+      "component": "shared.link",
       "repeatable": false
     }
   }

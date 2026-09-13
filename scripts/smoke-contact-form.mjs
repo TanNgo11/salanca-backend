@@ -94,7 +94,8 @@ try {
 
   const listAttempt = await api(`${prefix}/contact-messages`);
   assert.ok(
-    listAttempt.response.status === 401 || listAttempt.response.status === 403,
+    // 404: the public router never registers a list route (create-only intake).
+    [401, 403, 404].includes(listAttempt.response.status),
     `public list must be denied, got ${listAttempt.response.status}`,
   );
 

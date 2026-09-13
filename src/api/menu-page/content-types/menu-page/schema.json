@@ -42,6 +42,11 @@
       "relation": "oneToOne",
       "target": "api::menu-package.menu-package"
     },
+    "rodizioPackage": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::menu-package.menu-package"
+    },
     "itemSectionHeading": {
       "pluginOptions": {
         "i18n": {
@@ -60,6 +65,26 @@
       },
       "type": "string",
       "maxLength": 180
+    },
+    "aLaCarte": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "type": "component",
+      "component": "shared.feature-block",
+      "repeatable": false
+    },
+    "drinks": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "type": "component",
+      "component": "shared.feature-block",
+      "repeatable": false
     },
     "bookingCta": {
       "pluginOptions": {
@@ -82,6 +107,26 @@
       "component": "shared.seo",
       "repeatable": false,
       "required": true
+    }
+  },
+  "config": {
+    "metadatas": {
+      "featuredPackage": {
+        "edit": {
+          "label": "Gói buffet hiển thị"
+        },
+        "list": {
+          "label": "Gói buffet"
+        }
+      },
+      "rodizioPackage": {
+        "edit": {
+          "label": "Gói rodizio hiển thị"
+        },
+        "list": {
+          "label": "Gói rodizio"
+        }
+      }
     }
   }
 }

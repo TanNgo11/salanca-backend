@@ -5,6 +5,8 @@ const root = process.cwd();
 const sharedComponents = [
   'cta',
   'editorial-card',
+  'faq-item',
+  'feature-block',
   'hero',
   'image',
   'link',
@@ -52,7 +54,7 @@ const leadContentTypes = {
 };
 const nonLocalizedByContentType = {
   'booking-page': [],
-  campaign: ['kind', 'startsAt', 'endsAt', 'isFeatured', 'displayOrder'],
+  campaign: ['kind', 'startsAt', 'endsAt', 'displayOrder'],
   'campaign-page': [],
   'contact-page': [],
   'experience-page': [],
@@ -64,7 +66,7 @@ const nonLocalizedByContentType = {
   location: ['mapUrl', 'phone', 'email', 'isActive', 'displayOrder'],
   'menu-category': ['displayOrder', 'isActive'],
   'menu-item': ['price', 'isFeatured', 'isActive', 'displayOrder'],
-  'menu-package': ['adultPrice', 'childPrice', 'isFeatured', 'isActive', 'displayOrder'],
+  'menu-package': ['adultPrice', 'childPrice', 'isActive', 'displayOrder'],
   'menu-page': [],
   'space-page': [],
   'story-page': [],
@@ -72,6 +74,8 @@ const nonLocalizedByContentType = {
 const nonLocalizedByComponent = {
   cta: [],
   'editorial-card': [],
+  'faq-item': [],
+  'feature-block': ['price'],
   hero: [],
   image: ['media', 'focalPointX', 'focalPointY'],
   link: ['openInNewTab'],

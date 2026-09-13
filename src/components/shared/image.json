@@ -60,10 +60,10 @@
       },
       "alt": {
         "edit": {
-          "label": "Alt text (bắt buộc)"
+          "label": "Mô tả ảnh cho người dùng khiếm thị (bắt buộc)"
         },
         "list": {
-          "label": "Alt text (bắt buộc)"
+          "label": "Mô tả ảnh"
         }
       },
       "caption": {

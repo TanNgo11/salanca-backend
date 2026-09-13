@@ -114,6 +114,16 @@
       "component": "shared.image",
       "repeatable": false
     },
+    "occasions": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "type": "component",
+      "component": "shared.editorial-card",
+      "repeatable": true
+    },
     "bookingNotice": {
       "pluginOptions": {
         "i18n": {
@@ -122,6 +132,25 @@
       },
       "type": "text",
       "maxLength": 1000
+    },
+    "notesHeading": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "type": "string",
+      "maxLength": 180
+    },
+    "notes": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "type": "component",
+      "component": "shared.list-item",
+      "repeatable": true
     },
     "supportHeading": {
       "pluginOptions": {

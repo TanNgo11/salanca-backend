@@ -52,18 +52,18 @@
     "metadatas": {
       "metaTitle": {
         "edit": {
-          "label": "Meta title"
+          "label": "Tiêu đề khi hiển thị trên Google"
         },
         "list": {
-          "label": "Title"
+          "label": "Tiêu đề Google"
         }
       },
       "metaDescription": {
         "edit": {
-          "label": "Meta description"
+          "label": "Mô tả khi hiển thị trên Google"
         },
         "list": {
-          "label": "Meta description"
+          "label": "Mô tả Google"
         }
       },
       "shareImage": {
@@ -76,11 +76,11 @@
       },
       "canonicalPath": {
         "edit": {
-          "label": "Canonical path",
+          "label": "Đường dẫn chuẩn do hệ thống quản lý",
           "placeholder": "/vi/..."
         },
         "list": {
-          "label": "Canonical path"
+          "label": "Đường dẫn chuẩn"
         }
       },
       "noIndex": {

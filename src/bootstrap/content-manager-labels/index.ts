@@ -2,7 +2,6 @@ import type { Core } from '@strapi/strapi';
 
 import {
   areContentManagerMetadatasEqual,
-  hasContentManagerLabelOverrides,
   mergeContentManagerMetadatas,
 } from './content-manager-labels.helper';
 import {
@@ -14,8 +13,13 @@ import {
   type ContentManagerFieldMetadataOverrideMap,
   type ContentManagerModel,
 } from './content-manager-labels.types';
+import {
+  CONTENT_MANAGER_FIELD_DESCRIPTIONS_VI,
+  CONTENT_MANAGER_FIELD_LABELS_VI,
+} from './content-manager-labels.vi';
 
 type SchemaWithLabelConfig = {
+  attributes?: Record<string, unknown>;
   config?: { metadatas?: ContentManagerFieldMetadataOverrideMap };
 };
 
@@ -30,17 +34,33 @@ type SchemaWithLabelConfig = {
 const asSchemaRegistry = (registry: unknown): Record<string, SchemaWithLabelConfig> =>
   (registry ?? {}) as Record<string, SchemaWithLabelConfig>;
 
-const discoverLabeledUids = (registry: unknown): string[] =>
-  Object.entries(asSchemaRegistry(registry))
-    .filter(([, schema]) => hasContentManagerLabelOverrides(schema))
-    .map(([uid]) => uid)
-    .sort();
+const buildDesiredMetadatas = (
+  schema: SchemaWithLabelConfig,
+): ContentManagerFieldMetadataOverrideMap => {
+  const generated: ContentManagerFieldMetadataOverrideMap = {};
+  for (const fieldName of Object.keys(schema.attributes ?? {})) {
+    const label = CONTENT_MANAGER_FIELD_LABELS_VI[fieldName];
+    if (!label) continue;
+    const description = CONTENT_MANAGER_FIELD_DESCRIPTIONS_VI[fieldName];
+    generated[fieldName] = {
+      edit: { label, ...(description ? { description } : {}) },
+      list: { label },
+    };
+  }
 
-const readSchemaMetadatas = (
+  return {
+    ...generated,
+    ...(schema.config?.metadatas ?? {}),
+  };
+};
+
+const discoverLabeledUids = (
   registry: unknown,
-  uid: string,
-): ContentManagerFieldMetadataOverrideMap | undefined =>
-  asSchemaRegistry(registry)[uid]?.config?.metadatas;
+): Array<readonly [string, ContentManagerFieldMetadataOverrideMap]> =>
+  Object.entries(asSchemaRegistry(registry))
+    .map(([uid, schema]) => [uid, buildDesiredMetadatas(schema)] as const)
+    .filter(([, metadatas]) => Object.keys(metadatas).length > 0)
+    .sort(([a], [b]) => a.localeCompare(b));
 
 const buildConfigurationInput = (
   currentConfiguration: ContentManagerConfiguration,
@@ -66,9 +86,9 @@ const synchronizeOne = async (
   kind: ContentManagerModelKind,
   uid: string,
   model: ContentManagerModel,
+  desiredMetadatas: ContentManagerFieldMetadataOverrideMap,
 ): Promise<void> => {
-  const desiredMetadatas = model.config?.metadatas;
-  if (!desiredMetadatas || Object.keys(desiredMetadatas).length === 0) {
+  if (Object.keys(desiredMetadatas).length === 0) {
     return;
   }
 
@@ -101,42 +121,25 @@ export const synchronizeContentManagerLabels = async (strapi: Core.Strapi): Prom
     .plugin('content-manager')
     .service<ContentManagerComponentService>('components');
 
-  const contentTypeUids = discoverLabeledUids(strapi.contentTypes);
-  for (const uid of contentTypeUids) {
+  const contentTypeEntries = discoverLabeledUids(strapi.contentTypes).filter(([uid]) =>
+    uid.startsWith('api::'),
+  );
+  for (const [uid, desiredMetadatas] of contentTypeEntries) {
     const model = contentTypeService.findContentType(uid);
     if (!model) {
       strapi.log.warn(`Content Manager content-type not found for label sync: ${uid}`);
       continue;
     }
-    // Prefer CM model config; fall back to schema registry if CM omits custom config.
-    if (!hasContentManagerLabelOverrides(model)) {
-      const schemaMetadatas = readSchemaMetadatas(strapi.contentTypes, uid);
-      if (schemaMetadatas) {
-        model.config = { ...model.config, metadatas: schemaMetadatas };
-      }
-    }
-    if (!hasContentManagerLabelOverrides(model)) {
-      continue;
-    }
-    await synchronizeOne(strapi, ContentManagerModelKind.ContentType, uid, model);
+    await synchronizeOne(strapi, ContentManagerModelKind.ContentType, uid, model, desiredMetadatas);
   }
 
-  const componentUids = discoverLabeledUids(strapi.components);
-  for (const uid of componentUids) {
+  const componentEntries = discoverLabeledUids(strapi.components);
+  for (const [uid, desiredMetadatas] of componentEntries) {
     const model = componentService.findComponent(uid);
     if (!model) {
       strapi.log.warn(`Content Manager component not found for label sync: ${uid}`);
       continue;
     }
-    if (!hasContentManagerLabelOverrides(model)) {
-      const schemaMetadatas = readSchemaMetadatas(strapi.components, uid);
-      if (schemaMetadatas) {
-        model.config = { ...model.config, metadatas: schemaMetadatas };
-      }
-    }
-    if (!hasContentManagerLabelOverrides(model)) {
-      continue;
-    }
-    await synchronizeOne(strapi, ContentManagerModelKind.Component, uid, model);
+    await synchronizeOne(strapi, ContentManagerModelKind.Component, uid, model, desiredMetadatas);
   }
 };

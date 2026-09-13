@@ -440,8 +440,43 @@
             "key": "buffet"
           }
         },
+        "rodizioPackage": {
+          "__ref": {
+            "uid": "api::menu-package.menu-package",
+            "key": "rodizio"
+          }
+        },
         "itemSectionHeading": "Các món nướng đặc trưng",
         "packageListingHeading": "Rodizio Menu",
+        "aLaCarte": {
+          "eyebrow": "A la carte",
+          "title": "Steak Salanca",
+          "body": "Rib eye steak nướng theo độ chín yêu cầu, dùng kèm sốt nấm hoặc sốt tiêu. Phần thịt đậm vị, mềm mọng và có lớp cháy cạnh thơm.",
+          "price": 850000,
+          "image": {
+            "__media": "client-steak.jpg",
+            "alt": "Bít tết thái lát với rosemary và nĩa phục vụ",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          }
+        },
+        "drinks": {
+          "title": "Đồ uống",
+          "body": "Rượu vang, cocktail Brazil và đồ uống không cồn — danh sách đầy đủ sẽ được cập nhật tại nhà hàng.",
+          "link": {
+            "label": "Đặt bàn để thưởng thức",
+            "url": "/vi/dat-ban",
+            "openInNewTab": false
+          },
+          "image": {
+            "__media": "client-wine-cellar.jpg",
+            "alt": "Tủ rượu vang tại Salanca",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          }
+        },
         "bookingCta": {
           "heading": "Sẵn sàng cho một bữa tiệc đậm chất Brazil?",
           "body": "Đặt bàn ngay để giữ chỗ và tận hưởng trải nghiệm Churrascaria trọn vẹn.",
@@ -490,8 +525,43 @@
             "key": "buffet"
           }
         },
+        "rodizioPackage": {
+          "__ref": {
+            "uid": "api::menu-package.menu-package",
+            "key": "rodizio"
+          }
+        },
         "itemSectionHeading": "Signature cuts",
         "packageListingHeading": "Rodizio Menu",
+        "aLaCarte": {
+          "eyebrow": "A la carte",
+          "title": "Steak Salanca",
+          "body": "Rib eye steak grilled to your preferred doneness, served with mushroom or pepper sauce. Richly flavoured, tender, and finished with a fragrant charred crust.",
+          "price": 850000,
+          "image": {
+            "__media": "client-steak.jpg",
+            "alt": "Sliced steak with rosemary and a serving fork",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          }
+        },
+        "drinks": {
+          "title": "Drinks",
+          "body": "Wine, Brazilian cocktails, and non-alcoholic options — the full list is available at the restaurant.",
+          "link": {
+            "label": "Book a table to enjoy",
+            "url": "/en/reservations",
+            "openInNewTab": false
+          },
+          "image": {
+            "__media": "client-wine-cellar.jpg",
+            "alt": "The wine cellar at Salanca",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          }
+        },
         "bookingCta": {
           "heading": "Ready for a night of Brazilian flavour?",
           "body": "Reserve a table to hold your place and enjoy the full Churrascaria experience.",
@@ -624,27 +694,39 @@
           "focalPointY": 50
         },
         "ingredientsHeading": "Hành trình của hương vị",
-        "ingredientImages": [
+        "ingredients": [
           {
-            "__media": "story-flavour-kitchen-to-table.jpg",
-            "alt": "Steak nướng được hoàn thiện cùng rau củ tại Salanca",
-            "caption": null,
-            "focalPointX": 50,
-            "focalPointY": 50
+            "title": "Từ bếp ra bàn",
+            "body": "Mỗi phần thịt được chuẩn bị kỹ lưỡng trước khi trở thành một món nướng trọn vị.",
+            "image": {
+              "__media": "story-flavour-kitchen-to-table.jpg",
+              "alt": "Steak nướng được hoàn thiện cùng rau củ tại Salanca",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            }
           },
           {
-            "__media": "story-flavour-shared-table.jpg",
-            "alt": "Bàn buffet Salanca với rau củ, món nóng và các loại sốt",
-            "caption": null,
-            "focalPointX": 50,
-            "focalPointY": 50
+            "title": "Bàn tiệc sẻ chia",
+            "body": "Những phần nướng được phục vụ để mọi người cùng gặp gỡ và thưởng thức.",
+            "image": {
+              "__media": "story-flavour-shared-table.jpg",
+              "alt": "Bàn buffet Salanca với rau củ, món nóng và các loại sốt",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            }
           },
           {
-            "__media": "story-flavour-charcoal-grill.jpg",
-            "alt": "Lò churrasco Salanca với các xiên thịt nướng trên than hồng",
-            "caption": null,
-            "focalPointX": 50,
-            "focalPointY": 50
+            "title": "Nướng trên than hồng",
+            "body": "Nhiệt độ ổn định, giữ trọn hương vị và độ mọng.",
+            "image": {
+              "__media": "story-flavour-charcoal-grill.jpg",
+              "alt": "Lò churrasco Salanca với các xiên thịt nướng trên than hồng",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            }
           }
         ],
         "craftHeading": "Giữ trọn ngọn lửa",
@@ -832,27 +914,39 @@
           "focalPointY": 50
         },
         "ingredientsHeading": "The journey of flavour",
-        "ingredientImages": [
+        "ingredients": [
           {
-            "__media": "story-flavour-kitchen-to-table.jpg",
-            "alt": "Grilled steak finished with vegetables at Salanca",
-            "caption": null,
-            "focalPointX": 50,
-            "focalPointY": 50
+            "title": "From kitchen to table",
+            "body": "Each cut is carefully prepared before it becomes a full-flavoured grilled dish.",
+            "image": {
+              "__media": "story-flavour-kitchen-to-table.jpg",
+              "alt": "Grilled steak finished with vegetables at Salanca",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            }
           },
           {
-            "__media": "story-flavour-shared-table.jpg",
-            "alt": "Salanca's buffet table with vegetables, hot dishes, and sauces",
-            "caption": null,
-            "focalPointX": 50,
-            "focalPointY": 50
+            "title": "A table to share",
+            "body": "Grilled dishes are served for people to gather, share, and enjoy together.",
+            "image": {
+              "__media": "story-flavour-shared-table.jpg",
+              "alt": "Salanca's buffet table with vegetables, hot dishes, and sauces",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            }
           },
           {
-            "__media": "story-flavour-charcoal-grill.jpg",
-            "alt": "Churrasco skewers cooking over glowing charcoal at Salanca",
-            "caption": null,
-            "focalPointX": 50,
-            "focalPointY": 50
+            "title": "Charcoal fire",
+            "body": "Steady heat that keeps aroma and juiciness intact.",
+            "image": {
+              "__media": "story-flavour-charcoal-grill.jpg",
+              "alt": "Churrasco skewers cooking over glowing charcoal at Salanca",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            }
           }
         ],
         "craftHeading": "Keeping the fire alive",
@@ -1011,13 +1105,49 @@
           "openInNewTab": false
         },
         "experienceHeading": "Không gian cho mọi cuộc hẹn",
+        "experienceBody": "Từ sảnh chính sôi động đến phòng riêng kín đáo, mỗi khu vực được chuẩn bị cho một nhịp gặp gỡ khác nhau.",
         "experienceImage": {
           "__media": "client-interior-main.jpg",
-          "alt": "Sảnh chính Salanca với nhiều bàn và ánh đèn vàng",
+          "alt": "Toàn cảnh không gian dùng bữa tại Salanca",
           "caption": null,
           "focalPointX": 50,
           "focalPointY": 50
         },
+        "zones": [
+          {
+            "eyebrow": "Sảnh chính",
+            "title": "Sôi động và ấm cúng",
+            "image": {
+              "__media": "client-interior-main.jpg",
+              "alt": "Sảnh chính Salanca với nhiều bàn và ánh đèn vàng",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            }
+          },
+          {
+            "eyebrow": "Phòng riêng",
+            "title": "Riêng tư và tinh tế",
+            "image": {
+              "__media": "client-interior-private.jpg",
+              "alt": "Phòng riêng với bàn dài và tranh tường",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            }
+          },
+          {
+            "eyebrow": "Tiệc nhóm",
+            "title": "Linh hoạt theo nhu cầu",
+            "image": {
+              "__media": "client-guests-dinner.jpg",
+              "alt": "Nhóm khách dùng bữa tại bàn ngoài trời",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            }
+          }
+        ],
         "amenitiesHeading": "Mọi chi tiết đều được chuẩn bị",
         "amenities": [
           {
@@ -1135,13 +1265,49 @@
           "openInNewTab": false
         },
         "experienceHeading": "Spaces for every occasion",
+        "experienceBody": "From the lively main hall to private rooms, each area is prepared for a different kind of gathering.",
         "experienceImage": {
           "__media": "client-interior-main.jpg",
-          "alt": "Salanca main hall with many tables and warm lighting",
+          "alt": "A wide view of Salanca's dining space",
           "caption": null,
           "focalPointX": 50,
           "focalPointY": 50
         },
+        "zones": [
+          {
+            "eyebrow": "Main hall",
+            "title": "Lively and warm",
+            "image": {
+              "__media": "client-interior-main.jpg",
+              "alt": "Salanca main hall with many tables and warm lighting",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            }
+          },
+          {
+            "eyebrow": "Private room",
+            "title": "Intimate and refined",
+            "image": {
+              "__media": "client-interior-private.jpg",
+              "alt": "Private dining room with a long table and wall art",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            }
+          },
+          {
+            "eyebrow": "Group events",
+            "title": "Flexible to your needs",
+            "image": {
+              "__media": "client-guests-dinner.jpg",
+              "alt": "Guests dining together at an outdoor table",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            }
+          }
+        ],
         "amenitiesHeading": "Every detail, prepared",
         "amenities": [
           {
@@ -1628,6 +1794,172 @@
           }
         },
         "formHeading": "Thông tin đặt bàn",
+        "arrivalTimes": [
+          {
+            "value": "11:00",
+            "label": "11:00",
+            "displayOrder": 0
+          },
+          {
+            "value": "11:30",
+            "label": "11:30",
+            "displayOrder": 1
+          },
+          {
+            "value": "12:00",
+            "label": "12:00",
+            "displayOrder": 2
+          },
+          {
+            "value": "12:30",
+            "label": "12:30",
+            "displayOrder": 3
+          },
+          {
+            "value": "13:00",
+            "label": "13:00",
+            "displayOrder": 4
+          },
+          {
+            "value": "13:30",
+            "label": "13:30",
+            "displayOrder": 5
+          },
+          {
+            "value": "17:30",
+            "label": "17:30",
+            "displayOrder": 6
+          },
+          {
+            "value": "18:00",
+            "label": "18:00",
+            "displayOrder": 7
+          },
+          {
+            "value": "18:30",
+            "label": "18:30",
+            "displayOrder": 8
+          },
+          {
+            "value": "19:00",
+            "label": "19:00",
+            "displayOrder": 9
+          },
+          {
+            "value": "19:30",
+            "label": "19:30",
+            "displayOrder": 10
+          },
+          {
+            "value": "20:00",
+            "label": "20:00",
+            "displayOrder": 11
+          },
+          {
+            "value": "20:30",
+            "label": "20:30",
+            "displayOrder": 12
+          },
+          {
+            "value": "21:00",
+            "label": "21:00",
+            "displayOrder": 13
+          },
+          {
+            "value": "21:30",
+            "label": "21:30",
+            "displayOrder": 14
+          }
+        ],
+        "guestOptions": [
+          {
+            "value": "1",
+            "label": "1 khách",
+            "displayOrder": 0
+          },
+          {
+            "value": "2",
+            "label": "2 khách",
+            "displayOrder": 1
+          },
+          {
+            "value": "3",
+            "label": "3 khách",
+            "displayOrder": 2
+          },
+          {
+            "value": "4",
+            "label": "4 khách",
+            "displayOrder": 3
+          },
+          {
+            "value": "5",
+            "label": "5 khách",
+            "displayOrder": 4
+          },
+          {
+            "value": "6",
+            "label": "6 khách",
+            "displayOrder": 5
+          },
+          {
+            "value": "7",
+            "label": "7 khách",
+            "displayOrder": 6
+          },
+          {
+            "value": "8",
+            "label": "8 khách",
+            "displayOrder": 7
+          },
+          {
+            "value": "9",
+            "label": "9 khách",
+            "displayOrder": 8
+          },
+          {
+            "value": "10",
+            "label": "10 khách",
+            "displayOrder": 9
+          },
+          {
+            "value": "12",
+            "label": "12 khách",
+            "displayOrder": 10
+          },
+          {
+            "value": "15",
+            "label": "15 khách",
+            "displayOrder": 11
+          },
+          {
+            "value": "20",
+            "label": "20 khách",
+            "displayOrder": 12
+          }
+        ],
+        "occasionOptions": [
+          {
+            "value": "birthday",
+            "label": "Sinh nhật",
+            "displayOrder": 0
+          },
+          {
+            "value": "anniversary",
+            "label": "Kỷ niệm",
+            "displayOrder": 1
+          },
+          {
+            "value": "business",
+            "label": "Tiếp khách / công việc",
+            "displayOrder": 2
+          },
+          {
+            "value": "family",
+            "label": "Gia đình",
+            "displayOrder": 3
+          }
+        ],
         "stepsHeading": "Đặt bàn chỉ trong 3 bước",
         "steps": [
           {
@@ -1647,6 +1979,39 @@
           }
         ],
         "occasionHeading": "Một bàn tiệc dành riêng cho bạn",
+        "occasionBody": "Cho chúng tôi biết dịp đặc biệt để đội ngũ chuẩn bị chu đáo hơn.",
+        "occasions": [
+          {
+            "title": "Hẹn hò",
+            "image": {
+              "__media": "client-guests-table.jpg",
+              "alt": "Hai người dùng bữa bên ly vang",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            }
+          },
+          {
+            "title": "Gia đình",
+            "image": {
+              "__media": "client-guests-dinner.jpg",
+              "alt": "Gia đình quây quần bên bàn ăn",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            }
+          },
+          {
+            "title": "Tiệc nhóm",
+            "image": {
+              "__media": "client-celebration.jpg",
+              "alt": "Nhóm bạn nâng ly chúc mừng",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            }
+          }
+        ],
         "occasionImage": {
           "__media": "client-table-setting.jpg",
           "alt": "Nhân viên Salanca chuẩn bị bàn ăn",
@@ -1655,6 +2020,18 @@
           "focalPointY": 50
         },
         "bookingNotice": "Yêu cầu của bạn sẽ được xác nhận qua điện thoại.",
+        "notesHeading": "Lưu ý khi đặt bàn",
+        "notes": [
+          {
+            "title": "Vui lòng cung cấp thông tin liên hệ chính xác."
+          },
+          {
+            "title": "Hãy chia sẻ trước các yêu cầu đặc biệt."
+          },
+          {
+            "title": "Đặt bàn chỉ hoàn tất sau khi được xác nhận."
+          }
+        ],
         "supportHeading": "Cần Salanca hỗ trợ?",
         "supportBody": "Liên hệ hotline, đội ngũ của chúng tôi luôn sẵn sàng hỗ trợ bạn.",
         "supportImage": {
@@ -1697,6 +2074,172 @@
           }
         },
         "formHeading": "Reservation details",
+        "arrivalTimes": [
+          {
+            "value": "11:00",
+            "label": "11:00",
+            "displayOrder": 0
+          },
+          {
+            "value": "11:30",
+            "label": "11:30",
+            "displayOrder": 1
+          },
+          {
+            "value": "12:00",
+            "label": "12:00",
+            "displayOrder": 2
+          },
+          {
+            "value": "12:30",
+            "label": "12:30",
+            "displayOrder": 3
+          },
+          {
+            "value": "13:00",
+            "label": "13:00",
+            "displayOrder": 4
+          },
+          {
+            "value": "13:30",
+            "label": "13:30",
+            "displayOrder": 5
+          },
+          {
+            "value": "17:30",
+            "label": "17:30",
+            "displayOrder": 6
+          },
+          {
+            "value": "18:00",
+            "label": "18:00",
+            "displayOrder": 7
+          },
+          {
+            "value": "18:30",
+            "label": "18:30",
+            "displayOrder": 8
+          },
+          {
+            "value": "19:00",
+            "label": "19:00",
+            "displayOrder": 9
+          },
+          {
+            "value": "19:30",
+            "label": "19:30",
+            "displayOrder": 10
+          },
+          {
+            "value": "20:00",
+            "label": "20:00",
+            "displayOrder": 11
+          },
+          {
+            "value": "20:30",
+            "label": "20:30",
+            "displayOrder": 12
+          },
+          {
+            "value": "21:00",
+            "label": "21:00",
+            "displayOrder": 13
+          },
+          {
+            "value": "21:30",
+            "label": "21:30",
+            "displayOrder": 14
+          }
+        ],
+        "guestOptions": [
+          {
+            "value": "1",
+            "label": "1 guests",
+            "displayOrder": 0
+          },
+          {
+            "value": "2",
+            "label": "2 guests",
+            "displayOrder": 1
+          },
+          {
+            "value": "3",
+            "label": "3 guests",
+            "displayOrder": 2
+          },
+          {
+            "value": "4",
+            "label": "4 guests",
+            "displayOrder": 3
+          },
+          {
+            "value": "5",
+            "label": "5 guests",
+            "displayOrder": 4
+          },
+          {
+            "value": "6",
+            "label": "6 guests",
+            "displayOrder": 5
+          },
+          {
+            "value": "7",
+            "label": "7 guests",
+            "displayOrder": 6
+          },
+          {
+            "value": "8",
+            "label": "8 guests",
+            "displayOrder": 7
+          },
+          {
+            "value": "9",
+            "label": "9 guests",
+            "displayOrder": 8
+          },
+          {
+            "value": "10",
+            "label": "10 guests",
+            "displayOrder": 9
+          },
+          {
+            "value": "12",
+            "label": "12 guests",
+            "displayOrder": 10
+          },
+          {
+            "value": "15",
+            "label": "15 guests",
+            "displayOrder": 11
+          },
+          {
+            "value": "20",
+            "label": "20 guests",
+            "displayOrder": 12
+          }
+        ],
+        "occasionOptions": [
+          {
+            "value": "birthday",
+            "label": "Birthday",
+            "displayOrder": 0
+          },
+          {
+            "value": "anniversary",
+            "label": "Anniversary",
+            "displayOrder": 1
+          },
+          {
+            "value": "business",
+            "label": "Business",
+            "displayOrder": 2
+          },
+          {
+            "value": "family",
+            "label": "Family",
+            "displayOrder": 3
+          }
+        ],
         "stepsHeading": "Three steps to a table",
         "steps": [
           {
@@ -1716,6 +2259,39 @@
           }
         ],
         "occasionHeading": "A table set for your occasion",
+        "occasionBody": "Tell us what you are celebrating so the team can prepare with care.",
+        "occasions": [
+          {
+            "title": "Date night",
+            "image": {
+              "__media": "client-guests-table.jpg",
+              "alt": "Two people dining over a glass of wine",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            }
+          },
+          {
+            "title": "Family",
+            "image": {
+              "__media": "client-guests-dinner.jpg",
+              "alt": "A family gathered around a dining table",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            }
+          },
+          {
+            "title": "Group party",
+            "image": {
+              "__media": "client-celebration.jpg",
+              "alt": "Friends raising a toast",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            }
+          }
+        ],
         "occasionImage": {
           "__media": "client-table-setting.jpg",
           "alt": "A Salanca host setting a table",
@@ -1724,6 +2300,18 @@
           "focalPointY": 50
         },
         "bookingNotice": "We will confirm your request by phone.",
+        "notesHeading": "Before you book",
+        "notes": [
+          {
+            "title": "Please give us contact details we can actually reach."
+          },
+          {
+            "title": "Tell us about special requests ahead of time."
+          },
+          {
+            "title": "A booking is only final once we have confirmed it."
+          }
+        ],
         "supportHeading": "Need a hand?",
         "supportBody": "Call the hotline and our team will sort it out with you.",
         "supportImage": {
@@ -1784,6 +2372,7 @@
         "mapHeading": "TÌM ĐƯỜNG ĐẾN SALANCA",
         "formHeading": "GỬI LỜI NHẮN",
         "helpHeading": "SALANCA CÓ THỂ GIÚP GÌ CHO BẠN?",
+        "helpBody": "Chọn nội dung phù hợp để đội ngũ Salanca hỗ trợ bạn nhanh hơn.",
         "helpImage": {
           "__media": "client-interior-private.jpg",
           "alt": "Không gian phòng riêng ấm cúng tại Salanca.",
@@ -1791,7 +2380,36 @@
           "focalPointX": 50,
           "focalPointY": 50
         },
+        "helpItems": [
+          {
+            "title": "ĐẶT BÀN",
+            "body": "Đặt chỗ nhanh chóng cho bữa ăn của bạn."
+          },
+          {
+            "title": "SỰ KIỆN",
+            "body": "Tổ chức tiệc riêng, sinh nhật, kỷ niệm."
+          },
+          {
+            "title": "GÓP Ý",
+            "body": "Chia sẻ ý kiến để chúng tôi phục vụ tốt hơn."
+          }
+        ],
         "socialHeading": "KẾT NỐI CÙNG SALANCA",
+        "faqHeading": "THÔNG TIN BẠN CÓ THỂ CẦN",
+        "faqItems": [
+          {
+            "question": "ĐẶT BÀN NHƯ THẾ NÀO?",
+            "answer": "Gửi yêu cầu qua trang Đặt bàn hoặc gọi hotline. Đội ngũ sẽ xác nhận lại trong thời gian sớm nhất."
+          },
+          {
+            "question": "SALANCA CÓ NHẬN TIỆC NHÓM?",
+            "answer": "Có. Liên hệ hotline hoặc gửi tin nhắn với số khách và dịp để được tư vấn không gian phù hợp."
+          },
+          {
+            "question": "TÔI CÓ THỂ GỬI YÊU CẦU ĐẶC BIỆT?",
+            "answer": "Có. Ghi rõ trong form liên hệ hoặc khi đặt bàn — dị ứng, dịp kỷ niệm, chỗ ngồi ưu tiên."
+          }
+        ],
         "closingCta": {
           "heading": "HẸN GẶP BẠN TẠI SALANCA",
           "link": {
@@ -1856,6 +2474,7 @@
         "mapHeading": "FIND YOUR WAY TO SALANCA",
         "formHeading": "SEND A MESSAGE",
         "helpHeading": "HOW CAN SALANCA HELP YOU?",
+        "helpBody": "Choose the topic that best matches what you need from our team.",
         "helpImage": {
           "__media": "client-interior-private.jpg",
           "alt": "A warm private dining room at Salanca.",
@@ -1863,7 +2482,36 @@
           "focalPointX": 50,
           "focalPointY": 50
         },
+        "helpItems": [
+          {
+            "title": "RESERVATIONS",
+            "body": "Book a table quickly for your next meal."
+          },
+          {
+            "title": "EVENTS",
+            "body": "Private parties, birthdays, and celebrations."
+          },
+          {
+            "title": "FEEDBACK",
+            "body": "Share your thoughts so we can serve you better."
+          }
+        ],
         "socialHeading": "CONNECT WITH SALANCA",
+        "faqHeading": "THINGS YOU MAY NEED TO KNOW",
+        "faqItems": [
+          {
+            "question": "HOW DO I RESERVE A TABLE?",
+            "answer": "Send a request on the Reservations page or call the hotline. Our team will confirm shortly."
+          },
+          {
+            "question": "DOES SALANCA HOST GROUP PARTIES?",
+            "answer": "Yes. Call the hotline or message us with your party size and occasion for space advice."
+          },
+          {
+            "question": "CAN I SEND SPECIAL REQUESTS?",
+            "answer": "Yes. Note allergies, celebrations, or seating preferences in the contact form or reservation."
+          }
+        ],
         "closingCta": {
           "heading": "SEE YOU AT SALANCA",
           "link": {
@@ -1965,6 +2613,7 @@
             "slug": "picanha",
             "name": "Picanha",
             "shortDescription": "Phần ngon nhất của mông bò",
+            "portion": "250g",
             "description": [
               {
                 "type": "paragraph",
@@ -1998,6 +2647,7 @@
             "slug": "picanha",
             "name": "Picanha",
             "shortDescription": "The prized cut from the rump cap",
+            "portion": "250g",
             "description": [
               {
                 "type": "paragraph",
@@ -2034,6 +2684,7 @@
             "slug": "costela",
             "name": "Costela",
             "shortDescription": "Sườn bò nướng",
+            "portion": "400g",
             "description": [
               {
                 "type": "paragraph",
@@ -2067,6 +2718,7 @@
             "slug": "costela",
             "name": "Costela",
             "shortDescription": "Grilled beef ribs",
+            "portion": "400g",
             "description": [
               {
                 "type": "paragraph",
@@ -2103,6 +2755,7 @@
             "slug": "cupim",
             "name": "Cupim",
             "shortDescription": "Nạc vai bò",
+            "portion": "250g",
             "description": [
               {
                 "type": "paragraph",
@@ -2136,6 +2789,7 @@
             "slug": "cupim",
             "name": "Cupim",
             "shortDescription": "Beef hump",
+            "portion": "250g",
             "description": [
               {
                 "type": "paragraph",
@@ -2172,6 +2826,7 @@
             "slug": "panceta",
             "name": "Panceta",
             "shortDescription": "Ba chỉ heo nướng",
+            "portion": "200g",
             "description": [
               {
                 "type": "paragraph",
@@ -2205,6 +2860,7 @@
             "slug": "panceta",
             "name": "Panceta",
             "shortDescription": "Grilled pork belly",
+            "portion": "200g",
             "description": [
               {
                 "type": "paragraph",
@@ -2241,6 +2897,7 @@
             "slug": "cordeiro",
             "name": "Cordeiro",
             "shortDescription": "Đùi cừu",
+            "portion": "250g",
             "description": [
               {
                 "type": "paragraph",
@@ -2274,6 +2931,7 @@
             "slug": "cordeiro",
             "name": "Cordeiro",
             "shortDescription": "Lamb leg",
+            "portion": "250g",
             "description": [
               {
                 "type": "paragraph",
@@ -2310,6 +2968,7 @@
             "slug": "camarao",
             "name": "Camarão",
             "shortDescription": "Tôm cuộn bacon",
+            "portion": "6 con",
             "description": [
               {
                 "type": "paragraph",
@@ -2343,6 +3002,7 @@
             "slug": "camarao",
             "name": "Camarão",
             "shortDescription": "Bacon-wrapped prawns",
+            "portion": "6 pcs",
             "description": [
               {
                 "type": "paragraph",
@@ -2490,7 +3150,6 @@
               "focalPointX": 50,
               "focalPointY": 50
             },
-            "isFeatured": true,
             "isActive": true,
             "displayOrder": 1,
             "seo": {
@@ -2541,7 +3200,6 @@
               "focalPointX": 50,
               "focalPointY": 50
             },
-            "isFeatured": true,
             "isActive": true,
             "displayOrder": 1,
             "seo": {
@@ -2611,7 +3269,6 @@
               "focalPointX": 50,
               "focalPointY": 50
             },
-            "isFeatured": false,
             "isActive": true,
             "displayOrder": 2,
             "seo": {
@@ -2678,7 +3335,6 @@
               "focalPointX": 50,
               "focalPointY": 50
             },
-            "isFeatured": false,
             "isActive": true,
             "displayOrder": 2,
             "seo": {
@@ -2746,6 +3402,8 @@
               "focalPointX": 50,
               "focalPointY": 50
             },
+            "gallery": [],
+            "terms": [],
             "cta": {
               "heading": "Đêm Brazil rực lửa",
               "body": "Một bàn tiệc cuối tuần ấm cúng, những món nướng đậm vị và thời gian gặp gỡ trọn vẹn.",
@@ -2755,7 +3413,6 @@
                 "openInNewTab": false
               }
             },
-            "isFeatured": true,
             "displayOrder": 1,
             "seo": {
               "metaTitle": "Đêm Brazil rực lửa",
@@ -2814,6 +3471,8 @@
               "focalPointX": 50,
               "focalPointY": 50
             },
+            "gallery": [],
+            "terms": [],
             "cta": {
               "heading": "Blazing Brazil night",
               "body": "A warm weekend table, bold grilled flavours, and unhurried time together.",
@@ -2823,7 +3482,6 @@
                 "openInNewTab": false
               }
             },
-            "isFeatured": true,
             "displayOrder": 1,
             "seo": {
               "metaTitle": "Blazing Brazil night",
@@ -2876,6 +3534,8 @@
               "focalPointX": 50,
               "focalPointY": 50
             },
+            "gallery": [],
+            "terms": [],
             "cta": {
               "heading": "Đêm Brazil cuối tuần",
               "body": "Cuối tuần thăng hoa với vũ điệu, âm nhạc và những xiên nướng hảo hạng.",
@@ -2885,7 +3545,6 @@
                 "openInNewTab": false
               }
             },
-            "isFeatured": false,
             "displayOrder": 2,
             "seo": {
               "metaTitle": "Đêm Brazil cuối tuần",
@@ -2935,6 +3594,8 @@
               "focalPointX": 50,
               "focalPointY": 50
             },
+            "gallery": [],
+            "terms": [],
             "cta": {
               "heading": "Brazil weekend night",
               "body": "A soaring weekend of dance, music, and exceptional skewers.",
@@ -2944,7 +3605,6 @@
                 "openInNewTab": false
               }
             },
-            "isFeatured": false,
             "displayOrder": 2,
             "seo": {
               "metaTitle": "Brazil weekend night",
@@ -2997,6 +3657,8 @@
               "focalPointX": 50,
               "focalPointY": 50
             },
+            "gallery": [],
+            "terms": [],
             "cta": {
               "heading": "Sinh nhật đậm chất Brazil",
               "body": "Ngày đặc biệt thêm trọn vẹn với không gian ấm áp, ẩm thực tinh tế và bất ngờ dành riêng cho bạn.",
@@ -3006,7 +3668,6 @@
                 "openInNewTab": false
               }
             },
-            "isFeatured": false,
             "displayOrder": 3,
             "seo": {
               "metaTitle": "Sinh nhật đậm chất Brazil",
@@ -3056,6 +3717,8 @@
               "focalPointX": 50,
               "focalPointY": 50
             },
+            "gallery": [],
+            "terms": [],
             "cta": {
               "heading": "A birthday with Brazil soul",
               "body": "Make the day complete with a warm room, refined food, and a surprise just for you.",
@@ -3065,7 +3728,6 @@
                 "openInNewTab": false
               }
             },
-            "isFeatured": false,
             "displayOrder": 3,
             "seo": {
               "metaTitle": "A birthday with Brazil soul",
@@ -3118,6 +3780,8 @@
               "focalPointX": 50,
               "focalPointY": 50
             },
+            "gallery": [],
+            "terms": [],
             "cta": {
               "heading": "Bữa trưa gặp gỡ",
               "body": "Khoảnh khắc thư giãn giữa ngày với thực đơn hương vị đậm và không gian xanh mát.",
@@ -3127,7 +3791,6 @@
                 "openInNewTab": false
               }
             },
-            "isFeatured": false,
             "displayOrder": 4,
             "seo": {
               "metaTitle": "Bữa trưa gặp gỡ",
@@ -3177,6 +3840,8 @@
               "focalPointX": 50,
               "focalPointY": 50
             },
+            "gallery": [],
+            "terms": [],
             "cta": {
               "heading": "Midday meetup lunch",
               "body": "A relaxed midday pause with bold flavours and a calm room.",
@@ -3186,7 +3851,6 @@
                 "openInNewTab": false
               }
             },
-            "isFeatured": false,
             "displayOrder": 4,
             "seo": {
               "metaTitle": "Midday meetup lunch",
@@ -3239,6 +3903,8 @@
               "focalPointX": 50,
               "focalPointY": 50
             },
+            "gallery": [],
+            "terms": [],
             "cta": {
               "heading": "Tiệc riêng tại Salanca",
               "body": "Không gian riêng tư, dịch vụ chu đáo và thực đơn thiết kế cho mọi buổi tiệc đáng nhớ.",
@@ -3248,7 +3914,6 @@
                 "openInNewTab": false
               }
             },
-            "isFeatured": false,
             "displayOrder": 5,
             "seo": {
               "metaTitle": "Tiệc riêng tại Salanca",
@@ -3298,6 +3963,8 @@
               "focalPointX": 50,
               "focalPointY": 50
             },
+            "gallery": [],
+            "terms": [],
             "cta": {
               "heading": "Private dining at Salanca",
               "body": "A private room, attentive service, and a menu designed for memorable gatherings.",
@@ -3307,7 +3974,6 @@
                 "openInNewTab": false
               }
             },
-            "isFeatured": false,
             "displayOrder": 5,
             "seo": {
               "metaTitle": "Private dining at Salanca",
@@ -3360,6 +4026,8 @@
               "focalPointX": 50,
               "focalPointY": 50
             },
+            "gallery": [],
+            "terms": [],
             "cta": {
               "heading": "Khoảnh khắc gia đình",
               "body": "Quây quần bên nhau, thưởng thức món ngon trong không gian ấm cúng và gần gũi.",
@@ -3369,7 +4037,6 @@
                 "openInNewTab": false
               }
             },
-            "isFeatured": false,
             "displayOrder": 6,
             "seo": {
               "metaTitle": "Khoảnh khắc gia đình",
@@ -3419,6 +4086,8 @@
               "focalPointX": 50,
               "focalPointY": 50
             },
+            "gallery": [],
+            "terms": [],
             "cta": {
               "heading": "Family moments",
               "body": "Gather close, share great food in a warm and welcoming room.",
@@ -3428,7 +4097,6 @@
                 "openInNewTab": false
               }
             },
-            "isFeatured": false,
             "displayOrder": 6,
             "seo": {
               "metaTitle": "Family moments",
@@ -3481,6 +4149,8 @@
               "focalPointX": 50,
               "focalPointY": 50
             },
+            "gallery": [],
+            "terms": [],
             "cta": {
               "heading": "Hẹn hò bên ánh lửa",
               "body": "Không gian lãng mạn, ánh nến lung linh và hương vị nướng Brazil say đắm.",
@@ -3490,7 +4160,6 @@
                 "openInNewTab": false
               }
             },
-            "isFeatured": false,
             "displayOrder": 7,
             "seo": {
               "metaTitle": "Hẹn hò bên ánh lửa",
@@ -3540,6 +4209,8 @@
               "focalPointX": 50,
               "focalPointY": 50
             },
+            "gallery": [],
+            "terms": [],
             "cta": {
               "heading": "Date night by the fire",
               "body": "A romantic room, soft candlelight, and Brazilian grill flavours to linger over.",
@@ -3549,7 +4220,6 @@
                 "openInNewTab": false
               }
             },
-            "isFeatured": false,
             "displayOrder": 7,
             "seo": {
               "metaTitle": "Date night by the fire",
@@ -3981,6 +4651,13 @@
     "vi": {
       "brandName": "Salanca",
       "tagline": "Churrascaria Brazil",
+      "logo": {
+        "__media": "logo-salanca-brazil-transparent.png",
+        "alt": "Salanca Brazil",
+        "caption": null,
+        "focalPointX": 50,
+        "focalPointY": 50
+      },
       "headerLinks": [
         {
           "label": "Trang chủ",
@@ -4013,8 +4690,8 @@
           "openInNewTab": false
         },
         {
-          "label": "Đặt bàn",
-          "url": "/vi/dat-ban",
+          "label": "Liên hệ",
+          "url": "/vi/lien-he",
           "openInNewTab": false
         }
       ]
@@ -4022,6 +4699,13 @@
     "en": {
       "brandName": "Salanca",
       "tagline": "Churrascaria Brazil",
+      "logo": {
+        "__media": "logo-salanca-brazil-transparent.png",
+        "alt": "Salanca Brazil",
+        "caption": null,
+        "focalPointX": 50,
+        "focalPointY": 50
+      },
       "headerLinks": [
         {
           "label": "Home",
@@ -4054,8 +4738,8 @@
           "openInNewTab": false
         },
         {
-          "label": "Reservations",
-          "url": "/en/reservations",
+          "label": "Contact",
+          "url": "/en/contact",
           "openInNewTab": false
         }
       ]
@@ -4196,6 +4880,7 @@
     "client-costela.jpg",
     "client-grill.jpg",
     "client-guests-dinner.jpg",
+    "client-guests-table.jpg",
     "client-interior-brazil.jpg",
     "client-interior-green.jpg",
     "client-interior-hall.jpg",
@@ -4212,11 +4897,13 @@
     "client-storefront-day.jpg",
     "client-storefront-night.jpg",
     "client-table-setting.jpg",
+    "client-wine-cellar.jpg",
     "contact-hero-decor-right.png",
     "cordeiro.jpg",
     "experience-hero-decor-right.png",
     "experience-rodizio-service-detail.jpg",
     "hero-churrasco-service-v2.png",
+    "logo-salanca-brazil-transparent.png",
     "menu-hero-decor-right.png",
     "space-hero-decor-right.png",
     "story-flavour-charcoal-grill.jpg",

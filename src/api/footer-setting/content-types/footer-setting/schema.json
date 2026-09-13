@@ -4,7 +4,7 @@
   "info": {
     "singularName": "footer-setting",
     "pluralName": "footer-settings",
-    "displayName": "Footer Setting",
+    "displayName": "Chân trang",
     "description": "Footer brand, link columns, contact facts, hours, and social"
   },
   "options": {

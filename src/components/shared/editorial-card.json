@@ -1,7 +1,7 @@
 {
   "collectionName": "components_shared_editorial_cards",
   "info": {
-    "displayName": "Editorial Card",
+    "displayName": "Thẻ nội dung",
     "description": "Reusable titled card with image and optional link"
   },
   "options": {},

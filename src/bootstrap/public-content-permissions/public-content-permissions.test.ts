@@ -18,6 +18,8 @@ describe('getPublicContentPermissionActions', () => {
   it('includes global-setting and menu-item reads', () => {
     const actions = getPublicContentPermissionActions();
     expect(actions).toContain(PublicContentPermissionAction.FindGlobalSetting);
+    expect(actions).toContain(PublicContentPermissionAction.FindHeaderSetting);
+    expect(actions).toContain(PublicContentPermissionAction.FindFooterSetting);
     expect(actions).toContain(PublicContentPermissionAction.FindMenuItem);
     expect(actions).toContain(PublicContentPermissionAction.FindOneMenuItem);
   });

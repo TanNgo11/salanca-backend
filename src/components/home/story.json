@@ -1,7 +1,7 @@
 {
   "collectionName": "components_home_stories",
   "info": {
-    "displayName": "Home Story",
+    "displayName": "Trang chủ - Câu chuyện",
     "description": "Story band: title, body, photo, and continue link"
   },
   "options": {},

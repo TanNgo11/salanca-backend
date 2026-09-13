@@ -135,6 +135,16 @@
       "component": "shared.image",
       "repeatable": false
     },
+    "zones": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "type": "component",
+      "component": "shared.editorial-card",
+      "repeatable": true
+    },
     "amenitiesHeading": {
       "pluginOptions": {
         "i18n": {

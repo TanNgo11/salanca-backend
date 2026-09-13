@@ -1,7 +1,7 @@
 {
   "collectionName": "components_shared_options",
   "info": {
-    "displayName": "Option",
+    "displayName": "Lựa chọn",
     "description": "A stable value and its editor-controlled label"
   },
   "options": {},

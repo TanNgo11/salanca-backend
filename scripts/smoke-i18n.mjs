@@ -3,8 +3,10 @@ import { createRequire } from 'node:module';
 import { statSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+// pnpm does not hoist @strapi/core, so resolve it from @strapi/strapi's tree.
 const require = createRequire(import.meta.url);
-const { compileStrapi, createStrapi } = require('@strapi/core');
+const strapiRequire = createRequire(require.resolve('@strapi/strapi/package.json'));
+const { compileStrapi, createStrapi } = strapiRequire('@strapi/core');
 
 process.env.PORT = process.env.I18N_SMOKE_PORT ?? '1340';
 

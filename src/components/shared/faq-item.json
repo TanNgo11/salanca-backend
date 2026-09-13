@@ -1,12 +1,12 @@
 {
-  "collectionName": "components_shared_list_items",
+  "collectionName": "components_shared_faq_items",
   "info": {
-    "displayName": "Mục danh sách",
-    "description": "Structured package inclusion or short feature"
+    "displayName": "Câu hỏi thường gặp",
+    "description": "One question and its published answer"
   },
   "options": {},
   "attributes": {
-    "title": {
+    "question": {
       "pluginOptions": {
         "i18n": {
           "localized": true
@@ -14,16 +14,17 @@
       },
       "type": "string",
       "required": true,
-      "maxLength": 140
+      "maxLength": 200
     },
-    "description": {
+    "answer": {
       "pluginOptions": {
         "i18n": {
           "localized": true
         }
       },
       "type": "text",
-      "maxLength": 400
+      "required": true,
+      "maxLength": 1000
     }
   }
 }

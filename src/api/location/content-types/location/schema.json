@@ -128,10 +128,10 @@
       },
       "slug": {
         "edit": {
-          "label": "Slug URL"
+          "label": "Đường dẫn ngắn"
         },
         "list": {
-          "label": "Slug URL"
+          "label": "Đường dẫn ngắn"
         }
       },
       "address": {
@@ -187,10 +187,10 @@
       },
       "gallery": {
         "edit": {
-          "label": "Gallery nhúng"
+          "label": "Ảnh không gian tải trực tiếp"
         },
         "list": {
-          "label": "Gallery nhúng"
+          "label": "Ảnh không gian"
         }
       },
       "galleryItems": {

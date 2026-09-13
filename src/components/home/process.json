@@ -1,7 +1,7 @@
 {
   "collectionName": "components_home_processes",
   "info": {
-    "displayName": "Home Process",
+    "displayName": "Trang chủ - Quy trình phục vụ",
     "description": "Farm-to-table steps (shared.step). Icons stay in the frontend."
   },
   "options": {},

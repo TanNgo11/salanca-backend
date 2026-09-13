@@ -506,6 +506,21 @@ export interface ApiBookingPageBookingPage extends Struct.SingleTypeSchema {
       'oneToMany',
       'api::booking-page.booking-page'
     >;
+    notes: Schema.Attribute.Component<'shared.list-item', true> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
+    notesHeading: Schema.Attribute.String &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }> &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 180;
+      }>;
     occasionBody: Schema.Attribute.Text &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
@@ -531,6 +546,12 @@ export interface ApiBookingPageBookingPage extends Struct.SingleTypeSchema {
         };
       }>;
     occasionOptions: Schema.Attribute.Component<'shared.option', true> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
+    occasions: Schema.Attribute.Component<'shared.editorial-card', true> &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
           localized: true;
@@ -726,9 +747,6 @@ export interface ApiCampaignCampaign extends Struct.CollectionTypeSchema {
           localized: true;
         };
       }>;
-    isFeatured: Schema.Attribute.Boolean &
-      Schema.Attribute.Required &
-      Schema.Attribute.DefaultTo<false>;
     kind: Schema.Attribute.Enumeration<
       ['promotion', 'event', 'private_event']
     > &
@@ -868,6 +886,21 @@ export interface ApiContactPageContactPage extends Struct.SingleTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    faqHeading: Schema.Attribute.String &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }> &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 180;
+      }>;
+    faqItems: Schema.Attribute.Component<'shared.faq-item', true> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
     featuredLocation: Schema.Attribute.Relation<
       'oneToOne',
       'api::location.location'
@@ -907,6 +940,12 @@ export interface ApiContactPageContactPage extends Struct.SingleTypeSchema {
         maxLength: 180;
       }>;
     helpImage: Schema.Attribute.Component<'shared.image', false> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
+    helpItems: Schema.Attribute.Component<'shared.editorial-card', true> &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
           localized: true;
@@ -962,6 +1001,12 @@ export interface ApiContactPageContactPage extends Struct.SingleTypeSchema {
       }> &
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 180;
+      }>;
+    visitImage: Schema.Attribute.Component<'shared.image', false> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
       }>;
   };
 }
@@ -1137,7 +1182,7 @@ export interface ApiFooterSettingFooterSetting extends Struct.SingleTypeSchema {
   collectionName: 'footer_settings';
   info: {
     description: 'Footer brand, link columns, contact facts, hours, and social';
-    displayName: 'Footer Setting';
+    displayName: 'Ch\u00E2n trang';
     pluralName: 'footer-settings';
     singularName: 'footer-setting';
   };
@@ -1413,7 +1458,7 @@ export interface ApiHeaderSettingHeaderSetting extends Struct.SingleTypeSchema {
   collectionName: 'header_settings';
   info: {
     description: 'Header brand, logo, and primary navigation';
-    displayName: 'Header Setting';
+    displayName: '\u0110\u1EA7u trang';
     pluralName: 'header-settings';
     singularName: 'header-setting';
   };
@@ -1825,6 +1870,15 @@ export interface ApiMenuItemMenuItem extends Struct.CollectionTypeSchema {
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 140;
       }>;
+    portion: Schema.Attribute.String &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }> &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 40;
+      }>;
     price: Schema.Attribute.Decimal &
       Schema.Attribute.Required &
       Schema.Attribute.SetMinMax<
@@ -1921,9 +1975,6 @@ export interface ApiMenuPackageMenuPackage extends Struct.CollectionTypeSchema {
     isActive: Schema.Attribute.Boolean &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<true>;
-    isFeatured: Schema.Attribute.Boolean &
-      Schema.Attribute.Required &
-      Schema.Attribute.DefaultTo<false>;
     locale: Schema.Attribute.String;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -1976,6 +2027,12 @@ export interface ApiMenuPageMenuPage extends Struct.SingleTypeSchema {
     };
   };
   attributes: {
+    aLaCarte: Schema.Attribute.Component<'shared.feature-block', false> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
     bookingCta: Schema.Attribute.Component<'shared.cta', false> &
       Schema.Attribute.Required &
       Schema.Attribute.SetPluginOptions<{
@@ -1986,6 +2043,12 @@ export interface ApiMenuPageMenuPage extends Struct.SingleTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    drinks: Schema.Attribute.Component<'shared.feature-block', false> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
     featuredPackage: Schema.Attribute.Relation<
       'oneToOne',
       'api::menu-package.menu-package'
@@ -2032,6 +2095,10 @@ export interface ApiMenuPageMenuPage extends Struct.SingleTypeSchema {
         maxLength: 180;
       }>;
     publishedAt: Schema.Attribute.DateTime;
+    rodizioPackage: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::menu-package.menu-package'
+    >;
     seo: Schema.Attribute.Component<'shared.seo', false> &
       Schema.Attribute.Required &
       Schema.Attribute.SetPluginOptions<{
@@ -2290,6 +2357,12 @@ export interface ApiSpacePageSpacePage extends Struct.SingleTypeSchema {
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    zones: Schema.Attribute.Component<'shared.editorial-card', true> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
   };
 }
 
@@ -2348,7 +2421,7 @@ export interface ApiStoryPageStoryPage extends Struct.SingleTypeSchema {
           localized: true;
         };
       }>;
-    ingredientImages: Schema.Attribute.Component<'shared.image', true> &
+    ingredients: Schema.Attribute.Component<'shared.editorial-card', true> &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
           localized: true;

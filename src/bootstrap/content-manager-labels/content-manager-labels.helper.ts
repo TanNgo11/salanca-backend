@@ -48,11 +48,3 @@ export const areContentManagerMetadatasEqual = (
   left: ContentManagerFieldMetadataMap,
   right: ContentManagerFieldMetadataMap,
 ): boolean => JSON.stringify(left) === JSON.stringify(right);
-
-/** True when schema declares at least one field label override. */
-export const hasContentManagerLabelOverrides = (
-  model: { config?: { metadatas?: ContentManagerFieldMetadataOverrideMap } } | null | undefined,
-): boolean => {
-  const metadatas = model?.config?.metadatas;
-  return !!metadatas && Object.keys(metadatas).length > 0;
-};

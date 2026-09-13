@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
   areContentManagerMetadatasEqual,
-  hasContentManagerLabelOverrides,
   mergeContentManagerMetadatas,
 } from './content-manager-labels.helper';
 
@@ -53,21 +52,5 @@ describe('areContentManagerMetadatasEqual', () => {
         brandName: { edit: { label: 'B' }, list: { label: 'A' } },
       }),
     ).toBe(false);
-  });
-});
-
-describe('hasContentManagerLabelOverrides', () => {
-  it('is false without metadatas', () => {
-    expect(hasContentManagerLabelOverrides(undefined)).toBe(false);
-    expect(hasContentManagerLabelOverrides({})).toBe(false);
-    expect(hasContentManagerLabelOverrides({ config: { metadatas: {} } })).toBe(false);
-  });
-
-  it('is true when at least one override exists', () => {
-    expect(
-      hasContentManagerLabelOverrides({
-        config: { metadatas: { brandName: { edit: { label: 'Tên' } } } },
-      }),
-    ).toBe(true);
   });
 });

@@ -6,7 +6,7 @@
  * upload and the referenced collections have been seeded.
  */
 
-function isPlainObject(value) {
+export function isPlainObject(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 

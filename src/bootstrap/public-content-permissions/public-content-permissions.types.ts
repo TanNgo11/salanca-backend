@@ -9,6 +9,8 @@ export enum PublicContentRoleType {
 export enum PublicContentPermissionAction {
   // Single types (find only)
   FindGlobalSetting = 'api::global-setting.global-setting.find',
+  FindHeaderSetting = 'api::header-setting.header-setting.find',
+  FindFooterSetting = 'api::footer-setting.footer-setting.find',
   FindHomePage = 'api::home-page.home-page.find',
   FindMenuPage = 'api::menu-page.menu-page.find',
   FindCampaignPage = 'api::campaign-page.campaign-page.find',
@@ -37,6 +39,8 @@ export enum PublicContentPermissionAction {
 export const getPublicContentPermissionActions =
   (): readonly PublicContentPermissionAction[] => [
     PublicContentPermissionAction.FindGlobalSetting,
+    PublicContentPermissionAction.FindHeaderSetting,
+    PublicContentPermissionAction.FindFooterSetting,
     PublicContentPermissionAction.FindHomePage,
     PublicContentPermissionAction.FindMenuPage,
     PublicContentPermissionAction.FindCampaignPage,

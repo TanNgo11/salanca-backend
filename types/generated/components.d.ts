@@ -4,7 +4,7 @@ export interface HomeBuffet extends Struct.ComponentSchema {
   collectionName: 'components_home_buffets';
   info: {
     description: 'Buffet price band copy, features, image, and CTA. Price comes from featuredPackage.';
-    displayName: 'Home Buffet';
+    displayName: 'Trang ch\u1EE7 - Buffet';
   };
   attributes: {
     eyebrow: Schema.Attribute.String &
@@ -59,7 +59,7 @@ export interface HomeExperience extends Struct.ComponentSchema {
   collectionName: 'components_home_experiences';
   info: {
     description: 'Experience split: eyebrow, title, body, link, poster, optional video';
-    displayName: 'Home Experience';
+    displayName: 'Trang ch\u1EE7 - Tr\u1EA3i nghi\u1EC7m';
   };
   attributes: {
     body: Schema.Attribute.Text &
@@ -110,7 +110,7 @@ export interface HomeHero extends Struct.ComponentSchema {
   collectionName: 'components_home_heroes';
   info: {
     description: 'Homepage hero: title, intro, two CTAs, scroll hint, photo';
-    displayName: 'Home Hero';
+    displayName: 'Trang ch\u1EE7 - M\u1EDF \u0111\u1EA7u';
   };
   attributes: {
     backgroundImage: Schema.Attribute.Component<'shared.image', false> &
@@ -167,7 +167,7 @@ export interface HomeMenuHighlights extends Struct.ComponentSchema {
   collectionName: 'components_home_menu_highlights';
   info: {
     description: 'Featured dishes heading and view-all link. Items are featuredMenuItems.';
-    displayName: 'Home Menu Highlights';
+    displayName: 'Trang ch\u1EE7 - M\u00F3n n\u1ED5i b\u1EADt';
   };
   attributes: {
     eyebrow: Schema.Attribute.String &
@@ -201,7 +201,7 @@ export interface HomeProcess extends Struct.ComponentSchema {
   collectionName: 'components_home_processes';
   info: {
     description: 'Farm-to-table steps (shared.step). Icons stay in the frontend.';
-    displayName: 'Home Process';
+    displayName: 'Trang ch\u1EE7 - Quy tr\u00ECnh ph\u1EE5c v\u1EE5';
   };
   attributes: {
     eyebrow: Schema.Attribute.String &
@@ -236,7 +236,7 @@ export interface HomeSpace extends Struct.ComponentSchema {
   collectionName: 'components_home_spaces';
   info: {
     description: 'Space teaser: heading, CTA, and photo set';
-    displayName: 'Home Space';
+    displayName: 'Trang ch\u1EE7 - Kh\u00F4ng gian';
   };
   attributes: {
     eyebrow: Schema.Attribute.String &
@@ -276,8 +276,8 @@ export interface HomeSpace extends Struct.ComponentSchema {
 export interface HomeStory extends Struct.ComponentSchema {
   collectionName: 'components_home_stories';
   info: {
-    description: 'Story band: title, body, and continue link';
-    displayName: 'Home Story';
+    description: 'Story band: title, body, photo, and continue link';
+    displayName: 'Trang ch\u1EE7 - C\u00E2u chuy\u1EC7n';
   };
   attributes: {
     body: Schema.Attribute.Text &
@@ -288,6 +288,12 @@ export interface HomeStory extends Struct.ComponentSchema {
       }> &
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 800;
+      }>;
+    image: Schema.Attribute.Component<'shared.image', false> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
       }>;
     link: Schema.Attribute.Component<'shared.link', false> &
       Schema.Attribute.SetPluginOptions<{
@@ -312,7 +318,7 @@ export interface SharedCta extends Struct.ComponentSchema {
   collectionName: 'components_shared_ctas';
   info: {
     description: 'Kh\u1ED1i k\u00EAu g\u1ECDi h\u00E0nh \u0111\u1ED9ng';
-    displayName: 'CTA';
+    displayName: 'Kh\u1ED1i k\u00EAu g\u1ECDi h\u00E0nh \u0111\u1ED9ng';
   };
   attributes: {
     body: Schema.Attribute.Text &
@@ -334,6 +340,12 @@ export interface SharedCta extends Struct.ComponentSchema {
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 180;
       }>;
+    image: Schema.Attribute.Component<'shared.image', false> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
     link: Schema.Attribute.Component<'shared.link', false> &
       Schema.Attribute.Required &
       Schema.Attribute.SetPluginOptions<{
@@ -348,7 +360,7 @@ export interface SharedEditorialCard extends Struct.ComponentSchema {
   collectionName: 'components_shared_editorial_cards';
   info: {
     description: 'Reusable titled card with image and optional link';
-    displayName: 'Editorial Card';
+    displayName: 'Th\u1EBB n\u1ED9i dung';
   };
   attributes: {
     body: Schema.Attribute.Text &
@@ -394,11 +406,103 @@ export interface SharedEditorialCard extends Struct.ComponentSchema {
   };
 }
 
+export interface SharedFaqItem extends Struct.ComponentSchema {
+  collectionName: 'components_shared_faq_items';
+  info: {
+    description: 'One question and its published answer';
+    displayName: 'C\u00E2u h\u1ECFi th\u01B0\u1EDDng g\u1EB7p';
+  };
+  attributes: {
+    answer: Schema.Attribute.Text &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }> &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 1000;
+      }>;
+    question: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }> &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 200;
+      }>;
+  };
+}
+
+export interface SharedFeatureBlock extends Struct.ComponentSchema {
+  collectionName: 'components_shared_feature_blocks';
+  info: {
+    description: 'Editorial band with optional price and call to action';
+    displayName: 'Kh\u1ED1i n\u1ED9i dung n\u1ED5i b\u1EADt';
+  };
+  attributes: {
+    body: Schema.Attribute.Text &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }> &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 800;
+      }>;
+    eyebrow: Schema.Attribute.String &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }> &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 80;
+      }>;
+    image: Schema.Attribute.Component<'shared.image', false> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
+    link: Schema.Attribute.Component<'shared.link', false> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
+    price: Schema.Attribute.Decimal &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: false;
+        };
+      }> &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      >;
+    title: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }> &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 160;
+      }>;
+  };
+}
+
 export interface SharedHero extends Struct.ComponentSchema {
   collectionName: 'components_shared_heroes';
   info: {
     description: 'Kh\u1ED1i hero trang';
-    displayName: 'Hero';
+    displayName: 'Kh\u1ED1i m\u1EDF \u0111\u1EA7u trang';
   };
   attributes: {
     backgroundImage: Schema.Attribute.Component<'shared.image', false> &
@@ -538,7 +642,7 @@ export interface SharedListItem extends Struct.ComponentSchema {
   collectionName: 'components_shared_list_items';
   info: {
     description: 'Structured package inclusion or short feature';
-    displayName: 'List Item';
+    displayName: 'M\u1EE5c danh s\u00E1ch';
   };
   attributes: {
     description: Schema.Attribute.Text &
@@ -589,7 +693,7 @@ export interface SharedOption extends Struct.ComponentSchema {
   collectionName: 'components_shared_options';
   info: {
     description: 'A stable value and its editor-controlled label';
-    displayName: 'Option';
+    displayName: 'L\u1EF1a ch\u1ECDn';
   };
   attributes: {
     displayOrder: Schema.Attribute.Integer &
@@ -692,7 +796,7 @@ export interface SharedStep extends Struct.ComponentSchema {
   collectionName: 'components_shared_steps';
   info: {
     description: 'Ordered editorial step or value';
-    displayName: 'Step';
+    displayName: 'B\u01B0\u1EDBc';
   };
   attributes: {
     body: Schema.Attribute.Text &
@@ -733,7 +837,7 @@ export interface SharedTimelineEntry extends Struct.ComponentSchema {
   collectionName: 'components_shared_timeline_entries';
   info: {
     description: 'Dated milestone in the Salanca story';
-    displayName: 'Timeline Entry';
+    displayName: 'M\u1ED1c th\u1EDDi gian';
   };
   attributes: {
     body: Schema.Attribute.Text &
@@ -787,6 +891,8 @@ declare module '@strapi/strapi' {
       'home.story': HomeStory;
       'shared.cta': SharedCta;
       'shared.editorial-card': SharedEditorialCard;
+      'shared.faq-item': SharedFaqItem;
+      'shared.feature-block': SharedFeatureBlock;
       'shared.hero': SharedHero;
       'shared.image': SharedImage;
       'shared.link': SharedLink;

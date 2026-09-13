@@ -110,14 +110,14 @@
       "type": "string",
       "maxLength": 180
     },
-    "ingredientImages": {
+    "ingredients": {
       "pluginOptions": {
         "i18n": {
           "localized": true
         }
       },
       "type": "component",
-      "component": "shared.image",
+      "component": "shared.editorial-card",
       "repeatable": true
     },
     "craftHeading": {

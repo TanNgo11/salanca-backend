@@ -4,7 +4,7 @@
   "info": {
     "singularName": "header-setting",
     "pluralName": "header-settings",
-    "displayName": "Header Setting",
+    "displayName": "Đầu trang",
     "description": "Header brand, logo, and primary navigation"
   },
   "options": {

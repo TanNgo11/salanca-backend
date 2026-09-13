@@ -14,7 +14,7 @@
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "x-generation-date": "2026-08-08T15:18:53.024Z"
+    "x-generation-date": "2026-09-13T11:21:53.022Z"
   },
   "x-strapi-config": {
     "plugins": [
@@ -1967,6 +1967,339 @@
         "operationId": "delete/experience-page"
       }
     },
+    "/footer-setting": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FooterSettingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Footer-setting"
+        ],
+        "parameters": [
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sort by attributes ascending (asc) or descending (desc)",
+            "deprecated": false,
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pagination[withCount]",
+            "in": "query",
+            "description": "Return page/pageSize (default: true)",
+            "deprecated": false,
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "pagination[page]",
+            "in": "query",
+            "description": "Page number (default: 0)",
+            "deprecated": false,
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pagination[pageSize]",
+            "in": "query",
+            "description": "Page size (default: 25)",
+            "deprecated": false,
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pagination[start]",
+            "in": "query",
+            "description": "Offset value (default: 0)",
+            "deprecated": false,
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pagination[limit]",
+            "in": "query",
+            "description": "Number of entities to return (default: 25)",
+            "deprecated": false,
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "description": "Fields to return (ex: title,author)",
+            "deprecated": false,
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "populate",
+            "in": "query",
+            "description": "Relations to return",
+            "deprecated": false,
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "filters",
+            "in": "query",
+            "description": "Filters to apply",
+            "deprecated": false,
+            "required": false,
+            "schema": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "style": "deepObject"
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "description": "Locale to apply",
+            "deprecated": false,
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "operationId": "get/footer-setting"
+      },
+      "put": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FooterSettingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Footer-setting"
+        ],
+        "parameters": [],
+        "operationId": "put/footer-setting",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FooterSettingRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Footer-setting"
+        ],
+        "parameters": [],
+        "operationId": "delete/footer-setting"
+      }
+    },
     "/gallery-items": {
       "get": {
         "responses": {
@@ -2814,6 +3147,339 @@
         ],
         "parameters": [],
         "operationId": "delete/global-setting"
+      }
+    },
+    "/header-setting": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeaderSettingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Header-setting"
+        ],
+        "parameters": [
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sort by attributes ascending (asc) or descending (desc)",
+            "deprecated": false,
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pagination[withCount]",
+            "in": "query",
+            "description": "Return page/pageSize (default: true)",
+            "deprecated": false,
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "pagination[page]",
+            "in": "query",
+            "description": "Page number (default: 0)",
+            "deprecated": false,
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pagination[pageSize]",
+            "in": "query",
+            "description": "Page size (default: 25)",
+            "deprecated": false,
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pagination[start]",
+            "in": "query",
+            "description": "Offset value (default: 0)",
+            "deprecated": false,
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pagination[limit]",
+            "in": "query",
+            "description": "Number of entities to return (default: 25)",
+            "deprecated": false,
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "description": "Fields to return (ex: title,author)",
+            "deprecated": false,
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "populate",
+            "in": "query",
+            "description": "Relations to return",
+            "deprecated": false,
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "filters",
+            "in": "query",
+            "description": "Filters to apply",
+            "deprecated": false,
+            "required": false,
+            "schema": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "style": "deepObject"
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "description": "Locale to apply",
+            "deprecated": false,
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "operationId": "get/header-setting"
+      },
+      "put": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeaderSettingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Header-setting"
+        ],
+        "parameters": [],
+        "operationId": "put/header-setting",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HeaderSettingRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Header-setting"
+        ],
+        "parameters": [],
+        "operationId": "delete/header-setting"
       }
     },
     "/home-page": {
@@ -7801,8 +8467,23 @@
               "occasionImage": {
                 "$ref": "#/components/schemas/SharedImageComponent"
               },
+              "occasions": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SharedEditorialCardComponent"
+                }
+              },
               "bookingNotice": {
                 "type": "string"
+              },
+              "notesHeading": {
+                "type": "string"
+              },
+              "notes": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SharedListItemComponent"
+                }
               },
               "supportHeading": {
                 "type": "string"
@@ -7935,8 +8616,23 @@
           "occasionImage": {
             "$ref": "#/components/schemas/SharedImageComponent"
           },
+          "occasions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedEditorialCardComponent"
+            }
+          },
           "bookingNotice": {
             "type": "string"
+          },
+          "notesHeading": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedListItemComponent"
+            }
           },
           "supportHeading": {
             "type": "string"
@@ -8061,8 +8757,23 @@
                 "occasionImage": {
                   "$ref": "#/components/schemas/SharedImageComponent"
                 },
+                "occasions": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SharedEditorialCardComponent"
+                  }
+                },
                 "bookingNotice": {
                   "type": "string"
+                },
+                "notesHeading": {
+                  "type": "string"
+                },
+                "notes": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SharedListItemComponent"
+                  }
                 },
                 "supportHeading": {
                   "type": "string"
@@ -8473,6 +9184,57 @@
           }
         }
       },
+      "SharedEditorialCardComponent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "eyebrow": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "image": {
+            "$ref": "#/components/schemas/SharedImageComponent"
+          },
+          "link": {
+            "$ref": "#/components/schemas/SharedLinkComponent"
+          }
+        }
+      },
+      "SharedListItemComponent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
       "SharedSeoComponent": {
         "type": "object",
         "properties": {
@@ -8683,7 +9445,6 @@
               "kind",
               "title",
               "slug",
-              "isFeatured",
               "displayOrder"
             ],
             "type": "object",
@@ -8726,9 +9487,6 @@
               "terms": {},
               "cta": {
                 "$ref": "#/components/schemas/SharedCtaComponent"
-              },
-              "isFeatured": {
-                "type": "boolean"
               },
               "displayOrder": {
                 "type": "integer"
@@ -8798,7 +9556,6 @@
           "kind",
           "title",
           "slug",
-          "isFeatured",
           "displayOrder"
         ],
         "properties": {
@@ -8853,9 +9610,6 @@
           "terms": {},
           "cta": {
             "$ref": "#/components/schemas/SharedCtaComponent"
-          },
-          "isFeatured": {
-            "type": "boolean"
           },
           "displayOrder": {
             "type": "integer"
@@ -8970,9 +9724,6 @@
                 "terms": {},
                 "cta": {
                   "$ref": "#/components/schemas/SharedCtaComponent"
-                },
-                "isFeatured": {
-                  "type": "boolean"
                 },
                 "displayOrder": {
                   "type": "integer"
@@ -9089,6 +9840,9 @@
           },
           "link": {
             "$ref": "#/components/schemas/SharedLinkComponent"
+          },
+          "image": {
+            "$ref": "#/components/schemas/SharedImageComponent"
           }
         }
       },
@@ -9276,9 +10030,6 @@
               "terms": {},
               "cta": {
                 "$ref": "#/components/schemas/SharedCtaComponent"
-              },
-              "isFeatured": {
-                "type": "boolean"
               },
               "displayOrder": {
                 "type": "integer"
@@ -10555,6 +11306,9 @@
               "visitHeading": {
                 "type": "string"
               },
+              "visitImage": {
+                "$ref": "#/components/schemas/SharedImageComponent"
+              },
               "featuredLocation": {
                 "oneOf": [
                   {
@@ -10587,8 +11341,23 @@
               "helpImage": {
                 "$ref": "#/components/schemas/SharedImageComponent"
               },
+              "helpItems": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SharedEditorialCardComponent"
+                }
+              },
               "socialHeading": {
                 "type": "string"
+              },
+              "faqHeading": {
+                "type": "string"
+              },
+              "faqItems": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SharedFaqItemComponent"
+                }
               },
               "closingCta": {
                 "$ref": "#/components/schemas/SharedCtaComponent"
@@ -10680,6 +11449,9 @@
           },
           "visitHeading": {
             "type": "string"
+          },
+          "visitImage": {
+            "$ref": "#/components/schemas/SharedImageComponent"
           },
           "featuredLocation": {
             "type": "object",
@@ -10972,8 +11744,23 @@
           "helpImage": {
             "$ref": "#/components/schemas/SharedImageComponent"
           },
+          "helpItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedEditorialCardComponent"
+            }
+          },
           "socialHeading": {
             "type": "string"
+          },
+          "faqHeading": {
+            "type": "string"
+          },
+          "faqItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedFaqItemComponent"
+            }
           },
           "closingCta": {
             "$ref": "#/components/schemas/SharedCtaComponent"
@@ -11056,6 +11843,9 @@
                 "visitHeading": {
                   "type": "string"
                 },
+                "visitImage": {
+                  "$ref": "#/components/schemas/SharedImageComponent"
+                },
                 "featuredLocation": {
                   "type": "object",
                   "properties": {
@@ -11095,8 +11885,23 @@
                 "helpImage": {
                   "$ref": "#/components/schemas/SharedImageComponent"
                 },
+                "helpItems": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SharedEditorialCardComponent"
+                  }
+                },
                 "socialHeading": {
                   "type": "string"
+                },
+                "faqHeading": {
+                  "type": "string"
+                },
+                "faqItems": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SharedFaqItemComponent"
+                  }
                 },
                 "closingCta": {
                   "$ref": "#/components/schemas/SharedCtaComponent"
@@ -11189,6 +11994,27 @@
           },
           "meta": {
             "type": "object"
+          }
+        }
+      },
+      "SharedFaqItemComponent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "question": {
+            "type": "string"
+          },
+          "answer": {
+            "type": "string"
           }
         }
       },
@@ -11438,6 +12264,9 @@
                   "type": "string"
                 },
                 "shortDescription": {
+                  "type": "string"
+                },
+                "portion": {
                   "type": "string"
                 },
                 "description": {},
@@ -11906,6 +12735,425 @@
           },
           "meta": {
             "type": "object"
+          }
+        }
+      },
+      "FooterSettingRequest": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "required": [
+              "brandName",
+              "hotline",
+              "email",
+              "address"
+            ],
+            "type": "object",
+            "properties": {
+              "brandName": {
+                "type": "string"
+              },
+              "tagline": {
+                "type": "string"
+              },
+              "logo": {
+                "$ref": "#/components/schemas/SharedImageComponent"
+              },
+              "hotline": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string",
+                "format": "email"
+              },
+              "address": {
+                "type": "string"
+              },
+              "mapUrl": {
+                "type": "string"
+              },
+              "openingHours": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SharedOperatingPeriodComponent"
+                }
+              },
+              "socialLinks": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SharedSocialLinkComponent"
+                }
+              },
+              "footerExploreLinks": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SharedLinkComponent"
+                }
+              },
+              "footerInfoLinks": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SharedLinkComponent"
+                }
+              },
+              "locale": {
+                "type": "string"
+              },
+              "localizations": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "example": "string or id"
+                }
+              }
+            }
+          }
+        }
+      },
+      "FooterSettingListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FooterSetting"
+            }
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "pagination": {
+                "type": "object",
+                "properties": {
+                  "page": {
+                    "type": "integer"
+                  },
+                  "pageSize": {
+                    "type": "integer",
+                    "minimum": 25
+                  },
+                  "pageCount": {
+                    "type": "integer",
+                    "maximum": 1
+                  },
+                  "total": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "FooterSetting": {
+        "type": "object",
+        "required": [
+          "brandName",
+          "hotline",
+          "email",
+          "address"
+        ],
+        "properties": {
+          "id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "brandName": {
+            "type": "string"
+          },
+          "tagline": {
+            "type": "string"
+          },
+          "logo": {
+            "$ref": "#/components/schemas/SharedImageComponent"
+          },
+          "hotline": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "address": {
+            "type": "string"
+          },
+          "mapUrl": {
+            "type": "string"
+          },
+          "openingHours": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedOperatingPeriodComponent"
+            }
+          },
+          "socialLinks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedSocialLinkComponent"
+            }
+          },
+          "footerExploreLinks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedLinkComponent"
+            }
+          },
+          "footerInfoLinks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedLinkComponent"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "documentId": {
+                "type": "string"
+              }
+            }
+          },
+          "updatedBy": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "documentId": {
+                "type": "string"
+              }
+            }
+          },
+          "locale": {
+            "type": "string"
+          },
+          "localizations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "documentId": {
+                  "type": "string"
+                },
+                "brandName": {
+                  "type": "string"
+                },
+                "tagline": {
+                  "type": "string"
+                },
+                "logo": {
+                  "$ref": "#/components/schemas/SharedImageComponent"
+                },
+                "hotline": {
+                  "type": "string"
+                },
+                "email": {
+                  "type": "string",
+                  "format": "email"
+                },
+                "address": {
+                  "type": "string"
+                },
+                "mapUrl": {
+                  "type": "string"
+                },
+                "openingHours": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SharedOperatingPeriodComponent"
+                  }
+                },
+                "socialLinks": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SharedSocialLinkComponent"
+                  }
+                },
+                "footerExploreLinks": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SharedLinkComponent"
+                  }
+                },
+                "footerInfoLinks": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SharedLinkComponent"
+                  }
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "publishedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "createdBy": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
+                    },
+                    "documentId": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "updatedBy": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
+                    },
+                    "documentId": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "locale": {
+                  "type": "string"
+                },
+                "localizations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "oneOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ]
+                      },
+                      "documentId": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "FooterSettingResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/FooterSetting"
+          },
+          "meta": {
+            "type": "object"
+          }
+        }
+      },
+      "SharedSocialLinkComponent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "facebook",
+              "instagram",
+              "tiktok",
+              "youtube",
+              "other"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
           }
         }
       },
@@ -12472,24 +13720,6 @@
                   "$ref": "#/components/schemas/SharedSocialLinkComponent"
                 }
               },
-              "headerLinks": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/SharedLinkComponent"
-                }
-              },
-              "footerExploreLinks": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/SharedLinkComponent"
-                }
-              },
-              "footerInfoLinks": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/SharedLinkComponent"
-                }
-              },
               "mainLocation": {
                 "oneOf": [
                   {
@@ -12615,24 +13845,6 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SharedSocialLinkComponent"
-            }
-          },
-          "headerLinks": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SharedLinkComponent"
-            }
-          },
-          "footerExploreLinks": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SharedLinkComponent"
-            }
-          },
-          "footerInfoLinks": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SharedLinkComponent"
             }
           },
           "mainLocation": {
@@ -13011,24 +14223,6 @@
                     "$ref": "#/components/schemas/SharedSocialLinkComponent"
                   }
                 },
-                "headerLinks": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/SharedLinkComponent"
-                  }
-                },
-                "footerExploreLinks": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/SharedLinkComponent"
-                  }
-                },
-                "footerInfoLinks": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/SharedLinkComponent"
-                  }
-                },
                 "mainLocation": {
                   "type": "object",
                   "properties": {
@@ -13138,8 +14332,94 @@
           }
         }
       },
-      "SharedSocialLinkComponent": {
+      "HeaderSettingRequest": {
         "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "required": [
+              "brandName"
+            ],
+            "type": "object",
+            "properties": {
+              "brandName": {
+                "type": "string"
+              },
+              "tagline": {
+                "type": "string"
+              },
+              "logo": {
+                "$ref": "#/components/schemas/SharedImageComponent"
+              },
+              "headerLinks": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SharedLinkComponent"
+                }
+              },
+              "locale": {
+                "type": "string"
+              },
+              "localizations": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "example": "string or id"
+                }
+              }
+            }
+          }
+        }
+      },
+      "HeaderSettingListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HeaderSetting"
+            }
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "pagination": {
+                "type": "object",
+                "properties": {
+                  "page": {
+                    "type": "integer"
+                  },
+                  "pageSize": {
+                    "type": "integer",
+                    "minimum": 25
+                  },
+                  "pageCount": {
+                    "type": "integer",
+                    "maximum": 1
+                  },
+                  "total": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "HeaderSetting": {
+        "type": "object",
+        "required": [
+          "brandName"
+        ],
         "properties": {
           "id": {
             "oneOf": [
@@ -13151,21 +14431,193 @@
               }
             ]
           },
-          "platform": {
+          "documentId": {
+            "type": "string"
+          },
+          "brandName": {
+            "type": "string"
+          },
+          "tagline": {
+            "type": "string"
+          },
+          "logo": {
+            "$ref": "#/components/schemas/SharedImageComponent"
+          },
+          "headerLinks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedLinkComponent"
+            }
+          },
+          "createdAt": {
             "type": "string",
-            "enum": [
-              "facebook",
-              "instagram",
-              "tiktok",
-              "youtube",
-              "other"
-            ]
+            "format": "date-time"
           },
-          "label": {
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "documentId": {
+                "type": "string"
+              }
+            }
+          },
+          "updatedBy": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "documentId": {
+                "type": "string"
+              }
+            }
+          },
+          "locale": {
             "type": "string"
           },
-          "url": {
-            "type": "string"
+          "localizations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "documentId": {
+                  "type": "string"
+                },
+                "brandName": {
+                  "type": "string"
+                },
+                "tagline": {
+                  "type": "string"
+                },
+                "logo": {
+                  "$ref": "#/components/schemas/SharedImageComponent"
+                },
+                "headerLinks": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SharedLinkComponent"
+                  }
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "publishedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "createdBy": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
+                    },
+                    "documentId": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "updatedBy": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
+                    },
+                    "documentId": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "locale": {
+                  "type": "string"
+                },
+                "localizations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "oneOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ]
+                      },
+                      "documentId": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "HeaderSettingResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/HeaderSetting"
+          },
+          "meta": {
+            "type": "object"
           }
         }
       },
@@ -13178,26 +14630,19 @@
           "data": {
             "required": [
               "hero",
-              "experienceHeading",
-              "closingCta",
+              "bookingStrip",
               "seo"
             ],
             "type": "object",
             "properties": {
               "hero": {
-                "$ref": "#/components/schemas/SharedHeroComponent"
+                "$ref": "#/components/schemas/HomeHeroComponent"
               },
-              "experienceHeading": {
-                "type": "string"
+              "experience": {
+                "$ref": "#/components/schemas/HomeExperienceComponent"
               },
-              "experienceBody": {
-                "type": "string"
-              },
-              "experienceImage": {
-                "$ref": "#/components/schemas/SharedImageComponent"
-              },
-              "experienceLink": {
-                "$ref": "#/components/schemas/SharedLinkComponent"
+              "buffet": {
+                "$ref": "#/components/schemas/HomeBuffetComponent"
               },
               "featuredPackage": {
                 "oneOf": [
@@ -13210,8 +14655,8 @@
                 ],
                 "example": "string or id"
               },
-              "featuredMenuHeading": {
-                "type": "string"
+              "menuHighlights": {
+                "$ref": "#/components/schemas/HomeMenuHighlightsComponent"
               },
               "featuredMenuItems": {
                 "type": "array",
@@ -13227,31 +14672,16 @@
                   "example": "string or id"
                 }
               },
-              "storyHeading": {
-                "type": "string"
+              "story": {
+                "$ref": "#/components/schemas/HomeStoryComponent"
               },
-              "storyBody": {
-                "type": "string"
+              "process": {
+                "$ref": "#/components/schemas/HomeProcessComponent"
               },
-              "storyImage": {
-                "$ref": "#/components/schemas/SharedImageComponent"
+              "space": {
+                "$ref": "#/components/schemas/HomeSpaceComponent"
               },
-              "storyLink": {
-                "$ref": "#/components/schemas/SharedLinkComponent"
-              },
-              "spaceHeading": {
-                "type": "string"
-              },
-              "spaceBody": {
-                "type": "string"
-              },
-              "spaceImage": {
-                "$ref": "#/components/schemas/SharedImageComponent"
-              },
-              "spaceLink": {
-                "$ref": "#/components/schemas/SharedLinkComponent"
-              },
-              "closingCta": {
+              "bookingStrip": {
                 "$ref": "#/components/schemas/SharedCtaComponent"
               },
               "seo": {
@@ -13317,8 +14747,7 @@
         "type": "object",
         "required": [
           "hero",
-          "experienceHeading",
-          "closingCta",
+          "bookingStrip",
           "seo"
         ],
         "properties": {
@@ -13336,19 +14765,13 @@
             "type": "string"
           },
           "hero": {
-            "$ref": "#/components/schemas/SharedHeroComponent"
+            "$ref": "#/components/schemas/HomeHeroComponent"
           },
-          "experienceHeading": {
-            "type": "string"
+          "experience": {
+            "$ref": "#/components/schemas/HomeExperienceComponent"
           },
-          "experienceBody": {
-            "type": "string"
-          },
-          "experienceImage": {
-            "$ref": "#/components/schemas/SharedImageComponent"
-          },
-          "experienceLink": {
-            "$ref": "#/components/schemas/SharedLinkComponent"
+          "buffet": {
+            "$ref": "#/components/schemas/HomeBuffetComponent"
           },
           "featuredPackage": {
             "type": "object",
@@ -13389,9 +14812,6 @@
               },
               "image": {
                 "$ref": "#/components/schemas/SharedImageComponent"
-              },
-              "isFeatured": {
-                "type": "boolean"
               },
               "isActive": {
                 "type": "boolean"
@@ -13476,8 +14896,8 @@
               }
             }
           },
-          "featuredMenuHeading": {
-            "type": "string"
+          "menuHighlights": {
+            "$ref": "#/components/schemas/HomeMenuHighlightsComponent"
           },
           "featuredMenuItems": {
             "type": "array",
@@ -13504,6 +14924,9 @@
                   "type": "string"
                 },
                 "shortDescription": {
+                  "type": "string"
+                },
+                "portion": {
                   "type": "string"
                 },
                 "description": {},
@@ -13727,31 +15150,16 @@
               }
             }
           },
-          "storyHeading": {
-            "type": "string"
+          "story": {
+            "$ref": "#/components/schemas/HomeStoryComponent"
           },
-          "storyBody": {
-            "type": "string"
+          "process": {
+            "$ref": "#/components/schemas/HomeProcessComponent"
           },
-          "storyImage": {
-            "$ref": "#/components/schemas/SharedImageComponent"
+          "space": {
+            "$ref": "#/components/schemas/HomeSpaceComponent"
           },
-          "storyLink": {
-            "$ref": "#/components/schemas/SharedLinkComponent"
-          },
-          "spaceHeading": {
-            "type": "string"
-          },
-          "spaceBody": {
-            "type": "string"
-          },
-          "spaceImage": {
-            "$ref": "#/components/schemas/SharedImageComponent"
-          },
-          "spaceLink": {
-            "$ref": "#/components/schemas/SharedLinkComponent"
-          },
-          "closingCta": {
+          "bookingStrip": {
             "$ref": "#/components/schemas/SharedCtaComponent"
           },
           "seo": {
@@ -13827,19 +15235,13 @@
                   "type": "string"
                 },
                 "hero": {
-                  "$ref": "#/components/schemas/SharedHeroComponent"
+                  "$ref": "#/components/schemas/HomeHeroComponent"
                 },
-                "experienceHeading": {
-                  "type": "string"
+                "experience": {
+                  "$ref": "#/components/schemas/HomeExperienceComponent"
                 },
-                "experienceBody": {
-                  "type": "string"
-                },
-                "experienceImage": {
-                  "$ref": "#/components/schemas/SharedImageComponent"
-                },
-                "experienceLink": {
-                  "$ref": "#/components/schemas/SharedLinkComponent"
+                "buffet": {
+                  "$ref": "#/components/schemas/HomeBuffetComponent"
                 },
                 "featuredPackage": {
                   "type": "object",
@@ -13859,8 +15261,8 @@
                     }
                   }
                 },
-                "featuredMenuHeading": {
-                  "type": "string"
+                "menuHighlights": {
+                  "$ref": "#/components/schemas/HomeMenuHighlightsComponent"
                 },
                 "featuredMenuItems": {
                   "type": "array",
@@ -13883,31 +15285,16 @@
                     }
                   }
                 },
-                "storyHeading": {
-                  "type": "string"
+                "story": {
+                  "$ref": "#/components/schemas/HomeStoryComponent"
                 },
-                "storyBody": {
-                  "type": "string"
+                "process": {
+                  "$ref": "#/components/schemas/HomeProcessComponent"
                 },
-                "storyImage": {
-                  "$ref": "#/components/schemas/SharedImageComponent"
+                "space": {
+                  "$ref": "#/components/schemas/HomeSpaceComponent"
                 },
-                "storyLink": {
-                  "$ref": "#/components/schemas/SharedLinkComponent"
-                },
-                "spaceHeading": {
-                  "type": "string"
-                },
-                "spaceBody": {
-                  "type": "string"
-                },
-                "spaceImage": {
-                  "$ref": "#/components/schemas/SharedImageComponent"
-                },
-                "spaceLink": {
-                  "$ref": "#/components/schemas/SharedLinkComponent"
-                },
-                "closingCta": {
+                "bookingStrip": {
                   "$ref": "#/components/schemas/SharedCtaComponent"
                 },
                 "seo": {
@@ -14001,7 +15388,7 @@
           }
         }
       },
-      "SharedListItemComponent": {
+      "HomeHeroComponent": {
         "type": "object",
         "properties": {
           "id": {
@@ -14019,6 +15406,364 @@
           },
           "description": {
             "type": "string"
+          },
+          "backgroundImage": {
+            "$ref": "#/components/schemas/SharedImageComponent"
+          },
+          "primaryLink": {
+            "$ref": "#/components/schemas/SharedLinkComponent"
+          },
+          "secondaryLink": {
+            "$ref": "#/components/schemas/SharedLinkComponent"
+          },
+          "scrollHint": {
+            "type": "string"
+          }
+        }
+      },
+      "HomeExperienceComponent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "eyebrow": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "image": {
+            "$ref": "#/components/schemas/SharedImageComponent"
+          },
+          "video": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "documentId": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "alternativeText": {
+                "type": "string"
+              },
+              "caption": {
+                "type": "string"
+              },
+              "focalPoint": {},
+              "width": {
+                "type": "integer"
+              },
+              "height": {
+                "type": "integer"
+              },
+              "formats": {},
+              "hash": {
+                "type": "string"
+              },
+              "ext": {
+                "type": "string"
+              },
+              "mime": {
+                "type": "string"
+              },
+              "size": {
+                "type": "number",
+                "format": "float"
+              },
+              "url": {
+                "type": "string"
+              },
+              "previewUrl": {
+                "type": "string"
+              },
+              "provider": {
+                "type": "string"
+              },
+              "provider_metadata": {},
+              "related": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
+                    },
+                    "documentId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "folder": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "documentId": {
+                    "type": "string"
+                  }
+                }
+              },
+              "folderPath": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "publishedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "createdBy": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "documentId": {
+                    "type": "string"
+                  }
+                }
+              },
+              "updatedBy": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "documentId": {
+                    "type": "string"
+                  }
+                }
+              },
+              "locale": {
+                "type": "string"
+              },
+              "localizations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
+                    },
+                    "documentId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "link": {
+            "$ref": "#/components/schemas/SharedLinkComponent"
+          }
+        }
+      },
+      "HomeBuffetComponent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "eyebrow": {
+            "type": "string"
+          },
+          "heading": {
+            "type": "string"
+          },
+          "priceUnit": {
+            "type": "string"
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedListItemComponent"
+            }
+          },
+          "image": {
+            "$ref": "#/components/schemas/SharedImageComponent"
+          },
+          "link": {
+            "$ref": "#/components/schemas/SharedLinkComponent"
+          }
+        }
+      },
+      "HomeMenuHighlightsComponent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "eyebrow": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "link": {
+            "$ref": "#/components/schemas/SharedLinkComponent"
+          }
+        }
+      },
+      "HomeStoryComponent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "image": {
+            "$ref": "#/components/schemas/SharedImageComponent"
+          },
+          "link": {
+            "$ref": "#/components/schemas/SharedLinkComponent"
+          }
+        }
+      },
+      "HomeProcessComponent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "eyebrow": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedStepComponent"
+            }
+          }
+        }
+      },
+      "HomeSpaceComponent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "eyebrow": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "link": {
+            "$ref": "#/components/schemas/SharedLinkComponent"
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedImageComponent"
+            }
           }
         }
       },
@@ -14739,6 +16484,9 @@
                 "shortDescription": {
                   "type": "string"
                 },
+                "portion": {
+                  "type": "string"
+                },
                 "description": {},
                 "price": {
                   "type": "number",
@@ -15078,6 +16826,9 @@
               "shortDescription": {
                 "type": "string"
               },
+              "portion": {
+                "type": "string"
+              },
               "description": {},
               "price": {
                 "type": "number",
@@ -15196,6 +16947,9 @@
           "shortDescription": {
             "type": "string"
           },
+          "portion": {
+            "type": "string"
+          },
           "description": {},
           "price": {
             "type": "number",
@@ -15257,6 +17011,9 @@
                       "type": "string"
                     },
                     "shortDescription": {
+                      "type": "string"
+                    },
+                    "portion": {
                       "type": "string"
                     },
                     "description": {},
@@ -15554,7 +17311,6 @@
               "name",
               "slug",
               "adultPrice",
-              "isFeatured",
               "isActive",
               "displayOrder"
             ],
@@ -15583,9 +17339,6 @@
               },
               "image": {
                 "$ref": "#/components/schemas/SharedImageComponent"
-              },
-              "isFeatured": {
-                "type": "boolean"
               },
               "isActive": {
                 "type": "boolean"
@@ -15658,7 +17411,6 @@
           "name",
           "slug",
           "adultPrice",
-          "isFeatured",
           "isActive",
           "displayOrder"
         ],
@@ -15699,9 +17451,6 @@
           },
           "image": {
             "$ref": "#/components/schemas/SharedImageComponent"
-          },
-          "isFeatured": {
-            "type": "boolean"
           },
           "isActive": {
             "type": "boolean"
@@ -15804,9 +17553,6 @@
                 },
                 "image": {
                   "$ref": "#/components/schemas/SharedImageComponent"
-                },
-                "isFeatured": {
-                  "type": "boolean"
                 },
                 "isActive": {
                   "type": "boolean"
@@ -15938,11 +17684,28 @@
                 ],
                 "example": "string or id"
               },
+              "rodizioPackage": {
+                "oneOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "example": "string or id"
+              },
               "itemSectionHeading": {
                 "type": "string"
               },
               "packageListingHeading": {
                 "type": "string"
+              },
+              "aLaCarte": {
+                "$ref": "#/components/schemas/SharedFeatureBlockComponent"
+              },
+              "drinks": {
+                "$ref": "#/components/schemas/SharedFeatureBlockComponent"
               },
               "bookingCta": {
                 "$ref": "#/components/schemas/SharedCtaComponent"
@@ -16075,9 +17838,6 @@
               "image": {
                 "$ref": "#/components/schemas/SharedImageComponent"
               },
-              "isFeatured": {
-                "type": "boolean"
-              },
               "isActive": {
                 "type": "boolean"
               },
@@ -16161,11 +17921,35 @@
               }
             }
           },
+          "rodizioPackage": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "documentId": {
+                "type": "string"
+              }
+            }
+          },
           "itemSectionHeading": {
             "type": "string"
           },
           "packageListingHeading": {
             "type": "string"
+          },
+          "aLaCarte": {
+            "$ref": "#/components/schemas/SharedFeatureBlockComponent"
+          },
+          "drinks": {
+            "$ref": "#/components/schemas/SharedFeatureBlockComponent"
           },
           "bookingCta": {
             "$ref": "#/components/schemas/SharedCtaComponent"
@@ -16266,11 +18050,35 @@
                     }
                   }
                 },
+                "rodizioPackage": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
+                    },
+                    "documentId": {
+                      "type": "string"
+                    }
+                  }
+                },
                 "itemSectionHeading": {
                   "type": "string"
                 },
                 "packageListingHeading": {
                   "type": "string"
+                },
+                "aLaCarte": {
+                  "$ref": "#/components/schemas/SharedFeatureBlockComponent"
+                },
+                "drinks": {
+                  "$ref": "#/components/schemas/SharedFeatureBlockComponent"
                 },
                 "bookingCta": {
                   "$ref": "#/components/schemas/SharedCtaComponent"
@@ -16363,6 +18171,40 @@
           },
           "meta": {
             "type": "object"
+          }
+        }
+      },
+      "SharedFeatureBlockComponent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "eyebrow": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number",
+            "format": "float"
+          },
+          "image": {
+            "$ref": "#/components/schemas/SharedImageComponent"
+          },
+          "link": {
+            "$ref": "#/components/schemas/SharedLinkComponent"
           }
         }
       },
@@ -16591,9 +18433,6 @@
                 "image": {
                   "$ref": "#/components/schemas/SharedImageComponent"
                 },
-                "isFeatured": {
-                  "type": "boolean"
-                },
                 "isActive": {
                   "type": "boolean"
                 },
@@ -16703,6 +18542,9 @@
                   "type": "string"
                 },
                 "shortDescription": {
+                  "type": "string"
+                },
+                "portion": {
                   "type": "string"
                 },
                 "description": {},
@@ -17263,6 +19105,12 @@
               "experienceImage": {
                 "$ref": "#/components/schemas/SharedImageComponent"
               },
+              "zones": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SharedEditorialCardComponent"
+                }
+              },
               "amenitiesHeading": {
                 "type": "string"
               },
@@ -17663,6 +19511,12 @@
           "experienceImage": {
             "$ref": "#/components/schemas/SharedImageComponent"
           },
+          "zones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedEditorialCardComponent"
+            }
+          },
           "amenitiesHeading": {
             "type": "string"
           },
@@ -17802,6 +19656,12 @@
                 "experienceImage": {
                   "$ref": "#/components/schemas/SharedImageComponent"
                 },
+                "zones": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SharedEditorialCardComponent"
+                  }
+                },
                 "amenitiesHeading": {
                   "type": "string"
                 },
@@ -17905,36 +19765,6 @@
           }
         }
       },
-      "SharedEditorialCardComponent": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "oneOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              }
-            ]
-          },
-          "eyebrow": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "body": {
-            "type": "string"
-          },
-          "image": {
-            "$ref": "#/components/schemas/SharedImageComponent"
-          },
-          "link": {
-            "$ref": "#/components/schemas/SharedLinkComponent"
-          }
-        }
-      },
       "StoryPageRequest": {
         "type": "object",
         "required": [
@@ -17979,10 +19809,10 @@
               "ingredientsHeading": {
                 "type": "string"
               },
-              "ingredientImages": {
+              "ingredients": {
                 "type": "array",
                 "items": {
-                  "$ref": "#/components/schemas/SharedImageComponent"
+                  "$ref": "#/components/schemas/SharedEditorialCardComponent"
                 }
               },
               "craftHeading": {
@@ -18114,10 +19944,10 @@
           "ingredientsHeading": {
             "type": "string"
           },
-          "ingredientImages": {
+          "ingredients": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SharedImageComponent"
+              "$ref": "#/components/schemas/SharedEditorialCardComponent"
             }
           },
           "craftHeading": {
@@ -18240,10 +20070,10 @@
                 "ingredientsHeading": {
                   "type": "string"
                 },
-                "ingredientImages": {
+                "ingredients": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/SharedImageComponent"
+                    "$ref": "#/components/schemas/SharedEditorialCardComponent"
                   }
                 },
                 "craftHeading": {

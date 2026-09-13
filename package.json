@@ -24,6 +24,8 @@
     "seed:demo": "node scripts/seed-salanca-demo/index.mjs",
     "seed:content": "node scripts/seed-salanca-content/index.mjs",
     "seed:content:prune": "node scripts/seed-salanca-content/index.mjs --prune",
+    "deploy:content": "node scripts/deploy-content-seed.mjs",
+    "deploy:content:prune": "node scripts/deploy-content-seed.mjs --prune",
     "token:preview": "node scripts/create-preview-token.mjs",
     "verify:seed": "node scripts/verify-seed.mjs",
     "media:reconcile": "node scripts/reconcile-media/index.mjs",

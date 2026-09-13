@@ -106,11 +106,6 @@
       "component": "shared.cta",
       "repeatable": false
     },
-    "isFeatured": {
-      "type": "boolean",
-      "required": true,
-      "default": false
-    },
     "displayOrder": {
       "type": "integer",
       "required": true,
@@ -178,14 +173,6 @@
           "label": "Kết thúc"
         }
       },
-      "isFeatured": {
-        "edit": {
-          "label": "Nổi bật"
-        },
-        "list": {
-          "label": "Nổi bật"
-        }
-      },
       "displayOrder": {
         "edit": {
           "label": "Thứ tự"
@@ -204,10 +191,10 @@
       },
       "cta": {
         "edit": {
-          "label": "Nút kêu gọi (CTA)"
+          "label": "Nút hành động"
         },
         "list": {
-          "label": "Nút kêu gọi (CTA)"
+          "label": "Nút hành động"
         }
       },
       "seo": {
@@ -220,10 +207,10 @@
       },
       "slug": {
         "edit": {
-          "label": "Slug URL"
+          "label": "Đường dẫn ngắn"
         },
         "list": {
-          "label": "Slug URL"
+          "label": "Đường dẫn ngắn"
         }
       }
     }

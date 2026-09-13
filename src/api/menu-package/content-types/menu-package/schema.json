@@ -73,11 +73,6 @@
       "component": "shared.image",
       "repeatable": false
     },
-    "isFeatured": {
-      "type": "boolean",
-      "required": true,
-      "default": false
-    },
     "isActive": {
       "type": "boolean",
       "required": true,
