@@ -1,17 +1,27 @@
 # Nixpacks' default corepack-activated pnpm crashes with
 # ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING regardless of Node major version.
-# `npm install -g` bypasses corepack entirely (npm's own global install
-# mechanism, no dynamic-import shim) and — unlike an ephemeral `npx pnpm@...`
-# call — leaves `pnpm` on PATH at 11.7.0 for later manual container shells too.
+#
+# `npm install -g pnpm@11.7.0` does NOT fix this: Nixpacks' own bundled pnpm
+# (9.15.9, from the Nix store) sits earlier on PATH than npm's global bin
+# dir, so a bare `pnpm` still resolves to 9.15.9 even after the global
+# install succeeds — confirmed by ERR_PNPM_UNSUPPORTED_ENGINE reappearing
+# on the very next step. `npx --yes pnpm@11.7.0` sidesteps PATH entirely by
+# naming the exact version to fetch/run, which is what actually works here
+# (same pattern as batdongsan-cms/backend-bds/nixpacks.toml).
+#
+# Consequence: a manual shell opened in the running container still has a
+# stale `pnpm` on PATH. Run `npx --yes pnpm@11.7.0 run deploy:content` there
+# instead of bare `pnpm run deploy:content`.
+#
 # Keep this version aligned with package.json's packageManager field.
 [phases.install]
 cmds = [
-  "npm install -g pnpm@11.7.0",
-  "pnpm install --frozen-lockfile",
+  "npx --yes pnpm@11.7.0 --version",
+  "npx --yes pnpm@11.7.0 install --frozen-lockfile",
 ]
 
 [phases.build]
-cmds = ["pnpm run build"]
+cmds = ["npx --yes pnpm@11.7.0 run build"]
 
 [start]
 cmd = "node node_modules/@strapi/strapi/bin/strapi.js start"
