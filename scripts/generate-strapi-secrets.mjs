@@ -17,6 +17,7 @@ const backendSecrets = [
   ['JWT_SECRET', hexSecret()],
   ['ENCRYPTION_KEY', hexSecret()],
   ['CMS_WEBHOOK_SECRET', cmsWebhookSecret],
+  ['DATABASE_PASSWORD', hexSecret()],
 ];
 
 stdout.write('# salanca-backend .env\n');
