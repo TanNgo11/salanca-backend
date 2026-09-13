@@ -49,6 +49,10 @@ The project was created from the official stable CLI and all generated Strapi pa
 
 The content model should use generated CRUD until editors demonstrate a concrete workflow that the default Admin cannot support. A custom dashboard without that evidence is wasted maintenance.
 
+### Developer-only Admin tools hidden in production builds
+
+Content-Type Builder, Marketplace, and Documentation are removed from the Admin UI for every role, Super Admin included, when the admin bundle is built in production mode (`strapi build`). `strapi develop` serves the admin in development mode, so they stay available locally. Schemas remain version-controlled; this only changes the Admin UI (`src/admin/app.tsx`), not server endpoints. Pattern ported from BDS.
+
 ### Locale bootstrap
 
 `STRAPI_PLUGIN_I18N_INIT_LOCALE_CODE=vi` initializes a fresh database in Vietnamese. The project bootstrap idempotently guarantees `vi` and `en` exist and sets `vi` as default, including databases that were first booted with Strapi's English default. It does not silently delete unexpected locales; the Phase 3 verification gate must flag them for an explicit operator decision.
