@@ -2,10 +2,13 @@ import { existsSync, statSync } from 'node:fs';
 import { extname, resolve } from 'node:path';
 
 /**
- * Media files live with the frontend that ships them. Override the location
- * with SALANCA_WEB_MEDIA_DIR when the repos are not siblings.
+ * `data/media/salanca` is a committed mirror of salanca-web's media folder —
+ * the backend repo must be able to seed on its own in a container that has
+ * no salanca-web checkout. `deploy-content-seed.mjs` refreshes this mirror
+ * from the sibling repo when it is present. Override with SALANCA_WEB_MEDIA_DIR
+ * to read from the sibling checkout directly instead (e.g. local dev).
  */
-const DEFAULT_MEDIA_DIR = resolve('../salanca-web/public/media/salanca');
+const DEFAULT_MEDIA_DIR = resolve('data/media/salanca');
 
 const MIME_BY_EXTENSION = {
   '.jpg': 'image/jpeg',
