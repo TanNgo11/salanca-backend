@@ -1,10 +1,10 @@
 /**
- * Seeds the approved Salanca site content into the CMS.
+ * Seeds the supplied Salanca site content into the CMS.
  *
  * Input is `data/salanca-content.json`, generated from the frontend's shipped
  * copy by `salanca-web`'s `pnpm run export:cms-seed`. Everything the frontend
  * adapters read is written here, so pages render from the CMS instead of
- * falling back to the copy compiled into the bundle.
+ * requiring content to be published in each requested locale.
  *
  * Idempotent: single types upsert by locale, collections upsert by slug, and
  * media reuses any file already in the library.
@@ -48,6 +48,9 @@ const LOCATION_UID = 'api::location.location';
  * default so a normal re-seed never removes anything an editor added.
  */
 const prune = args.includes('--prune');
+const ownerRefresh = args.includes('--owner-refresh');
+if (ownerRefresh && prune) throw new Error('Owner refresh never prunes editorial documents.');
+const ownerUids = new Set(['api::menu-category.menu-category', 'api::menu-package.menu-package', 'api::menu-item.menu-item', 'api::home-page.home-page', 'api::menu-page.menu-page', 'api::story-page.story-page', 'api::experience-page.experience-page', 'api::campaign-page.campaign-page', 'api::campaign.campaign', 'api::header-setting.header-setting']);
 
 const payload = JSON.parse(readFileSync(PAYLOAD_PATH, 'utf8'));
 const locales = payload.locales;
@@ -64,6 +67,13 @@ async function seedCollection(uid, collection, mediaIds) {
 
   for (const entry of entries) {
     const primaryData = resolvePlaceholders(entry[primaryLocale], mediaIds, refIds);
+    const keepExisting = ownerRefresh && !ownerUids.has(uid);
+    const prior = keepExisting ? await app.documents(uid).findFirst({ locale: primaryLocale, filters: { [matchField]: primaryData[matchField] } }) : null;
+    if (prior) {
+      refIds.set(`${uid}:${entry.key}`, prior.documentId);
+      summary.record('skipped');
+      continue;
+    }
     const primary = await upsertByField(
       uid,
       primaryLocale,
@@ -143,6 +153,10 @@ async function pruneCollection(uid, keptDocumentIds) {
 
 async function seedLocalizedSingleType(uid, byLocale, mediaIds) {
   const [primaryLocale, ...others] = locales;
+  if (ownerRefresh && !ownerUids.has(uid)) {
+    const existing = await app.documents(uid).findFirst({ locale: primaryLocale, status: 'draft' });
+    if (existing) { summary.record('skipped'); return existing; }
+  }
   const primary = await upsertSingleType(
     app,
     uid,
@@ -175,7 +189,8 @@ try {
   const location = payload.collections[LOCATION_UID];
   const [primaryLocale, ...otherLocales] = locales;
   const locationPrimary = resolvePlaceholders(location[primaryLocale], mediaIds, refIds);
-  const locationDoc = await upsertBySlug(
+  const existingLocation = ownerRefresh ? await app.documents(LOCATION_UID).findFirst({ locale: primaryLocale, filters: { slug: locationPrimary.slug } }) : null;
+  const locationDoc = existingLocation ? { action: 'skipped', documentId: existingLocation.documentId } : await upsertBySlug(
     app,
     LOCATION_UID,
     primaryLocale,
@@ -191,6 +206,7 @@ try {
 
   for (const locale of otherLocales) {
     if (location[locale] === undefined) continue;
+    if (existingLocation) continue;
     await upsertLocalization(
       app,
       LOCATION_UID,
@@ -208,13 +224,10 @@ try {
   }
 
   // export:cms-seed already emits globalSetting/headerSetting/footerSetting
-  // split to the current shape, so these seed independently — no shared state,
-  // safe to run in parallel.
-  await Promise.all([
-    seedLocalizedSingleType(GLOBAL_SETTING_UID, payload.globalSetting, mediaIds),
-    seedLocalizedSingleType(HEADER_SETTING_UID, payload.headerSetting, mediaIds),
-    seedLocalizedSingleType(FOOTER_SETTING_UID, payload.footerSetting, mediaIds),
-  ]);
+  // split to the current shape. Seed sequentially to avoid overlapping publish transactions.
+  await seedLocalizedSingleType(GLOBAL_SETTING_UID, payload.globalSetting, mediaIds);
+  await seedLocalizedSingleType(HEADER_SETTING_UID, payload.headerSetting, mediaIds);
+  await seedLocalizedSingleType(FOOTER_SETTING_UID, payload.footerSetting, mediaIds);
 
   for (const [uid, byLocale] of Object.entries(payload.pages)) {
     const adapted =
@@ -242,7 +255,12 @@ try {
   // that as an uncaught error rather than rejecting destroy(). The seed is
   // already finished at this point, so it must not change the exit code.
   const ignoreShutdownNoise = (error) => {
-    console.warn('seed:content shutdown warning:', error?.message ?? error);
+    if (error?.message === 'aborted') {
+      console.warn('seed:content shutdown warning: aborted');
+    } else {
+      console.error('seed:content shutdown failed:', error);
+      process.exitCode = 1;
+    }
   };
   process.on('uncaughtException', ignoreShutdownNoise);
   process.on('unhandledRejection', ignoreShutdownNoise);

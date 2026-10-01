@@ -1,5 +1,11 @@
 # Salanca CMS editor guide — VI/EN workflow
 
+## Owner content refresh, 2026-09-29
+
+The revised brand-story DOCX is authoritative for the narrative, including the 2020 rename. PDF pages 2–3 supplement the Churrasco origins; the older 2022 brand timeline does not replace the revised DOCX. Edit short story card text in `body` and expanded text in `detailBody` (optional, 1,600 characters), in both VI and EN. Menu categories determine the frontend tabs and their order; each locale needs its own category name/slug and published items. Shared prices stay numeric VND; localized `portion` carries physical units such as kg, 100 g, bowl, or box. A zero price on an included salad, side, or sauce is displayed without a price label. Keep Steak Salanca without an asserted meat cut, wings at 750,000 VND, and Moqueca without an invented price. PDF exports have a 3,840-pixel width; provenance records identify upscaled sources. Real dining-room and dish photographs remain where the PDF does not provide an appropriate replacement.
+
+To change a PDF-style star, open the dish in Content Manager → Món and toggle **Hiện ngôi sao trong thực đơn** (`showStar`), then publish. This field is shared by VI and EN and is separate from `isFeatured`, which controls featured-item behavior elsewhere. The source PDF stars Jasmine butter rice and Feijoada only.
+
 ## Standard flow
 
 1. Chọn locale `vi` và tạo nội dung tiếng Việt trước.
@@ -22,7 +28,7 @@
 ## Field không dịch
 
 - Giá, enum kỹ thuật, ngày giờ campaign.
-- `isActive`, `isFeatured`, `displayOrder`, `noIndex`.
+- `isActive`, `isFeatured`, `showStar`, `displayOrder`, `noIndex`.
 - Hotline, email, external map URL.
 - Media binary khi VI/EN dùng cùng ảnh.
 

@@ -1,13 +1,19 @@
 # Content seed pipeline (web copy → CMS)
 
 The approved Salanca design ships its wording and its asset map inside
-`salanca-web` (`src/components/*/​*-page-copy.ts`, `*-assets.ts`,
+`salanca-web` (`scripts/seed-content/*-page-content.ts`, page `*-assets.ts`,
 `src/config/media-assets.ts`). Those files are the record of what the client
 signed off on, so the CMS is seeded **from** them instead of being filled in by
 hand — no second copy of the text to keep in sync, and re-running after a copy
 change is one command.
 
 ## Two steps, two repos
+
+Runtime pages are CMS-only. The component `*-page-copy.ts` files define types; they are not runtime fallback content or the seed source.
+
+For the authorized local owner refresh, run `node --env-file=.env scripts/snapshot-local-content.mjs` first (loopback PostgreSQL only; backup stays in ignored `.tmp/owner-data`). Then export from the frontend and run `pnpm run seed:content --owner-refresh` in the backend. This flag updates home, menu and story plus menu collections, reuses other existing documents, and creates missing baseline pages/settings so both locales can render. It refuses `--prune`. Verify published text, prices, locale identities and 3,840-pixel CMS hero images with `node scripts/verify-owner-data.mjs` while the local backend runs. No remote release is implied.
+
+New PDF assets are mirrored under `data/media/salanca`; its default upload directory is independent of the frontend checkout. To seed from a different directory, set `SALANCA_WEB_MEDIA_DIR`. Media is reused by name; replacement assets therefore have new descriptive filenames.
 
 ```bash
 # 1. salanca-web — regenerate the payload
@@ -31,8 +37,8 @@ resolved at seed time:
 | `{ "__media": "hero-grill.jpg", "alt": … }` | `{ "media": <uploaded file id>, "alt": … }` |
 | `{ "__ref": { "uid": …, "key": … } }` | the referenced document id (or a list) |
 
-Media files are read from `../salanca-web/public/media/salanca`. Point
-`SALANCA_WEB_MEDIA_DIR` elsewhere when the repos are not siblings. Uploads are
+Media files are read from `data/media/salanca` by default. Point
+`SALANCA_WEB_MEDIA_DIR` at the frontend folder when seeding directly from it. Uploads are
 matched by file name, so re-running reuses what is already in the library.
 
 Relations address a collection entry by its cross-locale `key`, never by a

@@ -372,6 +372,15 @@ export interface SharedEditorialCard extends Struct.ComponentSchema {
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 600;
       }>;
+    detailBody: Schema.Attribute.Text &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }> &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 1600;
+      }>;
     eyebrow: Schema.Attribute.String &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
@@ -654,6 +663,13 @@ export interface SharedListItem extends Struct.ComponentSchema {
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 400;
       }>;
+    showStar: Schema.Attribute.Boolean &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }> &
+      Schema.Attribute.DefaultTo<false>;
     title: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.SetPluginOptions<{

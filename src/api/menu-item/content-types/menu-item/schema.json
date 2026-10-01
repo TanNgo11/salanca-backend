@@ -89,6 +89,10 @@
       "required": true,
       "default": false
     },
+    "showStar": {
+      "type": "boolean",
+      "default": false
+    },
     "isActive": {
       "type": "boolean",
       "required": true,

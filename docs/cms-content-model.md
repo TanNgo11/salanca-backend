@@ -28,7 +28,7 @@ Tài liệu này mô tả schema đang chạy trong `src/components` và `src/ap
 | `shared.option` | Lựa chọn form tĩnh | `label`, `value`, `displayOrder` |
 | `shared.list-item` | Mục văn bản ngắn | `title`, `description` |
 | `shared.social-link` | Kênh mạng xã hội | `platform`, `label`, `url` |
-| `shared.editorial-card` | Card nội dung dùng lại | eyebrow, title, body, image, link |
+| `shared.editorial-card` | Card nội dung dùng lại | eyebrow, title, body, detailBody (optional localized text, 1,600 characters), image, link |
 
 ## Single types
 

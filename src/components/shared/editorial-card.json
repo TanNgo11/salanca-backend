@@ -34,6 +34,11 @@
       "type": "text",
       "maxLength": 600
     },
+    "detailBody": {
+      "type": "text",
+      "maxLength": 1600,
+      "pluginOptions": { "i18n": { "localized": true } }
+    },
     "image": {
       "pluginOptions": {
         "i18n": {

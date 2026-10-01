@@ -14,7 +14,7 @@
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "x-generation-date": "2026-09-13T11:37:18.823Z"
+    "x-generation-date": "2026-09-30T16:03:23.877Z"
   },
   "x-strapi-config": {
     "plugins": [
@@ -9206,6 +9206,9 @@
           "body": {
             "type": "string"
           },
+          "detailBody": {
+            "type": "string"
+          },
           "image": {
             "$ref": "#/components/schemas/SharedImageComponent"
           },
@@ -9232,6 +9235,9 @@
           },
           "description": {
             "type": "string"
+          },
+          "showStar": {
+            "type": "boolean"
           }
         }
       },
@@ -12409,6 +12415,9 @@
                 "isFeatured": {
                   "type": "boolean"
                 },
+                "showStar": {
+                  "type": "boolean"
+                },
                 "isActive": {
                   "type": "boolean"
                 },
@@ -15069,6 +15078,9 @@
                 "isFeatured": {
                   "type": "boolean"
                 },
+                "showStar": {
+                  "type": "boolean"
+                },
                 "isActive": {
                   "type": "boolean"
                 },
@@ -16627,6 +16639,9 @@
                 "isFeatured": {
                   "type": "boolean"
                 },
+                "showStar": {
+                  "type": "boolean"
+                },
                 "isActive": {
                   "type": "boolean"
                 },
@@ -16851,6 +16866,9 @@
               "isFeatured": {
                 "type": "boolean"
               },
+              "showStar": {
+                "type": "boolean"
+              },
               "isActive": {
                 "type": "boolean"
               },
@@ -17045,6 +17063,9 @@
                     "isFeatured": {
                       "type": "boolean"
                     },
+                    "showStar": {
+                      "type": "boolean"
+                    },
                     "isActive": {
                       "type": "boolean"
                     },
@@ -17207,6 +17228,9 @@
             }
           },
           "isFeatured": {
+            "type": "boolean"
+          },
+          "showStar": {
             "type": "boolean"
           },
           "isActive": {
@@ -18685,6 +18709,9 @@
                   }
                 },
                 "isFeatured": {
+                  "type": "boolean"
+                },
+                "showStar": {
                   "type": "boolean"
                 },
                 "isActive": {

@@ -1,5 +1,7 @@
 # CMS API contract
 
+Owner refresh (2026-09-29): `shared.editorial-card.detailBody` is optional localized text (maximum 1,600 characters). Story `ingredients` expose it for expandable narratives; existing records without it remain valid. Menu numeric prices retain VND semantics; zero means included only for package categories/portion notes, otherwise the UI requests a restaurant quote. Media retains its original URL and dimensions, including the supplied 3,840-pixel PDF exports.
+
 Anonymous Public role receives **read-only** access to published **marketing content** after bootstrap
 (`provisionPublicContentPermissions`). Content writes stay denied.
 

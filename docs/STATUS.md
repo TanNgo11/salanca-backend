@@ -1,6 +1,8 @@
 # Salanca Backend Current Status
 
-Last reviewed against repository documentation: 2026-08-05
+Last reviewed against repository documentation: 2026-09-29
+
+Owner refresh: [Phase 9](phases/phase-09-owner-data-refresh.md). Local CMS contains the revised DOCX story, 56-item menu in VI/EN and five PDF photos at 3,840 pixels wide. Frontend has nine actual menu tab panels. Editorial cards support optional localized detailBody. Local PostgreSQL was backed up before scoped seed; production has not changed. Older sections below describe prior milestones.
 
 ## Executive status
 

@@ -65,7 +65,7 @@ const nonLocalizedByContentType = {
   'home-page': [],
   location: ['mapUrl', 'phone', 'email', 'isActive', 'displayOrder'],
   'menu-category': ['displayOrder', 'isActive'],
-  'menu-item': ['price', 'isFeatured', 'isActive', 'displayOrder'],
+  'menu-item': ['price', 'isFeatured', 'showStar', 'isActive', 'displayOrder'],
   'menu-package': ['adultPrice', 'childPrice', 'isActive', 'displayOrder'],
   'menu-page': [],
   'space-page': [],
