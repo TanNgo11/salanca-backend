@@ -75,3 +75,17 @@ Form **không** kiểm tra bàn trống realtime. Email staff notify **opt-in** 
 - Giá/trạng thái/ngày giờ giống locale còn lại khi đó là field dùng chung.
 - Ảnh đúng asset, alt text đúng ngôn ngữ.
 - Translation chưa duyệt phải để Draft hoặc không tạo; tuyệt đối không publish bản dịch rác.
+
+## Native menu, 2026-10-01
+
+`menu-page.priceNote` is an optional localized string (255 characters maximum),
+returned by the existing read API. Edit the tax/service sentence here; publish
+VI and EN independently. FE renders native HTML from menu-package, menu-category
+and menu-item, including CMS images and displayOrder. Takeaway contact uses
+global-setting hotline. Blank priceNote is omitted. No permissions are expanded.
+
+`apply-native-menu-media.mjs` previews first and requires `--apply` to write to a
+loopback database. It replaces only recognized legacy media pointers, retains
+editor replacements, aborts on different drafts and saves a field snapshot.
+The Rodizio, origin and experience photos are separate image components, not
+whole PDF pages.

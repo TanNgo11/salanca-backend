@@ -107,6 +107,15 @@
       "component": "shared.seo",
       "repeatable": false,
       "required": true
+    },
+    "priceNote": {
+      "type": "string",
+      "maxLength": 255,
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
     }
   },
   "config": {
@@ -125,6 +134,11 @@
         },
         "list": {
           "label": "Gói rodizio"
+        }
+      },
+      "priceNote": {
+        "edit": {
+          "label": "Ghi chú giá / phí phục vụ / thuế"
         }
       }
     }

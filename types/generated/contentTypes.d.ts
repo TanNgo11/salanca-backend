@@ -2095,6 +2095,15 @@ export interface ApiMenuPageMenuPage extends Struct.SingleTypeSchema {
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 180;
       }>;
+    priceNote: Schema.Attribute.String &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }> &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 255;
+      }>;
     publishedAt: Schema.Attribute.DateTime;
     rodizioPackage: Schema.Attribute.Relation<
       'oneToOne',
