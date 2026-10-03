@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs';
 import { resolve, extname } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { loadStrapiApp } from './lib/strapi-load.mjs';
@@ -7,17 +7,23 @@ import { allUids, collectionFields, singleUids, locales, populateFor, serialize,
 process.chdir(resolve(import.meta.dirname, '..'));
 const args = process.argv.slice(2).filter(a => a !== '--');
 const [mode, directory] = args;
-if (!['pack', 'deploy'].includes(mode) || !directory) throw new Error('Usage: pnpm content:pack <directory> OR pnpm content:deploy <directory> [--apply --database <name>]');
+if (!['pack', 'deploy', 'seed'].includes(mode) || !directory) throw new Error('Use seed-production-content.mjs or content:pack / content:deploy.');
+const shipped = mode === 'seed';
+if (shipped && resolve(directory) !== resolve('data/content-release')) throw new Error('Owner seed must use the shipped release.');
 if (args.includes('--prune')) throw new Error('Content bundles never prune.');
 const root = resolve(directory);
 const manifestPath = resolve(root, 'bundle.json');
 const apply = args.includes('--apply');
 let bundle;
 if (mode === 'pack' && existsSync(root)) throw new Error('Choose a new output directory; existing bundles are preserved.');
-if (mode === 'deploy') {
+if (mode !== 'pack') {
   bundle = JSON.parse(readFileSync(manifestPath, 'utf8'));
   validateBundle(bundle);
-  for (const file of bundle.files) if (sha(readFileSync(resolve(root, 'media', file.name))) !== file.sha256) throw new Error(`Checksum mismatch: ${file.name}`);
+  for (const file of bundle.files) {
+    if (shipped && !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(file.sourceFile ?? '')) throw new Error('Unsafe source artwork path.');
+    const path = shipped ? resolve('data/media/salanca', file.sourceFile) : resolve(root, 'media', file.name);
+    if (sha(readFileSync(path)) !== file.sha256) throw new Error(`Checksum mismatch: ${file.name}`);
+  }
 }
 const app = await loadStrapiApp();
 try {
@@ -83,11 +89,14 @@ try {
     console.log(`Packed published VI/EN marketing content and ${files.length} media files into ${root}.`);
   } else {
     if (bundle.schemaHash !== schemaHash) throw new Error('Schema mismatch. Deploy matching backend code before content.');
+    if (shipped && app.config.get('plugin::upload.provider') !== 'aws-s3') throw new Error('This seed requires the configured S3 upload provider.');
+    const recovery = { createdAt: new Date().toISOString(), purpose: 'Marketing content recovery snapshot; not a full database backup', documents: {} };
     let count = 0;
     for (const uid of allUids) for (const locale of locales) {
       const published = await app.documents(uid).findMany({ locale, status: 'published', populate: populateFor(app, uid), limit: 2000 });
       const drafts = await app.documents(uid).findMany({ locale, status: 'draft', populate: populateFor(app, uid), limit: 2000 });
       if (published.length >= 2000 || drafts.length >= 2000) throw new Error('Target limit reached; refusing ambiguous preview.');
+      recovery.documents[`${uid}:${locale}`] = { published, drafts };
       // Compare raw populated records after removing framework-only metadata.
       const normalize = value => Array.isArray(value) ? value.map(normalize) : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).filter(([key]) => !['id', 'createdAt', 'updatedAt', 'publishedAt'].includes(key)).sort(([a], [b]) => a.localeCompare(b)).map(([key, v]) => [key, normalize(v)])) : value;
       const incoming = collectionFields[uid] && uid !== 'api::location.location' ? bundle.payload.collections[uid].entries.map(e => e[locale]) : [uid === 'api::location.location' ? bundle.payload.collections[uid][locale] : (bundle.payload.pages[uid] ?? bundle.payload[{ 'api::global-setting.global-setting': 'globalSetting', 'api::header-setting.header-setting': 'headerSetting', 'api::footer-setting.footer-setting': 'footerSetting' }[uid]])[locale]];
@@ -105,7 +114,12 @@ try {
       }
     }
     console.log(`Preview: ${count} localized documents, ${bundle.files.length} media files. No pruning.`);
-    if (apply) {
+    if (apply && shipped) {
+      const backupDir = resolve('.tmp/content-deploy-backups'); mkdirSync(backupDir, { recursive: true });
+      const backupPath = resolve(backupDir, `${Date.now()}-marketing.json`);
+      writeFileSync(backupPath, JSON.stringify(recovery, null, 2), { mode: 0o600, flag: 'wx' });
+      console.log(`Marketing recovery snapshot saved: ${backupPath}`);
+    } else if (apply) {
       const connection = app.config.get('database.connection.connection');
       const dbUrl = connection.connectionString ? new URL(connection.connectionString) : null;
       const database = dbUrl ? decodeURIComponent(dbUrl.pathname.slice(1)) : connection.database;
@@ -120,9 +134,14 @@ try {
     }
   }
 } finally { await app.destroy(); }
-if (mode === 'deploy' && apply) {
-  const payloadPath = resolve(root, 'payload.json'); writeFileSync(payloadPath, JSON.stringify(bundle.payload));
-  const result = spawnSync(process.execPath, ['scripts/seed-salanca-content/index.mjs', payloadPath], { env: { ...process.env, SALANCA_WEB_MEDIA_DIR: resolve(root, 'media') }, stdio: 'inherit' });
-  if (result.status !== 0) throw new Error('Deploy failed; partial writes may exist. Restore the recorded database backup before retrying.');
+if (mode !== 'pack' && apply) {
+  const executionRoot = shipped ? resolve('.tmp', `content-seed-${Date.now()}`) : root;
+  if (shipped) {
+    mkdirSync(resolve(executionRoot, 'media'), { recursive: true });
+    for (const file of bundle.files) copyFileSync(resolve('data/media/salanca', file.sourceFile), resolve(executionRoot, 'media', file.name));
+  }
+  const payloadPath = resolve(executionRoot, 'payload.json'); writeFileSync(payloadPath, JSON.stringify(bundle.payload));
+  const result = spawnSync(process.execPath, ['scripts/seed-salanca-content/index.mjs', payloadPath], { env: { ...process.env, SALANCA_WEB_MEDIA_DIR: resolve(executionRoot, 'media'), ...(shipped ? { SALANCA_SEED_REQUIRE_S3: 'true' } : {}) }, stdio: 'inherit' });
+  if (result.status !== 0) throw new Error('Seed failed; partial writes may exist. Preserve the recorded recovery snapshot and inspect the failure before retrying.');
   console.log('Content/media deployment complete. Rebuild/revalidate the frontend using its existing deployment pipeline.');
 }

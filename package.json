@@ -23,6 +23,7 @@
     "verify:schema": "node scripts/verify-content-model.mjs",
     "seed:demo": "node scripts/seed-salanca-demo/index.mjs",
     "seed:content": "node scripts/seed-salanca-content/index.mjs",
+    "seed:production": "node scripts/seed-production-content.mjs",
     "seed:content:prune": "node scripts/seed-salanca-content/index.mjs --prune",
     "deploy:content": "node scripts/deploy-content-seed.mjs",
     "content:pack": "node scripts/content-bundle.mjs pack",

@@ -31,6 +31,10 @@ export async function ensureContentMedia(app, summary, fileNames) {
   const uploadService = app.plugin('upload').service('upload');
   const directory = mediaDirectory();
   const byName = new Map();
+  const requireS3 = process.env.SALANCA_SEED_REQUIRE_S3 === 'true';
+  if (requireS3 && app.config.get('plugin::upload.provider') !== 'aws-s3') throw new Error('Owner seed requires S3.');
+  const destination = requireS3 ? app.config.get('plugin::upload.providerOptions') : null;
+  const belongsToDestination = file => !requireS3 || (file.provider === 'aws-s3' && file.url?.startsWith(`${destination.baseUrl.replace(/\/$/, '')}/${destination.rootPath}/`));
 
   for (const fileName of fileNames) {
     const filePath = resolve(directory, fileName);
@@ -43,11 +47,11 @@ export async function ensureContentMedia(app, summary, fileNames) {
 
     const existing = await app.db.query('plugin::upload.file').findMany({
       where: { name: fileName },
-      limit: 1,
     });
 
-    if (existing[0]?.id) {
-      byName.set(fileName, existing[0].id);
+    const reusable = existing.find(belongsToDestination);
+    if (reusable?.id) {
+      byName.set(fileName, reusable.id);
       summary.record('skipped');
       continue;
     }
@@ -67,6 +71,8 @@ export async function ensureContentMedia(app, summary, fileNames) {
         size: statSync(filePath).size,
       },
     });
+
+    if (!uploaded?.id || !belongsToDestination(uploaded)) throw new Error(`Upload did not return destination S3 media: ${fileName}`);
 
     byName.set(fileName, uploaded.id);
     summary.record('created');

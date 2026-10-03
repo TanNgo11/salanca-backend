@@ -2,7 +2,9 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
-2026-10-03: Added `content:pack` / `content:deploy` for published VI/EN marketing snapshots plus media. Explicit apply requires matching target schema, media checksums, no unpublished target edits, target database name and a successful PostgreSQL backup. Production apply remains unrun; Git push does not deploy CMS data. Runbook: [content bundle deploy](content-bundle-deploy.md).
+2026-10-03: Backend-only owner seed now ships all 166 localized published marketing records and 24 approved original images. One command: `node scripts/seed-production-content.mjs`; no SFTP, bind mount, sibling checkout or pg_dump requirement. Existing S3/database config is reused; checksum/schema/draft preflight and automatic marketing JSON recovery snapshot precede upsert/publish. Local preview passed; production apply remains unrun. Runbook: [content seed](content-bundle-deploy.md).
+
+Historical developer transport (superseded operator workflow), 2026-10-03: Added `content:pack` / `content:deploy` for published VI/EN marketing snapshots plus media. Explicit apply requires matching target schema, media checksums, no unpublished target edits, target database name and a successful PostgreSQL backup. Production apply remains unrun; Git push does not deploy CMS data. Runbook: [content bundle deploy](content-bundle-deploy.md).
 
 Owner refresh: [Phase 9](phases/phase-09-owner-data-refresh.md). Local CMS contains the revised DOCX story, 56-item menu in VI/EN and five PDF photos at 3,840 pixels wide. Frontend has nine actual menu tab panels. Editorial cards support optional localized detailBody. Local PostgreSQL was backed up before scoped seed; production has not changed. Older sections below describe prior milestones.
 
