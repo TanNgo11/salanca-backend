@@ -126,6 +126,12 @@
       "relation": "oneToMany",
       "target": "api::menu-item.menu-item"
     },
+    "flavorCards": {
+      "type": "component",
+      "component": "shared.editorial-card",
+      "repeatable": true,
+      "pluginOptions": { "i18n": { "localized": true } }
+    },
     "manifestoHeading": {
       "pluginOptions": {
         "i18n": {

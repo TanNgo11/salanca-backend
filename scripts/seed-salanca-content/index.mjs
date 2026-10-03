@@ -52,7 +52,26 @@ const ownerRefresh = args.includes('--owner-refresh');
 if (ownerRefresh && prune) throw new Error('Owner refresh never prunes editorial documents.');
 const ownerUids = new Set(['api::menu-category.menu-category', 'api::menu-package.menu-package', 'api::menu-item.menu-item', 'api::home-page.home-page', 'api::menu-page.menu-page', 'api::story-page.story-page', 'api::experience-page.experience-page', 'api::campaign-page.campaign-page', 'api::campaign.campaign', 'api::header-setting.header-setting']);
 
-const payload = JSON.parse(readFileSync(PAYLOAD_PATH, 'utf8'));
+const originalPayload = JSON.parse(readFileSync(PAYLOAD_PATH, 'utf8'));
+const restorePages = args.includes('--restore-experience-space');
+if (restorePages && prune) throw new Error('Page restoration never prunes.');
+const payload = restorePages ? {
+  liveSnapshot: true,
+  locales: originalPayload.locales,
+  pages: Object.fromEntries(Object.entries(originalPayload.pages).filter(([uid]) => ['api::experience-page.experience-page', 'api::space-page.space-page'].includes(uid))),
+  collections: { 'api::gallery-item.gallery-item': originalPayload.collections['api::gallery-item.gallery-item'] },
+} : originalPayload;
+if (restorePages) {
+  const media = new Set();
+  const collect = value => {
+    if (!value || typeof value !== 'object') return;
+    if (value.__file) media.add(value.__file);
+    if (value.__media) media.add(value.__media);
+    for (const nested of Object.values(value)) collect(nested);
+  };
+  collect(payload);
+  payload.media = [...media];
+}
 const locales = payload.locales;
 const summary = createSummary();
 const app = await loadStrapiApp();
@@ -182,11 +201,18 @@ async function seedLocalizedSingleType(uid, byLocale, mediaIds) {
 }
 
 try {
+  if (restorePages) {
+    const slug = originalPayload.collections[LOCATION_UID][locales[0]].slug;
+    const location = await app.documents(LOCATION_UID).findFirst({ locale: locales[0], status: 'published', filters: { slug } });
+    if (!location) throw new Error('Existing published location is required for scoped restoration.');
+    refIds.set(`${LOCATION_UID}:${slug}`, location.documentId);
+  }
   console.log(`seed:content media from ${mediaDirectory()}`);
   const mediaIds = await ensureContentMedia(app, summary, payload.media);
 
   // Location is a collection but single-instance, so it ships keyed by locale.
   const location = payload.collections[LOCATION_UID];
+  if (location) {
   const [primaryLocale, ...otherLocales] = locales;
   const locationPrimary = resolvePlaceholders(location[primaryLocale], mediaIds, refIds);
   const existingLocation = ownerRefresh ? await app.documents(LOCATION_UID).findFirst({ locale: primaryLocale, filters: { slug: locationPrimary.slug } }) : null;
@@ -216,6 +242,7 @@ try {
     );
     summary.record('updated');
   }
+  }
 
   for (const uid of COLLECTION_ORDER) {
     const collection = payload.collections[uid];
@@ -225,9 +252,9 @@ try {
 
   // export:cms-seed already emits globalSetting/headerSetting/footerSetting
   // split to the current shape. Seed sequentially to avoid overlapping publish transactions.
-  await seedLocalizedSingleType(GLOBAL_SETTING_UID, payload.globalSetting, mediaIds);
-  await seedLocalizedSingleType(HEADER_SETTING_UID, payload.headerSetting, mediaIds);
-  await seedLocalizedSingleType(FOOTER_SETTING_UID, payload.footerSetting, mediaIds);
+  if (payload.globalSetting) await seedLocalizedSingleType(GLOBAL_SETTING_UID, payload.globalSetting, mediaIds);
+  if (payload.headerSetting) await seedLocalizedSingleType(HEADER_SETTING_UID, payload.headerSetting, mediaIds);
+  if (payload.footerSetting) await seedLocalizedSingleType(FOOTER_SETTING_UID, payload.footerSetting, mediaIds);
 
   for (const [uid, byLocale] of Object.entries(payload.pages)) {
     const adapted =

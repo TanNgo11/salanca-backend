@@ -1,7 +1,7 @@
 {
   "version": 1,
   "createdAt": "2026-10-03T03:23:42.417Z",
-  "schemaHash": "ef439085d7a5c2eff799c339c43d937b03dd3584e385b8177efbf86310be5261",
+  "schemaHash": "1ebc6fbe3af880067563756208fe7660b8a1fe40df2f79f166fe53de5c6723ca",
   "files": [
     {
       "name": "ea999245bede5a2d247e7da3560014f721d2e80b7cbc2d624a634b80dc8b4502.webp",
@@ -146,6 +146,102 @@
       "sha256": "b60935fa09cf0bd800993e0515297f9adb994578aeeec642e0495b368ddad35d",
       "originalName": "pdf-brazil-map.jpg",
       "sourceFile": "pdf-brazil-map.jpg"
+    },
+    {
+      "name": "dd55109b2bbf47536306bd5dd08173af2f54f660ad45cb9abfe7e2354407cb32.jpg",
+      "sha256": "dd55109b2bbf47536306bd5dd08173af2f54f660ad45cb9abfe7e2354407cb32",
+      "originalName": "client-interior-hall.jpg",
+      "sourceFile": "client-interior-hall.jpg"
+    },
+    {
+      "name": "80e13a0f6f0baacccf02851ba670257a2666316be51f0780b1c09d57f1497bd3.png",
+      "sha256": "80e13a0f6f0baacccf02851ba670257a2666316be51f0780b1c09d57f1497bd3",
+      "originalName": "experience-hero-decor-right.png",
+      "sourceFile": "experience-hero-decor-right.png"
+    },
+    {
+      "name": "8057e82911b18883912d0471e1f54845d277bae99a8efabba913ad6eea58dfde.jpg",
+      "sha256": "8057e82911b18883912d0471e1f54845d277bae99a8efabba913ad6eea58dfde",
+      "originalName": "client-picanha-skewer.jpg",
+      "sourceFile": "client-picanha-skewer.jpg"
+    },
+    {
+      "name": "c3b56afc9dcb61d7bd7a5ab7c8d201396bb5d5b4463ef96a7c4b5a8e8d6627ad.jpg",
+      "sha256": "c3b56afc9dcb61d7bd7a5ab7c8d201396bb5d5b4463ef96a7c4b5a8e8d6627ad",
+      "originalName": "experience-rodizio-service-detail.jpg",
+      "sourceFile": "experience-rodizio-service-detail.jpg"
+    },
+    {
+      "name": "3c4e75d34f5e96b295b3ac89b41de6bbc40ae22e336ff83053885c8504227f06.jpg",
+      "sha256": "3c4e75d34f5e96b295b3ac89b41de6bbc40ae22e336ff83053885c8504227f06",
+      "originalName": "client-picanha-board.jpg",
+      "sourceFile": "client-picanha-board.jpg"
+    },
+    {
+      "name": "5e82bc7930f563ce9bd1f7d9d0ae5e8ce8b4c102034191a817957e74aded118d.jpg",
+      "sha256": "5e82bc7930f563ce9bd1f7d9d0ae5e8ce8b4c102034191a817957e74aded118d",
+      "originalName": "client-roasted-beef.jpg",
+      "sourceFile": "client-roasted-beef.jpg"
+    },
+    {
+      "name": "f0c3b35f7243842445ccf4e66ef5838fe9241b350dbc211c9a185b6fe2020948.jpg",
+      "sha256": "f0c3b35f7243842445ccf4e66ef5838fe9241b350dbc211c9a185b6fe2020948",
+      "originalName": "client-costela.jpg",
+      "sourceFile": "client-costela.jpg"
+    },
+    {
+      "name": "5b8a46ad0dc46075b9b8a3ce70103ed0410610b8a50040e8f10479c2c98ceca5.jpg",
+      "sha256": "5b8a46ad0dc46075b9b8a3ce70103ed0410610b8a50040e8f10479c2c98ceca5",
+      "originalName": "cordeiro.jpg",
+      "sourceFile": "cordeiro.jpg"
+    },
+    {
+      "name": "6cdfed6e1ff73a8984fa8c7ea17f7a0475d2edf385eae3fa110e8d3cec6fb3f7.jpg",
+      "sha256": "6cdfed6e1ff73a8984fa8c7ea17f7a0475d2edf385eae3fa110e8d3cec6fb3f7",
+      "originalName": "client-rodizio-service.jpg",
+      "sourceFile": "client-rodizio-service.jpg"
+    },
+    {
+      "name": "22773a238369ffdf893a836d03276abb0fdd0b213df9f61810cc6c20bcac8a8c.jpg",
+      "sha256": "22773a238369ffdf893a836d03276abb0fdd0b213df9f61810cc6c20bcac8a8c",
+      "originalName": "client-interior-main.jpg",
+      "sourceFile": "client-interior-main.jpg"
+    },
+    {
+      "name": "f7248d52adb78ec5f8bc3bd5648d1fb654d9c402d1f5d6be4fbe461c0150cc08.png",
+      "sha256": "f7248d52adb78ec5f8bc3bd5648d1fb654d9c402d1f5d6be4fbe461c0150cc08",
+      "originalName": "space-hero-decor-right.png",
+      "sourceFile": "space-hero-decor-right.png"
+    },
+    {
+      "name": "cc7145ca21fdcdfd28c4ebc5f7ede1de970b275711d4b07513d6250fcb7f9140.jpg",
+      "sha256": "cc7145ca21fdcdfd28c4ebc5f7ede1de970b275711d4b07513d6250fcb7f9140",
+      "originalName": "client-interior-veranda.jpg",
+      "sourceFile": "client-interior-veranda.jpg"
+    },
+    {
+      "name": "b6b85342617351aa8839a685a01a316857331243d2bac3eb6d8809390fd38eb9.jpg",
+      "sha256": "b6b85342617351aa8839a685a01a316857331243d2bac3eb6d8809390fd38eb9",
+      "originalName": "client-table-setting.jpg",
+      "sourceFile": "client-table-setting.jpg"
+    },
+    {
+      "name": "1e97df50679298713d08e7a781c57d490acb715608e81055cb78a0205d099170.jpg",
+      "sha256": "1e97df50679298713d08e7a781c57d490acb715608e81055cb78a0205d099170",
+      "originalName": "client-interior-green.jpg",
+      "sourceFile": "client-interior-green.jpg"
+    },
+    {
+      "name": "2fe14fb6a1696cad8e3c777b22688317c4b83df03bb7fb0265d6274ca4d92a98.jpg",
+      "sourceFile": "client-panceta.jpg",
+      "originalName": "client-panceta.jpg",
+      "sha256": "2fe14fb6a1696cad8e3c777b22688317c4b83df03bb7fb0265d6274ca4d92a98"
+    },
+    {
+      "name": "b0b5219d840a92a5b86dc6514c0bd34cbcddba719505f55c028f8c1389759909.jpg",
+      "sourceFile": "client-camarao.jpg",
+      "originalName": "client-camarao.jpg",
+      "sha256": "b0b5219d840a92a5b86dc6514c0bd34cbcddba719505f55c028f8c1389759909"
     }
   ],
   "payload": {
@@ -664,9 +760,9 @@
               "price": 0,
               "image": {
                 "media": {
-                  "__file": "4e646f7e3d523af2b29aff49a1bcc5222629893b6fe225175c47841e659f1335.webp"
+                  "__file": "3c4e75d34f5e96b295b3ac89b41de6bbc40ae22e336ff83053885c8504227f06.jpg"
                 },
-                "alt": "Các món nướng trong thực đơn Salanca",
+                "alt": "Món Picanha tại Salanca",
                 "caption": null,
                 "focalPointX": 50,
                 "focalPointY": 50
@@ -701,9 +797,9 @@
               "price": 0,
               "image": {
                 "media": {
-                  "__file": "4e646f7e3d523af2b29aff49a1bcc5222629893b6fe225175c47841e659f1335.webp"
+                  "__file": "3c4e75d34f5e96b295b3ac89b41de6bbc40ae22e336ff83053885c8504227f06.jpg"
                 },
-                "alt": "Grilled selections from the Salanca menu",
+                "alt": "Picanha at Salanca",
                 "caption": null,
                 "focalPointX": 50,
                 "focalPointY": 50
@@ -741,9 +837,9 @@
               "price": 0,
               "image": {
                 "media": {
-                  "__file": "4e646f7e3d523af2b29aff49a1bcc5222629893b6fe225175c47841e659f1335.webp"
+                  "__file": "f0c3b35f7243842445ccf4e66ef5838fe9241b350dbc211c9a185b6fe2020948.jpg"
                 },
-                "alt": "Các món nướng trong thực đơn Salanca",
+                "alt": "Món Costela tại Salanca",
                 "caption": null,
                 "focalPointX": 50,
                 "focalPointY": 50
@@ -778,9 +874,9 @@
               "price": 0,
               "image": {
                 "media": {
-                  "__file": "4e646f7e3d523af2b29aff49a1bcc5222629893b6fe225175c47841e659f1335.webp"
+                  "__file": "f0c3b35f7243842445ccf4e66ef5838fe9241b350dbc211c9a185b6fe2020948.jpg"
                 },
-                "alt": "Grilled selections from the Salanca menu",
+                "alt": "Costela at Salanca",
                 "caption": null,
                 "focalPointX": 50,
                 "focalPointY": 50
@@ -818,9 +914,9 @@
               "price": 0,
               "image": {
                 "media": {
-                  "__file": "4e646f7e3d523af2b29aff49a1bcc5222629893b6fe225175c47841e659f1335.webp"
+                  "__file": "5e82bc7930f563ce9bd1f7d9d0ae5e8ce8b4c102034191a817957e74aded118d.jpg"
                 },
-                "alt": "Các món nướng trong thực đơn Salanca",
+                "alt": "Thịt bò nướng thái lát (minh họa cupim)",
                 "caption": null,
                 "focalPointX": 50,
                 "focalPointY": 50
@@ -855,9 +951,9 @@
               "price": 0,
               "image": {
                 "media": {
-                  "__file": "4e646f7e3d523af2b29aff49a1bcc5222629893b6fe225175c47841e659f1335.webp"
+                  "__file": "5e82bc7930f563ce9bd1f7d9d0ae5e8ce8b4c102034191a817957e74aded118d.jpg"
                 },
-                "alt": "Grilled selections from the Salanca menu",
+                "alt": "Roast beef slices (cupim illustration)",
                 "caption": null,
                 "focalPointX": 50,
                 "focalPointY": 50
@@ -895,9 +991,9 @@
               "price": 0,
               "image": {
                 "media": {
-                  "__file": "4e646f7e3d523af2b29aff49a1bcc5222629893b6fe225175c47841e659f1335.webp"
+                  "__file": "2fe14fb6a1696cad8e3c777b22688317c4b83df03bb7fb0265d6274ca4d92a98.jpg"
                 },
-                "alt": "Các món nướng trong thực đơn Salanca",
+                "alt": "Món Panceta tại Salanca",
                 "caption": null,
                 "focalPointX": 50,
                 "focalPointY": 50
@@ -932,9 +1028,9 @@
               "price": 0,
               "image": {
                 "media": {
-                  "__file": "4e646f7e3d523af2b29aff49a1bcc5222629893b6fe225175c47841e659f1335.webp"
+                  "__file": "2fe14fb6a1696cad8e3c777b22688317c4b83df03bb7fb0265d6274ca4d92a98.jpg"
                 },
-                "alt": "Grilled selections from the Salanca menu",
+                "alt": "Panceta at Salanca",
                 "caption": null,
                 "focalPointX": 50,
                 "focalPointY": 50
@@ -972,9 +1068,9 @@
               "price": 0,
               "image": {
                 "media": {
-                  "__file": "4e646f7e3d523af2b29aff49a1bcc5222629893b6fe225175c47841e659f1335.webp"
+                  "__file": "5b8a46ad0dc46075b9b8a3ce70103ed0410610b8a50040e8f10479c2c98ceca5.jpg"
                 },
-                "alt": "Các món nướng trong thực đơn Salanca",
+                "alt": "Món Cordeiro tại Salanca",
                 "caption": null,
                 "focalPointX": 50,
                 "focalPointY": 50
@@ -1009,9 +1105,9 @@
               "price": 0,
               "image": {
                 "media": {
-                  "__file": "4e646f7e3d523af2b29aff49a1bcc5222629893b6fe225175c47841e659f1335.webp"
+                  "__file": "5b8a46ad0dc46075b9b8a3ce70103ed0410610b8a50040e8f10479c2c98ceca5.jpg"
                 },
-                "alt": "Grilled selections from the Salanca menu",
+                "alt": "Cordeiro at Salanca",
                 "caption": null,
                 "focalPointX": 50,
                 "focalPointY": 50
@@ -1049,9 +1145,9 @@
               "price": 0,
               "image": {
                 "media": {
-                  "__file": "4e646f7e3d523af2b29aff49a1bcc5222629893b6fe225175c47841e659f1335.webp"
+                  "__file": "b0b5219d840a92a5b86dc6514c0bd34cbcddba719505f55c028f8c1389759909.jpg"
                 },
-                "alt": "Các món nướng trong thực đơn Salanca",
+                "alt": "Món Camarão tại Salanca",
                 "caption": null,
                 "focalPointX": 50,
                 "focalPointY": 50
@@ -1086,9 +1182,9 @@
               "price": 0,
               "image": {
                 "media": {
-                  "__file": "4e646f7e3d523af2b29aff49a1bcc5222629893b6fe225175c47841e659f1335.webp"
+                  "__file": "b0b5219d840a92a5b86dc6514c0bd34cbcddba719505f55c028f8c1389759909.jpg"
                 },
-                "alt": "Grilled selections from the Salanca menu",
+                "alt": "Camarão at Salanca",
                 "caption": null,
                 "focalPointX": 50,
                 "focalPointY": 50
@@ -4249,7 +4345,290 @@
       },
       "api::gallery-item.gallery-item": {
         "matchField": "title",
-        "entries": []
+        "entries": [
+          {
+            "key": "Sảnh chính Salanca với nhiều bàn và ánh đèn vàng",
+            "vi": {
+              "title": "Sảnh chính Salanca với nhiều bàn và ánh đèn vàng",
+              "description": "Khám phá từng góc nhỏ",
+              "image": {
+                "alt": "Sảnh chính Salanca với nhiều bàn và ánh đèn vàng",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "22773a238369ffdf893a836d03276abb0fdd0b213df9f61810cc6c20bcac8a8c.jpg"
+                }
+              },
+              "area": "main_hall",
+              "location": {
+                "__ref": {
+                  "uid": "api::location.location",
+                  "key": "salanca-hanoi"
+                }
+              },
+              "displayOrder": 1,
+              "isActive": true
+            },
+            "en": {
+              "title": "Salanca's main hall with warm lighting and dining tables",
+              "description": "Explore every corner",
+              "image": {
+                "alt": "Salanca's main hall with warm lighting and dining tables",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "22773a238369ffdf893a836d03276abb0fdd0b213df9f61810cc6c20bcac8a8c.jpg"
+                }
+              },
+              "area": "main_hall",
+              "location": {
+                "__ref": {
+                  "uid": "api::location.location",
+                  "key": "salanca-hanoi"
+                }
+              },
+              "displayOrder": 1,
+              "isActive": true
+            }
+          },
+          {
+            "key": "Sảnh Salanca với vòm cửa, rèm đỏ và bàn ăn",
+            "vi": {
+              "title": "Sảnh Salanca với vòm cửa, rèm đỏ và bàn ăn",
+              "description": "Khám phá từng góc nhỏ",
+              "image": {
+                "alt": "Sảnh Salanca với vòm cửa, rèm đỏ và bàn ăn",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "dd55109b2bbf47536306bd5dd08173af2f54f660ad45cb9abfe7e2354407cb32.jpg"
+                }
+              },
+              "area": "bar",
+              "location": {
+                "__ref": {
+                  "uid": "api::location.location",
+                  "key": "salanca-hanoi"
+                }
+              },
+              "displayOrder": 2,
+              "isActive": true
+            },
+            "en": {
+              "title": "Salanca hall with arched doorways, red curtains, and dining tables",
+              "description": "Explore every corner",
+              "image": {
+                "alt": "Salanca hall with arched doorways, red curtains, and dining tables",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "dd55109b2bbf47536306bd5dd08173af2f54f660ad45cb9abfe7e2354407cb32.jpg"
+                }
+              },
+              "area": "bar",
+              "location": {
+                "__ref": {
+                  "uid": "api::location.location",
+                  "key": "salanca-hanoi"
+                }
+              },
+              "displayOrder": 2,
+              "isActive": true
+            }
+          },
+          {
+            "key": "Bàn ăn cạnh hiên xanh được bày sẵn tại Salanca",
+            "vi": {
+              "title": "Bàn ăn cạnh hiên xanh được bày sẵn tại Salanca",
+              "description": "Khám phá từng góc nhỏ",
+              "image": {
+                "alt": "Bàn ăn cạnh hiên xanh được bày sẵn tại Salanca",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "b6b85342617351aa8839a685a01a316857331243d2bac3eb6d8809390fd38eb9.jpg"
+                }
+              },
+              "area": "private_room",
+              "location": {
+                "__ref": {
+                  "uid": "api::location.location",
+                  "key": "salanca-hanoi"
+                }
+              },
+              "displayOrder": 3,
+              "isActive": true
+            },
+            "en": {
+              "title": "A table set beside Salanca's green veranda",
+              "description": "Explore every corner",
+              "image": {
+                "alt": "A table set beside Salanca's green veranda",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "b6b85342617351aa8839a685a01a316857331243d2bac3eb6d8809390fd38eb9.jpg"
+                }
+              },
+              "area": "private_room",
+              "location": {
+                "__ref": {
+                  "uid": "api::location.location",
+                  "key": "salanca-hanoi"
+                }
+              },
+              "displayOrder": 3,
+              "isActive": true
+            }
+          },
+          {
+            "key": "Phòng ăn riêng với bàn tiệc và tranh tường",
+            "vi": {
+              "title": "Phòng ăn riêng với bàn tiệc và tranh tường",
+              "description": "Khám phá từng góc nhỏ",
+              "image": {
+                "alt": "Phòng ăn riêng với bàn tiệc và tranh tường",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "dcdb867d09824f751124118de8c14f3d4b76f6c23cd596501588e030251e6c2b.jpg"
+                }
+              },
+              "area": "night",
+              "location": {
+                "__ref": {
+                  "uid": "api::location.location",
+                  "key": "salanca-hanoi"
+                }
+              },
+              "displayOrder": 4,
+              "isActive": true
+            },
+            "en": {
+              "title": "A private dining room with wall art and set tables",
+              "description": "Explore every corner",
+              "image": {
+                "alt": "A private dining room with wall art and set tables",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "dcdb867d09824f751124118de8c14f3d4b76f6c23cd596501588e030251e6c2b.jpg"
+                }
+              },
+              "area": "night",
+              "location": {
+                "__ref": {
+                  "uid": "api::location.location",
+                  "key": "salanca-hanoi"
+                }
+              },
+              "displayOrder": 4,
+              "isActive": true
+            }
+          },
+          {
+            "key": "Góc phòng mang màu sắc Brazil tại Salanca",
+            "vi": {
+              "title": "Góc phòng mang màu sắc Brazil tại Salanca",
+              "description": "Khám phá từng góc nhỏ",
+              "image": {
+                "alt": "Góc phòng mang màu sắc Brazil tại Salanca",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "55917a9795da1574d4febbb4449a161c38b88a63eebc309a27f59d8e81d97c57.jpg"
+                }
+              },
+              "area": "food",
+              "location": {
+                "__ref": {
+                  "uid": "api::location.location",
+                  "key": "salanca-hanoi"
+                }
+              },
+              "displayOrder": 5,
+              "isActive": true
+            },
+            "en": {
+              "title": "A Brazilian-inspired room inside Salanca",
+              "description": "Explore every corner",
+              "image": {
+                "alt": "A Brazilian-inspired room inside Salanca",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "55917a9795da1574d4febbb4449a161c38b88a63eebc309a27f59d8e81d97c57.jpg"
+                }
+              },
+              "area": "food",
+              "location": {
+                "__ref": {
+                  "uid": "api::location.location",
+                  "key": "salanca-hanoi"
+                }
+              },
+              "displayOrder": 5,
+              "isActive": true
+            }
+          },
+          {
+            "key": "Không gian bàn ăn cạnh cửa xanh tại Salanca",
+            "vi": {
+              "title": "Không gian bàn ăn cạnh cửa xanh tại Salanca",
+              "description": "Khám phá từng góc nhỏ",
+              "image": {
+                "alt": "Không gian bàn ăn cạnh cửa xanh tại Salanca",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "1e97df50679298713d08e7a781c57d490acb715608e81055cb78a0205d099170.jpg"
+                }
+              },
+              "area": "experience",
+              "location": {
+                "__ref": {
+                  "uid": "api::location.location",
+                  "key": "salanca-hanoi"
+                }
+              },
+              "displayOrder": 6,
+              "isActive": true
+            },
+            "en": {
+              "title": "Dining tables beside Salanca's green doors",
+              "description": "Explore every corner",
+              "image": {
+                "alt": "Dining tables beside Salanca's green doors",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "1e97df50679298713d08e7a781c57d490acb715608e81055cb78a0205d099170.jpg"
+                }
+              },
+              "area": "experience",
+              "location": {
+                "__ref": {
+                  "uid": "api::location.location",
+                  "key": "salanca-hanoi"
+                }
+              },
+              "displayOrder": 6,
+              "isActive": true
+            }
+          }
+        ]
       }
     },
     "pages": {
@@ -5372,22 +5751,22 @@
             "title": "Trải nghiệm\nChurrascaria",
             "description": "Nghệ thuật phục vụ thịt nướng tại bàn",
             "backgroundImage": {
-              "media": {
-                "__file": "6b5461ba074055d2e298af3dff048a9ea3f7a11dbabdd18580639920debf6f18.webp"
-              },
               "alt": "Trải nghiệm\nChurrascaria",
               "caption": null,
               "focalPointX": 50,
-              "focalPointY": 50
+              "focalPointY": 50,
+              "media": {
+                "__file": "dd55109b2bbf47536306bd5dd08173af2f54f660ad45cb9abfe7e2354407cb32.jpg"
+              }
             },
             "decorativeImage": {
-              "media": {
-                "__file": "fa53cd89c0c56654f6173b2c37ffb23df6cd50897c04f150cd7f986027a4c0fe.webp"
-              },
               "alt": "Trải nghiệm — decor",
               "caption": null,
               "focalPointX": 50,
-              "focalPointY": 50
+              "focalPointY": 50,
+              "media": {
+                "__file": "80e13a0f6f0baacccf02851ba670257a2666316be51f0780b1c09d57f1497bd3.png"
+              }
             },
             "primaryLink": {
               "label": "Đặt bàn ngay",
@@ -5401,70 +5780,73 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": "Không để hương vị bị gián đoạn hay nguội lạnh qua thời gian chờ đợi, Salanca giữ trọn vẹn nghi thức phục vụ Rodizio trứ danh của xứ sở Samba. Từng xiên thịt vừa nhấc ra khỏi bếp than hoa còn xèo xèo bốc khói được các nghệ nhân Passador đưa thẳng tới bàn ăn. Với những đường dao điêu luyện và thái độ nồng hậu, từng lát thịt mỏng mọng nước rơi êm ái xuống đĩa theo nhịp điệu thưởng thức riêng của bạn. Đó là khoảnh khắc giao thoa hoàn hảo giữa nhiệt độ, hương thơm khói gỗ dịu nhẹ và nghệ thuật trình diễn thị giác đầy cuốn hút.",
-                  "type": "text"
+                  "type": "text",
+                  "text": "Churrascaria là nhà hàng nướng kiểu Brazil, nơi những miếng thịt thượng hạng được nướng trên than hồng và mang đến tận bàn."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "Các “gaucho” sẽ liên tục phục vụ, cắt lát tinh tế theo đúng chuẩn mực Brazil — để bạn thưởng thức trọn vẹn hương vị nguyên bản của thịt nướng."
                 }
               ]
             }
           ],
           "introImage": {
-            "media": {
-              "__file": "6b5461ba074055d2e298af3dff048a9ea3f7a11dbabdd18580639920debf6f18.webp"
-            },
-            "alt": "Các món nướng trong thực đơn Salanca",
+            "alt": "Xiên picanha nướng theo phong cách churrasco",
             "caption": null,
             "focalPointX": 50,
-            "focalPointY": 50
+            "focalPointY": 50,
+            "media": {
+              "__file": "8057e82911b18883912d0471e1f54845d277bae99a8efabba913ad6eea58dfde.jpg"
+            }
           },
           "processHeading": "Từ than hồng đến bàn ăn",
           "processSteps": [
             {
               "number": "01",
-              "title": "Thịt bò và cừu nhập khẩu",
-              "body": "Từ New Zealand",
-              "image": null
+              "title": "Nguyên liệu",
+              "body": "Tuyển chọn kỹ lưỡng"
             },
             {
               "number": "02",
-              "title": "Tẩm ướp truyền thống",
-              "body": "Thịt được ướp với muối biển",
-              "image": null
+              "title": "Ướp thịt",
+              "body": "Gia vị Brazil đặc trưng"
             },
             {
               "number": "03",
-              "title": "Nướng xiên quay",
-              "body": "Xiên thịt quay đều quanh than hồng",
-              "image": null
+              "title": "Xiên thủ công",
+              "body": "Kiểm soát chuẩn mỗi xiên thịt"
             },
             {
               "number": "04",
-              "title": "Than củi tự nhiên",
-              "body": "Kiểm soát nhiệt than",
-              "image": null
+              "title": "Nướng than hồng",
+              "body": "Lửa than hồng đều và ổn định"
             },
             {
               "number": "05",
-              "title": "Passador phục vụ",
-              "body": "Cắt từng lát mỏng ngay tại bàn",
-              "image": null
+              "title": "Cắt tại bàn",
+              "body": "Phục vụ trực tiếp bởi Gaucho"
             },
             {
               "number": "06",
               "title": "Phục vụ liên tục",
-              "body": "Theo tốc độ thưởng thức của bạn",
-              "image": null
+              "body": "Thưởng thức không giới hạn"
             }
           ],
           "ritualHeading": "Nghi thức Rodizio",
-          "ritualBody": "Từng xiên nướng được cắt phục vụ liên tục ngay tại bàn ăn theo tốc độ thưởng thức của riêng bạn - chu đáo, hào sảng và đong đầy cảm xúc.",
+          "ritualBody": "Bạn kiểm soát bữa ăn của mình bằng tín hiệu tại bàn.",
           "ritualImage": {
-            "media": {
-              "__file": "6b5461ba074055d2e298af3dff048a9ea3f7a11dbabdd18580639920debf6f18.webp"
-            },
             "alt": "Xiên thịt nướng được cắt trực tiếp xuống đĩa tại bàn",
             "caption": null,
             "focalPointX": 50,
-            "focalPointY": 50
+            "focalPointY": 50,
+            "media": {
+              "__file": "c3b56afc9dcb61d7bd7a5ab7c8d201396bb5d5b4463ef96a7c4b5a8e8d6627ad.jpg"
+            }
           },
           "ritualLink": {
             "label": "Đặt bàn ngay",
@@ -5476,25 +5858,78 @@
             "__ref": {
               "uid": "api::menu-item.menu-item",
               "many": true,
-              "keys": [
-                "picanha",
-                "cupim",
-                "costela",
-                "cordeiro"
-              ]
+              "keys": []
             }
           },
-          "manifestoHeading": "Quý khách thoải mái ăn no hết mức có thể",
-          "tableHeading": "Trải nghiệm tại bàn",
-          "tableBody": "Sự hòa quyện giữa thịt nướng đậm đà và phong vị nhiệt đới tươi mới, biến mỗi bữa ăn thành lễ hội sum vầy ngập tràn niềm vui sống.",
-          "tableImage": {
-            "media": {
-              "__file": "6b5461ba074055d2e298af3dff048a9ea3f7a11dbabdd18580639920debf6f18.webp"
+          "flavorCards": [
+            {
+              "eyebrow": "picanha",
+              "title": "Picanha",
+              "body": "Phần ngon nhất của mông bò",
+              "image": {
+                "alt": "Picanha Salanca nướng trên xiên và thái lát",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "3c4e75d34f5e96b295b3ac89b41de6bbc40ae22e336ff83053885c8504227f06.jpg"
+                }
+              }
             },
-            "alt": "Thịt nướng được cắt trực tiếp trên xiên",
+            {
+              "eyebrow": "cupim",
+              "title": "Cupim",
+              "body": "Mềm béo, giòn mọng bên ngoài",
+              "image": {
+                "alt": "Thịt bò nướng thái lát (minh họa cupim)",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "5e82bc7930f563ce9bd1f7d9d0ae5e8ce8b4c102034191a817957e74aded118d.jpg"
+                }
+              }
+            },
+            {
+              "eyebrow": "costela",
+              "title": "Costela",
+              "body": "Sườn bò nướng thơm lừng",
+              "image": {
+                "alt": "Sườn bò Costela Salanca trên xiên nướng",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "f0c3b35f7243842445ccf4e66ef5838fe9241b350dbc211c9a185b6fe2020948.jpg"
+                }
+              }
+            },
+            {
+              "eyebrow": "cordeiro",
+              "title": "Cordeiro",
+              "body": "Cừu non nướng đậm đà",
+              "image": {
+                "alt": "Đùi cừu nướng",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "5b8a46ad0dc46075b9b8a3ce70103ed0410610b8a50040e8f10479c2c98ceca5.jpg"
+                }
+              }
+            }
+          ],
+          "manifestoHeading": "Không chỉ là một bữa ăn,\nmà là nhịp điệu của Brazil.",
+          "tableHeading": "Trải nghiệm tại bàn",
+          "tableBody": "Thư giãn, trò chuyện và tận hưởng những lát thịt nướng hảo hạng được phục vụ không ngừng — đúng tinh thần hiếu khách của Brazil.",
+          "tableImage": {
+            "alt": "Gaucho phục vụ thịt nướng trực tiếp tại bàn khách Salanca",
             "caption": null,
             "focalPointX": 50,
-            "focalPointY": 50
+            "focalPointY": 50,
+            "media": {
+              "__file": "6cdfed6e1ff73a8984fa8c7ea17f7a0475d2edf385eae3fa110e8d3cec6fb3f7.jpg"
+            }
           },
           "closingCta": {
             "heading": "Sẵn sàng cho một đêm đậm chất Brazil?",
@@ -5503,13 +5938,11 @@
               "label": "Đặt bàn ngay",
               "url": "/vi/dat-ban",
               "openInNewTab": false
-            },
-            "image": null
+            }
           },
           "seo": {
             "metaTitle": "Trải nghiệm",
             "metaDescription": "Trải nghiệm churrascaria tại Salanca — nghi thức rodizio, phục vụ tại bàn và nghệ thuật thịt nướng Brazil.",
-            "shareImage": null,
             "canonicalPath": "/vi/trai-nghiem",
             "noIndex": false
           }
@@ -5520,22 +5953,22 @@
             "title": "The Churrascaria\nExperience",
             "description": "The art of tableside grilled meats",
             "backgroundImage": {
-              "media": {
-                "__file": "6b5461ba074055d2e298af3dff048a9ea3f7a11dbabdd18580639920debf6f18.webp"
-              },
               "alt": "The Churrascaria\nExperience",
               "caption": null,
               "focalPointX": 50,
-              "focalPointY": 50
+              "focalPointY": 50,
+              "media": {
+                "__file": "dd55109b2bbf47536306bd5dd08173af2f54f660ad45cb9abfe7e2354407cb32.jpg"
+              }
             },
             "decorativeImage": {
-              "media": {
-                "__file": "fa53cd89c0c56654f6173b2c37ffb23df6cd50897c04f150cd7f986027a4c0fe.webp"
-              },
               "alt": "The Churrascaria — decor",
               "caption": null,
               "focalPointX": 50,
-              "focalPointY": 50
+              "focalPointY": 50,
+              "media": {
+                "__file": "80e13a0f6f0baacccf02851ba670257a2666316be51f0780b1c09d57f1497bd3.png"
+              }
             },
             "primaryLink": {
               "label": "Book now",
@@ -5549,70 +5982,73 @@
               "type": "paragraph",
               "children": [
                 {
-                  "text": "Salanca preserves Brazil’s celebrated Rodizio ritual so the flavour stays warm and uninterrupted. Skewers come straight from the charcoal grill to your table, still sizzling. With skilful carving and a generous welcome, Passadores serve tender slices at your own pace. Heat, gentle wood smoke and a captivating tableside performance come together in one moment.",
-                  "type": "text"
+                  "type": "text",
+                  "text": "A churrascaria is a Brazilian grill house where premium cuts roast over charcoal and arrive at your table still warm from the fire."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "Gauchos carve continuously, slice by slice, in the Brazilian tradition — so you taste each cut at its peak."
                 }
               ]
             }
           ],
           "introImage": {
-            "media": {
-              "__file": "39a1d0d8a971a41cce8835019c1feafd1089780e11f391758ed8030fc1234dd6.webp"
-            },
-            "alt": "Grilled selections from the Salanca menu",
+            "alt": "A picanha skewer grilled in the churrasco style",
             "caption": null,
             "focalPointX": 50,
-            "focalPointY": 50
+            "focalPointY": 50,
+            "media": {
+              "__file": "8057e82911b18883912d0471e1f54845d277bae99a8efabba913ad6eea58dfde.jpg"
+            }
           },
           "processHeading": "From ember to table",
           "processSteps": [
             {
               "number": "01",
-              "title": "Imported beef and lamb",
-              "body": "From New Zealand",
-              "image": null
+              "title": "Ingredients",
+              "body": "Carefully selected cuts"
             },
             {
               "number": "02",
-              "title": "Traditional seasoning",
-              "body": "Meat seasoned with sea salt",
-              "image": null
+              "title": "Seasoning",
+              "body": "Signature Brazilian spices"
             },
             {
               "number": "03",
-              "title": "Rotating skewers",
-              "body": "Meat skewers turning over charcoal",
-              "image": null
+              "title": "Hand skewering",
+              "body": "Precision on every skewer"
             },
             {
               "number": "04",
-              "title": "Natural charcoal",
-              "body": "Controlled charcoal heat",
-              "image": null
+              "title": "Charcoal grill",
+              "body": "Even, steady ember heat"
             },
             {
               "number": "05",
-              "title": "Passador service",
-              "body": "Thin slices carved at the table",
-              "image": null
+              "title": "Tableside carve",
+              "body": "Served directly by the gaucho"
             },
             {
               "number": "06",
               "title": "Continuous service",
-              "body": "At your own dining pace",
-              "image": null
+              "body": "Enjoy without limits"
             }
           ],
           "ritualHeading": "The rodizio ritual",
-          "ritualBody": "Skewers are carved and served continuously at your table, at your own pace — attentive, generous and full of feeling.",
+          "ritualBody": "You set the pace of the meal with a signal at your table.",
           "ritualImage": {
-            "media": {
-              "__file": "6b5461ba074055d2e298af3dff048a9ea3f7a11dbabdd18580639920debf6f18.webp"
-            },
             "alt": "Grilled meat sliced directly from the skewer onto a plate",
             "caption": null,
             "focalPointX": 50,
-            "focalPointY": 50
+            "focalPointY": 50,
+            "media": {
+              "__file": "c3b56afc9dcb61d7bd7a5ab7c8d201396bb5d5b4463ef96a7c4b5a8e8d6627ad.jpg"
+            }
           },
           "ritualLink": {
             "label": "Book now",
@@ -5624,25 +6060,78 @@
             "__ref": {
               "uid": "api::menu-item.menu-item",
               "many": true,
-              "keys": [
-                "picanha",
-                "cupim",
-                "costela",
-                "cordeiro"
-              ]
+              "keys": []
             }
           },
-          "manifestoHeading": "All you can eat & eat as much as you can",
-          "tableHeading": "Experience at the table",
-          "tableBody": "Rich grilled meats meet fresh tropical flavours, turning every meal into a joyful celebration of being together.",
-          "tableImage": {
-            "media": {
-              "__file": "6b5461ba074055d2e298af3dff048a9ea3f7a11dbabdd18580639920debf6f18.webp"
+          "flavorCards": [
+            {
+              "eyebrow": "picanha",
+              "title": "Picanha",
+              "body": "The prized cut from the rump cap",
+              "image": {
+                "alt": "Salanca picanha grilled on a skewer and sliced",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "3c4e75d34f5e96b295b3ac89b41de6bbc40ae22e336ff83053885c8504227f06.jpg"
+                }
+              }
             },
-            "alt": "Grilled meat carved directly from the skewer",
+            {
+              "eyebrow": "cupim",
+              "title": "Cupim",
+              "body": "Rich and tender with a crisp edge",
+              "image": {
+                "alt": "Sliced roasted beef as an illustration of cupim",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "5e82bc7930f563ce9bd1f7d9d0ae5e8ce8b4c102034191a817957e74aded118d.jpg"
+                }
+              }
+            },
+            {
+              "eyebrow": "costela",
+              "title": "Costela",
+              "body": "Slow-grilled beef ribs, deeply fragrant",
+              "image": {
+                "alt": "Salanca costela beef ribs on the skewer",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "f0c3b35f7243842445ccf4e66ef5838fe9241b350dbc211c9a185b6fe2020948.jpg"
+                }
+              }
+            },
+            {
+              "eyebrow": "cordeiro",
+              "title": "Cordeiro",
+              "body": "Young lamb with a full, savoury finish",
+              "image": {
+                "alt": "Roasted lamb leg",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "5b8a46ad0dc46075b9b8a3ce70103ed0410610b8a50040e8f10479c2c98ceca5.jpg"
+                }
+              }
+            }
+          ],
+          "manifestoHeading": "Not just a meal,\nbut the rhythm of Brazil.",
+          "tableHeading": "Experience at the table",
+          "tableBody": "Relax, talk, and savour premium grilled slices served without pause — Brazilian hospitality in every pass of the skewer.",
+          "tableImage": {
+            "alt": "A gaucho serving grilled meat tableside at Salanca",
             "caption": null,
             "focalPointX": 50,
-            "focalPointY": 50
+            "focalPointY": 50,
+            "media": {
+              "__file": "6cdfed6e1ff73a8984fa8c7ea17f7a0475d2edf385eae3fa110e8d3cec6fb3f7.jpg"
+            }
           },
           "closingCta": {
             "heading": "Ready for a night steeped in Brazil?",
@@ -5651,13 +6140,11 @@
               "label": "Book now",
               "url": "/en/reservations",
               "openInNewTab": false
-            },
-            "image": null
+            }
           },
           "seo": {
             "metaTitle": "Experience",
             "metaDescription": "The Salanca churrascaria experience — rodizio ritual, tableside service, and Brazilian grilled meats.",
-            "shareImage": null,
             "canonicalPath": "/en/experience",
             "noIndex": false
           }
@@ -5667,25 +6154,25 @@
         "vi": {
           "hero": {
             "eyebrow": "Không gian Salanca",
-            "title": "Ngôi nhà 49 Phan Bội Châu",
-            "description": "Năm 2026, Salanca Brazil tự hào bước sang một chương mới khi tọa lạc tại 49 Phan Bội Châu - vị trí đắc địa ngay trung tâm văn hóa và ẩm thực thủ đô.\n\nNgôi nhà mới được kiến tạo với tinh thần giao thoa: sang trọng, tinh tế trong đường nét kiến trúc hiện đại nhưng vẫn đong đầy hơi thở nhiệt đới ấm áp của Brazil. Tại 49 Phan Bội Châu, những xiên than hồng tiếp tục đỏ lửa, sẵn sàng đón tiếp những thực khách tri kỷ cùng nâng ly và viết tiếp những câu chuyện đẹp bên bàn tiệc",
+            "title": "Một góc Brazil\ngiữa lòng thành phố",
+            "description": "Mỗi chi tiết tại Salanca được chăm chút để mang đến trải nghiệm trọn vẹn.",
             "backgroundImage": {
-              "media": {
-                "__file": "ea999245bede5a2d247e7da3560014f721d2e80b7cbc2d624a634b80dc8b4502.webp"
-              },
-              "alt": "Ngôi nhà 49 Phan Bội Châu",
+              "alt": "Một góc Brazil\ngiữa lòng thành phố",
               "caption": null,
               "focalPointX": 50,
-              "focalPointY": 50
+              "focalPointY": 50,
+              "media": {
+                "__file": "22773a238369ffdf893a836d03276abb0fdd0b213df9f61810cc6c20bcac8a8c.jpg"
+              }
             },
             "decorativeImage": {
-              "media": {
-                "__file": "fa53cd89c0c56654f6173b2c37ffb23df6cd50897c04f150cd7f986027a4c0fe.webp"
-              },
               "alt": "Không gian Salanca — decor",
               "caption": null,
               "focalPointX": 50,
-              "focalPointY": 50
+              "focalPointY": 50,
+              "media": {
+                "__file": "f7248d52adb78ec5f8bc3bd5648d1fb654d9c402d1f5d6be4fbe461c0150cc08.png"
+              }
             },
             "primaryLink": {
               "label": "Đặt bàn",
@@ -5693,59 +6180,149 @@
               "openInNewTab": false
             }
           },
-          "introHeading": "Chương mới của Salanca Brazil",
+          "introHeading": "Nơi lửa, hương vị\nvà những cuộc gặp gỡ\nhội tụ",
           "introBody": [
             {
               "type": "paragraph",
               "children": [
                 {
-                  "text": "Năm 2026, Salanca Brazil tự hào bước sang một chương mới khi tọa lạc tại 49 Phan Bội Châu - vị trí đắc địa ngay trung tâm văn hóa và ẩm thực thủ đô.\n\nNgôi nhà mới được kiến tạo với tinh thần giao thoa: sang trọng, tinh tế trong đường nét kiến trúc hiện đại nhưng vẫn đong đầy hơi thở nhiệt đới ấm áp của Brazil. Tại 49 Phan Bội Châu, những xiên than hồng tiếp tục đỏ lửa, sẵn sàng đón tiếp những thực khách tri kỷ cùng nâng ly và viết tiếp những câu chuyện đẹp bên bàn tiệc",
-                  "type": "text"
+                  "type": "text",
+                  "text": "Mỗi chi tiết tại Salanca được chăm chút để mang đến trải nghiệm trọn vẹn."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "Không gian mở ấm áp, sắc xanh nhiệt đới và hương thơm từ bếp nướng than hồng hòa quyện, đánh thức mọi giác quan."
                 }
               ]
             }
           ],
           "introImage": {
-            "media": {
-              "__file": "ea999245bede5a2d247e7da3560014f721d2e80b7cbc2d624a634b80dc8b4502.webp"
-            },
-            "alt": "Minh họa Brazil trong ấn phẩm Salanca",
+            "alt": "Nội thất Salanca với cây xanh và ánh đèn ấm",
             "caption": null,
             "focalPointX": 50,
-            "focalPointY": 50
+            "focalPointY": 50,
+            "media": {
+              "__file": "cc7145ca21fdcdfd28c4ebc5f7ede1de970b275711d4b07513d6250fcb7f9140.jpg"
+            }
           },
           "galleryHeading": "Khám phá từng góc nhỏ",
           "galleryItems": {
             "__ref": {
               "uid": "api::gallery-item.gallery-item",
-              "many": true,
-              "keys": []
+              "keys": [
+                "Sảnh chính Salanca với nhiều bàn và ánh đèn vàng",
+                "Sảnh Salanca với vòm cửa, rèm đỏ và bàn ăn",
+                "Bàn ăn cạnh hiên xanh được bày sẵn tại Salanca",
+                "Phòng ăn riêng với bàn tiệc và tranh tường",
+                "Góc phòng mang màu sắc Brazil tại Salanca",
+                "Không gian bàn ăn cạnh cửa xanh tại Salanca"
+              ],
+              "many": true
             }
           },
-          "eventHeading": "",
-          "eventBody": "",
-          "eventImage": null,
-          "eventLink": null,
+          "eventHeading": "Trải nghiệm không gian",
+          "eventBody": "Bước vào Salanca trước khi bạn ghé thăm",
+          "eventImage": {
+            "alt": "Toàn cảnh hiên xanh và bàn ăn tại Salanca",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50,
+            "media": {
+              "__file": "cc7145ca21fdcdfd28c4ebc5f7ede1de970b275711d4b07513d6250fcb7f9140.jpg"
+            }
+          },
+          "eventLink": {
+            "label": "Xem toàn bộ hình ảnh",
+            "url": "/vi/khong-gian",
+            "openInNewTab": false
+          },
           "experienceHeading": "Không gian cho mọi cuộc hẹn",
-          "experienceBody": "",
-          "experienceImage": null,
-          "zones": [],
+          "experienceBody": "Từ sảnh chính sôi động đến phòng riêng kín đáo, mỗi khu vực được chuẩn bị cho một nhịp gặp gỡ khác nhau.",
+          "experienceImage": {
+            "alt": "Toàn cảnh không gian dùng bữa tại Salanca",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50,
+            "media": {
+              "__file": "22773a238369ffdf893a836d03276abb0fdd0b213df9f61810cc6c20bcac8a8c.jpg"
+            }
+          },
+          "zones": [
+            {
+              "eyebrow": "Sảnh chính",
+              "title": "Sôi động và ấm cúng",
+              "image": {
+                "alt": "Sảnh chính Salanca với nhiều bàn và ánh đèn vàng",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "22773a238369ffdf893a836d03276abb0fdd0b213df9f61810cc6c20bcac8a8c.jpg"
+                }
+              }
+            },
+            {
+              "eyebrow": "Phòng riêng",
+              "title": "Riêng tư và tinh tế",
+              "image": {
+                "alt": "Phòng riêng với bàn dài và tranh tường",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "dcdb867d09824f751124118de8c14f3d4b76f6c23cd596501588e030251e6c2b.jpg"
+                }
+              }
+            },
+            {
+              "eyebrow": "Tiệc nhóm",
+              "title": "Linh hoạt theo nhu cầu",
+              "image": {
+                "alt": "Nhóm khách dùng bữa tại bàn ngoài trời",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "c31461e80fe67a8dbb6f96d8f0a96929703b475949b1f9f914b7505bd2a9c5d7.jpg"
+                }
+              }
+            }
+          ],
           "amenitiesHeading": "Mọi chi tiết đều được chuẩn bị",
-          "amenities": [],
+          "amenities": [
+            {
+              "title": "Không gian",
+              "body": "riêng tư"
+            },
+            {
+              "title": "Bàn tiệc",
+              "body": "linh hoạt"
+            },
+            {
+              "title": "Hỗ trợ",
+              "body": "sự kiện"
+            },
+            {
+              "title": "Phục vụ",
+              "body": "tận tâm"
+            }
+          ],
           "closingCta": {
             "heading": "Chọn không gian\ncho bữa tiệc của bạn",
-            "body": null,
             "link": {
               "label": "Đặt bàn",
               "url": "/vi/dat-ban",
               "openInNewTab": false
-            },
-            "image": null
+            }
           },
           "seo": {
             "metaTitle": "Không gian",
             "metaDescription": "Câu chuyện về ngôi nhà mới của Salanca tại 49 Phan Bội Châu, Hà Nội.",
-            "shareImage": null,
             "canonicalPath": "/vi/khong-gian",
             "noIndex": false
           }
@@ -5753,25 +6330,25 @@
         "en": {
           "hero": {
             "eyebrow": "Salanca spaces",
-            "title": "Our home at 49 Phan Bội Châu",
-            "description": "In 2026, Salanca Brazil began a new chapter at 49 Phan Bội Châu, in the cultural and culinary heart of Hanoi. Our new home brings together refined contemporary architecture and Brazil’s warm tropical spirit. The charcoal fires keep burning as we welcome old friends to raise a glass and write new stories around the table.",
+            "title": "A corner of Brazil\nin the heart of the city",
+            "description": "Every detail at Salanca is prepared with care so the evening feels complete.",
             "backgroundImage": {
-              "media": {
-                "__file": "ea999245bede5a2d247e7da3560014f721d2e80b7cbc2d624a634b80dc8b4502.webp"
-              },
-              "alt": "Our home at 49 Phan Bội Châu",
+              "alt": "A corner of Brazil\nin the heart of the city",
               "caption": null,
               "focalPointX": 50,
-              "focalPointY": 50
+              "focalPointY": 50,
+              "media": {
+                "__file": "22773a238369ffdf893a836d03276abb0fdd0b213df9f61810cc6c20bcac8a8c.jpg"
+              }
             },
             "decorativeImage": {
-              "media": {
-                "__file": "fa53cd89c0c56654f6173b2c37ffb23df6cd50897c04f150cd7f986027a4c0fe.webp"
-              },
               "alt": "Salanca spaces — decor",
               "caption": null,
               "focalPointX": 50,
-              "focalPointY": 50
+              "focalPointY": 50,
+              "media": {
+                "__file": "f7248d52adb78ec5f8bc3bd5648d1fb654d9c402d1f5d6be4fbe461c0150cc08.png"
+              }
             },
             "primaryLink": {
               "label": "Book a table",
@@ -5779,59 +6356,149 @@
               "openInNewTab": false
             }
           },
-          "introHeading": "A new chapter for Salanca Brazil",
+          "introHeading": "Where fire, flavour\nand gatherings\ncome together",
           "introBody": [
             {
               "type": "paragraph",
               "children": [
                 {
-                  "text": "In 2026, Salanca Brazil began a new chapter at 49 Phan Bội Châu, in the cultural and culinary heart of Hanoi. Our new home brings together refined contemporary architecture and Brazil’s warm tropical spirit. The charcoal fires keep burning as we welcome old friends to raise a glass and write new stories around the table.",
-                  "type": "text"
+                  "type": "text",
+                  "text": "Every detail at Salanca is prepared with care so the evening feels complete."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "An open, warm room, tropical greens, and the scent of charcoal from the grill awaken every sense."
                 }
               ]
             }
           ],
           "introImage": {
-            "media": {
-              "__file": "ea999245bede5a2d247e7da3560014f721d2e80b7cbc2d624a634b80dc8b4502.webp"
-            },
-            "alt": "Brazilian artwork from the Salanca menu",
+            "alt": "Salanca interior with greenery and warm lighting",
             "caption": null,
             "focalPointX": 50,
-            "focalPointY": 50
+            "focalPointY": 50,
+            "media": {
+              "__file": "cc7145ca21fdcdfd28c4ebc5f7ede1de970b275711d4b07513d6250fcb7f9140.jpg"
+            }
           },
           "galleryHeading": "Explore every corner",
           "galleryItems": {
             "__ref": {
               "uid": "api::gallery-item.gallery-item",
-              "many": true,
-              "keys": []
+              "keys": [
+                "Sảnh chính Salanca với nhiều bàn và ánh đèn vàng",
+                "Sảnh Salanca với vòm cửa, rèm đỏ và bàn ăn",
+                "Bàn ăn cạnh hiên xanh được bày sẵn tại Salanca",
+                "Phòng ăn riêng với bàn tiệc và tranh tường",
+                "Góc phòng mang màu sắc Brazil tại Salanca",
+                "Không gian bàn ăn cạnh cửa xanh tại Salanca"
+              ],
+              "many": true
             }
           },
-          "eventHeading": "",
-          "eventBody": "",
-          "eventImage": null,
-          "eventLink": null,
+          "eventHeading": "Experience the space",
+          "eventBody": "Step into Salanca before you visit",
+          "eventImage": {
+            "alt": "Wide view of Salanca's green veranda and dining tables",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50,
+            "media": {
+              "__file": "cc7145ca21fdcdfd28c4ebc5f7ede1de970b275711d4b07513d6250fcb7f9140.jpg"
+            }
+          },
+          "eventLink": {
+            "label": "View all photos",
+            "url": "/en/space",
+            "openInNewTab": false
+          },
           "experienceHeading": "Spaces for every occasion",
-          "experienceBody": "",
-          "experienceImage": null,
-          "zones": [],
+          "experienceBody": "From the lively main hall to private rooms, each area is prepared for a different kind of gathering.",
+          "experienceImage": {
+            "alt": "A wide view of Salanca's dining space",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50,
+            "media": {
+              "__file": "22773a238369ffdf893a836d03276abb0fdd0b213df9f61810cc6c20bcac8a8c.jpg"
+            }
+          },
+          "zones": [
+            {
+              "eyebrow": "Main hall",
+              "title": "Lively and warm",
+              "image": {
+                "alt": "Salanca main hall with many tables and warm lighting",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "22773a238369ffdf893a836d03276abb0fdd0b213df9f61810cc6c20bcac8a8c.jpg"
+                }
+              }
+            },
+            {
+              "eyebrow": "Private room",
+              "title": "Intimate and refined",
+              "image": {
+                "alt": "Private dining room with a long table and wall art",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "dcdb867d09824f751124118de8c14f3d4b76f6c23cd596501588e030251e6c2b.jpg"
+                }
+              }
+            },
+            {
+              "eyebrow": "Group events",
+              "title": "Flexible to your needs",
+              "image": {
+                "alt": "Guests dining together at an outdoor table",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "c31461e80fe67a8dbb6f96d8f0a96929703b475949b1f9f914b7505bd2a9c5d7.jpg"
+                }
+              }
+            }
+          ],
           "amenitiesHeading": "Every detail, prepared",
-          "amenities": [],
+          "amenities": [
+            {
+              "title": "Private",
+              "body": "spaces"
+            },
+            {
+              "title": "Flexible",
+              "body": "tables"
+            },
+            {
+              "title": "Event",
+              "body": "support"
+            },
+            {
+              "title": "Attentive",
+              "body": "service"
+            }
+          ],
           "closingCta": {
             "heading": "Choose the space\nfor your gathering",
-            "body": null,
             "link": {
               "label": "Book a table",
               "url": "/en/reservations",
               "openInNewTab": false
-            },
-            "image": null
+            }
           },
           "seo": {
             "metaTitle": "Space",
             "metaDescription": "The story of Salanca’s new home at 49 Phan Boi Chau, Hanoi.",
-            "shareImage": null,
             "canonicalPath": "/en/space",
             "noIndex": false
           }
@@ -7390,7 +8057,23 @@
       "39a1d0d8a971a41cce8835019c1feafd1089780e11f391758ed8030fc1234dd6.webp",
       "55917a9795da1574d4febbb4449a161c38b88a63eebc309a27f59d8e81d97c57.jpg",
       "7d2356600aa24193ece0b8761c212a24dab520aec05b780c4eda38c9591036a5.jpg",
-      "b60935fa09cf0bd800993e0515297f9adb994578aeeec642e0495b368ddad35d.jpg"
+      "b60935fa09cf0bd800993e0515297f9adb994578aeeec642e0495b368ddad35d.jpg",
+      "dd55109b2bbf47536306bd5dd08173af2f54f660ad45cb9abfe7e2354407cb32.jpg",
+      "80e13a0f6f0baacccf02851ba670257a2666316be51f0780b1c09d57f1497bd3.png",
+      "8057e82911b18883912d0471e1f54845d277bae99a8efabba913ad6eea58dfde.jpg",
+      "c3b56afc9dcb61d7bd7a5ab7c8d201396bb5d5b4463ef96a7c4b5a8e8d6627ad.jpg",
+      "3c4e75d34f5e96b295b3ac89b41de6bbc40ae22e336ff83053885c8504227f06.jpg",
+      "5e82bc7930f563ce9bd1f7d9d0ae5e8ce8b4c102034191a817957e74aded118d.jpg",
+      "f0c3b35f7243842445ccf4e66ef5838fe9241b350dbc211c9a185b6fe2020948.jpg",
+      "5b8a46ad0dc46075b9b8a3ce70103ed0410610b8a50040e8f10479c2c98ceca5.jpg",
+      "6cdfed6e1ff73a8984fa8c7ea17f7a0475d2edf385eae3fa110e8d3cec6fb3f7.jpg",
+      "22773a238369ffdf893a836d03276abb0fdd0b213df9f61810cc6c20bcac8a8c.jpg",
+      "f7248d52adb78ec5f8bc3bd5648d1fb654d9c402d1f5d6be4fbe461c0150cc08.png",
+      "cc7145ca21fdcdfd28c4ebc5f7ede1de970b275711d4b07513d6250fcb7f9140.jpg",
+      "b6b85342617351aa8839a685a01a316857331243d2bac3eb6d8809390fd38eb9.jpg",
+      "1e97df50679298713d08e7a781c57d490acb715608e81055cb78a0205d099170.jpg",
+      "2fe14fb6a1696cad8e3c777b22688317c4b83df03bb7fb0265d6274ca4d92a98.jpg",
+      "b0b5219d840a92a5b86dc6514c0bd34cbcddba719505f55c028f8c1389759909.jpg"
     ]
   },
   "generatedFrom": "Published CMS content with approved original source artwork"

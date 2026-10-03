@@ -82,3 +82,17 @@ export function validateBundle(bundle) {
     if (!/^[a-f0-9]{64}\.(png|jpg|jpeg|webp|svg|avif)$/.test(file.name) || file.sha256 !== file.name.split('.')[0]) throw new Error('Unsafe bundle media path or hash.');
   }
 }
+
+/** Only republish an old gallery draft when its editable content matches the approved restoration. */
+export function matchesRestoredGallery(app, row, incoming, bundle, refs) {
+  try {
+    const media = new Map();
+    const data = serialize(app, 'api::gallery-item.gallery-item', row, refs, media);
+    const names = new Map([...media].map(([id, file]) => [String(id), bundle.files.find(f => f.name === file.name || f.sourceFile === file.name)?.name]));
+    const restored = replaceFiles(data, names);
+    const normalize = value => Array.isArray(value) ? value.map(normalize) : value && typeof value === 'object'
+      ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => [k, normalize(v)])) : value;
+    return Object.keys(incoming).every(key => JSON.stringify(normalize(restored[key])) === JSON.stringify(normalize(incoming[key])))
+      && Object.entries(restored).every(([key, value]) => Object.hasOwn(incoming, key) || value === null);
+  } catch { return false; }
+}

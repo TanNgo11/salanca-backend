@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest';
 // Runtime operations helpers are plain ESM; tests assert transport boundaries.
 // @ts-expect-error Plain ESM helper has no declaration file.
-import { serialize, replaceFiles, sha, validateBundle, editableProjection } from './content-bundle.helper.mjs';
+import { serialize, replaceFiles, sha, validateBundle, editableProjection, matchesRestoredGallery } from './content-bundle.helper.mjs';
 import { resolvePlaceholders } from './seed-salanca-content/resolve.mjs';
 
 describe('content bundle transport', () => {
+  it('only permits republishing an unchanged approved gallery draft', () => {
+    const app = { contentTypes: { 'api::gallery-item.gallery-item': { attributes: { title: { type: 'string' }, description: { type: 'text' } } } }, components: {} };
+    const incoming = { title: 'Old gallery', description: 'Approved content' };
+    expect(matchesRestoredGallery(app, incoming, incoming, { files: [] }, new Map())).toBe(true);
+    expect(matchesRestoredGallery(app, { ...incoming, description: 'Editor changed this' }, incoming, { files: [] }, new Map())).toBe(false);
+  });
   it('maps media to the destination id rather than source ids', () => {
     const payload = replaceFiles({ image: { media: { __file: '18' }, alt: 'Salad' } }, new Map([['18', 'packed.webp']]));
     expect(resolvePlaceholders(payload, new Map([['packed.webp', 99]]), new Map())).toEqual({ image: { media: 99, alt: 'Salad' } });

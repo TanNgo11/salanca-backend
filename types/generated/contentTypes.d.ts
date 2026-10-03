@@ -1039,6 +1039,12 @@ export interface ApiExperiencePageExperiencePage
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    flavorCards: Schema.Attribute.Component<'shared.editorial-card', true> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
     flavorItems: Schema.Attribute.Relation<
       'oneToMany',
       'api::menu-item.menu-item'

@@ -150,3 +150,6 @@ loopback database. It replaces only recognized legacy media pointers, retains
 editor replacements, aborts on different drafts and saves a field snapshot.
 The Rodizio, origin and experience photos are separate image components, not
 whole PDF pages.
+
+### Experience-specific flavor cards (2026-10-03)
+`experience-page.flavorCards` is an optional localized repeatable `shared.editorial-card` component. Its eyebrow is the card key, title/body are displayed copy, and shared.image is the editable original photo. This additive field restores the old Experience artwork without changing related menu-item images. Existing flavorItems remains supported for older records.

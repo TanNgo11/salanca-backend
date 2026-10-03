@@ -270,3 +270,6 @@ loopback database. It replaces only recognized legacy media pointers, retains
 editor replacements, aborts on different drafts and saves a field snapshot.
 The Rodizio, origin and experience photos are separate image components, not
 whole PDF pages.
+
+### Experience cut artwork restoration (2026-10-03)
+Experience consumers populate `flavorCards.image.media`; nonempty flavorCards take precedence over flavorItems for the display grid. Documents lacking flavorCards continue to render related menu items. Both locales are explicitly queried. The page image is independent of menu-item media.

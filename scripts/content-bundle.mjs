@@ -2,13 +2,16 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync } from
 import { resolve, extname } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { loadStrapiApp } from './lib/strapi-load.mjs';
-import { allUids, collectionFields, singleUids, locales, populateFor, serialize, sha, replaceFiles, validateBundle, editableProjection } from './content-bundle.helper.mjs';
+import { allUids, collectionFields, singleUids, locales, populateFor, serialize, sha, replaceFiles, validateBundle, editableProjection, matchesRestoredGallery } from './content-bundle.helper.mjs';
 
 process.chdir(resolve(import.meta.dirname, '..'));
 const args = process.argv.slice(2).filter(a => a !== '--');
 const [mode, directory] = args;
 if (!['pack', 'deploy', 'seed'].includes(mode) || !directory) throw new Error('Use seed-production-content.mjs or content:pack / content:deploy.');
 const shipped = mode === 'seed';
+const restorePages = args.includes('--restore-experience-space');
+if (restorePages && !shipped) throw new Error('Page restoration requires the shipped release.');
+const restoredUids = ['api::gallery-item.gallery-item', 'api::experience-page.experience-page', 'api::space-page.space-page'];
 if (shipped && resolve(directory) !== resolve('data/content-release')) throw new Error('Owner seed must use the shipped release.');
 if (args.includes('--prune')) throw new Error('Content bundles never prune.');
 const root = resolve(directory);
@@ -91,8 +94,13 @@ try {
     if (bundle.schemaHash !== schemaHash) throw new Error('Schema mismatch. Deploy matching backend code before content.');
     if (shipped && app.config.get('plugin::upload.provider') !== 'aws-s3') throw new Error('This seed requires the configured S3 upload provider.');
     const recovery = { createdAt: new Date().toISOString(), purpose: 'Marketing content recovery snapshot; not a full database backup', documents: {} };
+    const restoreRefs = new Map();
+    if (restorePages) {
+      const locations = await app.documents('api::location.location').findMany({ locale: 'vi', status: 'published', limit: 2000 });
+      for (const row of locations) restoreRefs.set(`api::location.location:${row.documentId}`, row.slug);
+    }
     let count = 0;
-    for (const uid of allUids) for (const locale of locales) {
+    for (const uid of restorePages ? restoredUids : allUids) for (const locale of locales) {
       const published = await app.documents(uid).findMany({ locale, status: 'published', populate: populateFor(app, uid), limit: 2000 });
       const drafts = await app.documents(uid).findMany({ locale, status: 'draft', populate: populateFor(app, uid), limit: 2000 });
       if (published.length >= 2000 || drafts.length >= 2000) throw new Error('Target limit reached; refusing ambiguous preview.');
@@ -106,14 +114,26 @@ try {
         if (matches.length > 1) throw new Error(`Ambiguous target ${uid}/${locale}.`);
         const draft = matches[0], live = draft && published.find(r => r.documentId === draft.documentId);
         const draftContent = editableProjection(app, uid, draft), liveContent = editableProjection(app, uid, live);
-        if (draft && (!live || JSON.stringify(normalize(draftContent)) !== JSON.stringify(normalize(liveContent)))) {
+        const approvedGallery = restorePages && uid === 'api::gallery-item.gallery-item' && !live && draft && matchesRestoredGallery(app, draft, data, bundle, restoreRefs);
+        if (draft && !approvedGallery && (!live || JSON.stringify(normalize(draftContent)) !== JSON.stringify(normalize(liveContent)))) {
           const changed = live ? Object.keys(draftContent).filter(key => JSON.stringify(normalize(draftContent[key])) !== JSON.stringify(normalize(liveContent[key]))) : ['unpublished document'];
           throw new Error(`Unpublished target edits: ${uid}/${locale} (${changed.join(', ')}); preserved.`);
         }
         console.log(`${draft ? 'UPDATE' : 'CREATE'} ${uid}/${locale}`); count++;
       }
     }
-    console.log(`Preview: ${count} localized documents, ${bundle.files.length} media files. No pruning.`);
+    const selectedMedia = new Set();
+    const collectMedia = value => {
+      if (!value || typeof value !== 'object') return;
+      if (value.__file) selectedMedia.add(value.__file);
+      for (const nested of Object.values(value)) collectMedia(nested);
+    };
+    if (restorePages) {
+      collectMedia(bundle.payload.pages['api::experience-page.experience-page']);
+      collectMedia(bundle.payload.pages['api::space-page.space-page']);
+      collectMedia(bundle.payload.collections['api::gallery-item.gallery-item']);
+    }
+    console.log(`Preview: ${count} localized documents, ${restorePages ? selectedMedia.size : bundle.files.length} media files. No pruning.`);
     if (apply && shipped) {
       const backupDir = resolve('.tmp/content-deploy-backups'); mkdirSync(backupDir, { recursive: true });
       const backupPath = resolve(backupDir, `${Date.now()}-marketing.json`);
@@ -141,7 +161,7 @@ if (mode !== 'pack' && apply) {
     for (const file of bundle.files) copyFileSync(resolve('data/media/salanca', file.sourceFile), resolve(executionRoot, 'media', file.name));
   }
   const payloadPath = resolve(executionRoot, 'payload.json'); writeFileSync(payloadPath, JSON.stringify(bundle.payload));
-  const result = spawnSync(process.execPath, ['scripts/seed-salanca-content/index.mjs', payloadPath], { env: { ...process.env, SALANCA_WEB_MEDIA_DIR: resolve(executionRoot, 'media'), ...(shipped ? { SALANCA_SEED_REQUIRE_S3: 'true' } : {}) }, stdio: 'inherit' });
+  const result = spawnSync(process.execPath, ['scripts/seed-salanca-content/index.mjs', payloadPath, ...(restorePages ? ['--restore-experience-space'] : [])], { env: { ...process.env, SALANCA_WEB_MEDIA_DIR: resolve(executionRoot, 'media'), ...(shipped ? { SALANCA_SEED_REQUIRE_S3: 'true' } : {}) }, stdio: 'inherit' });
   if (result.status !== 0) throw new Error('Seed failed; partial writes may exist. Preserve the recorded recovery snapshot and inspect the failure before retrying.');
   console.log('Content/media deployment complete. Rebuild/revalidate the frontend using its existing deployment pipeline.');
 }
