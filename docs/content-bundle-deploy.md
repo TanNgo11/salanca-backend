@@ -39,3 +39,7 @@ node scripts/seed-production-content.mjs --restore-marketing-pages
 ```
 
 This uploads/reuses the approved original images through S3 and restores the four pages, seven campaigns, six gallery records and location opening hours in VI/EN. Other location facts, global settings, menu, homepage and leads are preserved. Unpublished edits block restoration; populated recovery records are saved before writes. Rebuild/revalidate FE after content restoration. Git deployment alone does not update published CMS data.
+
+## Story template
+
+After deploying the matching backend, run `node scripts/seed-production-content.mjs --restore-story` to apply only Story VI/EN and its S3 photography. `--preview` validates without writes. Other restoration flags must be run separately.

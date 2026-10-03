@@ -1,0 +1,32 @@
+{
+  "collectionName": "components_shared_booking_contacts",
+  "info": {
+    "displayName": "Thông tin đặt bàn"
+  },
+  "options": {},
+  "attributes": {
+    "address": {
+      "type": "text",
+      "required": true
+    },
+    "mapUrl": {
+      "type": "string",
+      "required": true
+    },
+    "phones": {
+      "type": "component",
+      "component": "shared.link",
+      "repeatable": true
+    },
+    "facebook": {
+      "type": "component",
+      "component": "shared.link",
+      "repeatable": false
+    },
+    "qrImage": {
+      "type": "component",
+      "component": "shared.image",
+      "repeatable": false
+    }
+  }
+}

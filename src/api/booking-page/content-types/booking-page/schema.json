@@ -190,6 +190,16 @@
       "component": "shared.seo",
       "repeatable": false,
       "required": true
+    },
+    "contactInfo": {
+      "type": "component",
+      "component": "shared.booking-contact",
+      "repeatable": false,
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
     }
   }
 }

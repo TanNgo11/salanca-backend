@@ -9,10 +9,14 @@ const args = process.argv.slice(2).filter(a => a !== '--');
 const [mode, directory] = args;
 if (!['pack', 'deploy', 'seed'].includes(mode) || !directory) throw new Error('Use seed-production-content.mjs or content:pack / content:deploy.');
 const shipped = mode === 'seed';
+const restoreStory = args.includes('--restore-story');
+const restoreBooking = args.includes('--restore-booking');
+const restoredSingleUid = restoreBooking ? 'api::booking-page.booking-page' : restoreStory ? 'api::story-page.story-page' : undefined;
 const restoreMarketing = args.includes('--restore-marketing-pages');
-const restorePages = args.includes('--restore-experience-space') || restoreMarketing;
+const restorePages = args.includes('--restore-experience-space') || restoreMarketing || restoreStory || restoreBooking;
+if (args.filter(arg => arg.startsWith('--restore-')).length > 1) throw new Error('Choose one restoration scope.');
 if (restorePages && !shipped) throw new Error('Page restoration requires the shipped release.');
-const restoredUids = ['api::gallery-item.gallery-item', 'api::experience-page.experience-page', 'api::space-page.space-page', ...(restoreMarketing ? ['api::campaign.campaign', 'api::campaign-page.campaign-page', 'api::contact-page.contact-page', 'api::location.location'] : [])];
+const restoredUids = restoredSingleUid ? [restoredSingleUid] : ['api::gallery-item.gallery-item', 'api::experience-page.experience-page', 'api::space-page.space-page', ...(restoreMarketing ? ['api::campaign.campaign', 'api::campaign-page.campaign-page', 'api::contact-page.contact-page', 'api::location.location'] : [])];
 if (shipped && resolve(directory) !== resolve('data/content-release')) throw new Error('Owner seed must use the shipped release.');
 if (args.includes('--prune')) throw new Error('Content bundles never prune.');
 const root = resolve(directory);
@@ -129,7 +133,8 @@ try {
       if (value.__file) selectedMedia.add(value.__file);
       for (const nested of Object.values(value)) collectMedia(nested);
     };
-    if (restorePages) {
+    if (restoredSingleUid) collectMedia(bundle.payload.pages[restoredSingleUid]);
+    else if (restorePages) {
       collectMedia(bundle.payload.pages['api::experience-page.experience-page']);
       collectMedia(bundle.payload.pages['api::space-page.space-page']);
       collectMedia(bundle.payload.collections['api::gallery-item.gallery-item']);
@@ -167,7 +172,7 @@ if (mode !== 'pack' && apply) {
     for (const file of bundle.files) copyFileSync(resolve('data/media/salanca', file.sourceFile), resolve(executionRoot, 'media', file.name));
   }
   const payloadPath = resolve(executionRoot, 'payload.json'); writeFileSync(payloadPath, JSON.stringify(bundle.payload));
-  const result = spawnSync(process.execPath, ['scripts/seed-salanca-content/index.mjs', payloadPath, ...(restorePages ? [restoreMarketing ? '--restore-marketing-pages' : '--restore-experience-space'] : [])], { env: { ...process.env, SALANCA_WEB_MEDIA_DIR: resolve(executionRoot, 'media'), ...(shipped ? { SALANCA_SEED_REQUIRE_S3: 'true' } : {}) }, stdio: 'inherit' });
+  const result = spawnSync(process.execPath, ['scripts/seed-salanca-content/index.mjs', payloadPath, ...(restorePages ? [restoreBooking ? '--restore-booking' : restoreStory ? '--restore-story' : restoreMarketing ? '--restore-marketing-pages' : '--restore-experience-space'] : [])], { env: { ...process.env, SALANCA_WEB_MEDIA_DIR: resolve(executionRoot, 'media'), ...(shipped ? { SALANCA_SEED_REQUIRE_S3: 'true' } : {}) }, stdio: 'inherit' });
   if (result.status !== 0) throw new Error('Seed failed; partial writes may exist. Preserve the recorded recovery snapshot and inspect the failure before retrying.');
   console.log('Content/media deployment complete. Rebuild/revalidate the frontend using its existing deployment pipeline.');
 }

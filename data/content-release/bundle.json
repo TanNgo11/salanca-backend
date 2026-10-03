@@ -1,7 +1,7 @@
 {
   "version": 1,
   "createdAt": "2026-10-03T03:23:42.417Z",
-  "schemaHash": "60f3e6e79fc2f2119f557943eea90b05e871cc6ca5bfc61b58b80bd1b5be159b",
+  "schemaHash": "2960d6df6fed18d20ca36c18bcafcfdab8bf5f7700d45f5f0a94b415c3220023",
   "files": [
     {
       "name": "ea999245bede5a2d247e7da3560014f721d2e80b7cbc2d624a634b80dc8b4502.webp",
@@ -278,6 +278,12 @@
       "sha256": "8cfb50db8612711a5c151cb4ea86cbc72c0bc8d836c2bbd89547398e5525b30a",
       "originalName": "client-storefront-day.jpg",
       "sourceFile": "client-storefront-day.jpg"
+    },
+    {
+      "name": "e5fad4abcd7c2f2a3352d15873df5e6847aeeeb11a77192c817fc48daa524238.jpg",
+      "sha256": "e5fad4abcd7c2f2a3352d15873df5e6847aeeeb11a77192c817fc48daa524238",
+      "sourceFile": "booking-facebook-qr.jpg",
+      "originalName": "booking-facebook-qr.jpg"
     }
   ],
   "payload": {
@@ -5213,13 +5219,10 @@
             "title": "Câu chuyện Salanca Brazil",
             "description": "Hơn 20 năm gìn giữ và nâng tầm di sản Churrasco Brazil tại Việt Nam.",
             "backgroundImage": {
+              "alt": "Phục vụ Rodizio tại bàn Salanca",
               "media": {
-                "__file": "6b5461ba074055d2e298af3dff048a9ea3f7a11dbabdd18580639920debf6f18.webp"
-              },
-              "alt": "Câu chuyện Salanca Brazil",
-              "caption": null,
-              "focalPointX": 50,
-              "focalPointY": 50
+                "__file": "6cdfed6e1ff73a8984fa8c7ea17f7a0475d2edf385eae3fa110e8d3cec6fb3f7.jpg"
+              }
             },
             "decorativeImage": {
               "media": {
@@ -5258,13 +5261,10 @@
             }
           ],
           "originImage": {
+            "alt": "Không gian Salanca Brazil",
             "media": {
-              "__file": "78fb290552b7f29a55a283f58cddac003427ae7ebd32607d86be44a1a4b233c4.webp"
-            },
-            "alt": "Minh họa lễ hội Brazil trong ấn phẩm Salanca",
-            "caption": null,
-            "focalPointX": 50,
-            "focalPointY": 50
+              "__file": "55917a9795da1574d4febbb4449a161c38b88a63eebc309a27f59d8e81d97c57.jpg"
+            }
           },
           "timelineHeading": "Hành trình Salanca Brazil",
           "timelineEntries": [
@@ -5272,31 +5272,56 @@
               "label": "2003",
               "title": "Đặt nền móng cho ẩm thực Brazil tại Việt Nam",
               "body": "Khởi nguồn từ những năm đầu thế kỷ 21, câu chuyện của chúng tôi được viết nên bởi tình yêu sâu sắc mà Mrs. Nga cùng Mr. Jan Stromler dành cho xứ sở Samba, để rồi từ đó, ngọn lửa tiệc nướng Churrasco truyền thống lần đầu tiên được nhen nhóm tại Việt Nam.\n\nSự ra đời của thương hiệu Au Lac do Brazil tại TP. Hồ Chí Minh như một nhịp cầu tiên phong kết nối hai nền văn hóa. Lần đầu tiên, thực khách Việt được chạm tới nghệ thuật phục vụ Rodizio trứ danh: nơi các Passador khéo léo mang từng xiên thịt nướng than hồng thơm ngậy đến thái từng lát mỏng mọng nước ngay tại bàn. Không dừng lại ở một bữa ăn thịnh soạn, đó còn là màn trình diễn sống động bên ánh lửa ấm, khai mở một phong cách thưởng thức tự do, gắn kết và ngập tràn niềm vui sống hào sảng của đất nước Brazil.",
-              "image": null
+              "image": {
+                "alt": "Hình ảnh minh họa không gian và ẩm thực Salanca",
+                "media": {
+                  "__file": "55917a9795da1574d4febbb4449a161c38b88a63eebc309a27f59d8e81d97c57.jpg"
+                }
+              }
             },
             {
               "label": "2006",
               "title": "Chuyến hành trình Bắc tiến & Dấu ấn số 6 Cao Bá Quát",
               "body": "Năm 2006, hương vị than hồng Nam Mỹ chính thức vươn mình ra thủ đô tại số 6 Cao Bá Quát. Giữa lòng Hà Nội thanh lịch, hoài niệm và vốn kỹ tính trong thưởng thức, hương thơm quyến rũ của từng tảng thịt nướng Picanha xèo xèo trên than hồng đã tạo nên một dấu ấn văn hóa khác biệt.\n\nSuốt một thập kỷ tại Cao Bá Quát, nhà hàng không chỉ là điểm dừng chân ẩm thực mà đã trở thành nơi lưu giữ ký ức sum họp của biết bao thế hệ gia đình Hà Thành, các cuộc gặp gỡ đối tác ngoại giao và bè bạn quốc tế.",
-              "image": null
+              "image": {
+                "alt": "Hình ảnh minh họa không gian và ẩm thực Salanca",
+                "media": {
+                  "__file": "dcdb867d09824f751124118de8c14f3d4b76f6c23cd596501588e030251e6c2b.jpg"
+                }
+              }
             },
             {
               "label": "2016",
               "title": "Ngôi nhà 25 Trần Bình Trọng",
               "body": "Năm 2016: Nhà hàng chuyển về 25 Trần Bình Trọng, mở ra một không gian ấm cúng, sang trọng và tĩnh lặng hơn, đáp ứng tiêu chuẩn khắt khe của những bữa tiệc ngoại giao và gặp gỡ trang trọng.",
-              "image": null
+              "image": {
+                "alt": "Hình ảnh minh họa không gian và ẩm thực Salanca",
+                "media": {
+                  "__file": "dd55109b2bbf47536306bd5dd08173af2f54f660ad45cb9abfe7e2354407cb32.jpg"
+                }
+              }
             },
             {
               "label": "2020",
               "title": "Salanca Brazil ra đời",
               "body": "Năm 2020: Thương hiệu chính thức mang tên gọi mới - Salanca Brazil. Đây là dấu mốc tái định vị mang tính chiến lược: chuẩn hóa toàn diện từ nguồn thịt bò thượng hạng nhập khẩu, quy trình kiểm soát nhiệt than khắt khe đến bộ sưu tập rượu vang Nam Mỹ tuyển chọn. Tên gọi được làm mới để vươn tầm chuẩn mực đương đại, nhưng linh hồn của ngọn lửa và hương vị mộc mạc nguyên bản từ năm 2003 vẫn được trân trọng vẹn toàn.",
-              "image": null
+              "image": {
+                "alt": "Hình ảnh minh họa không gian và ẩm thực Salanca",
+                "media": {
+                  "__file": "6b5461ba074055d2e298af3dff048a9ea3f7a11dbabdd18580639920debf6f18.webp"
+                }
+              }
             },
             {
               "label": "2026",
               "title": "Khởi đầu chương mới tại ngôi nhà 49 Phan Bội Châu",
               "body": "Năm 2026, Salanca Brazil tự hào bước sang một chương mới khi tọa lạc tại 49 Phan Bội Châu - vị trí đắc địa ngay trung tâm văn hóa và ẩm thực thủ đô.\n\nNgôi nhà mới được kiến tạo với tinh thần giao thoa: sang trọng, tinh tế trong đường nét kiến trúc hiện đại nhưng vẫn đong đầy hơi thở nhiệt đới ấm áp của Brazil. Tại 49 Phan Bội Châu, những xiên than hồng tiếp tục đỏ lửa, sẵn sàng đón tiếp những thực khách tri kỷ cùng nâng ly và viết tiếp những câu chuyện đẹp bên bàn tiệc",
-              "image": null
+              "image": {
+                "alt": "Hình ảnh minh họa không gian và ẩm thực Salanca",
+                "media": {
+                  "__file": "7d2356600aa24193ece0b8761c212a24dab520aec05b780c4eda38c9591036a5.jpg"
+                }
+              }
             }
           ],
           "philosophyHeading": "Bàn tiệc gắn kết tình thân",
@@ -5321,13 +5346,10 @@
             }
           ],
           "philosophyImage": {
+            "alt": "Quầy salad Salanca",
             "media": {
               "__file": "7b45f1c2313aaf2ce77f8d10375dec78da942808fdffdabc964231932c003ae3.webp"
-            },
-            "alt": "Quầy salad trong thực đơn Salanca",
-            "caption": null,
-            "focalPointX": 50,
-            "focalPointY": 50
+            }
           },
           "ingredientsHeading": "Hành trình của hương vị",
           "ingredients": [
@@ -5464,13 +5486,10 @@
             "title": "The Salanca Brazil story",
             "description": "Over 20 years preserving and elevating Brazil’s Churrasco heritage in Vietnam.",
             "backgroundImage": {
+              "alt": "Rodizio service at Salanca",
               "media": {
-                "__file": "6b5461ba074055d2e298af3dff048a9ea3f7a11dbabdd18580639920debf6f18.webp"
-              },
-              "alt": "The Salanca Brazil story",
-              "caption": null,
-              "focalPointX": 50,
-              "focalPointY": 50
+                "__file": "6cdfed6e1ff73a8984fa8c7ea17f7a0475d2edf385eae3fa110e8d3cec6fb3f7.jpg"
+              }
             },
             "decorativeImage": {
               "media": {
@@ -5509,13 +5528,10 @@
             }
           ],
           "originImage": {
+            "alt": "Salanca Brazil dining room",
             "media": {
-              "__file": "fa53cd89c0c56654f6173b2c37ffb23df6cd50897c04f150cd7f986027a4c0fe.webp"
-            },
-            "alt": "Brazilian carnival illustration from the Salanca menu",
-            "caption": null,
-            "focalPointX": 50,
-            "focalPointY": 50
+              "__file": "55917a9795da1574d4febbb4449a161c38b88a63eebc309a27f59d8e81d97c57.jpg"
+            }
           },
           "timelineHeading": "The Salanca Brazil journey",
           "timelineEntries": [
@@ -5523,31 +5539,56 @@
               "label": "2003",
               "title": "Introducing Brazilian dining to Vietnam",
               "body": "Mrs. Nga and Mr. Jan Stromler’s love for Brazil brought traditional Churrasco to Vietnam. Au Lac do Brazil opened in Ho Chi Minh City as a bridge between two cultures. Guests discovered Rodizio service: skilled Passadores carried charcoal-grilled skewers to each table, carving tender slices before their eyes. Beyond a generous meal, it was a warm, lively performance that introduced a joyful, free-spirited way of dining together.",
-              "image": null
+              "image": {
+                "alt": "Illustrative Salanca dining and cuisine photography",
+                "media": {
+                  "__file": "55917a9795da1574d4febbb4449a161c38b88a63eebc309a27f59d8e81d97c57.jpg"
+                }
+              }
             },
             {
               "label": "2006",
               "title": "Heading north to 6 Cao Bá Quát",
               "body": "In 2006, South American charcoal flavours arrived in Hanoi at 6 Cao Bá Quát. The aroma of sizzling Picanha brought a distinctive dining experience to the capital. For a decade, the restaurant held memories of family reunions, diplomatic gatherings and meetings with international friends.",
-              "image": null
+              "image": {
+                "alt": "Illustrative Salanca dining and cuisine photography",
+                "media": {
+                  "__file": "dcdb867d09824f751124118de8c14f3d4b76f6c23cd596501588e030251e6c2b.jpg"
+                }
+              }
             },
             {
               "label": "2016",
               "title": "A new home at 25 Trần Bình Trọng",
               "body": "In 2016, the restaurant moved to 25 Trần Bình Trọng, offering a warmer, more elegant and peaceful setting for diplomatic dinners and formal gatherings.",
-              "image": null
+              "image": {
+                "alt": "Illustrative Salanca dining and cuisine photography",
+                "media": {
+                  "__file": "dd55109b2bbf47536306bd5dd08173af2f54f660ad45cb9abfe7e2354407cb32.jpg"
+                }
+              }
             },
             {
               "label": "2020",
               "title": "The Salanca Brazil name",
               "body": "In 2020, the brand officially took the name Salanca Brazil. This strategic repositioning brought comprehensive standards to premium imported beef, precise charcoal temperature control and a curated collection of South American wines. The new name embraces contemporary standards while preserving the original flame and honest flavours that have been cherished since 2003.",
-              "image": null
+              "image": {
+                "alt": "Illustrative Salanca dining and cuisine photography",
+                "media": {
+                  "__file": "6b5461ba074055d2e298af3dff048a9ea3f7a11dbabdd18580639920debf6f18.webp"
+                }
+              }
             },
             {
               "label": "2026",
               "title": "A new chapter at 49 Phan Bội Châu",
               "body": "In 2026, Salanca Brazil began a new chapter at 49 Phan Bội Châu, in the cultural and culinary heart of Hanoi. Our new home brings together refined contemporary architecture and Brazil’s warm tropical spirit. The charcoal fires keep burning as we welcome old friends to raise a glass and write new stories around the table.",
-              "image": null
+              "image": {
+                "alt": "Illustrative Salanca dining and cuisine photography",
+                "media": {
+                  "__file": "7d2356600aa24193ece0b8761c212a24dab520aec05b780c4eda38c9591036a5.jpg"
+                }
+              }
             }
           ],
           "philosophyHeading": "A table that brings people together",
@@ -5572,13 +5613,10 @@
             }
           ],
           "philosophyImage": {
+            "alt": "Salanca salad bar",
             "media": {
               "__file": "7b45f1c2313aaf2ce77f8d10375dec78da942808fdffdabc964231932c003ae3.webp"
-            },
-            "alt": "Salad bar from the Salanca menu",
-            "caption": null,
-            "focalPointX": 50,
-            "focalPointY": 50
+            }
           },
           "ingredientsHeading": "The journey of flavour",
           "ingredients": [
@@ -7318,13 +7356,10 @@
           "occasionHeading": "Một bàn tiệc dành riêng cho bạn",
           "occasionBody": "",
           "occasionImage": {
+            "alt": "Minh họa bản đồ Brazil",
             "media": {
-              "__file": "6b5461ba074055d2e298af3dff048a9ea3f7a11dbabdd18580639920debf6f18.webp"
-            },
-            "alt": "Thịt nướng được cắt trực tiếp trên xiên",
-            "caption": null,
-            "focalPointX": 50,
-            "focalPointY": 50
+              "__file": "b60935fa09cf0bd800993e0515297f9adb994578aeeec642e0495b368ddad35d.jpg"
+            }
           },
           "occasions": [],
           "bookingNotice": "Đây là yêu cầu đặt bàn, cần nhà hàng xác nhận.",
@@ -7363,6 +7398,33 @@
             "shareImage": null,
             "canonicalPath": "/vi/dat-ban",
             "noIndex": false
+          },
+          "contactInfo": {
+            "address": "49 Phan Boi Chau\nCua Nam Ward, Hanoi, Vietnam",
+            "mapUrl": "https://www.google.com/maps?q=49+Phan+Boi+Chau,+Hanoi,+Vietnam",
+            "phones": [
+              {
+                "label": "024. 38 455 224",
+                "url": "tel:+842438455224",
+                "openInNewTab": false
+              },
+              {
+                "label": "0989 561 159",
+                "url": "tel:+84989561159",
+                "openInNewTab": false
+              }
+            ],
+            "facebook": {
+              "label": "SalancaBrazil",
+              "url": "https://www.facebook.com/SalancaBrazil/",
+              "openInNewTab": true
+            },
+            "qrImage": {
+              "alt": "Mã QR Salanca Brazil",
+              "media": {
+                "__file": "e5fad4abcd7c2f2a3352d15873df5e6847aeeeb11a77192c817fc48daa524238.jpg"
+              }
+            }
           }
         },
         "en": {
@@ -7750,13 +7812,10 @@
           "occasionHeading": "A table set for your occasion",
           "occasionBody": "",
           "occasionImage": {
+            "alt": "Brazil map artwork",
             "media": {
-              "__file": "6b5461ba074055d2e298af3dff048a9ea3f7a11dbabdd18580639920debf6f18.webp"
-            },
-            "alt": "Grilled meat carved directly from the skewer",
-            "caption": null,
-            "focalPointX": 50,
-            "focalPointY": 50
+              "__file": "b60935fa09cf0bd800993e0515297f9adb994578aeeec642e0495b368ddad35d.jpg"
+            }
           },
           "occasions": [],
           "bookingNotice": "This is a reservation request and requires restaurant confirmation.",
@@ -7795,6 +7854,33 @@
             "shareImage": null,
             "canonicalPath": "/en/reservations",
             "noIndex": false
+          },
+          "contactInfo": {
+            "address": "49 Phan Boi Chau\nCua Nam Ward, Hanoi, Vietnam",
+            "mapUrl": "https://www.google.com/maps?q=49+Phan+Boi+Chau,+Hanoi,+Vietnam",
+            "phones": [
+              {
+                "label": "024. 38 455 224",
+                "url": "tel:+842438455224",
+                "openInNewTab": false
+              },
+              {
+                "label": "0989 561 159",
+                "url": "tel:+84989561159",
+                "openInNewTab": false
+              }
+            ],
+            "facebook": {
+              "label": "SalancaBrazil",
+              "url": "https://www.facebook.com/SalancaBrazil/",
+              "openInNewTab": true
+            },
+            "qrImage": {
+              "alt": "Salanca Brazil QR code",
+              "media": {
+                "__file": "e5fad4abcd7c2f2a3352d15873df5e6847aeeeb11a77192c817fc48daa524238.jpg"
+              }
+            }
           }
         }
       }
@@ -8113,7 +8199,8 @@
       "5ea2598302bedfbf1a0c44c3c0a93462c1d8742c08f476308a48813c4043d3c1.png",
       "2d0982f4dd689cf0a773bf9d33b319a303b8cebac7bb18e0fe86d140bf5725a4.png",
       "1afc35fbff9e3dd05fc8ee8c9748343f6d6f6cca794359f68f08a2e65cd011ca.png",
-      "8cfb50db8612711a5c151cb4ea86cbc72c0bc8d836c2bbd89547398e5525b30a.jpg"
+      "8cfb50db8612711a5c151cb4ea86cbc72c0bc8d836c2bbd89547398e5525b30a.jpg",
+      "e5fad4abcd7c2f2a3352d15873df5e6847aeeeb11a77192c817fc48daa524238.jpg"
     ]
   },
   "generatedFrom": "Published CMS content with approved original source artwork"

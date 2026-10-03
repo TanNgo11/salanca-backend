@@ -53,10 +53,13 @@ if (ownerRefresh && prune) throw new Error('Owner refresh never prunes editorial
 const ownerUids = new Set(['api::menu-category.menu-category', 'api::menu-package.menu-package', 'api::menu-item.menu-item', 'api::home-page.home-page', 'api::menu-page.menu-page', 'api::story-page.story-page', 'api::experience-page.experience-page', 'api::campaign-page.campaign-page', 'api::campaign.campaign', 'api::header-setting.header-setting']);
 
 const originalPayload = JSON.parse(readFileSync(PAYLOAD_PATH, 'utf8'));
+const restoreStory = args.includes('--restore-story');
+const restoreBooking = args.includes('--restore-booking');
+const restoredSingleUid = restoreBooking ? 'api::booking-page.booking-page' : restoreStory ? 'api::story-page.story-page' : undefined;
 const restoreMarketing = args.includes('--restore-marketing-pages');
-const restorePages = args.includes('--restore-experience-space') || restoreMarketing;
+const restorePages = args.includes('--restore-experience-space') || restoreMarketing || restoreStory || restoreBooking;
 if (restorePages && prune) throw new Error('Page restoration never prunes.');
-const payload = restorePages ? {
+const payload = restoredSingleUid ? { liveSnapshot: true, locales: originalPayload.locales, pages: { [restoredSingleUid]: originalPayload.pages[restoredSingleUid] }, collections: {} } : restorePages ? {
   liveSnapshot: true,
   locales: originalPayload.locales,
   pages: Object.fromEntries(Object.entries(originalPayload.pages).filter(([uid]) => ['api::experience-page.experience-page', 'api::space-page.space-page', ...(restoreMarketing ? ['api::campaign-page.campaign-page', 'api::contact-page.contact-page'] : [])].includes(uid))),
