@@ -25,6 +25,8 @@
     "seed:content": "node scripts/seed-salanca-content/index.mjs",
     "seed:content:prune": "node scripts/seed-salanca-content/index.mjs --prune",
     "deploy:content": "node scripts/deploy-content-seed.mjs",
+    "content:pack": "node scripts/content-bundle.mjs pack",
+    "content:deploy": "node scripts/content-bundle.mjs deploy",
     "deploy:content:prune": "node scripts/deploy-content-seed.mjs --prune",
     "token:preview": "node scripts/create-preview-token.mjs",
     "verify:seed": "node scripts/verify-seed.mjs",

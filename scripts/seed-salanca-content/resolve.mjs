@@ -33,6 +33,12 @@ export function resolvePlaceholders(value, mediaIds, refIds) {
     return { ...rest, media: id };
   }
 
+  if (typeof value.__file === 'string') {
+    const id = mediaIds.get(value.__file);
+    if (id === undefined) throw new Error(`Unresolved bundled media "${value.__file}".`);
+    return id;
+  }
+
   if (isPlainObject(value.__ref)) {
     return resolveRelation(value.__ref, refIds);
   }

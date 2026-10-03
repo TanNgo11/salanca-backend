@@ -231,7 +231,7 @@ try {
 
   for (const [uid, byLocale] of Object.entries(payload.pages)) {
     const adapted =
-      uid === HOME_PAGE_UID
+      uid === HOME_PAGE_UID && !payload.liveSnapshot
         ? Object.fromEntries(
             Object.entries(byLocale).map(([locale, data]) => [
               locale,
@@ -242,6 +242,25 @@ try {
     await seedLocalizedSingleType(uid, adapted, mediaIds);
   }
 
+  // Live snapshots can contain reverse/forward collection links (category ->
+  // items, location -> gallery). Restore them after every destination id exists.
+  if (payload.liveSnapshot) {
+    for (const [uid, collection] of Object.entries(payload.collections)) {
+      const entries = uid === LOCATION_UID
+        ? [{ key: collection[locales[0]].slug, ...collection }]
+        : collection.entries;
+      for (const entry of entries) {
+        const documentId = refIds.get(`${uid}:${entry.key}`);
+        if (!documentId) throw new Error(`Missing destination document ${uid}.`);
+        for (const locale of locales) {
+          const relationData = Object.fromEntries(Object.entries(entry[locale]).filter(([key]) => app.contentTypes[uid].attributes[key]?.type === 'relation'));
+          if (!Object.keys(relationData).length) continue;
+          await app.documents(uid).update({ documentId, locale, data: resolvePlaceholders(relationData, mediaIds, refIds) });
+          await app.documents(uid).publish({ documentId, locale });
+        }
+      }
+    }
+  }
   console.log(`seed:content complete — ${summary.toString()}`);
 } catch (error) {
   console.error('seed:content failed');

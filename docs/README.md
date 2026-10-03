@@ -16,6 +16,7 @@ Start with [`STATUS.md`](STATUS.md). The roadmap describes intended direction; i
 | What REST and locale behavior must clients rely on? | [`cms-api-contract.md`](cms-api-contract.md) |
 | How are Admin roles meant to be split? | [`admin-roles.md`](admin-roles.md) |
 | How does media/S3 ops work? | [`media-storage-operations.md`](media-storage-operations.md) |
+| How do I deploy published local content and images? | [`content-bundle-deploy.md`](content-bundle-deploy.md) |
 | How does Resend form-notify email work? | [`resend-email-operations.md`](resend-email-operations.md) |
 | What is the security baseline and unresolved dependency risk? | [`security-baseline.md`](security-baseline.md) |
 | What is the full delivery sequence? | [`strapi-backend-roadmap.md`](strapi-backend-roadmap.md) |
