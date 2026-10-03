@@ -4,6 +4,7 @@ import { synchronizeContentManagerLabels } from './bootstrap/content-manager-lab
 import { provisionContentLocales } from './bootstrap/content-locales';
 import { provisionPublicContentPermissions } from './bootstrap/public-content-permissions';
 import { provisionPublicFormPermissions } from './bootstrap/public-form-permissions';
+import { registerHealthRoutes } from './api/health';
 import { registerDocumentInvariants } from './domain/document-invariants/register-document-invariants';
 import { getOrCreateMediaProcessingRuntime } from './domain/media-processing/runtime';
 import { enforceMediaProcessingUploadSettings } from './domain/media-processing/upload-optimize';
@@ -15,6 +16,7 @@ export default {
   register({ strapi }: { strapi: Core.Strapi }) {
     getOrCreateMediaProcessingRuntime(strapi);
     registerDocumentInvariants(strapi);
+    registerHealthRoutes(strapi);
   },
 
   /**
