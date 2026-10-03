@@ -53,13 +53,20 @@ if (ownerRefresh && prune) throw new Error('Owner refresh never prunes editorial
 const ownerUids = new Set(['api::menu-category.menu-category', 'api::menu-package.menu-package', 'api::menu-item.menu-item', 'api::home-page.home-page', 'api::menu-page.menu-page', 'api::story-page.story-page', 'api::experience-page.experience-page', 'api::campaign-page.campaign-page', 'api::campaign.campaign', 'api::header-setting.header-setting']);
 
 const originalPayload = JSON.parse(readFileSync(PAYLOAD_PATH, 'utf8'));
-const restorePages = args.includes('--restore-experience-space');
+const restoreMarketing = args.includes('--restore-marketing-pages');
+const restorePages = args.includes('--restore-experience-space') || restoreMarketing;
 if (restorePages && prune) throw new Error('Page restoration never prunes.');
 const payload = restorePages ? {
   liveSnapshot: true,
   locales: originalPayload.locales,
-  pages: Object.fromEntries(Object.entries(originalPayload.pages).filter(([uid]) => ['api::experience-page.experience-page', 'api::space-page.space-page'].includes(uid))),
-  collections: { 'api::gallery-item.gallery-item': originalPayload.collections['api::gallery-item.gallery-item'] },
+  pages: Object.fromEntries(Object.entries(originalPayload.pages).filter(([uid]) => ['api::experience-page.experience-page', 'api::space-page.space-page', ...(restoreMarketing ? ['api::campaign-page.campaign-page', 'api::contact-page.contact-page'] : [])].includes(uid))),
+  collections: { 'api::gallery-item.gallery-item': originalPayload.collections['api::gallery-item.gallery-item'], ...(restoreMarketing ? {
+    'api::campaign.campaign': originalPayload.collections['api::campaign.campaign'],
+    [LOCATION_UID]: Object.fromEntries(originalPayload.locales.map(locale => {
+      const location = originalPayload.collections[LOCATION_UID][locale];
+      return [locale, { slug: location.slug, operatingHours: location.operatingHours }];
+    })),
+  } : {}) },
 } : originalPayload;
 if (restorePages) {
   const media = new Set();

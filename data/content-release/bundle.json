@@ -1,7 +1,7 @@
 {
   "version": 1,
   "createdAt": "2026-10-03T03:23:42.417Z",
-  "schemaHash": "b7c36f9261d145696118d880b18b0636732de87cb4f9e91172f1b7f2de6440c4",
+  "schemaHash": "60f3e6e79fc2f2119f557943eea90b05e871cc6ca5bfc61b58b80bd1b5be159b",
   "files": [
     {
       "name": "ea999245bede5a2d247e7da3560014f721d2e80b7cbc2d624a634b80dc8b4502.webp",
@@ -260,6 +260,24 @@
       "sha256": "5ea2598302bedfbf1a0c44c3c0a93462c1d8742c08f476308a48813c4043d3c1",
       "originalName": "hero-decor-right.png",
       "sourceFile": "hero-decor-right.png"
+    },
+    {
+      "name": "2d0982f4dd689cf0a773bf9d33b319a303b8cebac7bb18e0fe86d140bf5725a4.png",
+      "sha256": "2d0982f4dd689cf0a773bf9d33b319a303b8cebac7bb18e0fe86d140bf5725a4",
+      "originalName": "campaigns-hero-decor-right.png",
+      "sourceFile": "campaigns-hero-decor-right.png"
+    },
+    {
+      "name": "1afc35fbff9e3dd05fc8ee8c9748343f6d6f6cca794359f68f08a2e65cd011ca.png",
+      "sha256": "1afc35fbff9e3dd05fc8ee8c9748343f6d6f6cca794359f68f08a2e65cd011ca",
+      "originalName": "contact-hero-decor-right.png",
+      "sourceFile": "contact-hero-decor-right.png"
+    },
+    {
+      "name": "8cfb50db8612711a5c151cb4ea86cbc72c0bc8d836c2bbd89547398e5525b30a.jpg",
+      "sha256": "8cfb50db8612711a5c151cb4ea86cbc72c0bc8d836c2bbd89547398e5525b30a",
+      "originalName": "client-storefront-day.jpg",
+      "sourceFile": "client-storefront-day.jpg"
     }
   ],
   "payload": {
@@ -278,7 +296,18 @@
           "mapUrl": "https://www.google.com/maps?q=49+Phan+B%E1%BB%99i+Ch%C3%A2u,+Hanoi,+Vietnam",
           "phone": "0989 561 159",
           "email": "booking@salanca.com.vn",
-          "operatingHours": [],
+          "operatingHours": [
+            {
+              "label": "Hằng ngày",
+              "opensAt": "11:00:00.000",
+              "closesAt": "14:00:00.000"
+            },
+            {
+              "label": "Hằng ngày",
+              "opensAt": "17:30:00.000",
+              "closesAt": "22:00:00.000"
+            }
+          ],
           "heroImage": {
             "media": {
               "__file": "ea999245bede5a2d247e7da3560014f721d2e80b7cbc2d624a634b80dc8b4502.webp"
@@ -306,7 +335,18 @@
           "mapUrl": "https://www.google.com/maps?q=49+Phan+B%E1%BB%99i+Ch%C3%A2u,+Hanoi,+Vietnam",
           "phone": "0989 561 159",
           "email": "booking@salanca.com.vn",
-          "operatingHours": [],
+          "operatingHours": [
+            {
+              "label": "Daily",
+              "opensAt": "11:00:00.000",
+              "closesAt": "14:00:00.000"
+            },
+            {
+              "label": "Daily",
+              "opensAt": "17:30:00.000",
+              "closesAt": "22:00:00.000"
+            }
+          ],
           "heroImage": {
             "media": {
               "__file": "ea999245bede5a2d247e7da3560014f721d2e80b7cbc2d624a634b80dc8b4502.webp"
@@ -3399,17 +3439,17 @@
           {
             "key": "brazil-night",
             "vi": {
+              "slug": "brazil-night",
               "kind": "event",
               "title": "Đêm Brazil rực lửa",
-              "slug": "brazil-night",
               "summary": "Một bàn tiệc cuối tuần ấm cúng, những món nướng đậm vị và thời gian gặp gỡ trọn vẹn.",
               "body": [
                 {
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "Một bàn tiệc cuối tuần ấm cúng, những món nướng đậm vị và thời gian gặp gỡ trọn vẹn.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "Một bàn tiệc cuối tuần ấm cúng, những món nướng đậm vị và thời gian gặp gỡ trọn vẹn."
                     }
                   ]
                 },
@@ -3417,8 +3457,8 @@
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "Một bàn tiệc cuối tuần ấm cúng, những món nướng đậm vị và thời gian gặp gỡ trọn vẹn.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "Một buổi tối mang tinh thần Brazil qua hương vị nướng và nhịp gặp gỡ thư thả."
                     }
                   ]
                 },
@@ -3426,33 +3466,22 @@
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "Một buổi tối mang tinh thần Brazil qua hương vị nướng và nhịp gặp gỡ thư thả.",
-                      "type": "text"
-                    }
-                  ]
-                },
-                {
-                  "type": "paragraph",
-                  "children": [
-                    {
-                      "text": "Đặt bàn trước để giữ chỗ gần lò nướng — nơi câu chuyện và hương khói quyện vào nhau.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "Đặt bàn trước để giữ chỗ gần lò nướng — nơi câu chuyện và hương khói quyện vào nhau."
                     }
                   ]
                 }
               ],
               "coverImage": {
-                "media": {
-                  "__file": "677630bddf6d426083170bf9fbdcf02bb3636846d2b5cf772033403f4f53e42d.jpg"
-                },
                 "alt": "Khách mời và vũ công trong đêm Brazil tại Salanca",
                 "caption": null,
                 "focalPointX": 50,
-                "focalPointY": 50
+                "focalPointY": 50,
+                "media": {
+                  "__file": "677630bddf6d426083170bf9fbdcf02bb3636846d2b5cf772033403f4f53e42d.jpg"
+                }
               },
               "gallery": [],
-              "startsAt": null,
-              "endsAt": null,
               "terms": [],
               "cta": {
                 "heading": "Đêm Brazil rực lửa",
@@ -3461,30 +3490,28 @@
                   "label": "Xem chi tiết",
                   "url": "/vi/dat-ban",
                   "openInNewTab": false
-                },
-                "image": null
+                }
               },
               "displayOrder": 1,
               "seo": {
                 "metaTitle": "Đêm Brazil rực lửa",
                 "metaDescription": "Một bàn tiệc cuối tuần ấm cúng, những món nướng đậm vị và thời gian gặp gỡ trọn vẹn.",
-                "shareImage": null,
                 "canonicalPath": "/vi/uu-dai/brazil-night",
                 "noIndex": false
               }
             },
             "en": {
+              "slug": "brazil-night",
               "kind": "event",
               "title": "Blazing Brazil night",
-              "slug": "brazil-night",
               "summary": "A warm weekend table, bold grilled flavours, and unhurried time together.",
               "body": [
                 {
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "A warm weekend table, bold grilled flavours, and unhurried time together.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "A warm weekend table, bold grilled flavours, and unhurried time together."
                     }
                   ]
                 },
@@ -3492,8 +3519,8 @@
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "A warm weekend table, bold grilled flavours, and unhurried time together.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "An evening with a Brazilian spirit through fire-grilled flavours and good company."
                     }
                   ]
                 },
@@ -3501,33 +3528,22 @@
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "An evening with a Brazilian spirit through fire-grilled flavours and good company.",
-                      "type": "text"
-                    }
-                  ]
-                },
-                {
-                  "type": "paragraph",
-                  "children": [
-                    {
-                      "text": "Book ahead for seats near the grill — where smoke, stories, and conversation meet.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "Book ahead for seats near the grill — where smoke, stories, and conversation meet."
                     }
                   ]
                 }
               ],
               "coverImage": {
-                "media": {
-                  "__file": "677630bddf6d426083170bf9fbdcf02bb3636846d2b5cf772033403f4f53e42d.jpg"
-                },
                 "alt": "Guests and dancers at a Brazil night inside Salanca",
                 "caption": null,
                 "focalPointX": 50,
-                "focalPointY": 50
+                "focalPointY": 50,
+                "media": {
+                  "__file": "677630bddf6d426083170bf9fbdcf02bb3636846d2b5cf772033403f4f53e42d.jpg"
+                }
               },
               "gallery": [],
-              "startsAt": null,
-              "endsAt": null,
               "terms": [],
               "cta": {
                 "heading": "Blazing Brazil night",
@@ -3536,14 +3552,12 @@
                   "label": "View details",
                   "url": "/en/reservations",
                   "openInNewTab": false
-                },
-                "image": null
+                }
               },
               "displayOrder": 1,
               "seo": {
                 "metaTitle": "Blazing Brazil night",
                 "metaDescription": "A warm weekend table, bold grilled flavours, and unhurried time together.",
-                "shareImage": null,
                 "canonicalPath": "/en/offers/brazil-night",
                 "noIndex": false
               }
@@ -3552,17 +3566,17 @@
           {
             "key": "brazil-weekend",
             "vi": {
+              "slug": "brazil-weekend",
               "kind": "event",
               "title": "Đêm Brazil cuối tuần",
-              "slug": "brazil-weekend",
               "summary": "Cuối tuần thăng hoa với vũ điệu, âm nhạc và những xiên nướng hảo hạng.",
               "body": [
                 {
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "Cuối tuần thăng hoa với vũ điệu, âm nhạc và những xiên nướng hảo hạng.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "Mỗi cuối tuần, Salanca thắp sáng không gian bằng nhạc Brazil, xiên nướng liên tục và năng lượng của bàn tiệc đông vui."
                     }
                   ]
                 },
@@ -3570,33 +3584,22 @@
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "Mỗi cuối tuần, Salanca thắp sáng không gian bằng nhạc Brazil, xiên nướng liên tục và năng lượng của bàn tiệc đông vui.",
-                      "type": "text"
-                    }
-                  ]
-                },
-                {
-                  "type": "paragraph",
-                  "children": [
-                    {
-                      "text": "Đặt bàn trước để giữ chỗ ở khu vực gần lò nướng — nơi câu chuyện và hương khói quyện vào nhau.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "Đặt bàn trước để giữ chỗ ở khu vực gần lò nướng — nơi câu chuyện và hương khói quyện vào nhau."
                     }
                   ]
                 }
               ],
               "coverImage": {
-                "media": {
-                  "__file": "36c6fe92b2fa99feb6770617de0c3840e3c06760e36c1cd32bfe68f9bdc0ccbc.jpg"
-                },
                 "alt": "Các xiên thịt nướng trên bếp lửa Salanca",
                 "caption": null,
                 "focalPointX": 50,
-                "focalPointY": 50
+                "focalPointY": 50,
+                "media": {
+                  "__file": "36c6fe92b2fa99feb6770617de0c3840e3c06760e36c1cd32bfe68f9bdc0ccbc.jpg"
+                }
               },
               "gallery": [],
-              "startsAt": null,
-              "endsAt": null,
               "terms": [],
               "cta": {
                 "heading": "Đêm Brazil cuối tuần",
@@ -3605,30 +3608,28 @@
                   "label": "Xem chi tiết",
                   "url": "/vi/dat-ban",
                   "openInNewTab": false
-                },
-                "image": null
+                }
               },
               "displayOrder": 2,
               "seo": {
                 "metaTitle": "Đêm Brazil cuối tuần",
                 "metaDescription": "Cuối tuần thăng hoa với vũ điệu, âm nhạc và những xiên nướng hảo hạng.",
-                "shareImage": null,
                 "canonicalPath": "/vi/uu-dai/brazil-weekend",
                 "noIndex": false
               }
             },
             "en": {
+              "slug": "brazil-weekend",
               "kind": "event",
               "title": "Brazil weekend night",
-              "slug": "brazil-weekend",
               "summary": "A soaring weekend of dance, music, and exceptional skewers.",
               "body": [
                 {
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "A soaring weekend of dance, music, and exceptional skewers.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "Every weekend Salanca lights up with Brazilian music, continuous rodizio, and a lively dining room."
                     }
                   ]
                 },
@@ -3636,33 +3637,22 @@
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "Every weekend Salanca lights up with Brazilian music, continuous rodizio, and a lively dining room.",
-                      "type": "text"
-                    }
-                  ]
-                },
-                {
-                  "type": "paragraph",
-                  "children": [
-                    {
-                      "text": "Book ahead for seats near the grill — where smoke, stories, and conversation meet.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "Book ahead for seats near the grill — where smoke, stories, and conversation meet."
                     }
                   ]
                 }
               ],
               "coverImage": {
-                "media": {
-                  "__file": "36c6fe92b2fa99feb6770617de0c3840e3c06760e36c1cd32bfe68f9bdc0ccbc.jpg"
-                },
                 "alt": "Meat skewers cooking over Salanca's open grill",
                 "caption": null,
                 "focalPointX": 50,
-                "focalPointY": 50
+                "focalPointY": 50,
+                "media": {
+                  "__file": "36c6fe92b2fa99feb6770617de0c3840e3c06760e36c1cd32bfe68f9bdc0ccbc.jpg"
+                }
               },
               "gallery": [],
-              "startsAt": null,
-              "endsAt": null,
               "terms": [],
               "cta": {
                 "heading": "Brazil weekend night",
@@ -3671,14 +3661,12 @@
                   "label": "View details",
                   "url": "/en/reservations",
                   "openInNewTab": false
-                },
-                "image": null
+                }
               },
               "displayOrder": 2,
               "seo": {
                 "metaTitle": "Brazil weekend night",
                 "metaDescription": "A soaring weekend of dance, music, and exceptional skewers.",
-                "shareImage": null,
                 "canonicalPath": "/en/offers/brazil-weekend",
                 "noIndex": false
               }
@@ -3687,17 +3675,17 @@
           {
             "key": "birthday-brazil",
             "vi": {
+              "slug": "birthday-brazil",
               "kind": "event",
               "title": "Sinh nhật đậm chất Brazil",
-              "slug": "birthday-brazil",
               "summary": "Ngày đặc biệt thêm trọn vẹn với không gian ấm áp, ẩm thực tinh tế và bất ngờ dành riêng cho bạn.",
               "body": [
                 {
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "Ngày đặc biệt thêm trọn vẹn với không gian ấm áp, ẩm thực tinh tế và bất ngờ dành riêng cho bạn.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "Sinh nhật tại Salanca là bữa tiệc có lửa, có thịt nướng và có người thân bên cạnh."
                     }
                   ]
                 },
@@ -3705,33 +3693,22 @@
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "Sinh nhật tại Salanca là bữa tiệc có lửa, có thịt nướng và có người thân bên cạnh.",
-                      "type": "text"
-                    }
-                  ]
-                },
-                {
-                  "type": "paragraph",
-                  "children": [
-                    {
-                      "text": "Đội ngũ hỗ trợ trang trí nhẹ, bánh và lịch trình phục vụ để khoảnh khắc của bạn trọn vẹn hơn.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "Đội ngũ hỗ trợ trang trí nhẹ, bánh và lịch trình phục vụ để khoảnh khắc của bạn trọn vẹn hơn."
                     }
                   ]
                 }
               ],
               "coverImage": {
-                "media": {
-                  "__file": "07550fe2370e5b39365a3c25d4f57ab4880e7f5790beb66b7a88ef3d491169aa.jpg"
-                },
                 "alt": "Bàn tiệc sinh nhật với bánh và khách đang chúc mừng",
                 "caption": null,
                 "focalPointX": 50,
-                "focalPointY": 50
+                "focalPointY": 50,
+                "media": {
+                  "__file": "07550fe2370e5b39365a3c25d4f57ab4880e7f5790beb66b7a88ef3d491169aa.jpg"
+                }
               },
               "gallery": [],
-              "startsAt": null,
-              "endsAt": null,
               "terms": [],
               "cta": {
                 "heading": "Sinh nhật đậm chất Brazil",
@@ -3740,30 +3717,28 @@
                   "label": "Xem chi tiết",
                   "url": "/vi/dat-ban",
                   "openInNewTab": false
-                },
-                "image": null
+                }
               },
               "displayOrder": 3,
               "seo": {
                 "metaTitle": "Sinh nhật đậm chất Brazil",
                 "metaDescription": "Ngày đặc biệt thêm trọn vẹn với không gian ấm áp, ẩm thực tinh tế và bất ngờ dành riêng cho bạn.",
-                "shareImage": null,
                 "canonicalPath": "/vi/uu-dai/birthday-brazil",
                 "noIndex": false
               }
             },
             "en": {
+              "slug": "birthday-brazil",
               "kind": "event",
               "title": "A birthday with Brazil soul",
-              "slug": "birthday-brazil",
               "summary": "Make the day complete with a warm room, refined food, and a surprise just for you.",
               "body": [
                 {
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "Make the day complete with a warm room, refined food, and a surprise just for you.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "A Salanca birthday is fire, grilled meat, and the people you love at the table."
                     }
                   ]
                 },
@@ -3771,33 +3746,22 @@
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "A Salanca birthday is fire, grilled meat, and the people you love at the table.",
-                      "type": "text"
-                    }
-                  ]
-                },
-                {
-                  "type": "paragraph",
-                  "children": [
-                    {
-                      "text": "Our team can help with light décor, cake, and service timing so the moment feels complete.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "Our team can help with light décor, cake, and service timing so the moment feels complete."
                     }
                   ]
                 }
               ],
               "coverImage": {
-                "media": {
-                  "__file": "07550fe2370e5b39365a3c25d4f57ab4880e7f5790beb66b7a88ef3d491169aa.jpg"
-                },
                 "alt": "Birthday table with cake and celebrating guests",
                 "caption": null,
                 "focalPointX": 50,
-                "focalPointY": 50
+                "focalPointY": 50,
+                "media": {
+                  "__file": "07550fe2370e5b39365a3c25d4f57ab4880e7f5790beb66b7a88ef3d491169aa.jpg"
+                }
               },
               "gallery": [],
-              "startsAt": null,
-              "endsAt": null,
               "terms": [],
               "cta": {
                 "heading": "A birthday with Brazil soul",
@@ -3806,150 +3770,13 @@
                   "label": "View details",
                   "url": "/en/reservations",
                   "openInNewTab": false
-                },
-                "image": null
+                }
               },
               "displayOrder": 3,
               "seo": {
                 "metaTitle": "A birthday with Brazil soul",
                 "metaDescription": "Make the day complete with a warm room, refined food, and a surprise just for you.",
-                "shareImage": null,
                 "canonicalPath": "/en/offers/birthday-brazil",
-                "noIndex": false
-              }
-            }
-          },
-          {
-            "key": "private-party",
-            "vi": {
-              "kind": "private_event",
-              "title": "Tiệc riêng tại Salanca",
-              "slug": "private-party",
-              "summary": "Không gian riêng tư, dịch vụ chu đáo và thực đơn thiết kế cho mọi buổi tiệc đáng nhớ.",
-              "body": [
-                {
-                  "type": "paragraph",
-                  "children": [
-                    {
-                      "text": "Không gian riêng tư, dịch vụ chu đáo và thực đơn thiết kế cho mọi buổi tiệc đáng nhớ.",
-                      "type": "text"
-                    }
-                  ]
-                },
-                {
-                  "type": "paragraph",
-                  "children": [
-                    {
-                      "text": "Phòng riêng và bàn dài sẵn sàng cho tiệc công ty, họp mặt bạn bè hay kỷ niệm gia đình.",
-                      "type": "text"
-                    }
-                  ]
-                },
-                {
-                  "type": "paragraph",
-                  "children": [
-                    {
-                      "text": "Chúng tôi hỗ trợ menu theo ngân sách, timeline phục vụ và bố trí chỗ ngồi.",
-                      "type": "text"
-                    }
-                  ]
-                }
-              ],
-              "coverImage": {
-                "media": {
-                  "__file": "dcdb867d09824f751124118de8c14f3d4b76f6c23cd596501588e030251e6c2b.jpg"
-                },
-                "alt": "Bàn dài trong không gian tiệc riêng của nhà hàng",
-                "caption": null,
-                "focalPointX": 50,
-                "focalPointY": 50
-              },
-              "gallery": [],
-              "startsAt": null,
-              "endsAt": null,
-              "terms": [],
-              "cta": {
-                "heading": "Tiệc riêng tại Salanca",
-                "body": "Không gian riêng tư, dịch vụ chu đáo và thực đơn thiết kế cho mọi buổi tiệc đáng nhớ.",
-                "link": {
-                  "label": "Xem chi tiết",
-                  "url": "/vi/dat-ban",
-                  "openInNewTab": false
-                },
-                "image": null
-              },
-              "displayOrder": 5,
-              "seo": {
-                "metaTitle": "Tiệc riêng tại Salanca",
-                "metaDescription": "Không gian riêng tư, dịch vụ chu đáo và thực đơn thiết kế cho mọi buổi tiệc đáng nhớ.",
-                "shareImage": null,
-                "canonicalPath": "/vi/uu-dai/private-party",
-                "noIndex": false
-              }
-            },
-            "en": {
-              "kind": "private_event",
-              "title": "Private dining at Salanca",
-              "slug": "private-party",
-              "summary": "A private room, attentive service, and a menu designed for memorable gatherings.",
-              "body": [
-                {
-                  "type": "paragraph",
-                  "children": [
-                    {
-                      "text": "A private room, attentive service, and a menu designed for memorable gatherings.",
-                      "type": "text"
-                    }
-                  ]
-                },
-                {
-                  "type": "paragraph",
-                  "children": [
-                    {
-                      "text": "Private rooms and long tables are ready for company dinners, friend reunions, or family milestones.",
-                      "type": "text"
-                    }
-                  ]
-                },
-                {
-                  "type": "paragraph",
-                  "children": [
-                    {
-                      "text": "We help with budget menus, service timing, and seating layouts.",
-                      "type": "text"
-                    }
-                  ]
-                }
-              ],
-              "coverImage": {
-                "media": {
-                  "__file": "dcdb867d09824f751124118de8c14f3d4b76f6c23cd596501588e030251e6c2b.jpg"
-                },
-                "alt": "Long table set for a private party in the restaurant",
-                "caption": null,
-                "focalPointX": 50,
-                "focalPointY": 50
-              },
-              "gallery": [],
-              "startsAt": null,
-              "endsAt": null,
-              "terms": [],
-              "cta": {
-                "heading": "Private dining at Salanca",
-                "body": "A private room, attentive service, and a menu designed for memorable gatherings.",
-                "link": {
-                  "label": "View details",
-                  "url": "/en/reservations",
-                  "openInNewTab": false
-                },
-                "image": null
-              },
-              "displayOrder": 5,
-              "seo": {
-                "metaTitle": "Private dining at Salanca",
-                "metaDescription": "A private room, attentive service, and a menu designed for memorable gatherings.",
-                "shareImage": null,
-                "canonicalPath": "/en/offers/private-party",
                 "noIndex": false
               }
             }
@@ -3957,17 +3784,17 @@
           {
             "key": "lunch-meetup",
             "vi": {
+              "slug": "lunch-meetup",
               "kind": "promotion",
               "title": "Bữa trưa gặp gỡ",
-              "slug": "lunch-meetup",
               "summary": "Khoảnh khắc thư giãn giữa ngày với thực đơn hương vị đậm và không gian xanh mát.",
               "body": [
                 {
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "Khoảnh khắc thư giãn giữa ngày với thực đơn hương vị đậm và không gian xanh mát.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "Buổi trưa tại Salanca dành cho những cuộc gặp gỡ gọn gàng nhưng vẫn đủ đầy hương vị Brazil."
                     }
                   ]
                 },
@@ -3975,33 +3802,22 @@
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "Buổi trưa tại Salanca dành cho những cuộc gặp gỡ gọn gàng nhưng vẫn đủ đầy hương vị Brazil.",
-                      "type": "text"
-                    }
-                  ]
-                },
-                {
-                  "type": "paragraph",
-                  "children": [
-                    {
-                      "text": "Phù hợp cho đồng nghiệp, đối tác hoặc bữa hẹn ngắn — vẫn có rodizio và salad bar.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "Phù hợp cho đồng nghiệp, đối tác hoặc bữa hẹn ngắn — vẫn có rodizio và salad bar."
                     }
                   ]
                 }
               ],
               "coverImage": {
-                "media": {
-                  "__file": "0edf56e08021b4a07a2f291448099b693d13ca556a27de9a83479e1d2b59c4f0.jpg"
-                },
                 "alt": "Hai khách dùng bữa trưa bên ly vang",
                 "caption": null,
                 "focalPointX": 50,
-                "focalPointY": 50
+                "focalPointY": 50,
+                "media": {
+                  "__file": "0edf56e08021b4a07a2f291448099b693d13ca556a27de9a83479e1d2b59c4f0.jpg"
+                }
               },
               "gallery": [],
-              "startsAt": null,
-              "endsAt": null,
               "terms": [],
               "cta": {
                 "heading": "Bữa trưa gặp gỡ",
@@ -4010,30 +3826,28 @@
                   "label": "Xem chi tiết",
                   "url": "/vi/dat-ban",
                   "openInNewTab": false
-                },
-                "image": null
+                }
               },
               "displayOrder": 4,
               "seo": {
                 "metaTitle": "Bữa trưa gặp gỡ",
                 "metaDescription": "Khoảnh khắc thư giãn giữa ngày với thực đơn hương vị đậm và không gian xanh mát.",
-                "shareImage": null,
                 "canonicalPath": "/vi/uu-dai/lunch-meetup",
                 "noIndex": false
               }
             },
             "en": {
+              "slug": "lunch-meetup",
               "kind": "promotion",
               "title": "Midday meetup lunch",
-              "slug": "lunch-meetup",
               "summary": "A relaxed midday pause with bold flavours and a calm room.",
               "body": [
                 {
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "A relaxed midday pause with bold flavours and a calm room.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "Lunch at Salanca is for meetings that stay efficient without skipping Brazilian flavour."
                     }
                   ]
                 },
@@ -4041,33 +3855,22 @@
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "Lunch at Salanca is for meetings that stay efficient without skipping Brazilian flavour.",
-                      "type": "text"
-                    }
-                  ]
-                },
-                {
-                  "type": "paragraph",
-                  "children": [
-                    {
-                      "text": "Ideal for colleagues, partners, or a short date — rodizio and the salad bar still included.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "Ideal for colleagues, partners, or a short date — rodizio and the salad bar still included."
                     }
                   ]
                 }
               ],
               "coverImage": {
-                "media": {
-                  "__file": "0edf56e08021b4a07a2f291448099b693d13ca556a27de9a83479e1d2b59c4f0.jpg"
-                },
                 "alt": "Two guests sharing a lunch with wine",
                 "caption": null,
                 "focalPointX": 50,
-                "focalPointY": 50
+                "focalPointY": 50,
+                "media": {
+                  "__file": "0edf56e08021b4a07a2f291448099b693d13ca556a27de9a83479e1d2b59c4f0.jpg"
+                }
               },
               "gallery": [],
-              "startsAt": null,
-              "endsAt": null,
               "terms": [],
               "cta": {
                 "heading": "Midday meetup lunch",
@@ -4076,33 +3879,31 @@
                   "label": "View details",
                   "url": "/en/reservations",
                   "openInNewTab": false
-                },
-                "image": null
+                }
               },
               "displayOrder": 4,
               "seo": {
                 "metaTitle": "Midday meetup lunch",
                 "metaDescription": "A relaxed midday pause with bold flavours and a calm room.",
-                "shareImage": null,
                 "canonicalPath": "/en/offers/lunch-meetup",
                 "noIndex": false
               }
             }
           },
           {
-            "key": "date-night",
+            "key": "private-party",
             "vi": {
-              "kind": "event",
-              "title": "Hẹn hò bên ánh lửa",
-              "slug": "date-night",
-              "summary": "Không gian lãng mạn, ánh nến lung linh và hương vị nướng Brazil say đắm.",
+              "slug": "private-party",
+              "kind": "private_event",
+              "title": "Tiệc riêng tại Salanca",
+              "summary": "Không gian riêng tư, dịch vụ chu đáo và thực đơn thiết kế cho mọi buổi tiệc đáng nhớ.",
               "body": [
                 {
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "Không gian lãng mạn, ánh nến lung linh và hương vị nướng Brazil say đắm.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "Phòng riêng và bàn dài sẵn sàng cho tiệc công ty, họp mặt bạn bè hay kỷ niệm gia đình."
                     }
                   ]
                 },
@@ -4110,65 +3911,52 @@
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "Ánh lửa lò nướng, ly vang và xiên thịt nóng hổi — một buổi hẹn khác biệt giữa lòng Hà Nội.",
-                      "type": "text"
-                    }
-                  ]
-                },
-                {
-                  "type": "paragraph",
-                  "children": [
-                    {
-                      "text": "Gợi ý đặt bàn khu vực yên tĩnh hơn khi bạn muốn cuộc trò chuyện kéo dài.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "Chúng tôi hỗ trợ menu theo ngân sách, timeline phục vụ và bố trí chỗ ngồi."
                     }
                   ]
                 }
               ],
               "coverImage": {
-                "media": {
-                  "__file": "0edf56e08021b4a07a2f291448099b693d13ca556a27de9a83479e1d2b59c4f0.jpg"
-                },
-                "alt": "Cặp đôi dùng bữa trong không gian quầy bar ấm áp",
+                "alt": "Bàn dài trong không gian tiệc riêng của nhà hàng",
                 "caption": null,
                 "focalPointX": 50,
-                "focalPointY": 50
+                "focalPointY": 50,
+                "media": {
+                  "__file": "dcdb867d09824f751124118de8c14f3d4b76f6c23cd596501588e030251e6c2b.jpg"
+                }
               },
               "gallery": [],
-              "startsAt": null,
-              "endsAt": null,
               "terms": [],
               "cta": {
-                "heading": "Hẹn hò bên ánh lửa",
-                "body": "Không gian lãng mạn, ánh nến lung linh và hương vị nướng Brazil say đắm.",
+                "heading": "Tiệc riêng tại Salanca",
+                "body": "Không gian riêng tư, dịch vụ chu đáo và thực đơn thiết kế cho mọi buổi tiệc đáng nhớ.",
                 "link": {
                   "label": "Xem chi tiết",
                   "url": "/vi/dat-ban",
                   "openInNewTab": false
-                },
-                "image": null
+                }
               },
-              "displayOrder": 7,
+              "displayOrder": 5,
               "seo": {
-                "metaTitle": "Hẹn hò bên ánh lửa",
-                "metaDescription": "Không gian lãng mạn, ánh nến lung linh và hương vị nướng Brazil say đắm.",
-                "shareImage": null,
-                "canonicalPath": "/vi/uu-dai/date-night",
+                "metaTitle": "Tiệc riêng tại Salanca",
+                "metaDescription": "Không gian riêng tư, dịch vụ chu đáo và thực đơn thiết kế cho mọi buổi tiệc đáng nhớ.",
+                "canonicalPath": "/vi/uu-dai/private-party",
                 "noIndex": false
               }
             },
             "en": {
-              "kind": "event",
-              "title": "Date night by the fire",
-              "slug": "date-night",
-              "summary": "A romantic room, soft candlelight, and Brazilian grill flavours to linger over.",
+              "slug": "private-party",
+              "kind": "private_event",
+              "title": "Private dining at Salanca",
+              "summary": "A private room, attentive service, and a menu designed for memorable gatherings.",
               "body": [
                 {
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "A romantic room, soft candlelight, and Brazilian grill flavours to linger over.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "Private rooms and long tables are ready for company dinners, friend reunions, or family milestones."
                     }
                   ]
                 },
@@ -4176,50 +3964,37 @@
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "Grill-fire glow, a glass of wine, and hot skewers — a different kind of date in Hanoi.",
-                      "type": "text"
-                    }
-                  ]
-                },
-                {
-                  "type": "paragraph",
-                  "children": [
-                    {
-                      "text": "Ask for a quieter corner when you want the conversation to stretch.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "We help with budget menus, service timing, and seating layouts."
                     }
                   ]
                 }
               ],
               "coverImage": {
-                "media": {
-                  "__file": "0edf56e08021b4a07a2f291448099b693d13ca556a27de9a83479e1d2b59c4f0.jpg"
-                },
-                "alt": "Couple dining in a warm bar-side setting",
+                "alt": "Long table set for a private party in the restaurant",
                 "caption": null,
                 "focalPointX": 50,
-                "focalPointY": 50
+                "focalPointY": 50,
+                "media": {
+                  "__file": "dcdb867d09824f751124118de8c14f3d4b76f6c23cd596501588e030251e6c2b.jpg"
+                }
               },
               "gallery": [],
-              "startsAt": null,
-              "endsAt": null,
               "terms": [],
               "cta": {
-                "heading": "Date night by the fire",
-                "body": "A romantic room, soft candlelight, and Brazilian grill flavours to linger over.",
+                "heading": "Private dining at Salanca",
+                "body": "A private room, attentive service, and a menu designed for memorable gatherings.",
                 "link": {
                   "label": "View details",
                   "url": "/en/reservations",
                   "openInNewTab": false
-                },
-                "image": null
+                }
               },
-              "displayOrder": 7,
+              "displayOrder": 5,
               "seo": {
-                "metaTitle": "Date night by the fire",
-                "metaDescription": "A romantic room, soft candlelight, and Brazilian grill flavours to linger over.",
-                "shareImage": null,
-                "canonicalPath": "/en/offers/date-night",
+                "metaTitle": "Private dining at Salanca",
+                "metaDescription": "A private room, attentive service, and a menu designed for memorable gatherings.",
+                "canonicalPath": "/en/offers/private-party",
                 "noIndex": false
               }
             }
@@ -4227,17 +4002,17 @@
           {
             "key": "family-moments",
             "vi": {
+              "slug": "family-moments",
               "kind": "promotion",
               "title": "Khoảnh khắc gia đình",
-              "slug": "family-moments",
               "summary": "Quây quần bên nhau, thưởng thức món ngon trong không gian ấm cúng và gần gũi.",
               "body": [
                 {
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "Quây quần bên nhau, thưởng thức món ngon trong không gian ấm cúng và gần gũi.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "Salanca là nơi cả nhà ngồi lại, chia sẻ xiên thịt và những câu chuyện dài."
                     }
                   ]
                 },
@@ -4245,33 +4020,22 @@
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "Salanca là nơi cả nhà ngồi lại, chia sẻ xiên thịt và những câu chuyện dài.",
-                      "type": "text"
-                    }
-                  ]
-                },
-                {
-                  "type": "paragraph",
-                  "children": [
-                    {
-                      "text": "Thực đơn buffet thân thiện với mọi lứa tuổi, kèm không gian đủ rộng cho bàn đông người.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "Thực đơn buffet thân thiện với mọi lứa tuổi, kèm không gian đủ rộng cho bàn đông người."
                     }
                   ]
                 }
               ],
               "coverImage": {
-                "media": {
-                  "__file": "c31461e80fe67a8dbb6f96d8f0a96929703b475949b1f9f914b7505bd2a9c5d7.jpg"
-                },
                 "alt": "Gia đình và bạn bè dùng bữa cùng nhau tại bàn",
                 "caption": null,
                 "focalPointX": 50,
-                "focalPointY": 50
+                "focalPointY": 50,
+                "media": {
+                  "__file": "c31461e80fe67a8dbb6f96d8f0a96929703b475949b1f9f914b7505bd2a9c5d7.jpg"
+                }
               },
               "gallery": [],
-              "startsAt": null,
-              "endsAt": null,
               "terms": [],
               "cta": {
                 "heading": "Khoảnh khắc gia đình",
@@ -4280,30 +4044,28 @@
                   "label": "Xem chi tiết",
                   "url": "/vi/dat-ban",
                   "openInNewTab": false
-                },
-                "image": null
+                }
               },
               "displayOrder": 6,
               "seo": {
                 "metaTitle": "Khoảnh khắc gia đình",
                 "metaDescription": "Quây quần bên nhau, thưởng thức món ngon trong không gian ấm cúng và gần gũi.",
-                "shareImage": null,
                 "canonicalPath": "/vi/uu-dai/family-moments",
                 "noIndex": false
               }
             },
             "en": {
+              "slug": "family-moments",
               "kind": "promotion",
               "title": "Family moments",
-              "slug": "family-moments",
               "summary": "Gather close, share great food in a warm and welcoming room.",
               "body": [
                 {
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "Gather close, share great food in a warm and welcoming room.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "Salanca is where the whole family sits down, shares skewers, and lets the stories run long."
                     }
                   ]
                 },
@@ -4311,33 +4073,22 @@
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "Salanca is where the whole family sits down, shares skewers, and lets the stories run long.",
-                      "type": "text"
-                    }
-                  ]
-                },
-                {
-                  "type": "paragraph",
-                  "children": [
-                    {
-                      "text": "The buffet is friendly across ages, with space enough for a full table.",
-                      "type": "text"
+                      "type": "text",
+                      "text": "The buffet is friendly across ages, with space enough for a full table."
                     }
                   ]
                 }
               ],
               "coverImage": {
-                "media": {
-                  "__file": "c31461e80fe67a8dbb6f96d8f0a96929703b475949b1f9f914b7505bd2a9c5d7.jpg"
-                },
                 "alt": "Family and friends dining together at the table",
                 "caption": null,
                 "focalPointX": 50,
-                "focalPointY": 50
+                "focalPointY": 50,
+                "media": {
+                  "__file": "c31461e80fe67a8dbb6f96d8f0a96929703b475949b1f9f914b7505bd2a9c5d7.jpg"
+                }
               },
               "gallery": [],
-              "startsAt": null,
-              "endsAt": null,
               "terms": [],
               "cta": {
                 "heading": "Family moments",
@@ -4346,15 +4097,122 @@
                   "label": "View details",
                   "url": "/en/reservations",
                   "openInNewTab": false
-                },
-                "image": null
+                }
               },
               "displayOrder": 6,
               "seo": {
                 "metaTitle": "Family moments",
                 "metaDescription": "Gather close, share great food in a warm and welcoming room.",
-                "shareImage": null,
                 "canonicalPath": "/en/offers/family-moments",
+                "noIndex": false
+              }
+            }
+          },
+          {
+            "key": "date-night",
+            "vi": {
+              "slug": "date-night",
+              "kind": "event",
+              "title": "Hẹn hò bên ánh lửa",
+              "summary": "Không gian lãng mạn, ánh nến lung linh và hương vị nướng Brazil say đắm.",
+              "body": [
+                {
+                  "type": "paragraph",
+                  "children": [
+                    {
+                      "type": "text",
+                      "text": "Ánh lửa lò nướng, ly vang và xiên thịt nóng hổi — một buổi hẹn khác biệt giữa lòng Hà Nội."
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "children": [
+                    {
+                      "type": "text",
+                      "text": "Gợi ý đặt bàn khu vực yên tĩnh hơn khi bạn muốn cuộc trò chuyện kéo dài."
+                    }
+                  ]
+                }
+              ],
+              "coverImage": {
+                "alt": "Cặp đôi dùng bữa trong không gian quầy bar ấm áp",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "0edf56e08021b4a07a2f291448099b693d13ca556a27de9a83479e1d2b59c4f0.jpg"
+                }
+              },
+              "gallery": [],
+              "terms": [],
+              "cta": {
+                "heading": "Hẹn hò bên ánh lửa",
+                "body": "Không gian lãng mạn, ánh nến lung linh và hương vị nướng Brazil say đắm.",
+                "link": {
+                  "label": "Xem chi tiết",
+                  "url": "/vi/dat-ban",
+                  "openInNewTab": false
+                }
+              },
+              "displayOrder": 7,
+              "seo": {
+                "metaTitle": "Hẹn hò bên ánh lửa",
+                "metaDescription": "Không gian lãng mạn, ánh nến lung linh và hương vị nướng Brazil say đắm.",
+                "canonicalPath": "/vi/uu-dai/date-night",
+                "noIndex": false
+              }
+            },
+            "en": {
+              "slug": "date-night",
+              "kind": "event",
+              "title": "Date night by the fire",
+              "summary": "A romantic room, soft candlelight, and Brazilian grill flavours to linger over.",
+              "body": [
+                {
+                  "type": "paragraph",
+                  "children": [
+                    {
+                      "type": "text",
+                      "text": "Grill-fire glow, a glass of wine, and hot skewers — a different kind of date in Hanoi."
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "children": [
+                    {
+                      "type": "text",
+                      "text": "Ask for a quieter corner when you want the conversation to stretch."
+                    }
+                  ]
+                }
+              ],
+              "coverImage": {
+                "alt": "Couple dining in a warm bar-side setting",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50,
+                "media": {
+                  "__file": "0edf56e08021b4a07a2f291448099b693d13ca556a27de9a83479e1d2b59c4f0.jpg"
+                }
+              },
+              "gallery": [],
+              "terms": [],
+              "cta": {
+                "heading": "Date night by the fire",
+                "body": "A romantic room, soft candlelight, and Brazilian grill flavours to linger over.",
+                "link": {
+                  "label": "View details",
+                  "url": "/en/reservations",
+                  "openInNewTab": false
+                }
+              },
+              "displayOrder": 7,
+              "seo": {
+                "metaTitle": "Date night by the fire",
+                "metaDescription": "A romantic room, soft candlelight, and Brazilian grill flavours to linger over.",
+                "canonicalPath": "/en/offers/date-night",
                 "noIndex": false
               }
             }
@@ -6619,22 +6477,22 @@
             "title": "Ưu đãi & Sự kiện",
             "description": "Những lý do mới để gặp nhau tại Salanca",
             "backgroundImage": {
-              "media": {
-                "__file": "55917a9795da1574d4febbb4449a161c38b88a63eebc309a27f59d8e81d97c57.jpg"
-              },
               "alt": "Ưu đãi & Sự kiện",
               "caption": null,
               "focalPointX": 50,
-              "focalPointY": 50
+              "focalPointY": 50,
+              "media": {
+                "__file": "55917a9795da1574d4febbb4449a161c38b88a63eebc309a27f59d8e81d97c57.jpg"
+              }
             },
             "decorativeImage": {
-              "media": {
-                "__file": "fa53cd89c0c56654f6173b2c37ffb23df6cd50897c04f150cd7f986027a4c0fe.webp"
-              },
               "alt": "Ưu đãi & Sự kiện — decor",
               "caption": null,
               "focalPointX": 50,
-              "focalPointY": 50
+              "focalPointY": 50,
+              "media": {
+                "__file": "2d0982f4dd689cf0a773bf9d33b319a303b8cebac7bb18e0fe86d140bf5725a4.png"
+              }
             },
             "primaryLink": {
               "label": "Đặt bàn ngay",
@@ -6654,42 +6512,40 @@
             "heading": "Tổ chức sự kiện của riêng bạn",
             "body": "Tiệc công ty, họp mặt bạn bè đến những dịp kỷ niệm đáng nhớ, Salanca mang đến trải nghiệm ẩm thực và không gian được thiết kế riêng cho bạn.",
             "link": {
-              "label": "Xem không gian",
-              "url": "/vi/khong-gian",
+              "label": "Tư vấn sự kiện",
+              "url": "/vi/lien-he",
               "openInNewTab": false
             },
             "image": {
-              "media": {
-                "__file": "677630bddf6d426083170bf9fbdcf02bb3636846d2b5cf772033403f4f53e42d.jpg"
-              },
               "alt": "Khách mời và vũ công trong đêm Brazil tại Salanca",
               "caption": null,
               "focalPointX": 50,
-              "focalPointY": 50
+              "focalPointY": 50,
+              "media": {
+                "__file": "677630bddf6d426083170bf9fbdcf02bb3636846d2b5cf772033403f4f53e42d.jpg"
+              }
             }
           },
           "closingCta": {
             "heading": "Hẹn nhau tại Salanca",
-            "body": null,
             "link": {
               "label": "Đặt bàn ngay",
               "url": "/vi/dat-ban",
               "openInNewTab": false
             },
             "image": {
-              "media": {
-                "__file": "7d2356600aa24193ece0b8761c212a24dab520aec05b780c4eda38c9591036a5.jpg"
-              },
               "alt": "Không gian nhà hàng Salanca về đêm",
               "caption": null,
               "focalPointX": 50,
-              "focalPointY": 50
+              "focalPointY": 50,
+              "media": {
+                "__file": "7d2356600aa24193ece0b8761c212a24dab520aec05b780c4eda38c9591036a5.jpg"
+              }
             }
           },
           "seo": {
             "metaTitle": "Ưu đãi",
             "metaDescription": "Liên hệ Salanca để hỏi thông tin ưu đãi.",
-            "shareImage": null,
             "canonicalPath": "/vi/uu-dai",
             "noIndex": false
           }
@@ -6700,22 +6556,22 @@
             "title": "Offers & Events",
             "description": "New reasons to gather at Salanca",
             "backgroundImage": {
-              "media": {
-                "__file": "55917a9795da1574d4febbb4449a161c38b88a63eebc309a27f59d8e81d97c57.jpg"
-              },
               "alt": "Offers & Events",
               "caption": null,
               "focalPointX": 50,
-              "focalPointY": 50
+              "focalPointY": 50,
+              "media": {
+                "__file": "55917a9795da1574d4febbb4449a161c38b88a63eebc309a27f59d8e81d97c57.jpg"
+              }
             },
             "decorativeImage": {
-              "media": {
-                "__file": "fa53cd89c0c56654f6173b2c37ffb23df6cd50897c04f150cd7f986027a4c0fe.webp"
-              },
               "alt": "Offers & Events — decor",
               "caption": null,
               "focalPointX": 50,
-              "focalPointY": 50
+              "focalPointY": 50,
+              "media": {
+                "__file": "2d0982f4dd689cf0a773bf9d33b319a303b8cebac7bb18e0fe86d140bf5725a4.png"
+              }
             },
             "primaryLink": {
               "label": "Book a table",
@@ -6735,42 +6591,40 @@
             "heading": "Host your own event",
             "body": "From company dinners and reunions to milestones worth remembering, Salanca brings the food experience and a room shaped around you.",
             "link": {
-              "label": "See the space",
-              "url": "/en/space",
+              "label": "Event consultation",
+              "url": "/en/contact",
               "openInNewTab": false
             },
             "image": {
-              "media": {
-                "__file": "677630bddf6d426083170bf9fbdcf02bb3636846d2b5cf772033403f4f53e42d.jpg"
-              },
               "alt": "Guests and dancers at a Brazil night inside Salanca",
               "caption": null,
               "focalPointX": 50,
-              "focalPointY": 50
+              "focalPointY": 50,
+              "media": {
+                "__file": "677630bddf6d426083170bf9fbdcf02bb3636846d2b5cf772033403f4f53e42d.jpg"
+              }
             }
           },
           "closingCta": {
             "heading": "See you at Salanca",
-            "body": null,
             "link": {
               "label": "Book a table",
               "url": "/en/reservations",
               "openInNewTab": false
             },
             "image": {
-              "media": {
-                "__file": "7d2356600aa24193ece0b8761c212a24dab520aec05b780c4eda38c9591036a5.jpg"
-              },
               "alt": "Salanca restaurant interior at night",
               "caption": null,
               "focalPointX": 50,
-              "focalPointY": 50
+              "focalPointY": 50,
+              "media": {
+                "__file": "7d2356600aa24193ece0b8761c212a24dab520aec05b780c4eda38c9591036a5.jpg"
+              }
             }
           },
           "seo": {
             "metaTitle": "Offers",
             "metaDescription": "Contact Salanca for offer information.",
-            "shareImage": null,
             "canonicalPath": "/en/offers",
             "noIndex": false
           }
@@ -6783,22 +6637,22 @@
             "title": "LIÊN HỆ SALANCA",
             "description": "CHÚNG TÔI LUÔN SẴN SÀNG ĐÓN TIẾP BẠN.",
             "backgroundImage": {
-              "media": {
-                "__file": "ea999245bede5a2d247e7da3560014f721d2e80b7cbc2d624a634b80dc8b4502.webp"
-              },
               "alt": "Salanca",
               "caption": null,
               "focalPointX": 50,
-              "focalPointY": 50
+              "focalPointY": 50,
+              "media": {
+                "__file": "1e97df50679298713d08e7a781c57d490acb715608e81055cb78a0205d099170.jpg"
+              }
             },
             "decorativeImage": {
-              "media": {
-                "__file": "fa53cd89c0c56654f6173b2c37ffb23df6cd50897c04f150cd7f986027a4c0fe.webp"
-              },
               "alt": "LIÊN HỆ SALANCA — decor",
               "caption": null,
               "focalPointX": 50,
-              "focalPointY": 50
+              "focalPointY": 50,
+              "media": {
+                "__file": "1afc35fbff9e3dd05fc8ee8c9748343f6d6f6cca794359f68f08a2e65cd011ca.png"
+              }
             },
             "primaryLink": {
               "label": "ĐẶT BÀN NGAY",
@@ -6808,13 +6662,13 @@
           },
           "visitHeading": "GHÉ THĂM SALANCA",
           "visitImage": {
-            "media": {
-              "__file": "b60935fa09cf0bd800993e0515297f9adb994578aeeec642e0495b368ddad35d.jpg"
-            },
-            "alt": "Minh họa Brazil trong ấn phẩm Salanca",
+            "alt": "Mặt tiền Salanca tại 49 Phan Bội Châu, Hà Nội.",
             "caption": null,
             "focalPointX": 50,
-            "focalPointY": 50
+            "focalPointY": 50,
+            "media": {
+              "__file": "8cfb50db8612711a5c151cb4ea86cbc72c0bc8d836c2bbd89547398e5525b30a.jpg"
+            }
           },
           "featuredLocation": {
             "__ref": {
@@ -6824,69 +6678,105 @@
           },
           "mapHeading": "TÌM ĐƯỜNG ĐẾN SALANCA",
           "formHeading": "GỬI LỜI NHẮN",
-          "formTopics": [],
           "helpHeading": "SALANCA CÓ THỂ GIÚP GÌ CHO BẠN?",
           "helpBody": "Chọn nội dung phù hợp để đội ngũ Salanca hỗ trợ bạn nhanh hơn.",
           "helpImage": {
-            "media": {
-              "__file": "6b5461ba074055d2e298af3dff048a9ea3f7a11dbabdd18580639920debf6f18.webp"
-            },
-            "alt": "Thịt nướng được cắt trực tiếp trên xiên",
+            "alt": "Không gian phòng riêng ấm cúng tại Salanca.",
             "caption": null,
             "focalPointX": 50,
-            "focalPointY": 50
+            "focalPointY": 50,
+            "media": {
+              "__file": "dcdb867d09824f751124118de8c14f3d4b76f6c23cd596501588e030251e6c2b.jpg"
+            }
           },
           "helpItems": [
             {
-              "eyebrow": null,
               "title": "ĐẶT BÀN",
-              "body": "Đặt chỗ nhanh chóng cho bữa ăn của bạn.",
-              "detailBody": null,
-              "image": null,
-              "link": null
+              "body": "Đặt chỗ nhanh chóng cho bữa ăn của bạn."
             },
             {
-              "eyebrow": null,
-              "title": "YÊU CẦU KHÁC",
-              "body": "Gửi nội dung bạn muốn trao đổi với nhà hàng.",
-              "detailBody": null,
-              "image": null,
-              "link": null
+              "title": "SỰ KIỆN",
+              "body": "Tổ chức tiệc riêng, sinh nhật, kỷ niệm."
             },
             {
-              "eyebrow": null,
               "title": "GÓP Ý",
-              "body": "Chia sẻ ý kiến để chúng tôi phục vụ tốt hơn.",
-              "detailBody": null,
-              "image": null,
-              "link": null
+              "body": "Chia sẻ ý kiến để chúng tôi phục vụ tốt hơn."
             }
           ],
           "socialHeading": "KẾT NỐI CÙNG SALANCA",
+          "socialImages": [
+            {
+              "alt": "Thịt nướng trên xiên tại Salanca.",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50,
+              "media": {
+                "__file": "8057e82911b18883912d0471e1f54845d277bae99a8efabba913ad6eea58dfde.jpg"
+              }
+            },
+            {
+              "alt": "Bàn tiệc ấm cúng trong nhà hàng.",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50,
+              "media": {
+                "__file": "22773a238369ffdf893a836d03276abb0fdd0b213df9f61810cc6c20bcac8a8c.jpg"
+              }
+            },
+            {
+              "alt": "Món nướng đặc trưng của Churrascaria.",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50,
+              "media": {
+                "__file": "f0c3b35f7243842445ccf4e66ef5838fe9241b350dbc211c9a185b6fe2020948.jpg"
+              }
+            },
+            {
+              "alt": "Khách thưởng thức bữa tối tại Salanca.",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50,
+              "media": {
+                "__file": "c31461e80fe67a8dbb6f96d8f0a96929703b475949b1f9f914b7505bd2a9c5d7.jpg"
+              }
+            }
+          ],
           "faqHeading": "THÔNG TIN BẠN CÓ THỂ CẦN",
-          "faqItems": [],
+          "faqItems": [
+            {
+              "question": "ĐẶT BÀN NHƯ THẾ NÀO?",
+              "answer": "Gửi yêu cầu qua trang Đặt bàn hoặc gọi hotline. Đội ngũ sẽ xác nhận lại trong thời gian sớm nhất."
+            },
+            {
+              "question": "SALANCA CÓ NHẬN TIỆC NHÓM?",
+              "answer": "Có. Liên hệ hotline hoặc gửi tin nhắn với số khách và dịp để được tư vấn không gian phù hợp."
+            },
+            {
+              "question": "TÔI CÓ THỂ GỬI YÊU CẦU ĐẶC BIỆT?",
+              "answer": "Có. Ghi rõ trong form liên hệ hoặc khi đặt bàn — dị ứng, dịp kỷ niệm, chỗ ngồi ưu tiên."
+            }
+          ],
           "closingCta": {
             "heading": "HẸN GẶP BẠN TẠI SALANCA",
-            "body": null,
             "link": {
               "label": "ĐẶT BÀN NGAY",
               "url": "/vi/dat-ban",
               "openInNewTab": false
             },
             "image": {
-              "media": {
-                "__file": "810017fdf297171e94f057261fcb09020c532af599f553db5e7dbd832a469eb1.webp"
-              },
-              "alt": "Minh họa Brazil trong ấn phẩm Salanca",
+              "alt": "Salanca",
               "caption": null,
               "focalPointX": 50,
-              "focalPointY": 50
+              "focalPointY": 50,
+              "media": {
+                "__file": "dd55109b2bbf47536306bd5dd08173af2f54f660ad45cb9abfe7e2354407cb32.jpg"
+              }
             }
           },
           "seo": {
             "metaTitle": "Liên hệ",
             "metaDescription": "Liên hệ Salanca — địa chỉ Hà Nội, hotline, form gửi tin nhắn và hướng dẫn đến nhà hàng.",
-            "shareImage": null,
             "canonicalPath": "/vi/lien-he",
             "noIndex": false
           }
@@ -6897,22 +6787,22 @@
             "title": "CONTACT SALANCA",
             "description": "WE ARE ALWAYS READY TO WELCOME YOU.",
             "backgroundImage": {
-              "media": {
-                "__file": "ea999245bede5a2d247e7da3560014f721d2e80b7cbc2d624a634b80dc8b4502.webp"
-              },
               "alt": "Salanca",
               "caption": null,
               "focalPointX": 50,
-              "focalPointY": 50
+              "focalPointY": 50,
+              "media": {
+                "__file": "1e97df50679298713d08e7a781c57d490acb715608e81055cb78a0205d099170.jpg"
+              }
             },
             "decorativeImage": {
-              "media": {
-                "__file": "fa53cd89c0c56654f6173b2c37ffb23df6cd50897c04f150cd7f986027a4c0fe.webp"
-              },
               "alt": "CONTACT SALANCA — decor",
               "caption": null,
               "focalPointX": 50,
-              "focalPointY": 50
+              "focalPointY": 50,
+              "media": {
+                "__file": "1afc35fbff9e3dd05fc8ee8c9748343f6d6f6cca794359f68f08a2e65cd011ca.png"
+              }
             },
             "primaryLink": {
               "label": "BOOK A TABLE",
@@ -6922,13 +6812,13 @@
           },
           "visitHeading": "VISIT SALANCA",
           "visitImage": {
-            "media": {
-              "__file": "b60935fa09cf0bd800993e0515297f9adb994578aeeec642e0495b368ddad35d.jpg"
-            },
-            "alt": "Brazilian artwork from the Salanca menu",
+            "alt": "Salanca's storefront at 49 Phan Boi Chau, Hanoi.",
             "caption": null,
             "focalPointX": 50,
-            "focalPointY": 50
+            "focalPointY": 50,
+            "media": {
+              "__file": "8cfb50db8612711a5c151cb4ea86cbc72c0bc8d836c2bbd89547398e5525b30a.jpg"
+            }
           },
           "featuredLocation": {
             "__ref": {
@@ -6938,69 +6828,105 @@
           },
           "mapHeading": "FIND YOUR WAY TO SALANCA",
           "formHeading": "SEND A MESSAGE",
-          "formTopics": [],
           "helpHeading": "HOW CAN SALANCA HELP YOU?",
           "helpBody": "Choose the topic that best matches what you need from our team.",
           "helpImage": {
-            "media": {
-              "__file": "6b5461ba074055d2e298af3dff048a9ea3f7a11dbabdd18580639920debf6f18.webp"
-            },
-            "alt": "Grilled meat carved directly from the skewer",
+            "alt": "A warm private dining room at Salanca.",
             "caption": null,
             "focalPointX": 50,
-            "focalPointY": 50
+            "focalPointY": 50,
+            "media": {
+              "__file": "dcdb867d09824f751124118de8c14f3d4b76f6c23cd596501588e030251e6c2b.jpg"
+            }
           },
           "helpItems": [
             {
-              "eyebrow": null,
               "title": "RESERVATIONS",
-              "body": "Book a table quickly for your next meal.",
-              "detailBody": null,
-              "image": null,
-              "link": null
+              "body": "Book a table quickly for your next meal."
             },
             {
-              "eyebrow": null,
-              "title": "OTHER REQUESTS",
-              "body": "Send the information you would like to discuss with the restaurant.",
-              "detailBody": null,
-              "image": null,
-              "link": null
+              "title": "EVENTS",
+              "body": "Private parties, birthdays, and celebrations."
             },
             {
-              "eyebrow": null,
               "title": "FEEDBACK",
-              "body": "Share your thoughts so we can serve you better.",
-              "detailBody": null,
-              "image": null,
-              "link": null
+              "body": "Share your thoughts so we can serve you better."
             }
           ],
           "socialHeading": "CONNECT WITH SALANCA",
+          "socialImages": [
+            {
+              "alt": "Skewered grilled meats at Salanca.",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50,
+              "media": {
+                "__file": "8057e82911b18883912d0471e1f54845d277bae99a8efabba913ad6eea58dfde.jpg"
+              }
+            },
+            {
+              "alt": "A warm dinner table in the restaurant.",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50,
+              "media": {
+                "__file": "22773a238369ffdf893a836d03276abb0fdd0b213df9f61810cc6c20bcac8a8c.jpg"
+              }
+            },
+            {
+              "alt": "Signature churrascaria cuts.",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50,
+              "media": {
+                "__file": "f0c3b35f7243842445ccf4e66ef5838fe9241b350dbc211c9a185b6fe2020948.jpg"
+              }
+            },
+            {
+              "alt": "Guests enjoying dinner at Salanca.",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50,
+              "media": {
+                "__file": "c31461e80fe67a8dbb6f96d8f0a96929703b475949b1f9f914b7505bd2a9c5d7.jpg"
+              }
+            }
+          ],
           "faqHeading": "THINGS YOU MAY NEED TO KNOW",
-          "faqItems": [],
+          "faqItems": [
+            {
+              "question": "HOW DO I RESERVE A TABLE?",
+              "answer": "Send a request on the Reservations page or call the hotline. Our team will confirm shortly."
+            },
+            {
+              "question": "DOES SALANCA HOST GROUP PARTIES?",
+              "answer": "Yes. Call the hotline or message us with your party size and occasion for space advice."
+            },
+            {
+              "question": "CAN I SEND SPECIAL REQUESTS?",
+              "answer": "Yes. Note allergies, celebrations, or seating preferences in the contact form or reservation."
+            }
+          ],
           "closingCta": {
             "heading": "SEE YOU AT SALANCA",
-            "body": null,
             "link": {
               "label": "BOOK A TABLE",
               "url": "/en/reservations",
               "openInNewTab": false
             },
             "image": {
-              "media": {
-                "__file": "810017fdf297171e94f057261fcb09020c532af599f553db5e7dbd832a469eb1.webp"
-              },
-              "alt": "Brazilian artwork from the Salanca menu",
+              "alt": "Salanca",
               "caption": null,
               "focalPointX": 50,
-              "focalPointY": 50
+              "focalPointY": 50,
+              "media": {
+                "__file": "dd55109b2bbf47536306bd5dd08173af2f54f660ad45cb9abfe7e2354407cb32.jpg"
+              }
             }
           },
           "seo": {
             "metaTitle": "Contact",
             "metaDescription": "Contact Salanca — Hanoi address, hotline, message form, and directions to the restaurant.",
-            "shareImage": null,
             "canonicalPath": "/en/contact",
             "noIndex": false
           }
@@ -8184,7 +8110,10 @@
       "b0b5219d840a92a5b86dc6514c0bd34cbcddba719505f55c028f8c1389759909.jpg",
       "b4e00185f49881a86811a61a5af6999217fb380f1a70fee620073e5fcd31b3b9.png",
       "b231d52c0c1ebad001a51b1552067b73e1f51039b1211b2a6b8e8b25653cf100.png",
-      "5ea2598302bedfbf1a0c44c3c0a93462c1d8742c08f476308a48813c4043d3c1.png"
+      "5ea2598302bedfbf1a0c44c3c0a93462c1d8742c08f476308a48813c4043d3c1.png",
+      "2d0982f4dd689cf0a773bf9d33b319a303b8cebac7bb18e0fe86d140bf5725a4.png",
+      "1afc35fbff9e3dd05fc8ee8c9748343f6d6f6cca794359f68f08a2e65cd011ca.png",
+      "8cfb50db8612711a5c151cb4ea86cbc72c0bc8d836c2bbd89547398e5525b30a.jpg"
     ]
   },
   "generatedFrom": "Published CMS content with approved original source artwork"
