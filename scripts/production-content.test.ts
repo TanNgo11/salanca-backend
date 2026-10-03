@@ -34,7 +34,7 @@ describe('shipped production content', () => {
     };
     visit(bundle.payload);
     expect(() => resolvePlaceholders(bundle.payload, media, refs)).not.toThrow();
-    expect(bundle.files).toHaveLength(40);
+    expect(bundle.files).toHaveLength(43);
     const featured = bundle.payload.collections['api::menu-item.menu-item'].entries.filter((entry: { key: string }) => ['picanha', 'costela', 'cupim', 'panceta', 'cordeiro', 'camarao'].includes(entry.key));
     expect(new Set(featured.map((entry: { vi: { image: { media: { __file: string } } } }) => entry.vi.image.media.__file)).size).toBe(6);
     expect(bundle.payload.pages['api::experience-page.experience-page'].vi.flavorCards).toHaveLength(4);

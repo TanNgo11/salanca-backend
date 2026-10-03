@@ -273,3 +273,4 @@ whole PDF pages.
 
 ### Experience cut artwork restoration (2026-10-03)
 Experience consumers populate `flavorCards.image.media`; nonempty flavorCards take precedence over flavorItems for the display grid. Documents lacking flavorCards continue to render related menu items. Both locales are explicitly queried. The page image is independent of menu-item media.
+Homepage hero artwork: request `populate[hero][populate][decorativeImage][populate]=media` alongside `backgroundImage` to retrieve the CMS-editable original frame.

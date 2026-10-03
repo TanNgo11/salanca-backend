@@ -113,6 +113,8 @@ export interface HomeHero extends Struct.ComponentSchema {
     displayName: 'Trang ch\u1EE7 - M\u1EDF \u0111\u1EA7u';
   };
   attributes: {
+    decorativeImage: Schema.Attribute.Component<'shared.image', false> &
+      Schema.Attribute.SetPluginOptions<{ i18n: { localized: true } }>;
     backgroundImage: Schema.Attribute.Component<'shared.image', false> &
       Schema.Attribute.Required &
       Schema.Attribute.SetPluginOptions<{

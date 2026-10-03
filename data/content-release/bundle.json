@@ -1,7 +1,7 @@
 {
   "version": 1,
   "createdAt": "2026-10-03T03:23:42.417Z",
-  "schemaHash": "1ebc6fbe3af880067563756208fe7660b8a1fe40df2f79f166fe53de5c6723ca",
+  "schemaHash": "b7c36f9261d145696118d880b18b0636732de87cb4f9e91172f1b7f2de6440c4",
   "files": [
     {
       "name": "ea999245bede5a2d247e7da3560014f721d2e80b7cbc2d624a634b80dc8b4502.webp",
@@ -242,6 +242,24 @@
       "sourceFile": "client-camarao.jpg",
       "originalName": "client-camarao.jpg",
       "sha256": "b0b5219d840a92a5b86dc6514c0bd34cbcddba719505f55c028f8c1389759909"
+    },
+    {
+      "name": "b4e00185f49881a86811a61a5af6999217fb380f1a70fee620073e5fcd31b3b9.png",
+      "sha256": "b4e00185f49881a86811a61a5af6999217fb380f1a70fee620073e5fcd31b3b9",
+      "originalName": "botanical-sketch-v1.png",
+      "sourceFile": "botanical-sketch-v1.png"
+    },
+    {
+      "name": "b231d52c0c1ebad001a51b1552067b73e1f51039b1211b2a6b8e8b25653cf100.png",
+      "sha256": "b231d52c0c1ebad001a51b1552067b73e1f51039b1211b2a6b8e8b25653cf100",
+      "originalName": "hero-churrasco-service-v2.png",
+      "sourceFile": "hero-churrasco-service-v2.png"
+    },
+    {
+      "name": "5ea2598302bedfbf1a0c44c3c0a93462c1d8742c08f476308a48813c4043d3c1.png",
+      "sha256": "5ea2598302bedfbf1a0c44c3c0a93462c1d8742c08f476308a48813c4043d3c1",
+      "originalName": "hero-decor-right.png",
+      "sourceFile": "hero-decor-right.png"
     }
   ],
   "payload": {
@@ -4639,12 +4657,12 @@
             "description": "Trải nghiệm hơn 12 loại thịt nướng phục vụ trực tiếp tại bàn theo phong cách Brazil truyền thống.",
             "backgroundImage": {
               "media": {
-                "__file": "6b5461ba074055d2e298af3dff048a9ea3f7a11dbabdd18580639920debf6f18.webp"
+                "__file": "b231d52c0c1ebad001a51b1552067b73e1f51039b1211b2a6b8e8b25653cf100.png"
               },
-              "alt": "TINH HOA CHURRASCARIA BRAZIL",
+              "alt": "Thịt nướng được thái trực tiếp tại bàn",
               "caption": null,
               "focalPointX": 50,
-              "focalPointY": 50
+              "focalPointY": 48
             },
             "primaryLink": {
               "label": "Đặt bàn ngay",
@@ -4656,7 +4674,16 @@
               "url": "/vi/thuc-don",
               "openInNewTab": false
             },
-            "scrollHint": "Cuộn xuống"
+            "scrollHint": "Cuộn xuống",
+            "decorativeImage": {
+              "media": {
+                "__file": "5ea2598302bedfbf1a0c44c3c0a93462c1d8742c08f476308a48813c4043d3c1.png"
+              },
+              "alt": "Vẹt đỏ và lá nhiệt đới",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            }
           },
           "experience": {
             "eyebrow": "Trải nghiệm Churrascaria",
@@ -4767,43 +4794,43 @@
             }
           },
           "process": {
-            "eyebrow": "Churrasco Brazil",
-            "title": "Từ than hồng đến bàn ăn",
+            "eyebrow": "Quy trình chuẩn Brazil",
+            "title": "Từ nông trại đến bàn ăn",
             "steps": [
               {
                 "number": "1",
-                "title": "Thịt bò và cừu nhập khẩu",
-                "body": "Từ New Zealand",
+                "title": "Thịt nhập khẩu chất lượng cao",
+                "body": "Tuyển chọn kỹ lưỡng",
                 "image": null
               },
               {
                 "number": "2",
-                "title": "Tẩm ướp truyền thống",
-                "body": "Thịt được ướp với muối biển",
+                "title": "Ướp theo công thức độc quyền",
+                "body": "Gia vị Brazil đặc trưng",
                 "image": null
               },
               {
                 "number": "3",
-                "title": "Nướng xiên quay",
-                "body": "Xiên thịt quay đều quanh than hồng",
+                "title": "Xiên thủ công tỉ mỉ",
+                "body": "Kiểm soát chuẩn mỗi xiên thịt",
                 "image": null
               },
               {
                 "number": "4",
-                "title": "Than củi tự nhiên",
-                "body": "Kiểm soát nhiệt than",
+                "title": "Nướng trên than hồng",
+                "body": "Lửa than hồng đều và ổn định",
                 "image": null
               },
               {
                 "number": "5",
-                "title": "Passador phục vụ",
-                "body": "Cắt từng lát mỏng ngay tại bàn",
+                "title": "Chef thái trực tiếp tại bàn",
+                "body": "Phục vụ trực tiếp bởi Gaucho",
                 "image": null
               },
               {
                 "number": "6",
-                "title": "Phục vụ liên tục",
-                "body": "Theo tốc độ thưởng thức của bạn",
+                "title": "Phục vụ liên tục không giới hạn",
+                "body": "Thưởng thức không giới hạn",
                 "image": null
               }
             ]
@@ -4816,7 +4843,35 @@
               "url": "/vi/khong-gian",
               "openInNewTab": false
             },
-            "images": []
+            "images": [
+              {
+                "media": {
+                  "__file": "22773a238369ffdf893a836d03276abb0fdd0b213df9f61810cc6c20bcac8a8c.jpg"
+                },
+                "alt": "Không gian sảnh chính Salanca",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50
+              },
+              {
+                "media": {
+                  "__file": "dd55109b2bbf47536306bd5dd08173af2f54f660ad45cb9abfe7e2354407cb32.jpg"
+                },
+                "alt": "Sảnh ăn phụ ấm cúng",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50
+              },
+              {
+                "media": {
+                  "__file": "cc7145ca21fdcdfd28c4ebc5f7ede1de970b275711d4b07513d6250fcb7f9140.jpg"
+                },
+                "alt": "Hiên ăn ngoài trời rợp cây xanh",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50
+              }
+            ]
           },
           "bookingStrip": {
             "heading": "Sẵn sàng cho một bữa tiệc đậm chất Brazil?",
@@ -4826,7 +4881,15 @@
               "url": "/vi/dat-ban",
               "openInNewTab": false
             },
-            "image": null
+            "image": {
+              "media": {
+                "__file": "b4e00185f49881a86811a61a5af6999217fb380f1a70fee620073e5fcd31b3b9.png"
+              },
+              "alt": "Minh họa nhánh lá",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            }
           },
           "seo": {
             "metaTitle": "Tinh hoa Churrascaria Brazil",
@@ -4842,12 +4905,12 @@
             "description": "Experience more than 12 grilled meats carved tableside in the traditional Brazilian style.",
             "backgroundImage": {
               "media": {
-                "__file": "6b5461ba074055d2e298af3dff048a9ea3f7a11dbabdd18580639920debf6f18.webp"
+                "__file": "b231d52c0c1ebad001a51b1552067b73e1f51039b1211b2a6b8e8b25653cf100.png"
               },
-              "alt": "THE ESSENCE OF BRAZILIAN CHURRASCARIA",
+              "alt": "Churrasco carved tableside",
               "caption": null,
               "focalPointX": 50,
-              "focalPointY": 50
+              "focalPointY": 48
             },
             "primaryLink": {
               "label": "Book a table",
@@ -4859,7 +4922,16 @@
               "url": "/en/menu",
               "openInNewTab": false
             },
-            "scrollHint": "Scroll down"
+            "scrollHint": "Scroll down",
+            "decorativeImage": {
+              "media": {
+                "__file": "5ea2598302bedfbf1a0c44c3c0a93462c1d8742c08f476308a48813c4043d3c1.png"
+              },
+              "alt": "Scarlet macaw and tropical foliage",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            }
           },
           "experience": {
             "eyebrow": "The Churrascaria experience",
@@ -4970,43 +5042,43 @@
             }
           },
           "process": {
-            "eyebrow": "Churrasco Brazil",
-            "title": "From charcoal to the table",
+            "eyebrow": "Brazilian standard process",
+            "title": "From farm to table",
             "steps": [
               {
                 "number": "1",
-                "title": "Imported beef and lamb",
-                "body": "From New Zealand",
+                "title": "Premium imported meats",
+                "body": "Carefully selected cuts",
                 "image": null
               },
               {
                 "number": "2",
-                "title": "Traditional seasoning",
-                "body": "Meat seasoned with sea salt",
+                "title": "Signature seasoning",
+                "body": "Distinct Brazilian recipes",
                 "image": null
               },
               {
                 "number": "3",
-                "title": "Rotating skewers",
-                "body": "Meat skewers turning over charcoal",
+                "title": "Hand-crafted skewers",
+                "body": "Precision on every skewer",
                 "image": null
               },
               {
                 "number": "4",
-                "title": "Natural charcoal",
-                "body": "Controlled charcoal heat",
+                "title": "Charcoal grilling",
+                "body": "Steady, even heat",
                 "image": null
               },
               {
                 "number": "5",
-                "title": "Passador service",
-                "body": "Thin slices carved at the table",
+                "title": "Tableside carving",
+                "body": "Served by our Gauchos",
                 "image": null
               },
               {
                 "number": "6",
-                "title": "Continuous service",
-                "body": "At your own dining pace",
+                "title": "Unlimited service",
+                "body": "Enjoy without limits",
                 "image": null
               }
             ]
@@ -5019,7 +5091,35 @@
               "url": "/en/space",
               "openInNewTab": false
             },
-            "images": []
+            "images": [
+              {
+                "media": {
+                  "__file": "22773a238369ffdf893a836d03276abb0fdd0b213df9f61810cc6c20bcac8a8c.jpg"
+                },
+                "alt": "Salanca main dining room",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50
+              },
+              {
+                "media": {
+                  "__file": "dd55109b2bbf47536306bd5dd08173af2f54f660ad45cb9abfe7e2354407cb32.jpg"
+                },
+                "alt": "A cozy secondary dining hall",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50
+              },
+              {
+                "media": {
+                  "__file": "cc7145ca21fdcdfd28c4ebc5f7ede1de970b275711d4b07513d6250fcb7f9140.jpg"
+                },
+                "alt": "Leafy open-air veranda seating",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50
+              }
+            ]
           },
           "bookingStrip": {
             "heading": "Ready for a true Brazilian feast?",
@@ -5029,7 +5129,15 @@
               "url": "/en/reservations",
               "openInNewTab": false
             },
-            "image": null
+            "image": {
+              "media": {
+                "__file": "b4e00185f49881a86811a61a5af6999217fb380f1a70fee620073e5fcd31b3b9.png"
+              },
+              "alt": "Botanical illustration",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            }
           },
           "seo": {
             "metaTitle": "The essence of Brazilian Churrascaria",
@@ -8073,7 +8181,10 @@
       "b6b85342617351aa8839a685a01a316857331243d2bac3eb6d8809390fd38eb9.jpg",
       "1e97df50679298713d08e7a781c57d490acb715608e81055cb78a0205d099170.jpg",
       "2fe14fb6a1696cad8e3c777b22688317c4b83df03bb7fb0265d6274ca4d92a98.jpg",
-      "b0b5219d840a92a5b86dc6514c0bd34cbcddba719505f55c028f8c1389759909.jpg"
+      "b0b5219d840a92a5b86dc6514c0bd34cbcddba719505f55c028f8c1389759909.jpg",
+      "b4e00185f49881a86811a61a5af6999217fb380f1a70fee620073e5fcd31b3b9.png",
+      "b231d52c0c1ebad001a51b1552067b73e1f51039b1211b2a6b8e8b25653cf100.png",
+      "5ea2598302bedfbf1a0c44c3c0a93462c1d8742c08f476308a48813c4043d3c1.png"
     ]
   },
   "generatedFrom": "Published CMS content with approved original source artwork"

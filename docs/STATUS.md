@@ -171,6 +171,10 @@ contact fields only; hours/price still open).
 
 ## Evidence
 
+- 2026-10-03 follow-up release: homepage gallery/process/booking/hero restoration, CMS-editable hero decoration and 43 approved originals are ready for release. Local schema/typecheck, release tests and browser VI/EN checks passed. Production content apply is not performed by a Git push; use the shipped restore command after backend deployment. Frontend now handles a missing optional artwork field during rolling deployments. Dependency audit: 37 high, 56 moderate, 5 low, zero critical; no dependency changes in this release. Production Experience HTTP 500 root cause awaits server logs.
+
+- 2026-10-03: Homepage space gallery restored locally in VI/EN with three approved CMS/S3 photos; see `plans/restore-home-space.md` for scope, recovery and verification. Production apply and push not run for this follow-up.
+
 - [`bootstrap-report.md`](bootstrap-report.md)
 - [`phase-02-verification.md`](phase-02-verification.md)
 - [`phase-03-verification.md`](phase-03-verification.md)
