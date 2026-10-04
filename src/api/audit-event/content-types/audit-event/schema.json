@@ -1,0 +1,240 @@
+{
+  "kind": "collectionType",
+  "collectionName": "audit_events",
+  "info": {
+    "singularName": "audit-event",
+    "pluralName": "audit-events",
+    "displayName": "Nhật ký hoạt động",
+    "description": "Nhật ký bất biến của hoạt động quản trị"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": false
+    },
+    "content-type-builder": {
+      "visible": false
+    }
+  },
+  "attributes": {
+    "eventId": {
+      "type": "string",
+      "required": true,
+      "unique": true,
+      "maxLength": 64
+    },
+    "actorType": {
+      "type": "enumeration",
+      "enum": ["anonymous", "admin_user", "system"],
+      "required": true
+    },
+    "actorDocumentId": {
+      "type": "string",
+      "maxLength": 64,
+      "private": true
+    },
+    "actorLabel": {
+      "type": "string",
+      "maxLength": 320,
+      "private": true
+    },
+    "action": {
+      "type": "enumeration",
+      "enum": [
+        "cms_entry_create",
+        "cms_entry_update",
+        "cms_entry_delete",
+        "cms_entry_publish",
+        "cms_entry_unpublish",
+        "media_create",
+        "media_update",
+        "media_delete",
+        "media_folder_create",
+        "media_folder_update",
+        "media_folder_delete",
+        "admin_user_create",
+        "admin_user_update",
+        "admin_user_activate",
+        "admin_user_deactivate",
+        "admin_user_delete",
+        "admin_role_create",
+        "admin_role_update",
+        "admin_role_delete",
+        "admin_role_permissions_update",
+        "admin_login_success",
+        "admin_login_failure",
+        "admin_logout",
+        "api_token_create",
+        "api_token_update",
+        "api_token_regenerate",
+        "api_token_revoke",
+        "transfer_token_create",
+        "transfer_token_update",
+        "transfer_token_regenerate",
+        "transfer_token_revoke",
+        "webhook_create",
+        "webhook_update",
+        "webhook_delete"
+      ],
+      "required": true
+    },
+    "targetType": {
+      "type": "enumeration",
+      "enum": [
+        "authentication",
+        "cms_entry",
+        "media",
+        "media_folder",
+        "admin_user",
+        "admin_role",
+        "api_token",
+        "transfer_token",
+        "webhook"
+      ],
+      "required": true
+    },
+    "targetDocumentId": {
+      "type": "string",
+      "maxLength": 64,
+      "private": true
+    },
+    "occurredAt": {
+      "type": "datetime",
+      "required": true
+    },
+    "requestId": {
+      "type": "string",
+      "required": true,
+      "maxLength": 64
+    },
+    "httpMethod": {
+      "type": "enumeration",
+      "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+      "required": true
+    },
+    "requestPath": {
+      "type": "string",
+      "required": true,
+      "maxLength": 2048,
+      "private": true
+    },
+    "statusCode": {
+      "type": "integer",
+      "required": true,
+      "min": 100,
+      "max": 599
+    },
+    "success": {
+      "type": "boolean",
+      "required": true
+    },
+    "identifierFingerprint": {
+      "type": "string",
+      "private": true,
+      "maxLength": 64
+    },
+    "beforeValues": {
+      "type": "json",
+      "private": true
+    },
+    "afterValues": {
+      "type": "json",
+      "private": true
+    },
+    "eventSource": {
+      "type": "enumeration",
+      "enum": ["admin_panel", "system_process"]
+    },
+    "targetUid": {
+      "type": "string",
+      "maxLength": 128,
+      "private": true
+    },
+    "targetLabel": {
+      "type": "string",
+      "maxLength": 320
+    }
+  },
+  "config": {
+    "metadatas": {
+      "eventId": {
+        "edit": { "label": "Mã sự kiện" },
+        "list": { "label": "Mã sự kiện" }
+      },
+      "actorType": {
+        "edit": { "label": "Loại tác nhân" },
+        "list": { "label": "Loại tác nhân" }
+      },
+      "actorDocumentId": {
+        "edit": { "label": "Mã tác nhân" },
+        "list": { "label": "Mã tác nhân" }
+      },
+      "actorLabel": {
+        "edit": { "label": "Tác nhân" },
+        "list": { "label": "Tác nhân" }
+      },
+      "action": {
+        "edit": { "label": "Hành động" },
+        "list": { "label": "Hành động" }
+      },
+      "targetType": {
+        "edit": { "label": "Loại đối tượng" },
+        "list": { "label": "Loại đối tượng" }
+      },
+      "targetDocumentId": {
+        "edit": { "label": "Mã đối tượng" },
+        "list": { "label": "Mã đối tượng" }
+      },
+      "occurredAt": {
+        "edit": { "label": "Thời điểm" },
+        "list": { "label": "Thời điểm" }
+      },
+      "requestId": {
+        "edit": { "label": "Mã yêu cầu" },
+        "list": { "label": "Mã yêu cầu" }
+      },
+      "httpMethod": {
+        "edit": { "label": "Phương thức HTTP" },
+        "list": { "label": "Phương thức HTTP" }
+      },
+      "requestPath": {
+        "edit": { "label": "Đường dẫn" },
+        "list": { "label": "Đường dẫn" }
+      },
+      "statusCode": {
+        "edit": { "label": "Mã trạng thái" },
+        "list": { "label": "Mã trạng thái" }
+      },
+      "success": {
+        "edit": { "label": "Thành công" },
+        "list": { "label": "Thành công" }
+      },
+      "identifierFingerprint": {
+        "edit": { "label": "Dấu vân tay định danh" },
+        "list": { "label": "Dấu vân tay định danh" }
+      },
+      "beforeValues": {
+        "edit": { "label": "Giá trị trước" },
+        "list": { "label": "Giá trị trước" }
+      },
+      "afterValues": {
+        "edit": { "label": "Giá trị sau" },
+        "list": { "label": "Giá trị sau" }
+      },
+      "eventSource": {
+        "edit": { "label": "Nguồn sự kiện" },
+        "list": { "label": "Nguồn sự kiện" }
+      },
+      "targetUid": {
+        "edit": { "label": "UID đối tượng" },
+        "list": { "label": "UID đối tượng" }
+      },
+      "targetLabel": {
+        "edit": { "label": "Nhãn đối tượng" },
+        "list": { "label": "Nhãn đối tượng" }
+      }
+    }
+  }
+}

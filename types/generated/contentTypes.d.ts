@@ -443,6 +443,165 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiAuditEventAuditEvent extends Struct.CollectionTypeSchema {
+  collectionName: 'audit_events';
+  info: {
+    description: 'Nh\u1EADt k\u00FD b\u1EA5t bi\u1EBFn c\u1EE7a ho\u1EA1t \u0111\u1ED9ng qu\u1EA3n tr\u1ECB';
+    displayName: 'Nh\u1EADt k\u00FD ho\u1EA1t \u0111\u1ED9ng';
+    pluralName: 'audit-events';
+    singularName: 'audit-event';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    action: Schema.Attribute.Enumeration<
+      [
+        'cms_entry_create',
+        'cms_entry_update',
+        'cms_entry_delete',
+        'cms_entry_publish',
+        'cms_entry_unpublish',
+        'media_create',
+        'media_update',
+        'media_delete',
+        'media_folder_create',
+        'media_folder_update',
+        'media_folder_delete',
+        'admin_user_create',
+        'admin_user_update',
+        'admin_user_activate',
+        'admin_user_deactivate',
+        'admin_user_delete',
+        'admin_role_create',
+        'admin_role_update',
+        'admin_role_delete',
+        'admin_role_permissions_update',
+        'admin_login_success',
+        'admin_login_failure',
+        'admin_logout',
+        'api_token_create',
+        'api_token_update',
+        'api_token_regenerate',
+        'api_token_revoke',
+        'transfer_token_create',
+        'transfer_token_update',
+        'transfer_token_regenerate',
+        'transfer_token_revoke',
+        'webhook_create',
+        'webhook_update',
+        'webhook_delete',
+      ]
+    > &
+      Schema.Attribute.Required;
+    actorDocumentId: Schema.Attribute.String &
+      Schema.Attribute.Private &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 64;
+      }>;
+    actorLabel: Schema.Attribute.String &
+      Schema.Attribute.Private &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 320;
+      }>;
+    actorType: Schema.Attribute.Enumeration<
+      ['anonymous', 'admin_user', 'system']
+    > &
+      Schema.Attribute.Required;
+    afterValues: Schema.Attribute.JSON & Schema.Attribute.Private;
+    beforeValues: Schema.Attribute.JSON & Schema.Attribute.Private;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    eventId: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 64;
+      }>;
+    eventSource: Schema.Attribute.Enumeration<
+      ['admin_panel', 'system_process']
+    >;
+    httpMethod: Schema.Attribute.Enumeration<
+      ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
+    > &
+      Schema.Attribute.Required;
+    identifierFingerprint: Schema.Attribute.String &
+      Schema.Attribute.Private &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 64;
+      }>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::audit-event.audit-event'
+    > &
+      Schema.Attribute.Private;
+    occurredAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    requestId: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 64;
+      }>;
+    requestPath: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Private &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 2048;
+      }>;
+    statusCode: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 599;
+          min: 100;
+        },
+        number
+      >;
+    success: Schema.Attribute.Boolean & Schema.Attribute.Required;
+    targetDocumentId: Schema.Attribute.String &
+      Schema.Attribute.Private &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 64;
+      }>;
+    targetLabel: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 320;
+      }>;
+    targetType: Schema.Attribute.Enumeration<
+      [
+        'authentication',
+        'cms_entry',
+        'media',
+        'media_folder',
+        'admin_user',
+        'admin_role',
+        'api_token',
+        'transfer_token',
+        'webhook',
+      ]
+    > &
+      Schema.Attribute.Required;
+    targetUid: Schema.Attribute.String &
+      Schema.Attribute.Private &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 128;
+      }>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiBookingPageBookingPage extends Struct.SingleTypeSchema {
   collectionName: 'booking_pages';
   info: {
@@ -2068,6 +2227,12 @@ export interface ApiMenuPageMenuPage extends Struct.SingleTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    decorations: Schema.Attribute.Component<'menu.decor', true> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: false;
+        };
+      }>;
     drinks: Schema.Attribute.Component<'shared.feature-block', false> &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
@@ -3073,6 +3238,7 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::audit-event.audit-event': ApiAuditEventAuditEvent;
       'api::booking-page.booking-page': ApiBookingPageBookingPage;
       'api::campaign-page.campaign-page': ApiCampaignPageCampaignPage;
       'api::campaign.campaign': ApiCampaignCampaign;

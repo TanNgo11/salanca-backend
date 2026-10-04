@@ -16,6 +16,7 @@ const backendSecrets = [
   ['TRANSFER_TOKEN_SALT', hexSecret()],
   ['JWT_SECRET', hexSecret()],
   ['ENCRYPTION_KEY', hexSecret()],
+  ['AUDIT_IDENTIFIER_HASH_SECRET', hexSecret()],
   ['CMS_WEBHOOK_SECRET', cmsWebhookSecret],
   ['DATABASE_PASSWORD', hexSecret()],
 ];

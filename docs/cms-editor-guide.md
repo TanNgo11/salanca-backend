@@ -6,6 +6,24 @@ The revised brand-story DOCX is authoritative for the narrative, including the 2
 
 To change a PDF-style star, open the dish in Content Manager → Món and toggle **Hiện ngôi sao trong thực đơn** (`showStar`), then publish. This field is shared by VI and EN and is separate from `isFeatured`, which controls featured-item behavior elsewhere. The source PDF stars Jasmine butter rice and Feijoada only.
 
+## Nhật ký hoạt động (audit log, 2026-10-04)
+
+Menu **Nhật ký hoạt động** (biểu tượng đồng hồ) mở màn hình chỉ đọc ghi lại mọi
+hành động trong Admin: ai làm, việc gì, lúc nào, đối tượng nào, thành công hay
+thất bại. Dùng để điều tra "ai đã sửa/xoá nội dung này".
+
+- **Bộ lọc:** tìm kiếm theo người/đối tượng/mã sự kiện (bắt buộc kèm khoảng
+  ngày), nhóm hành động, hành động cụ thể, nguồn, kết quả, khoảng ngày.
+  Mặc định hiển thị **30 ngày gần nhất theo giờ Việt Nam**.
+- **Chạm vào một dòng** để mở panel chi tiết. Phần kỹ thuật (request ID, HTTP
+  method, đường dẫn, mã trạng thái) chỉ hiện với vai trò có quyền
+  *Audit log details*.
+- **Xuất CSV:** nút *Xuất CSV* (cần quyền *Audit log export*), tối đa 31 ngày
+  và 5.000 dòng mỗi lần — thu hẹp khoảng ngày nếu báo lỗi.
+- Lịch sử chỉ đọc: không thể sửa hay xoá dòng nào.
+- Quyền xem được cấp trong Settings → Roles → Plugins → Audit log
+  (`read` / `details` / `export`); mặc định chỉ Super Admin có đủ ba quyền.
+
 ## Standard flow
 
 1. Chọn locale `vi` và tạo nội dung tiếng Việt trước.

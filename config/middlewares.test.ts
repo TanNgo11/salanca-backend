@@ -50,6 +50,7 @@ const createEnv = (values: EnvironmentValues): Core.Config.Shared.ConfigParams['
 };
 
 const s3Environment: EnvironmentValues = {
+  AUDIT_IDENTIFIER_HASH_SECRET: 'middlewares-test-secret',
   FRONTEND_URLS: 'http://localhost:3000',
   API_REST_PREFIX: '/api/v1',
   S3_BUCKET: 'salanca-media-development',
@@ -129,6 +130,7 @@ describe('security middleware', () => {
   it('uses default strapi::security when local disk has no CDN_URL', () => {
     const middlewares = config({
       env: createEnv({
+        AUDIT_IDENTIFIER_HASH_SECRET: 'middlewares-test-secret',
         FRONTEND_URLS: 'http://localhost:3000',
         NODE_ENV: 'development',
       }),
@@ -181,5 +183,31 @@ describe('structured request logging', () => {
   it('captures unhandled errors directly after strapi::errors', () => {
     const names = middlewareNames();
     expect(names.indexOf('./src/middlewares/error-capture')).toBe(names.indexOf('strapi::errors') + 1);
+  });
+});
+
+describe('admin audit middleware', () => {
+  const middlewareNames = (): string[] =>
+    config({ env: createEnv(s3Environment) } as Core.Config.Shared.ConfigParams).map((entry) => {
+      if (typeof entry === 'string') {
+        return entry;
+      }
+      return entry.resolve ?? entry.name ?? '';
+    });
+
+  it('fails fast when AUDIT_IDENTIFIER_HASH_SECRET is missing or blank', () => {
+    expect(() =>
+      config({ env: createEnv({ ...s3Environment, AUDIT_IDENTIFIER_HASH_SECRET: undefined }) } as Core.Config.Shared.ConfigParams),
+    ).toThrow('AUDIT_IDENTIFIER_HASH_SECRET is required.');
+    expect(() =>
+      config({ env: createEnv({ ...s3Environment, AUDIT_IDENTIFIER_HASH_SECRET: '  ' }) } as Core.Config.Shared.ConfigParams),
+    ).toThrow('AUDIT_IDENTIFIER_HASH_SECRET is required.');
+  });
+
+  it('runs directly after strapi::body so login and token routes are classified', () => {
+    const names = middlewareNames();
+    expect(names.indexOf('./src/middlewares/admin-audit-http')).toBe(
+      names.indexOf('strapi::body') + 1,
+    );
   });
 });

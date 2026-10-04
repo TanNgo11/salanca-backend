@@ -50,6 +50,7 @@ Update stale documentation in the same change when behavior or a decision change
 - Preserve locale behavior, Draft & Publish independence, relation invariants, and shared-field synchronization.
 - Do not weaken middleware-enforced invariants because a Strapi schema declares a field `required`.
 - Prefer fixed product schemas over unrestricted Dynamic Zones or generic page builders.
+- Audit rows are append-only: the `audit-event` ledger must never expose a delete or update route.
 
 ## Commands and verification
 

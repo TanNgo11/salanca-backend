@@ -60,6 +60,50 @@ Content-Type Builder, Marketplace, and Documentation are removed from the Admin 
 
 Slugs and user-facing copy are localized. Prices, technical state and timestamps are shared by the i18n service. Fields nested inside localized components are a Strapi limitation: technical nested values are stored per locale and must be kept equal by editor/seed policy.
 
+### Admin activity audit log (2026-10-04)
+
+The backend records every meaningful Admin action in an append-only
+`audit_events` table (content type `api::audit-event.audit-event`, hidden from
+the Content Manager and Content-Type Builder, no Content API routes, no
+Draft & Publish). Capture runs through three best-effort writers that never
+fail the original request:
+
+- **Strapi EventHub** (`src/domain/audit/admin-audit-eventhub*`) for CMS
+  document and media events routed through `/admin` endpoints by an
+  authenticated admin user. `permission.*` events are never persisted.
+- **`src/middlewares/admin-audit-http`** (registered directly after
+  `strapi::body` in `config/middlewares.ts`) for login success/failure, role
+  permission saves, API/transfer token lifecycle, and webhook mutations.
+- **Upload extension wrappers** (`src/extensions/upload/strapi-server.ts` +
+  `admin-audit-media.ts`) for media delete and folder update, because upstream
+  `@strapi/upload` emits `media.delete` before the row is removed and skips
+  `media-folder.update` on name-only renames.
+
+Decisions locked in [`plans/admin-audit-log.md`](plans/admin-audit-log.md):
+
+- **No `@strapi/*` dist patching.** Media delete and folder update are captured
+  by wrapping the upload and folder services in the extension file, so a clean
+  `pnpm install` never loses audit coverage. This replaces BDS's patch-package
+  approach.
+- **No request-correlation middleware.** `@tanngo11/log`'s `strapiRequestLogger`
+  already issues `ctx.state.requestId`; the audit writer only reads it and
+  generates a row-local UUID when missing/invalid. It never overwrites state
+  or headers.
+- **`event_source` is explicit** (`admin_panel` / `system_process`); there is no
+  inferred-source SQL. Every Admin-captured row stores `admin_panel`.
+- **No lead field values.** Update rows store only sorted changed top-level
+  field names; failed logins store an HMAC fingerprint + masked identifier
+  (secret `AUDIT_IDENTIFIER_HASH_SECRET`, required at boot — missing value
+  throws at startup).
+- **Read-only surface.** Three permission-gated Admin routes
+  (`audit-log.events`, `.details`, `.export`) and the `Nhật ký hoạt động`
+  screen; no update/delete route exists anywhere.
+- **Dates** are UTC instants with half-open `[from, toExclusive)` ranges; the UI
+  defaults to the last 30 Vietnam calendar days (`Asia/Ho_Chi_Minh`, no manual
+  `+7h` arithmetic). Idempotent PostgreSQL indexes (created during bootstrap)
+  back the occurrence-time, action, actor, success, target, label-prefix and
+  request-ID lookups.
+
 ## Open decisions before staging
 
 These are hard Phase 4 entry gates. A role is accountable now; the project owner must

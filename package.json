@@ -40,6 +40,8 @@
     "upgrade:dry": "npx @strapi/upgrade latest --dry"
   },
   "dependencies": {
+    "@strapi/design-system": "2.2.3",
+    "@strapi/icons": "2.2.3",
     "@strapi/plugin-documentation": "5.51.1",
     "@strapi/plugin-users-permissions": "5.51.1",
     "@strapi/provider-email-nodemailer": "5.51.1",
@@ -51,6 +53,7 @@
     "pg": "8.20.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
+    "react-intl": "6.6.2",
     "react-router-dom": "^6.30.3",
     "sharp": "0.34.5",
     "styled-components": "^6.0.0"

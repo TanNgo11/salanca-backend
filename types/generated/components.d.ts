@@ -320,6 +320,38 @@ export interface HomeStory extends Struct.ComponentSchema {
   };
 }
 
+export interface MenuDecor extends Struct.ComponentSchema {
+  collectionName: 'components_menu_decors';
+  info: {
+    description: 'M\u1ED9t v\u1ECB tr\u00ED h\u1ECDa ti\u1EBFt tr\u00EAn trang th\u1EF1c \u0111\u01A1n. Admin \u0111\u1ED5i file ho\u1EB7c x\u00F3a d\u00F2ng n\u00E0y.';
+    displayName: 'H\u1ECDa ti\u1EBFt th\u1EF1c \u0111\u01A1n';
+  };
+  attributes: {
+    image: Schema.Attribute.Component<'shared.image', false> &
+      Schema.Attribute.Required;
+    slot: Schema.Attribute.Enumeration<
+      [
+        'a-la-carte-leaves',
+        'a-la-carte-botanical',
+        'buffet-leaf',
+        'rodizio-flower',
+        'dessert-fruit-top',
+        'dessert-fruit-bottom',
+        'takeaway-leaves-top',
+        'takeaway-leaves-bottom',
+        'takeaway-frame-top',
+        'takeaway-frame-bottom',
+        'takeaway-frame-second-top',
+        'takeaway-frame-second-bottom',
+        'takeaway-logo',
+        'booking-strip-leaves',
+        'accent-flowers',
+      ]
+    > &
+      Schema.Attribute.Required;
+  };
+}
+
 export interface SharedBookingContact extends Struct.ComponentSchema {
   collectionName: 'components_shared_booking_contacts';
   info: {
@@ -927,6 +959,7 @@ declare module '@strapi/strapi' {
       'home.process': HomeProcess;
       'home.space': HomeSpace;
       'home.story': HomeStory;
+      'menu.decor': MenuDecor;
       'shared.booking-contact': SharedBookingContact;
       'shared.cta': SharedCta;
       'shared.editorial-card': SharedEditorialCard;

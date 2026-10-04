@@ -5,7 +5,13 @@ import { synchronizeContentManagerLabels } from './bootstrap/content-manager-lab
 import { provisionContentLocales } from './bootstrap/content-locales';
 import { provisionPublicContentPermissions } from './bootstrap/public-content-permissions';
 import { provisionPublicFormPermissions } from './bootstrap/public-form-permissions';
+import {
+  bootstrapAuditLogPermissions,
+  registerAuditLogAdminRoutes,
+  registerAuditLogPermissions,
+} from './api/audit-log';
 import { registerHealthRoutes } from './api/health';
+import { registerAdminAuditEventHub } from './domain/audit/admin-audit-eventhub.register';
 import { registerDocumentInvariants } from './domain/document-invariants/register-document-invariants';
 import { getOrCreateMediaProcessingRuntime } from './domain/media-processing/runtime';
 import { enforceMediaProcessingUploadSettings } from './domain/media-processing/upload-optimize';
@@ -21,6 +27,9 @@ export default {
     getOrCreateMediaProcessingRuntime(strapi);
     registerDocumentInvariants(strapi);
     registerHealthRoutes(strapi);
+    registerAuditLogPermissions(strapi);
+    registerAuditLogAdminRoutes(strapi);
+    registerAdminAuditEventHub(strapi);
   },
 
   /**
@@ -32,5 +41,6 @@ export default {
     await provisionPublicFormPermissions(strapi);
     await synchronizeContentManagerLabels(strapi);
     await enforceMediaProcessingUploadSettings(strapi);
+    await bootstrapAuditLogPermissions(strapi);
   },
 };

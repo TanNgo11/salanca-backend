@@ -133,6 +133,24 @@ Honeypot `website` request-only. Public chỉ `create`. Rate limit in-process th
 
 `availability-slot`, `table`, `payment`, generic `page` và unrestricted Dynamic Zone vẫn deferred. Hard capacity / booking engine là phase sau.
 
+## Nhật ký hoạt động (2026-10-04)
+
+### `audit-event`
+
+Bảng `audit_events` ghi lại hành động trong Admin (tạo/sửa/xoá/publish nội dung,
+media + thư mục media, tài khoản/vai trò admin, đăng nhập/đăng xuất, API token,
+transfer token, webhook). Collection `api::audit-event.audit-event`:
+
+- Ẩn khỏi Content Manager và Content-Type Builder; không có route Content API,
+  không Draft & Publish; chỉ đọc qua Admin route `/admin/audit-log/*` có RBAC.
+- Append-only: không có route update/delete nào.
+- Trường chính: `eventId`, `actorType` + `actorDocumentId` + `actorLabel`,
+  `action`, `targetType` + `targetDocumentId` + `targetUid` + `targetLabel`,
+  `eventSource` (`admin_panel` | `system_process`), `occurredAt`, `requestId`,
+  `httpMethod`/`requestPath`/`statusCode`, `success`,
+  `identifierFingerprint`, `beforeValues`/`afterValues` (chỉ tên field đổi khi
+  update — không bao giờ lưu giá trị lead, mật khẩu, token).
+
 ## Kiểm tra tự động
 
 Chạy `npm run verify:schema`. Gate này kiểm tra 12 component, 15 localized content type, lead types `contact-message` + `reservation-request`, Draft & Publish / localization matrix cho marketing content, core CRUD layers, inverse relation chính, và model ngoài scope. Chạy `npm run smoke:i18n` cho locale; `npm run smoke:contact-form` và `npm run smoke:reservation-form` cho form intake.

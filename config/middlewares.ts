@@ -8,6 +8,11 @@ import {
 } from './media-storage.helper';
 
 const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Middlewares => {
+  const auditIdentifierHashSecret = env('AUDIT_IDENTIFIER_HASH_SECRET', '');
+  if (!auditIdentifierHashSecret.trim()) {
+    throw new Error('AUDIT_IDENTIFIER_HASH_SECRET is required.');
+  }
+
   const frontendOrigins = resolveFrontendOrigins(env);
   const mediaCdnOrigin = isObjectStorageEnabled(env)
     ? resolveMediaCdnOrigin(env)
@@ -62,6 +67,12 @@ const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Middlewar
         formLimit: '256kb',
         textLimit: '256kb',
       },
+    },
+    // Admin audit trail: login outcomes, role-permission saves, token and
+    // webhook mutations. Reads ctx.state.requestId from http-log.
+    {
+      resolve: './src/middlewares/admin-audit-http',
+      config: { identifierHashSecret: auditIdentifierHashSecret },
     },
     'strapi::session',
     'strapi::favicon',
