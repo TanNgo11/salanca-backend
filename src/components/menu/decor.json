@@ -1,0 +1,57 @@
+{
+  "collectionName": "components_menu_decors",
+  "info": {
+    "displayName": "Họa tiết thực đơn",
+    "description": "Một vị trí họa tiết trên trang thực đơn. Admin đổi file hoặc xóa dòng này."
+  },
+  "options": {},
+  "attributes": {
+    "slot": {
+      "type": "enumeration",
+      "required": true,
+      "enum": [
+        "a-la-carte-leaves",
+        "a-la-carte-botanical",
+        "buffet-leaf",
+        "rodizio-flower",
+        "dessert-fruit-top",
+        "dessert-fruit-bottom",
+        "takeaway-leaves-top",
+        "takeaway-leaves-bottom",
+        "takeaway-frame-top",
+        "takeaway-frame-bottom",
+        "takeaway-frame-second-top",
+        "takeaway-frame-second-bottom",
+        "takeaway-logo",
+        "booking-strip-leaves",
+        "accent-flowers"
+      ]
+    },
+    "image": {
+      "type": "component",
+      "repeatable": false,
+      "component": "shared.image",
+      "required": true
+    }
+  },
+  "config": {
+    "metadatas": {
+      "slot": {
+        "edit": {
+          "label": "Vị trí trên trang"
+        },
+        "list": {
+          "label": "Vị trí"
+        }
+      },
+      "image": {
+        "edit": {
+          "label": "Ảnh"
+        },
+        "list": {
+          "label": "Ảnh"
+        }
+      }
+    }
+  }
+}

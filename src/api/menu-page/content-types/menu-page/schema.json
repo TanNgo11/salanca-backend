@@ -116,6 +116,16 @@
           "localized": true
         }
       }
+    },
+    "decorations": {
+      "type": "component",
+      "repeatable": true,
+      "component": "menu.decor",
+      "pluginOptions": {
+        "i18n": {
+          "localized": false
+        }
+      }
     }
   },
   "config": {
@@ -139,6 +149,15 @@
       "priceNote": {
         "edit": {
           "label": "Ghi chú giá / phí phục vụ / thuế"
+        }
+      },
+      "decorations": {
+        "edit": {
+          "label": "Họa tiết",
+          "description": "Ảnh khung, lá và hoa của trang thực đơn. Thêm, đổi hoặc xóa từng dòng."
+        },
+        "list": {
+          "label": "Họa tiết"
         }
       }
     }

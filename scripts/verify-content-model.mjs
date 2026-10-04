@@ -18,6 +18,7 @@ const sharedComponents = [
   'step',
   'timeline-entry',
 ];
+const menuComponents = ['decor'];
 const homeComponents = [
   'hero',
   'experience',
@@ -67,7 +68,7 @@ const nonLocalizedByContentType = {
   'menu-category': ['displayOrder', 'isActive'],
   'menu-item': ['price', 'isFeatured', 'showStar', 'isActive', 'displayOrder'],
   'menu-package': ['adultPrice', 'childPrice', 'isActive', 'displayOrder'],
-  'menu-page': [],
+  'menu-page': ['decorations'],
   'space-page': [],
   'story-page': [],
 };
@@ -93,6 +94,7 @@ const nonLocalizedByComponent = {
   'home.story': [],
   'home.process': [],
   'home.space': [],
+  'menu.decor': ['slot', 'image'],
 };
 const forbiddenTypes = [
   'availability-slot',
@@ -124,6 +126,12 @@ for (const component of sharedComponents) {
   const path = join(root, 'src', 'components', 'shared', `${component}.json`);
   const schema = loadJson(path, `component shared.${component}`);
   if (schema) componentSchemas[component] = schema;
+}
+for (const component of menuComponents) {
+  const path = join(root, 'src', 'components', 'menu', `${component}.json`);
+  const uid = `menu.${component}`;
+  const schema = loadJson(path, `component ${uid}`);
+  if (schema) componentSchemas[uid] = schema;
 }
 for (const component of homeComponents) {
   const path = join(root, 'src', 'components', 'home', `${component}.json`);

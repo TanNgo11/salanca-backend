@@ -14,7 +14,7 @@
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "x-generation-date": "2026-10-01T16:46:27.435Z"
+    "x-generation-date": "2026-10-04T08:16:42.771Z"
   },
   "x-strapi-config": {
     "plugins": [
@@ -8497,6 +8497,9 @@
               "seo": {
                 "$ref": "#/components/schemas/SharedSeoComponent"
               },
+              "contactInfo": {
+                "$ref": "#/components/schemas/SharedBookingContactComponent"
+              },
               "locale": {
                 "type": "string"
               },
@@ -8646,6 +8649,9 @@
           "seo": {
             "$ref": "#/components/schemas/SharedSeoComponent"
           },
+          "contactInfo": {
+            "$ref": "#/components/schemas/SharedBookingContactComponent"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -8786,6 +8792,9 @@
                 },
                 "seo": {
                   "$ref": "#/components/schemas/SharedSeoComponent"
+                },
+                "contactInfo": {
+                  "$ref": "#/components/schemas/SharedBookingContactComponent"
                 },
                 "createdAt": {
                   "type": "string",
@@ -9437,6 +9446,39 @@
           },
           "noIndex": {
             "type": "boolean"
+          }
+        }
+      },
+      "SharedBookingContactComponent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "address": {
+            "type": "string"
+          },
+          "mapUrl": {
+            "type": "string"
+          },
+          "phones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedLinkComponent"
+            }
+          },
+          "facebook": {
+            "$ref": "#/components/schemas/SharedLinkComponent"
+          },
+          "qrImage": {
+            "$ref": "#/components/schemas/SharedImageComponent"
           }
         }
       },
@@ -11356,6 +11398,12 @@
               "socialHeading": {
                 "type": "string"
               },
+              "socialImages": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SharedImageComponent"
+                }
+              },
               "faqHeading": {
                 "type": "string"
               },
@@ -11759,6 +11807,12 @@
           "socialHeading": {
             "type": "string"
           },
+          "socialImages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedImageComponent"
+            }
+          },
           "faqHeading": {
             "type": "string"
           },
@@ -11899,6 +11953,12 @@
                 },
                 "socialHeading": {
                   "type": "string"
+                },
+                "socialImages": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SharedImageComponent"
+                  }
                 },
                 "faqHeading": {
                   "type": "string"
@@ -12113,6 +12173,12 @@
                     }
                   ],
                   "example": "string or id"
+                }
+              },
+              "flavorCards": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SharedEditorialCardComponent"
                 }
               },
               "manifestoHeading": {
@@ -12499,6 +12565,12 @@
               }
             }
           },
+          "flavorCards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedEditorialCardComponent"
+            }
+          },
           "manifestoHeading": {
             "type": "string"
           },
@@ -12639,6 +12711,12 @@
                         "type": "string"
                       }
                     }
+                  }
+                },
+                "flavorCards": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SharedEditorialCardComponent"
                   }
                 },
                 "manifestoHeading": {
@@ -14368,6 +14446,12 @@
                   "$ref": "#/components/schemas/SharedLinkComponent"
                 }
               },
+              "menuLinks": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SharedLinkComponent"
+                }
+              },
               "locale": {
                 "type": "string"
               },
@@ -14458,6 +14542,12 @@
               "$ref": "#/components/schemas/SharedLinkComponent"
             }
           },
+          "menuLinks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedLinkComponent"
+            }
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -14537,6 +14627,12 @@
                   "$ref": "#/components/schemas/SharedImageComponent"
                 },
                 "headerLinks": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SharedLinkComponent"
+                  }
+                },
+                "menuLinks": {
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/SharedLinkComponent"
@@ -15420,6 +15516,9 @@
             "type": "string"
           },
           "backgroundImage": {
+            "$ref": "#/components/schemas/SharedImageComponent"
+          },
+          "decorativeImage": {
             "$ref": "#/components/schemas/SharedImageComponent"
           },
           "primaryLink": {
@@ -17740,6 +17839,12 @@
               "priceNote": {
                 "type": "string"
               },
+              "decorations": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/MenuDecorComponent"
+                }
+              },
               "locale": {
                 "type": "string"
               },
@@ -17987,6 +18092,12 @@
           "priceNote": {
             "type": "string"
           },
+          "decorations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MenuDecorComponent"
+            }
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -18119,6 +18230,12 @@
                 "priceNote": {
                   "type": "string"
                 },
+                "decorations": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MenuDecorComponent"
+                  }
+                },
                 "createdAt": {
                   "type": "string",
                   "format": "date-time"
@@ -18238,6 +18355,44 @@
           },
           "link": {
             "$ref": "#/components/schemas/SharedLinkComponent"
+          }
+        }
+      },
+      "MenuDecorComponent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "slot": {
+            "type": "string",
+            "enum": [
+              "a-la-carte-leaves",
+              "a-la-carte-botanical",
+              "buffet-leaf",
+              "rodizio-flower",
+              "dessert-fruit-top",
+              "dessert-fruit-bottom",
+              "takeaway-leaves-top",
+              "takeaway-leaves-bottom",
+              "takeaway-frame-top",
+              "takeaway-frame-bottom",
+              "takeaway-frame-second-top",
+              "takeaway-frame-second-bottom",
+              "takeaway-logo",
+              "booking-strip-leaves",
+              "accent-flowers"
+            ]
+          },
+          "image": {
+            "$ref": "#/components/schemas/SharedImageComponent"
           }
         }
       },
