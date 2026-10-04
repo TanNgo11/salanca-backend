@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   contactMessageUid,
+  hideLeadCollectionLinks,
   leadListPath,
   leadReadPermissions,
   reservationRequestUid,
@@ -21,5 +22,24 @@ describe('lead shortcuts', () => {
     expect(leadReadPermissions(contactMessageUid)).toEqual([
       { action: 'plugin::content-manager.explorer.read', subject: contactMessageUid },
     ]);
+  });
+});
+
+describe('hideLeadCollectionLinks', () => {
+  it('drops the lead collections from the Content Manager list and keeps the rest', () => {
+    const gallery = { uid: 'api::gallery-item.gallery-item', name: 'api::gallery-item.gallery-item' };
+    const models = [{ uid: 'x' }];
+
+    const result = hideLeadCollectionLinks({
+      ctLinks: [
+        gallery,
+        { uid: contactMessageUid, name: contactMessageUid },
+        { uid: reservationRequestUid, name: reservationRequestUid },
+      ],
+      models,
+    });
+
+    expect(result.ctLinks).toEqual([gallery]);
+    expect(result.models).toBe(models);
   });
 });

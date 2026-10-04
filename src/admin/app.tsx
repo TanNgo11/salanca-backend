@@ -18,6 +18,8 @@ import { AuditLogTranslationKey } from './audit-log/audit-log.types';
 import { createLeadListRedirect } from './lead-shortcuts/LeadListRedirect';
 import {
   contactMessageUid,
+  hideLeadCollectionLinks,
+  LEAD_COLLECTION_LINKS_HOOK,
   leadReadPermissions,
   reservationRequestUid,
 } from './lead-shortcuts/lead-shortcuts.helper';
@@ -122,7 +124,8 @@ export default {
       next(hideDeveloperOnlyAdminPermissions(permissions)),
     );
   },
-  bootstrap(_app: StrapiApp) {
+  bootstrap(app: StrapiApp) {
+    app.registerHook(LEAD_COLLECTION_LINKS_HOOK, hideLeadCollectionLinks);
     // Route wrapping must run after plugin bootstraps: some plugins call
     // addSettingsLink from bootstrap, which looks up a top-level `settings/*`
     // route in router._routes and crashes if it is nested inside a layout.
