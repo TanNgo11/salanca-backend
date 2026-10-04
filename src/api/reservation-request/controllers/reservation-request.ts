@@ -8,6 +8,7 @@ import { FormValidationError } from '../../../domain/form-intake/form-validation
 import { scheduleFormLeadNotify } from '../../../domain/form-intake/send-form-lead-notify';
 import { assertEnvTurnstile } from '../../../domain/form-intake/turnstile';
 import { countSlotPeers } from '../../../domain/reservation-request/count-slot-peers';
+import { emitReservationCreated } from '../../../domain/reservation-request/reservation-inbox-events';
 import { getReservationRateLimit } from '../../../domain/reservation-request/reservation-rate-limit';
 import {
   ReservationRequestValidationErrorCode,
@@ -108,7 +109,7 @@ export default factories.createCoreController(UID, ({ strapi }: { strapi: Core.S
         status: 'new',
         overlapCount,
       },
-      fields: ['documentId', 'status', 'overlapCount'],
+      fields: ['documentId', 'status', 'overlapCount', 'createdAt'],
     });
 
     const storedOverlap =
@@ -142,5 +143,24 @@ export default factories.createCoreController(UID, ({ strapi }: { strapi: Core.S
         overlapCount: storedOverlap,
       }),
     );
+
+    // Live inbox fan-out is best-effort: a failure must never affect the 201.
+    try {
+      emitReservationCreated({
+        documentId: document.documentId,
+        fullName: parsed.fullName,
+        phone: parsed.phone,
+        guestCount: parsed.guestCount,
+        preferredDate: parsed.preferredDate,
+        preferredTime: parsed.preferredTime,
+        overlapCount: storedOverlap,
+        createdAt:
+          document.createdAt instanceof Date
+            ? document.createdAt.toISOString()
+            : String(document.createdAt ?? new Date().toISOString()),
+      });
+    } catch (error) {
+      strapi.log.error('Reservation inbox emit failed.', { error });
+    }
   },
 }));

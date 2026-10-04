@@ -1,0 +1,83 @@
+.reservation-inbox__pill {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 9;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid #dcdce4;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #32324d;
+  box-shadow: 0 2px 12px rgb(33 33 52 / 16%);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 16px;
+  transition:
+    box-shadow 120ms ease,
+    border-color 120ms ease,
+    transform 80ms ease;
+}
+
+.reservation-inbox__pill:hover {
+  border-color: #4945ff;
+  box-shadow: 0 4px 16px rgb(33 33 52 / 22%);
+}
+
+.reservation-inbox__pill:active {
+  transform: translateY(1px);
+}
+
+.reservation-inbox__pill:focus-visible {
+  outline: 2px solid #4945ff;
+  outline-offset: 2px;
+}
+
+.reservation-inbox__pill-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.reservation-inbox__pill-dot[data-mode='stream'] {
+  background: #2f9e44;
+}
+
+.reservation-inbox__pill-dot[data-mode='polling'] {
+  background: #d9822f;
+}
+
+.reservation-inbox__pill-count {
+  min-width: 18px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: #4945ff;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.reservation-inbox__panel {
+  margin-bottom: 16px;
+  padding: 16px;
+  border-radius: 4px;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgb(33 33 52 / 10%);
+}
+
+.reservation-inbox__table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 4px;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgb(33 33 52 / 10%);
+}
+
+.reservation-inbox__table-wrap table {
+  min-width: 920px;
+}

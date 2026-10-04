@@ -11,6 +11,11 @@ import {
   registerAuditLogPermissions,
 } from './api/audit-log';
 import { registerHealthRoutes } from './api/health';
+import {
+  bootstrapReservationInboxPermissions,
+  registerReservationInboxAdminRoutes,
+  registerReservationInboxPermissions,
+} from './api/reservation-inbox';
 import { registerAdminAuditEventHub } from './domain/audit/admin-audit-eventhub.register';
 import { registerDocumentInvariants } from './domain/document-invariants/register-document-invariants';
 import { getOrCreateMediaProcessingRuntime } from './domain/media-processing/runtime';
@@ -29,6 +34,8 @@ export default {
     registerHealthRoutes(strapi);
     registerAuditLogPermissions(strapi);
     registerAuditLogAdminRoutes(strapi);
+    registerReservationInboxPermissions(strapi);
+    registerReservationInboxAdminRoutes(strapi);
     registerAdminAuditEventHub(strapi);
   },
 
@@ -42,5 +49,6 @@ export default {
     await synchronizeContentManagerLabels(strapi);
     await enforceMediaProcessingUploadSettings(strapi);
     await bootstrapAuditLogPermissions(strapi);
+    await bootstrapReservationInboxPermissions(strapi);
   },
 };

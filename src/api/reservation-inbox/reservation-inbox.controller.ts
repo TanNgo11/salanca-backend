@@ -1,0 +1,156 @@
+import type { Core } from '@strapi/strapi';
+
+import {
+  createCanonicalRequestId,
+  readCanonicalRequestId,
+} from '../../domain/audit/request-correlation';
+import { subscribeReservationCreated } from '../../domain/reservation-request/reservation-inbox-events';
+import { ReservationInboxError } from './reservation-inbox.error';
+import { createReservationInboxService } from './reservation-inbox.service';
+import {
+  formatSseComment,
+  formatSseEvent,
+  SSE_EVENT_RESERVATION_CREATED,
+  SSE_HEADERS,
+  startSseHeartbeat,
+} from './reservation-inbox.sse';
+import {
+  ReservationInboxErrorCode,
+  RESERVATION_INBOX_SUMMARY_LIMIT,
+  type ApiReservationInboxController,
+  type ApiReservationInboxRequestContext,
+} from './reservation-inbox.types';
+
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}([Tt ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$/;
+const DOCUMENT_ID_PATTERN = /^[a-zA-Z0-9]{10,40}$/;
+
+const handleControllerError = (
+  strapi: Core.Strapi,
+  context: ApiReservationInboxRequestContext,
+  error: Error,
+  requestId: string,
+): void => {
+  if (error instanceof ReservationInboxError) {
+    switch (error.code) {
+      case ReservationInboxErrorCode.InvalidQuery:
+        context.badRequest(error.vietnameseMessage);
+        return;
+      case ReservationInboxErrorCode.NotFound:
+        if (context.notFound) {
+          context.notFound(error.vietnameseMessage);
+        } else {
+          context.badRequest(error.vietnameseMessage);
+        }
+        return;
+      default:
+        break;
+    }
+  }
+
+  strapi.log.error('Reservation inbox controller error.', { error, requestId });
+  context.internalServerError('Không thể tải hộp thư đặt bàn lúc này. Vui lòng thử lại sau.');
+};
+
+const readRequestId = (context: ApiReservationInboxRequestContext): string =>
+  readCanonicalRequestId(context.state) ?? createCanonicalRequestId();
+
+const parseSummaryQuery = (
+  query: unknown,
+): { since?: string; limit: number } => {
+  const raw = (query ?? {}) as Record<string, unknown>;
+  const since = raw.since;
+  if (since === undefined || since === null || since === '') {
+    return { limit: RESERVATION_INBOX_SUMMARY_LIMIT };
+  }
+  if (
+    typeof since !== 'string' ||
+    !ISO_DATE_PATTERN.test(since) ||
+    Number.isNaN(Date.parse(since))
+  ) {
+    throw new ReservationInboxError(
+      ReservationInboxErrorCode.InvalidQuery,
+      `Invalid since query value: ${String(since)}.`,
+      'Tham số thời gian không hợp lệ. Vui lòng dùng định dạng ISO.',
+    );
+  }
+  return { since, limit: RESERVATION_INBOX_SUMMARY_LIMIT };
+};
+
+const parseDocumentId = (documentId: unknown): string => {
+  if (typeof documentId !== 'string' || !DOCUMENT_ID_PATTERN.test(documentId)) {
+    throw new ReservationInboxError(
+      ReservationInboxErrorCode.InvalidQuery,
+      `Invalid reservation documentId: ${String(documentId)}.`,
+      'Mã yêu cầu đặt bàn không hợp lệ.',
+    );
+  }
+  return documentId;
+};
+
+export const createReservationInboxController = (
+  strapi: Core.Strapi,
+): ApiReservationInboxController => {
+  const service = createReservationInboxService(strapi);
+
+  return {
+    async summary(context): Promise<void> {
+      const requestId = readRequestId(context);
+      await Promise.resolve()
+        .then(async () => {
+          context.body = { data: await service.summary(parseSummaryQuery(context.query)) };
+        })
+        .catch((error: Error) => handleControllerError(strapi, context, error, requestId));
+    },
+
+    stream(context): void {
+      // Raw SSE: Koa must not close or transform the response body.
+      context.respond = false;
+      context.status = 200;
+      context.res.writeHead(200, { ...SSE_HEADERS });
+      context.res.write(formatSseComment('connected'));
+
+      const stopHeartbeat = startSseHeartbeat((chunk) => {
+        try {
+          context.res.write(chunk);
+        } catch (error) {
+          strapi.log.error('Reservation inbox heartbeat write failed.', { error });
+        }
+      });
+      const unsubscribe = subscribeReservationCreated((item) => {
+        try {
+          context.res.write(formatSseEvent(SSE_EVENT_RESERVATION_CREATED, item));
+        } catch (error) {
+          strapi.log.error('Reservation inbox event write failed.', { error });
+        }
+      });
+
+      // res 'close' fires reliably on client disconnect (req 'close' semantics
+      // changed in Node 16 and may not fire for completed requests).
+      let cleaned = false;
+      const cleanup = (): void => {
+        if (cleaned) {
+          return;
+        }
+        cleaned = true;
+        stopHeartbeat();
+        unsubscribe();
+        try {
+          context.res.end();
+        } catch {
+          // Socket already closed; nothing to clean up.
+        }
+      };
+      context.res.on('close', cleanup);
+    },
+
+    async markRead(context): Promise<void> {
+      const requestId = readRequestId(context);
+      await Promise.resolve()
+        .then(async () => {
+          const documentId = parseDocumentId(context.params?.documentId);
+          context.body = { data: await service.markRead(documentId) };
+        })
+        .catch((error: Error) => handleControllerError(strapi, context, error, requestId));
+    },
+  };
+};
