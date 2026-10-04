@@ -79,6 +79,7 @@ export const CONTENT_MANAGER_FIELD_LABELS_VI: Readonly<Record<string, string>> =
   hero: 'Khối mở đầu trang (Hero)',
   heroImage: 'Ảnh đại diện chi nhánh',
   hotline: 'Số hotline',
+  whatsapp: 'Số WhatsApp',
   image: 'Ảnh',
   images: 'Danh sách ảnh',
   includedItems: 'Nội dung có trong gói',

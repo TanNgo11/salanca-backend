@@ -1,7 +1,7 @@
 {
   "version": 1,
   "createdAt": "2026-10-03T03:23:42.417Z",
-  "schemaHash": "9788d3e6519b97ef04c24750b187715525e1c408a0d91316335225cb546a33cd",
+  "schemaHash": "36932a7241a028496ef1dd287b943f777b40ee624b17989789c7c227e3fd1157",
   "files": [
     {
       "name": "ea999245bede5a2d247e7da3560014f721d2e80b7cbc2d624a634b80dc8b4502.webp",
@@ -7945,12 +7945,32 @@
       "vi": {
         "brandName": "Salanca",
         "tagline": "Churrascaria Brazil",
-        "logo": null,
+        "logo": {
+          "media": {
+            "__file": "57da22101d2eb071c38b549c5724a40ae11339d579276947e18ab36780104e37.png"
+          },
+          "alt": "Salanca Brazil",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
         "hotline": "0989 561 159",
+        "whatsapp": "0903 290 991",
         "email": "booking@salanca.com.vn",
         "address": "49 Phan Bội Châu, phường Cửa Nam, TP. Hà Nội",
         "mapUrl": "https://www.google.com/maps?q=49+Phan+B%E1%BB%99i+Ch%C3%A2u,+Hanoi,+Vietnam",
-        "openingHours": [],
+        "openingHours": [
+          {
+            "label": "Hằng ngày",
+            "opensAt": "11:00:00.000",
+            "closesAt": "14:00:00.000"
+          },
+          {
+            "label": "Hằng ngày",
+            "opensAt": "17:30:00.000",
+            "closesAt": "22:00:00.000"
+          }
+        ],
         "socialLinks": [
           {
             "platform": "facebook",
@@ -7975,12 +7995,32 @@
       "en": {
         "brandName": "Salanca",
         "tagline": "Churrascaria Brazil",
-        "logo": null,
+        "logo": {
+          "media": {
+            "__file": "57da22101d2eb071c38b549c5724a40ae11339d579276947e18ab36780104e37.png"
+          },
+          "alt": "Salanca Brazil",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
         "hotline": "0989 561 159",
+        "whatsapp": "0903 290 991",
         "email": "booking@salanca.com.vn",
         "address": "49 Phan Bội Châu, phường Cửa Nam, TP. Hà Nội",
         "mapUrl": "https://www.google.com/maps?q=49+Phan+B%E1%BB%99i+Ch%C3%A2u,+Hanoi,+Vietnam",
-        "openingHours": [],
+        "openingHours": [
+          {
+            "label": "Daily",
+            "opensAt": "11:00:00.000",
+            "closesAt": "14:00:00.000"
+          },
+          {
+            "label": "Daily",
+            "opensAt": "17:30:00.000",
+            "closesAt": "22:00:00.000"
+          }
+        ],
         "socialLinks": [
           {
             "platform": "facebook",
@@ -8183,12 +8223,32 @@
       "vi": {
         "brandName": "Salanca",
         "tagline": "Churrascaria Brazil",
-        "logo": null,
+        "logo": {
+          "media": {
+            "__file": "57da22101d2eb071c38b549c5724a40ae11339d579276947e18ab36780104e37.png"
+          },
+          "alt": "Salanca Brazil",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
         "hotline": "0989 561 159",
+        "whatsapp": "0903 290 991",
         "email": "booking@salanca.com.vn",
         "address": "49 Phan Bội Châu, phường Cửa Nam, TP. Hà Nội",
         "mapUrl": "https://www.google.com/maps?q=49+Phan+B%E1%BB%99i+Ch%C3%A2u,+Hanoi,+Vietnam",
-        "openingHours": [],
+        "openingHours": [
+          {
+            "label": "Hằng ngày",
+            "opensAt": "11:00:00.000",
+            "closesAt": "14:00:00.000"
+          },
+          {
+            "label": "Hằng ngày",
+            "opensAt": "17:30:00.000",
+            "closesAt": "22:00:00.000"
+          }
+        ],
         "socialLinks": [
           {
             "platform": "facebook",
@@ -8234,12 +8294,32 @@
       "en": {
         "brandName": "Salanca",
         "tagline": "Churrascaria Brazil",
-        "logo": null,
+        "logo": {
+          "media": {
+            "__file": "57da22101d2eb071c38b549c5724a40ae11339d579276947e18ab36780104e37.png"
+          },
+          "alt": "Salanca Brazil",
+          "caption": null,
+          "focalPointX": 50,
+          "focalPointY": 50
+        },
         "hotline": "0989 561 159",
+        "whatsapp": "0903 290 991",
         "email": "booking@salanca.com.vn",
         "address": "49 Phan Bội Châu, phường Cửa Nam, TP. Hà Nội",
         "mapUrl": "https://www.google.com/maps?q=49+Phan+B%E1%BB%99i+Ch%C3%A2u,+Hanoi,+Vietnam",
-        "openingHours": [],
+        "openingHours": [
+          {
+            "label": "Daily",
+            "opensAt": "11:00:00.000",
+            "closesAt": "14:00:00.000"
+          },
+          {
+            "label": "Daily",
+            "opensAt": "17:30:00.000",
+            "closesAt": "22:00:00.000"
+          }
+        ],
         "socialLinks": [
           {
             "platform": "facebook",
