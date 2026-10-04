@@ -10,6 +10,7 @@ export enum ApiReservationInboxRoute {
   MarkRead = '/reservation-inbox/:documentId/read',
   List = '/reservation-inbox/list',
   SetStatus = '/reservation-inbox/:documentId/status',
+  Detail = '/reservation-inbox/:documentId/detail',
 }
 
 export enum ReservationInboxErrorCode {
@@ -62,7 +63,31 @@ export interface ApiReservationInboxRequestContext {
   status?: number;
 }
 
+export const RESERVATION_MENU_SELECTION_MODES = ['later', 'now'] as const;
+export type ReservationMenuSelectionMode = (typeof RESERVATION_MENU_SELECTION_MODES)[number];
+
+export interface ReservationInboxDetail {
+  documentId: string;
+  fullName: string;
+  phone: string;
+  email: string | null;
+  guestCount: number;
+  preferredDate: string;
+  preferredTime: string;
+  occasion: string | null;
+  note: string | null;
+  menuSelectionMode: ReservationMenuSelectionMode | null;
+  menuPackageNames: string[];
+  menuItemNames: string[];
+  sourceLocale: string | null;
+  sourcePath: string | null;
+  status: ReservationStatus;
+  overlapCount: number;
+  createdAt: string;
+}
+
 export interface ApiReservationInboxController {
+  detail: (context: ApiReservationInboxRequestContext) => Promise<void>;
   list: (context: ApiReservationInboxRequestContext) => Promise<void>;
   setStatus: (context: ApiReservationInboxRequestContext) => Promise<void>;
   markRead: (context: ApiReservationInboxRequestContext) => Promise<void>;

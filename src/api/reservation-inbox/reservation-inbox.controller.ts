@@ -192,6 +192,16 @@ export const createReservationInboxController = (
         .catch((error: Error) => handleControllerError(strapi, context, error, requestId));
     },
 
+    async detail(context): Promise<void> {
+      const requestId = readRequestId(context);
+      await Promise.resolve()
+        .then(async () => {
+          const documentId = parseDocumentId(context.params?.documentId);
+          context.body = { data: await service.detail(documentId) };
+        })
+        .catch((error: Error) => handleControllerError(strapi, context, error, requestId));
+    },
+
     async setStatus(context): Promise<void> {
       const requestId = readRequestId(context);
       await Promise.resolve()

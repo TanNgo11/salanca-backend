@@ -15,6 +15,11 @@ import {
   getAuditLogTranslationId,
 } from './audit-log/audit-log.helper';
 import { AuditLogTranslationKey } from './audit-log/audit-log.types';
+import { EnumListCell } from './enum-list-cells/EnumListCell';
+import {
+  formatEnumerationColumns,
+  INJECT_COLUMN_IN_TABLE_HOOK,
+} from './enum-list-cells/enum-list-cells.helper';
 import { createLeadListRedirect } from './lead-shortcuts/LeadListRedirect';
 import {
   contactMessageUid,
@@ -32,6 +37,7 @@ import { setupMainNavLabels } from './main-nav-labels.helper';
 import { watchStaleChunkPreloadErrors } from './stale-chunk-reload.helper';
 import { adminChromeVietnameseTranslations } from './translations/admin-chrome';
 import { adminSettingsVietnameseTranslations } from './translations/admin-settings';
+import { contentEnumOptionVietnameseTranslations } from './translations/content-enum-options';
 import { contentManagerChromeVietnameseTranslations } from './translations/content-manager-chrome';
 import { contentManagerEditVietnameseTranslations } from './translations/content-manager-edit';
 import { contentManagerListVietnameseTranslations } from './translations/content-manager-list';
@@ -55,6 +61,8 @@ const config = {
   locales: [AdminLocale.Vietnamese],
   translations: {
     [AdminLocale.Vietnamese]: {
+      // Bare enum-value ids go first so no named Strapi message is shadowed.
+      ...contentEnumOptionVietnameseTranslations,
       ...vietnameseAdminTranslations,
       ...mediaLibraryVietnameseTranslations,
       ...runtimeFeedbackVietnameseTranslations,
@@ -164,6 +172,10 @@ export default {
       seedDefaultAdminLocale(window.localStorage);
     }
     app.registerHook(LEAD_COLLECTION_LINKS_HOOK, hideLeadCollectionLinks);
+    app.registerHook(
+      INJECT_COLUMN_IN_TABLE_HOOK,
+      formatEnumerationColumns((value) => <EnumListCell value={value} />),
+    );
     // Route wrapping must run after plugin bootstraps: some plugins call
     // addSettingsLink from bootstrap, which looks up a top-level `settings/*`
     // route in router._routes and crashes if it is nested inside a layout.

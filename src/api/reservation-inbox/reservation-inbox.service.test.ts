@@ -204,3 +204,69 @@ describe('createReservationInboxService.setStatus', () => {
     });
   });
 });
+
+describe('createReservationInboxService.detail', () => {
+  it('returns every field the detail modal shows, with selected menu names', async () => {
+    const findOne = vi.fn(async () => ({
+      documentId: 'doc1',
+      fullName: 'Nguyen Van A',
+      phone: '0901',
+      email: 'a@example.com',
+      guestCount: 4,
+      preferredDate: '2030-06-15',
+      preferredTime: '19:00',
+      occasion: '  ',
+      note: 'Gần cửa sổ',
+      menuSelectionMode: 'now',
+      menuPackages: [{ name: 'Buffet trưa' }, { name: '' }],
+      menuItems: [{ name: 'Picanha' }],
+      sourceLocale: 'vi',
+      sourcePath: '/vi/dat-ban',
+      status: null,
+      overlapCount: 2,
+      createdAt: new Date('2030-06-10T12:00:00.000Z'),
+    }));
+    const service = createReservationInboxService(buildStrapi({ findOne }));
+
+    const result = await service.detail('doc1');
+
+    expect(findOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        documentId: 'doc1',
+        populate: {
+          menuPackages: { fields: ['name'] },
+          menuItems: { fields: ['name'] },
+        },
+      }),
+    );
+    expect(result).toEqual({
+      documentId: 'doc1',
+      fullName: 'Nguyen Van A',
+      phone: '0901',
+      email: 'a@example.com',
+      guestCount: 4,
+      preferredDate: '2030-06-15',
+      preferredTime: '19:00',
+      occasion: null,
+      note: 'Gần cửa sổ',
+      menuSelectionMode: 'now',
+      menuPackageNames: ['Buffet trưa'],
+      menuItemNames: ['Picanha'],
+      sourceLocale: 'vi',
+      sourcePath: '/vi/dat-ban',
+      status: 'new',
+      overlapCount: 2,
+      createdAt: '2030-06-10T12:00:00.000Z',
+    });
+  });
+
+  it('throws NotFound when the document does not exist', async () => {
+    const service = createReservationInboxService(
+      buildStrapi({ findOne: vi.fn(async () => null) }),
+    );
+
+    await expect(service.detail('missing')).rejects.toMatchObject({
+      code: ReservationInboxErrorCode.NotFound,
+    });
+  });
+});

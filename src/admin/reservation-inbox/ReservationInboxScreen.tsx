@@ -22,6 +22,7 @@ import { InformationStatusChip } from '../information-status-chip/InformationSta
 import { informationStatusChipColor } from '../information-status-chip/information-status-chip.helper';
 import { InformationStatusChipTone } from '../information-status-chip/information-status-chip.types';
 
+import { ReservationDetailModal } from './ReservationDetailModal';
 import { useReservationInboxContext } from './reservation-inbox.context';
 import {
   contentManagerEditPath,
@@ -68,6 +69,7 @@ const ReservationInboxScreen = () => {
   const [searchInput, setSearchInput] = useState(initialListFilters.search);
   const [search, setSearch] = useState(initialListFilters.search);
   const [page, setPage] = useState(initialListFilters.page);
+  const [detailDocumentId, setDetailDocumentId] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -341,13 +343,20 @@ const ReservationInboxScreen = () => {
                         </Td>
                         <Td>
                           <Flex gap={2} wrap="wrap">
+                            <Button
+                              onClick={() => setDetailDocumentId(item.documentId)}
+                              size="S"
+                              variant="secondary"
+                            >
+                              {translate(ReservationInboxTranslationKey.ActionOpen)}
+                            </Button>
                             <LinkButton
                               size="S"
                               tag={RouterLink}
                               to={contentManagerEditPath(item.documentId)}
-                              variant="secondary"
+                              variant="tertiary"
                             >
-                              {translate(ReservationInboxTranslationKey.ActionOpen)}
+                              {translate(ReservationInboxTranslationKey.ActionEdit)}
                             </LinkButton>
                             {reservationStatusActions(item.status).map((action) => (
                               <Button
@@ -399,6 +408,11 @@ const ReservationInboxScreen = () => {
             </Flex>
           ) : null}
         </Layouts.Content>
+        <ReservationDetailModal
+          documentId={detailDocumentId}
+          onClose={() => setDetailDocumentId(null)}
+          translate={translate}
+        />
       </Page.Main>
     </Page.Protect>
   );

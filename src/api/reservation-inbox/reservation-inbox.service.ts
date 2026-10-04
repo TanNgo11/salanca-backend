@@ -6,7 +6,9 @@ import {
   ReservationInboxErrorCode,
   RESERVATION_INBOX_PAGE_SIZE,
   RESERVATION_INBOX_SUMMARY_LIMIT,
+  RESERVATION_MENU_SELECTION_MODES,
   RESERVATION_STATUSES,
+  type ReservationInboxDetail,
   type ReservationStatus,
 } from './reservation-inbox.types';
 
@@ -84,6 +86,46 @@ const toCount = (value: unknown): number =>
 
 const toStatus = (value: unknown): ReservationStatus =>
   RESERVATION_STATUSES.find((status) => status === value) ?? 'new';
+
+const DETAIL_FIELDS = [
+  ...ITEM_FIELDS,
+  'email',
+  'occasion',
+  'note',
+  'menuSelectionMode',
+  'sourceLocale',
+  'sourcePath',
+  'status',
+] as const;
+
+interface ReservationDetailRow extends ReservationInboxRow {
+  email?: unknown;
+  occasion?: unknown;
+  note?: unknown;
+  menuSelectionMode?: unknown;
+  sourceLocale?: unknown;
+  sourcePath?: unknown;
+  status?: unknown;
+  menuPackages?: unknown;
+  menuItems?: unknown;
+}
+
+const toOptionalText = (value: unknown): string | null =>
+  typeof value === 'string' && value.trim() !== '' ? value : null;
+
+const toNames = (value: unknown): string[] =>
+  Array.isArray(value)
+    ? value
+        .map((entry) => toOptionalText((entry as { name?: unknown } | null)?.name))
+        .filter((name): name is string => name !== null)
+    : [];
+
+const notFound = (documentId: string): ReservationInboxError =>
+  new ReservationInboxError(
+    ReservationInboxErrorCode.NotFound,
+    `Reservation request ${documentId} was not found.`,
+    'Không tìm thấy yêu cầu đặt bàn này.',
+  );
 
 // Rows saved before the status column existed hold NULL. They are unhandled
 // requests, so every "new" query matches them too (as toStatus already does).
@@ -165,6 +207,34 @@ export const createReservationInboxService = (strapi: Core.Strapi) => ({
     };
   },
 
+  async detail(documentId: string): Promise<ReservationInboxDetail> {
+    const row = (await strapi.documents(UID).findOne({
+      documentId,
+      fields: [...DETAIL_FIELDS],
+      populate: {
+        menuPackages: { fields: ['name'] },
+        menuItems: { fields: ['name'] },
+      },
+    })) as unknown as ReservationDetailRow | null;
+    if (!row) {
+      throw notFound(documentId);
+    }
+
+    return {
+      ...toInboxItem(row),
+      email: toOptionalText(row.email),
+      occasion: toOptionalText(row.occasion),
+      note: toOptionalText(row.note),
+      menuSelectionMode:
+        RESERVATION_MENU_SELECTION_MODES.find((mode) => mode === row.menuSelectionMode) ?? null,
+      menuPackageNames: toNames(row.menuPackages),
+      menuItemNames: toNames(row.menuItems),
+      sourceLocale: toOptionalText(row.sourceLocale),
+      sourcePath: toOptionalText(row.sourcePath),
+      status: toStatus(row.status),
+    };
+  },
+
   async setStatus(
     documentId: string,
     status: ReservationStatus,
@@ -174,11 +244,7 @@ export const createReservationInboxService = (strapi: Core.Strapi) => ({
       fields: ['documentId', 'status'],
     });
     if (!existing) {
-      throw new ReservationInboxError(
-        ReservationInboxErrorCode.NotFound,
-        `Reservation request ${documentId} was not found.`,
-        'Không tìm thấy yêu cầu đặt bàn này.',
-      );
+      throw notFound(documentId);
     }
 
     const updated = (await strapi.documents(UID).update({
