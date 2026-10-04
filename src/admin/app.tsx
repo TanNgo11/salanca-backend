@@ -27,6 +27,21 @@ import { auditLogVietnameseTranslations } from './audit-log/vi';
 import { watchContentManagerFieldHintVisibility } from './content-manager-field-hints.helper';
 import { registerDashboardWidgets } from './dashboard-widgets/register-dashboard-widgets';
 import { hideContentTypeBuilderAdminSurface } from './content-type-builder-visibility.helper';
+import { adminChromeVietnameseTranslations } from './translations/admin-chrome';
+import { adminSettingsVietnameseTranslations } from './translations/admin-settings';
+import { contentManagerChromeVietnameseTranslations } from './translations/content-manager-chrome';
+import { contentManagerEditVietnameseTranslations } from './translations/content-manager-edit';
+import { contentManagerListVietnameseTranslations } from './translations/content-manager-list';
+import { contentManagerViewConfigVietnameseTranslations } from './translations/content-manager-view-config';
+import { contentTypeBuilderAttributeVietnameseTranslations } from './translations/content-type-builder-attributes';
+import { contentTypeBuilderChromeVietnameseTranslations } from './translations/content-type-builder-chrome';
+import { documentationPluginVietnameseTranslations } from './translations/documentation-plugin';
+import { emailPluginVietnameseTranslations } from './translations/email-plugin';
+import { homepageWidgetVietnameseTranslations } from './translations/homepage-widgets';
+import { i18nPluginVietnameseTranslations } from './translations/i18n-plugin';
+import { mediaLibraryVietnameseTranslations } from './translations/media-library';
+import { runtimeFeedbackVietnameseTranslations } from './translations/runtime-feedback';
+import { usersPermissionsVietnameseTranslations } from './translations/users-permissions-plugin';
 import { vietnameseAdminTranslations } from './translations/vi';
 
 import './content-manager-field-hints.css';
@@ -40,6 +55,21 @@ const config = {
   translations: {
     [AdminLocale.Vietnamese]: {
       ...vietnameseAdminTranslations,
+      ...mediaLibraryVietnameseTranslations,
+      ...runtimeFeedbackVietnameseTranslations,
+      ...contentManagerChromeVietnameseTranslations,
+      ...homepageWidgetVietnameseTranslations,
+      ...contentManagerEditVietnameseTranslations,
+      ...contentManagerListVietnameseTranslations,
+      ...adminSettingsVietnameseTranslations,
+      ...adminChromeVietnameseTranslations,
+      ...i18nPluginVietnameseTranslations,
+      ...usersPermissionsVietnameseTranslations,
+      ...contentManagerViewConfigVietnameseTranslations,
+      ...contentTypeBuilderAttributeVietnameseTranslations,
+      ...contentTypeBuilderChromeVietnameseTranslations,
+      ...emailPluginVietnameseTranslations,
+      ...documentationPluginVietnameseTranslations,
       ...Object.fromEntries(
         Object.entries(auditLogVietnameseTranslations).map(([key, value]) => [
           `audit-log.${key}`,
