@@ -1290,14 +1290,14 @@
             "vi": {
               "name": "Steak Salanca",
               "slug": "a-la-carte",
-              "shortDescription": "(Rib eye steak – Served with Mushroom or Pepper Sauce) Thăn Nội Bò Nướng Được Dùng Với Xốt Nấm hoặc Xốt Tiêu",
+              "shortDescription": "(Rib eye steak – Served with Mushroom or Pepper Sauce) Thăn Ngoại Bò Nướng Được Dùng Với Sốt Nấm hoặc Sốt Tiêu",
               "portion": null,
               "description": [
                 {
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "(Rib eye steak – Served with Mushroom or Pepper Sauce) Thăn Nội Bò Nướng Được Dùng Với Xốt Nấm hoặc Xốt Tiêu",
+                      "text": "(Rib eye steak – Served with Mushroom or Pepper Sauce) Thăn Ngoại Bò Nướng Được Dùng Với Sốt Nấm hoặc Sốt Tiêu",
                       "type": "text"
                     }
                   ]
@@ -2642,9 +2642,9 @@
           {
             "key": "fruit-small",
             "vi": {
-              "name": "Trái cây theo mùa — Đĩa nhỏ",
+              "name": "MIX FRUIT PLATE SMALL",
               "slug": "fruit-small",
-              "shortDescription": "",
+              "shortDescription": "Trái cây đĩa nhỏ theo mùa",
               "portion": null,
               "description": [],
               "price": 145000,
@@ -2661,9 +2661,9 @@
               "displayOrder": 129
             },
             "en": {
-              "name": "Seasonal fruit — Small plate",
+              "name": "MIX FRUIT PLATE SMALL",
               "slug": "fruit-small",
-              "shortDescription": "",
+              "shortDescription": "Seasonal fruit, small plate",
               "portion": null,
               "description": [],
               "price": 145000,
@@ -2683,9 +2683,9 @@
           {
             "key": "fruit-big",
             "vi": {
-              "name": "Trái cây theo mùa — Đĩa lớn",
+              "name": "MIX FRUIT PLATE BIG",
               "slug": "fruit-big",
-              "shortDescription": "",
+              "shortDescription": "Trái cây đĩa theo mùa",
               "portion": null,
               "description": [],
               "price": 195000,
@@ -2702,9 +2702,9 @@
               "displayOrder": 130
             },
             "en": {
-              "name": "Seasonal fruit — Large plate",
+              "name": "MIX FRUIT PLATE BIG",
               "slug": "fruit-big",
-              "shortDescription": "",
+              "shortDescription": "Seasonal fruit plate",
               "portion": null,
               "description": [],
               "price": 195000,
@@ -2724,9 +2724,9 @@
           {
             "key": "pomelo-small",
             "vi": {
-              "name": "Bưởi — Đĩa nhỏ",
+              "name": "POMELO PLATE SMALL",
               "slug": "pomelo-small",
-              "shortDescription": "",
+              "shortDescription": "Bưởi (đĩa nhỏ)",
               "portion": null,
               "description": [],
               "price": 150000,
@@ -2743,9 +2743,9 @@
               "displayOrder": 131
             },
             "en": {
-              "name": "Pomelo — Small plate",
+              "name": "POMELO PLATE SMALL",
               "slug": "pomelo-small",
-              "shortDescription": "",
+              "shortDescription": "Pomelo (small plate)",
               "portion": null,
               "description": [],
               "price": 150000,
@@ -2765,9 +2765,9 @@
           {
             "key": "pomelo-big",
             "vi": {
-              "name": "Bưởi — Đĩa lớn",
+              "name": "POMELO PLATE BIG",
               "slug": "pomelo-big",
-              "shortDescription": "",
+              "shortDescription": "Bưởi (đĩa lớn)",
               "portion": null,
               "description": [],
               "price": 250000,
@@ -2784,9 +2784,9 @@
               "displayOrder": 132
             },
             "en": {
-              "name": "Pomelo — Large plate",
+              "name": "POMELO PLATE BIG",
               "slug": "pomelo-big",
-              "shortDescription": "",
+              "shortDescription": "Pomelo (large plate)",
               "portion": null,
               "description": [],
               "price": 250000,
@@ -5082,7 +5082,7 @@
           "aLaCarte": {
             "eyebrow": "A LA CARTE\nMENU",
             "title": "Steak Salanca",
-            "body": "(Rib eye steak – Served with Mushroom or Pepper Sauce) Thăn Nội Bò Nướng Được Dùng Với Xốt Nấm hoặc Xốt Tiêu",
+            "body": "(Rib eye steak – Served with Mushroom or Pepper Sauce) Thăn Ngoại Bò Nướng Được Dùng Với Sốt Nấm hoặc Sốt Tiêu",
             "price": 850000,
             "image": {
               "media": {
