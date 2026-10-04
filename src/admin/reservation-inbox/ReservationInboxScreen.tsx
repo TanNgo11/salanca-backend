@@ -2,16 +2,15 @@ import { useCallback, useEffect, useState, type ChangeEvent } from 'react';
 
 import {
   Button,
-  Field,
   Flex,
   LinkButton,
+  Searchbar,
+  Switch,
   Table,
   Tbody,
   Td,
-  TextInput,
   Th,
   Thead,
-  Toggle,
   Tr,
   Typography,
 } from '@strapi/design-system';
@@ -183,192 +182,189 @@ const ReservationInboxScreen = () => {
       <Page.Title>{translate(ReservationInboxTranslationKey.Title)}</Page.Title>
       <Page.Main className="reservation-inbox">
         <Layouts.Header
-          subtitle={statusLabel}
-          title={translate(ReservationInboxTranslationKey.Title)}
-        />
-        <Layouts.Content>
-          <div className="reservation-inbox__panel">
-            <Flex direction="column" alignItems="flex-start" gap={4}>
-              <Flex alignItems="center" gap={3}>
-                <Toggle
+          primaryAction={
+            <Flex className="reservation-inbox__prefs" gap={5}>
+              <Flex alignItems="center" gap={2} tag="label">
+                <Switch
                   checked={prefs.osNotify}
-                  offLabel={translate(ReservationInboxTranslationKey.ToggleOff)}
-                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                    void onOsNotifyChange(event.target.checked)
-                  }
-                  onLabel={translate(ReservationInboxTranslationKey.ToggleOn)}
-                  aria-label={translate(ReservationInboxTranslationKey.PrefOsNotify)}
+                  onCheckedChange={(checked: boolean) => void onOsNotifyChange(checked)}
                 />
                 <Typography textColor="neutral700" variant="omega">
                   {translate(ReservationInboxTranslationKey.PrefOsNotify)}
                 </Typography>
               </Flex>
-              <Flex alignItems="center" gap={3}>
-                <Toggle
-                  checked={prefs.sound}
-                  offLabel={translate(ReservationInboxTranslationKey.ToggleOff)}
-                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                    onSoundChange(event.target.checked)
-                  }
-                  onLabel={translate(ReservationInboxTranslationKey.ToggleOn)}
-                  aria-label={translate(ReservationInboxTranslationKey.PrefSound)}
-                />
+              <Flex alignItems="center" gap={2} tag="label">
+                <Switch checked={prefs.sound} onCheckedChange={onSoundChange} />
                 <Typography textColor="neutral700" variant="omega">
                   {translate(ReservationInboxTranslationKey.PrefSound)}
                 </Typography>
               </Flex>
             </Flex>
-          </div>
-
-          <div className="reservation-inbox__filters">
-            <Flex
-              aria-label={translate(ReservationInboxTranslationKey.FilterStatusLabel)}
-              gap={2}
-              role="group"
-              wrap="wrap"
-            >
-              {statusTabs.map((tab) => (
-                <Button
-                  aria-pressed={statusFilter === tab.value}
-                  key={tab.value}
-                  onClick={() => onStatusChange(tab.value)}
-                  size="S"
-                  variant={statusFilter === tab.value ? 'default' : 'tertiary'}
-                >
-                  {translate(tab.key, { count: tab.count })}
-                </Button>
-              ))}
+          }
+          subtitle={
+            <Flex alignItems="center" gap={2} tag="span">
+              <span className="reservation-inbox__live-dot" data-mode={mode} />
+              {statusLabel}
             </Flex>
-            <Field.Root className="reservation-inbox__search" name="reservation-inbox-search">
-              <Field.Label>{translate(ReservationInboxTranslationKey.SearchLabel)}</Field.Label>
-              <TextInput
-                name="reservation-inbox-search"
-                onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                  setSearchInput(event.target.value)
-                }
-                placeholder={translate(ReservationInboxTranslationKey.SearchPlaceholder)}
-                value={searchInput}
-              />
-            </Field.Root>
-          </div>
+          }
+          title={translate(ReservationInboxTranslationKey.Title)}
+        />
+        <Layouts.Content>
+          <div className="reservation-inbox__card">
+            <div className="reservation-inbox__toolbar">
+              <Flex
+                aria-label={translate(ReservationInboxTranslationKey.FilterStatusLabel)}
+                gap={2}
+                role="group"
+                wrap="wrap"
+              >
+                {statusTabs.map((tab) => (
+                  <Button
+                    aria-pressed={statusFilter === tab.value}
+                    key={tab.value}
+                    onClick={() => onStatusChange(tab.value)}
+                    size="S"
+                    variant={statusFilter === tab.value ? 'default' : 'tertiary'}
+                  >
+                    {translate(tab.key, { count: tab.count })}
+                  </Button>
+                ))}
+              </Flex>
+              <div className="reservation-inbox__search">
+                <Searchbar
+                  clearLabel={translate(ReservationInboxTranslationKey.SearchClear)}
+                  name="reservation-inbox-search"
+                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                    setSearchInput(event.target.value)
+                  }
+                  onClear={() => setSearchInput('')}
+                  placeholder={translate(ReservationInboxTranslationKey.SearchPlaceholder)}
+                  size="S"
+                  value={searchInput}
+                >
+                  {translate(ReservationInboxTranslationKey.SearchLabel)}
+                </Searchbar>
+              </div>
+            </div>
 
-          <div aria-busy={loading} className="reservation-inbox__table-wrap">
-            <Table colCount={8} rowCount={items.length}>
-              <Thead>
-                <Tr>
-                  {[
-                    ReservationInboxTranslationKey.ColumnCustomer,
-                    ReservationInboxTranslationKey.ColumnPhone,
-                    ReservationInboxTranslationKey.ColumnGuests,
-                    ReservationInboxTranslationKey.ColumnDateTime,
-                    ReservationInboxTranslationKey.ColumnStatus,
-                    ReservationInboxTranslationKey.ColumnOverlap,
-                    ReservationInboxTranslationKey.ColumnReceivedAt,
-                    ReservationInboxTranslationKey.ColumnActions,
-                  ].map((key) => (
-                    <Th key={key}>
-                      <Typography variant="omega">{translate(key)}</Typography>
-                    </Th>
-                  ))}
-                </Tr>
-              </Thead>
-              <Tbody>
-                {items.length === 0 ? (
+            <div aria-busy={loading} className="reservation-inbox__table-wrap">
+              <Table colCount={8} rowCount={items.length}>
+                <Thead>
                   <Tr>
-                    <Td colSpan={8}>
-                      <Typography
-                        role={failed ? 'alert' : undefined}
-                        textColor={failed ? 'danger600' : 'neutral600'}
-                        variant="omega"
-                      >
-                        {failed
-                          ? translate(ReservationInboxTranslationKey.LoadFailed)
-                          : translate(
-                              hasFilters
-                                ? ReservationInboxTranslationKey.EmptyFiltered
-                                : ReservationInboxTranslationKey.Empty,
-                            )}
-                      </Typography>
-                    </Td>
+                    {[
+                      ReservationInboxTranslationKey.ColumnCustomer,
+                      ReservationInboxTranslationKey.ColumnPhone,
+                      ReservationInboxTranslationKey.ColumnGuests,
+                      ReservationInboxTranslationKey.ColumnDateTime,
+                      ReservationInboxTranslationKey.ColumnStatus,
+                      ReservationInboxTranslationKey.ColumnOverlap,
+                      ReservationInboxTranslationKey.ColumnReceivedAt,
+                      ReservationInboxTranslationKey.ColumnActions,
+                    ].map((key) => (
+                      <Th key={key}>
+                        <Typography variant="omega">{translate(key)}</Typography>
+                      </Th>
+                    ))}
                   </Tr>
-                ) : (
-                  items.map((item) => (
-                    <Tr key={item.documentId}>
-                      <Td>
-                        <Typography fontWeight="semiBold" variant="omega">
-                          {item.fullName}
+                </Thead>
+                <Tbody>
+                  {items.length === 0 ? (
+                    <Tr>
+                      <Td colSpan={8}>
+                        <Typography
+                          role={failed ? 'alert' : undefined}
+                          textColor={failed ? 'danger600' : 'neutral600'}
+                          variant="omega"
+                        >
+                          {failed
+                            ? translate(ReservationInboxTranslationKey.LoadFailed)
+                            : translate(
+                                hasFilters
+                                  ? ReservationInboxTranslationKey.EmptyFiltered
+                                  : ReservationInboxTranslationKey.Empty,
+                              )}
                         </Typography>
-                      </Td>
-                      <Td>
-                        <Typography variant="omega">{item.phone}</Typography>
-                      </Td>
-                      <Td>
-                        <Typography variant="omega">{item.guestCount}</Typography>
-                      </Td>
-                      <Td>
-                        <Typography variant="omega">
-                          {formatInboxVisitDateTime(item)}
-                        </Typography>
-                      </Td>
-                      <Td>
-                        <InformationStatusChip
-                          color={informationStatusChipColor(
-                            reservationStatusTone(item.status),
-                          )}
-                          label={translate(chipLabelKey[item.status])}
-                        />
-                      </Td>
-                      <Td>
-                        {item.overlapCount > 0 ? (
-                          <InformationStatusChip
-                            color={informationStatusChipColor(
-                              InformationStatusChipTone.Warning,
-                            )}
-                            label={translate(
-                              ReservationInboxTranslationKey.OverlapCount,
-                              { count: item.overlapCount },
-                            )}
-                          />
-                        ) : (
-                          <Typography textColor="neutral600" variant="omega">
-                            —
-                          </Typography>
-                        )}
-                      </Td>
-                      <Td>
-                        <Typography variant="omega">
-                          {formatInboxReceivedAt(item.createdAt)}
-                        </Typography>
-                      </Td>
-                      <Td>
-                        <Flex gap={2} wrap="wrap">
-                          <LinkButton
-                            size="S"
-                            tag={RouterLink}
-                            to={contentManagerEditPath(item.documentId)}
-                            variant="secondary"
-                          >
-                            {translate(ReservationInboxTranslationKey.ActionOpen)}
-                          </LinkButton>
-                          {reservationStatusActions(item.status).map((action) => (
-                            <Button
-                              key={action.target}
-                              onClick={() =>
-                                void onRowStatusChange(item.documentId, action.target)
-                              }
-                              size="S"
-                              variant="tertiary"
-                            >
-                              {translate(action.translationKey)}
-                            </Button>
-                          ))}
-                        </Flex>
                       </Td>
                     </Tr>
-                  ))
-                )}
-              </Tbody>
-            </Table>
+                  ) : (
+                    items.map((item) => (
+                      <Tr key={item.documentId}>
+                        <Td>
+                          <Typography fontWeight="semiBold" variant="omega">
+                            {item.fullName}
+                          </Typography>
+                        </Td>
+                        <Td>
+                          <Typography variant="omega">{item.phone}</Typography>
+                        </Td>
+                        <Td>
+                          <Typography variant="omega">{item.guestCount}</Typography>
+                        </Td>
+                        <Td>
+                          <Typography variant="omega">
+                            {formatInboxVisitDateTime(item)}
+                          </Typography>
+                        </Td>
+                        <Td>
+                          <InformationStatusChip
+                            color={informationStatusChipColor(
+                              reservationStatusTone(item.status),
+                            )}
+                            label={translate(chipLabelKey[item.status])}
+                          />
+                        </Td>
+                        <Td>
+                          {item.overlapCount > 0 ? (
+                            <InformationStatusChip
+                              color={informationStatusChipColor(
+                                InformationStatusChipTone.Warning,
+                              )}
+                              label={translate(
+                                ReservationInboxTranslationKey.OverlapCount,
+                                { count: item.overlapCount },
+                              )}
+                            />
+                          ) : (
+                            <Typography textColor="neutral600" variant="omega">
+                              —
+                            </Typography>
+                          )}
+                        </Td>
+                        <Td>
+                          <Typography variant="omega">
+                            {formatInboxReceivedAt(item.createdAt)}
+                          </Typography>
+                        </Td>
+                        <Td>
+                          <Flex gap={2} wrap="wrap">
+                            <LinkButton
+                              size="S"
+                              tag={RouterLink}
+                              to={contentManagerEditPath(item.documentId)}
+                              variant="secondary"
+                            >
+                              {translate(ReservationInboxTranslationKey.ActionOpen)}
+                            </LinkButton>
+                            {reservationStatusActions(item.status).map((action) => (
+                              <Button
+                                key={action.target}
+                                onClick={() =>
+                                  void onRowStatusChange(item.documentId, action.target)
+                                }
+                                size="S"
+                                variant="tertiary"
+                              >
+                                {translate(action.translationKey)}
+                              </Button>
+                            ))}
+                          </Flex>
+                        </Td>
+                      </Tr>
+                    ))
+                  )}
+                </Tbody>
+              </Table>
+            </div>
           </div>
 
           {pageCount > 1 ? (

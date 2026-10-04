@@ -85,12 +85,19 @@ const toCount = (value: unknown): number =>
 const toStatus = (value: unknown): ReservationStatus =>
   RESERVATION_STATUSES.find((status) => status === value) ?? 'new';
 
+// Rows saved before the status column existed hold NULL. They are unhandled
+// requests, so every "new" query matches them too (as toStatus already does).
+const NEW_STATUS_FILTER = { $or: [{ status: 'new' }, { status: { $null: true } }] };
+
+const statusFilter = (status: ReservationStatus): Record<string, unknown> =>
+  status === 'new' ? NEW_STATUS_FILTER : { status };
+
 export const createReservationInboxService = (strapi: Core.Strapi) => ({
   async summary(query: ReservationInboxSummaryQuery): Promise<{
     items: ReservationInboxItem[];
     unreadCount: number;
   }> {
-    const filters: Record<string, unknown> = { status: 'new' };
+    const filters: Record<string, unknown> = { ...NEW_STATUS_FILTER };
     if (query.since) {
       filters.createdAt = { $gt: query.since };
     }
@@ -103,7 +110,7 @@ export const createReservationInboxService = (strapi: Core.Strapi) => ({
         limit: query.limit ?? RESERVATION_INBOX_SUMMARY_LIMIT,
       }),
       // unreadCount is the full backlog regardless of the `since` window.
-      strapi.documents(UID).count({ filters: { status: 'new' } }),
+      strapi.documents(UID).count({ filters: NEW_STATUS_FILTER }),
     ]);
 
     return {
@@ -113,16 +120,19 @@ export const createReservationInboxService = (strapi: Core.Strapi) => ({
   },
 
   async list(query: ReservationInboxListQuery): Promise<ReservationInboxListResult> {
-    const filters: Record<string, unknown> = {};
+    const clauses: Record<string, unknown>[] = [];
     if (query.status) {
-      filters.status = query.status;
+      clauses.push(statusFilter(query.status));
     }
     if (query.search) {
-      filters.$or = [
-        { fullName: { $containsi: query.search } },
-        { phone: { $containsi: query.search } },
-      ];
+      clauses.push({
+        $or: [
+          { fullName: { $containsi: query.search } },
+          { phone: { $containsi: query.search } },
+        ],
+      });
     }
+    const filters = clauses.length > 0 ? { $and: clauses } : {};
 
     const [rows, total, newCount, readCount, archivedCount] = await Promise.all([
       strapi.documents(UID).findMany({
@@ -134,7 +144,7 @@ export const createReservationInboxService = (strapi: Core.Strapi) => ({
       }),
       strapi.documents(UID).count({ filters }),
       ...RESERVATION_STATUSES.map((status) =>
-        strapi.documents(UID).count({ filters: { status } }),
+        strapi.documents(UID).count({ filters: statusFilter(status) }),
       ),
     ]);
 

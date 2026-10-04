@@ -50,7 +50,10 @@ describe('reservation inbox controller summary', () => {
 
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        filters: { status: 'new', createdAt: { $gt: '2030-06-01T00:00:00.000Z' } },
+        filters: {
+          $or: [{ status: 'new' }, { status: { $null: true } }],
+          createdAt: { $gt: '2030-06-01T00:00:00.000Z' },
+        },
       }),
     );
     expect(context.body).toEqual({ data: { items: [], unreadCount: 2 } });
@@ -189,8 +192,10 @@ describe('reservation inbox controller list', () => {
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         filters: {
-          status: 'new',
-          $or: [{ fullName: { $containsi: '09' } }, { phone: { $containsi: '09' } }],
+          $and: [
+            { $or: [{ status: 'new' }, { status: { $null: true } }] },
+            { $or: [{ fullName: { $containsi: '09' } }, { phone: { $containsi: '09' } }] },
+          ],
         },
         start: 0,
       }),

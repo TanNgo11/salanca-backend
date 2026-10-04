@@ -66,6 +66,9 @@ export default {
   config,
   register(app: StrapiApp) {
     registeredApp = app;
+    // Rail order (Strapi sorts by position): Home 0, then the day-to-day lead
+    // screens, Content Manager 1, Media Library 4, audit log 8, and Settings,
+    // hardcoded at 9, stays last.
     // Registered in every build mode: the audit log is a product screen, not a
     // developer tool. The link is permission-gated by auditLogPermissions.read.
     app.addMenuLink({
@@ -77,7 +80,7 @@ export default {
       },
       Component: () => import('./audit-log/AuditLogScreen'),
       permissions: auditLogPermissions.read,
-      position: 10,
+      position: 8,
     });
     app.addMenuLink({
       to: '/plugins/reservation-inbox',
@@ -88,7 +91,7 @@ export default {
       },
       Component: () => import('./reservation-inbox/ReservationInboxScreen'),
       permissions: reservationInboxPermissions.read,
-      position: 11,
+      position: 0.1,
     });
     app.addMenuLink({
       to: '/plugins/contact-messages',
@@ -96,7 +99,7 @@ export default {
       intlLabel: { id: 'lead-shortcuts.contact-message', defaultMessage: 'Tin nhắn liên hệ' },
       Component: async () => ({ default: createLeadListRedirect(contactMessageUid) }),
       permissions: leadReadPermissions(contactMessageUid),
-      position: 12,
+      position: 0.3,
     });
     app.addMenuLink({
       to: '/plugins/reservation-requests',
@@ -107,7 +110,7 @@ export default {
       },
       Component: async () => ({ default: createLeadListRedirect(reservationRequestUid) }),
       permissions: leadReadPermissions(reservationRequestUid),
-      position: 13,
+      position: 0.2,
     });
 
     if (!isProductionAdminBuild) {

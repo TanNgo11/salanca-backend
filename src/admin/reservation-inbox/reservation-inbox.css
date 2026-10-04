@@ -62,36 +62,61 @@
   text-align: center;
 }
 
-.reservation-inbox__panel {
-  margin-bottom: 16px;
-  padding: 16px;
+.reservation-inbox__live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.reservation-inbox__live-dot[data-mode='stream'] {
+  background: #2f9e44;
+  box-shadow: 0 0 0 3px rgb(47 158 68 / 18%);
+}
+
+.reservation-inbox__live-dot[data-mode='polling'] {
+  background: #d9822f;
+  box-shadow: 0 0 0 3px rgb(217 130 47 / 18%);
+}
+
+.reservation-inbox__prefs label {
+  cursor: pointer;
+}
+
+/* One card holds the filters and the list, so the list starts right under
+   the page header instead of below a separate settings panel. */
+.reservation-inbox__card {
+  overflow: hidden;
   border-radius: 4px;
   background: #ffffff;
   box-shadow: 0 1px 4px rgb(33 33 52 / 10%);
 }
 
-.reservation-inbox__table-wrap {
-  width: 100%;
-  overflow-x: auto;
-  border-radius: 4px;
-  background: #ffffff;
-  box-shadow: 0 1px 4px rgb(33 33 52 / 10%);
-}
-
-.reservation-inbox__table-wrap table {
-  min-width: 920px;
-}
-
-.reservation-inbox__filters {
+.reservation-inbox__toolbar {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-block: 24px 16px;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid #eaeaef;
 }
 
 .reservation-inbox__search {
   flex: 0 1 320px;
   min-width: 220px;
+}
+
+.reservation-inbox__table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.reservation-inbox__table-wrap > div {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.reservation-inbox__table-wrap table {
+  min-width: 920px;
 }
