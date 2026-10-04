@@ -2,6 +2,7 @@ import { logProcessWarnings } from '@tanngo11/log';
 import type { Core } from '@strapi/strapi';
 
 import { synchronizeContentManagerLabels } from './bootstrap/content-manager-labels';
+import { warnIfFormIntakeSecretMissing } from './bootstrap/form-intake-secret-warning';
 import { provisionContentLocales } from './bootstrap/content-locales';
 import { provisionPublicContentPermissions } from './bootstrap/public-content-permissions';
 import { provisionPublicFormPermissions } from './bootstrap/public-form-permissions';
@@ -43,6 +44,7 @@ export default {
    * Idempotent startup provisioning.
    */
   async bootstrap({ strapi }: { strapi: Core.Strapi }) {
+    warnIfFormIntakeSecretMissing(strapi);
     await provisionContentLocales(strapi);
     await provisionPublicContentPermissions(strapi);
     await provisionPublicFormPermissions(strapi);

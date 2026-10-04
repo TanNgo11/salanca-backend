@@ -55,6 +55,8 @@ export enum ContactMessageValidationErrorCode {
   SourcePathTooLong = 'CONTACT_SOURCE_PATH_TOO_LONG',
   /** Cloudflare Turnstile failed or missing when TURNSTILE_SECRET_KEY is set. */
   Turnstile = 'CONTACT_TURNSTILE',
+  /** Too many submissions from one client IP in the rate-limit window. */
+  RateLimited = 'CONTACT_RATE_LIMITED',
 }
 
 /** @deprecated Use FormValidationError — kept as alias for call sites/tests. */

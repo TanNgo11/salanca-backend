@@ -170,6 +170,7 @@ Content-Type: application/json
 | Alias | Body key `locale` accepted as alias for `sourceLocale` (prefer `sourceLocale`) |
 | Honeypot | `website` must be empty/absent; non-empty → `400` |
 | Turnstile | When `TURNSTILE_SECRET_KEY` is set: require `turnstileToken` or `cf-turnstile-response`; invalid/missing → `400` `CONTACT_TURNSTILE`. When unset, skipped (dev/smoke). Token is request-only (never stored). |
+| Rate limit | After successful validation + Turnstile; in-process per client IP; default 5 / 10 min; env `CONTACT_RATE_LIMIT_*`; over → `429` + `Retry-After`, Strapi-shaped `{ error: { name: ApplicationError, details.code: CONTACT_RATE_LIMITED } }`. Client IP = `x-salanca-visitor-ip` when `x-salanca-intake-secret` matches `FORM_INTAKE_SHARED_SECRET`, else the socket IP (`TRUST_PROXY` for reverse proxies) |
 | Client `status` | Ignored; server forces `new` |
 | `GET /contact-messages` | Public denied (`401`/`403`) |
 | Email notify | **Opt-in:** Resend SMTP + `FORM_NOTIFY_TO` staff alert after create; delivery failure does not change `201` |

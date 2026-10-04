@@ -92,6 +92,26 @@ try {
   });
   assert.equal(noContact.response.status, 400, 'email or phone required');
 
+  // 2 valid creates above already consumed quota; 3 more fill the default 5/window.
+  for (let i = 0; i < 3; i += 1) {
+    const filler = await api(`${prefix}/contact-messages`, {
+      method: 'POST',
+      body: JSON.stringify({
+        data: { fullName: `Rate Filler ${i}`, email: `rate-${i}@example.com`, message: 'Rate limit filler.', sourceLocale: 'vi' },
+      }),
+    });
+    assert.equal(filler.response.status, 201, `filler ${i} expected 201, got ${filler.response.status}`);
+  }
+  const limited = await api(`${prefix}/contact-messages`, {
+    method: 'POST',
+    body: JSON.stringify({
+      data: { fullName: 'Rate Over', email: 'rate-over@example.com', message: 'Sixth submission.', sourceLocale: 'vi' },
+    }),
+  });
+  assert.equal(limited.response.status, 429, `6th submission expected 429, got ${limited.response.status}`);
+  assert.equal(limited.body?.error?.details?.code, 'CONTACT_RATE_LIMITED');
+  assert.ok(limited.response.headers.get('retry-after'), 'Retry-After header present');
+
   const listAttempt = await api(`${prefix}/contact-messages`);
   assert.ok(
     // 404: the public router never registers a list route (create-only intake).
