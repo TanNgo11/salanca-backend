@@ -2492,7 +2492,13 @@
               "focalPointY": 50
             },
             "displayOrder": 1,
-            "isActive": true
+            "isActive": true,
+            "seo": {
+              "metaTitle": "Các món nướng đặc trưng",
+              "metaDescription": "Hơn 12 loại thịt nướng trên than hồng, phục vụ liên tục tại bàn. Thịt bò và cừu nhập khẩu từ New Zealand, dùng cùng salad, món ăn kèm và sốt Brazil.",
+              "canonicalPath": "/vi/thuc-don/nhom/thit-nuong",
+              "noIndex": false
+            }
           },
           "en": {
             "slug": "grilled-meats",
@@ -2506,7 +2512,13 @@
               "focalPointY": 50
             },
             "displayOrder": 1,
-            "isActive": true
+            "isActive": true,
+            "seo": {
+              "metaTitle": "Signature cuts",
+              "metaDescription": "More than twelve cuts over charcoal, carved continuously at your table. Beef and lamb imported from New Zealand, served with salads, sides and Brazilian sauces.",
+              "canonicalPath": "/en/menu/category/grilled-meats",
+              "noIndex": false
+            }
           }
         },
         {
@@ -2523,7 +2535,13 @@
               "focalPointY": 50
             },
             "displayOrder": 2,
-            "isActive": true
+            "isActive": true,
+            "seo": {
+              "metaTitle": "Salad & món ăn kèm",
+              "metaDescription": "Salad & món ăn kèm tại Salanca — nhà hàng Brazilian Churrascaria ở Hà Nội.",
+              "canonicalPath": "/vi/thuc-don/nhom/mon-kem",
+              "noIndex": false
+            }
           },
           "en": {
             "slug": "sides",
@@ -2537,7 +2555,13 @@
               "focalPointY": 50
             },
             "displayOrder": 2,
-            "isActive": true
+            "isActive": true,
+            "seo": {
+              "metaTitle": "Salads & side dishes",
+              "metaDescription": "Salads & side dishes at Salanca — Brazilian churrascaria in Hanoi.",
+              "canonicalPath": "/en/menu/category/sides",
+              "noIndex": false
+            }
           }
         },
         {
@@ -2546,13 +2570,25 @@
             "slug": "sot",
             "name": "Sốt",
             "displayOrder": 3,
-            "isActive": true
+            "isActive": true,
+            "seo": {
+              "metaTitle": "Sốt",
+              "metaDescription": "Sốt tại Salanca — nhà hàng Brazilian Churrascaria ở Hà Nội.",
+              "canonicalPath": "/vi/thuc-don/nhom/sot",
+              "noIndex": false
+            }
           },
           "en": {
             "slug": "sauces",
             "name": "Sauces & dressings",
             "displayOrder": 3,
-            "isActive": true
+            "isActive": true,
+            "seo": {
+              "metaTitle": "Sauces & dressings",
+              "metaDescription": "Sauces & dressings at Salanca — Brazilian churrascaria in Hanoi.",
+              "canonicalPath": "/en/menu/category/sauces",
+              "noIndex": false
+            }
           }
         },
         {
@@ -2562,14 +2598,26 @@
             "name": "Gọi món",
             "displayOrder": 4,
             "isActive": true,
-            "description": "Chọn một món ăn kèm với bất kỳ món chính nào:\nSalad xanh hoặc Caesar với sốt Thousand Island\nCơm bơ Jasmine\nHành tây nướng hoặc khoai tây chiên"
+            "description": "Chọn một món ăn kèm với bất kỳ món chính nào:\nSalad xanh hoặc Caesar với sốt Thousand Island\nCơm bơ Jasmine\nHành tây nướng hoặc khoai tây chiên",
+            "seo": {
+              "metaTitle": "Gọi món",
+              "metaDescription": "Chọn một món ăn kèm với bất kỳ món chính nào: Salad xanh hoặc Caesar với sốt Thousand Island Cơm bơ Jasmine Hành tây nướng hoặc khoai tây chiên",
+              "canonicalPath": "/vi/thuc-don/nhom/goi-mon",
+              "noIndex": false
+            }
           },
           "en": {
             "slug": "a-la-carte",
             "name": "À la carte",
             "displayOrder": 4,
             "isActive": true,
-            "description": "Choose one side dish with any main course:\nGreen or Caesar salad with Thousand Island dressing\nButtered rice with Feijoada (Brazilian bean stew)\nGrilled onions or French fries"
+            "description": "Choose one side dish with any main course:\nGreen or Caesar salad with Thousand Island dressing\nButtered rice with Feijoada (Brazilian bean stew)\nGrilled onions or French fries",
+            "seo": {
+              "metaTitle": "À la carte",
+              "metaDescription": "Choose one side dish with any main course: Green or Caesar salad with Thousand Island dressing Buttered rice with Feijoada (Brazilian bean stew) Grilled onions ",
+              "canonicalPath": "/en/menu/category/a-la-carte",
+              "noIndex": false
+            }
           }
         },
         {
@@ -2578,13 +2626,25 @@
             "slug": "trang-mieng",
             "name": "Tráng miệng",
             "displayOrder": 5,
-            "isActive": true
+            "isActive": true,
+            "seo": {
+              "metaTitle": "Tráng miệng",
+              "metaDescription": "Tráng miệng tại Salanca — nhà hàng Brazilian Churrascaria ở Hà Nội.",
+              "canonicalPath": "/vi/thuc-don/nhom/trang-mieng",
+              "noIndex": false
+            }
           },
           "en": {
             "slug": "desserts",
             "name": "Desserts",
             "displayOrder": 5,
-            "isActive": true
+            "isActive": true,
+            "seo": {
+              "metaTitle": "Desserts",
+              "metaDescription": "Desserts at Salanca — Brazilian churrascaria in Hanoi.",
+              "canonicalPath": "/en/menu/category/desserts",
+              "noIndex": false
+            }
           }
         },
         {
@@ -2600,6 +2660,12 @@
               "caption": null,
               "focalPointX": 50,
               "focalPointY": 50
+            },
+            "seo": {
+              "metaTitle": "Thực đơn mang về",
+              "metaDescription": "Thực đơn mang về tại Salanca — nhà hàng Brazilian Churrascaria ở Hà Nội.",
+              "canonicalPath": "/vi/thuc-don/nhom/mang-ve",
+              "noIndex": false
             }
           },
           "en": {
@@ -2613,6 +2679,12 @@
               "caption": null,
               "focalPointX": 50,
               "focalPointY": 50
+            },
+            "seo": {
+              "metaTitle": "Takeaway menu",
+              "metaDescription": "Takeaway menu at Salanca — Brazilian churrascaria in Hanoi.",
+              "canonicalPath": "/en/menu/category/takeaway",
+              "noIndex": false
             }
           }
         }
@@ -5530,13 +5602,41 @@
         }
       ],
       "menuLinks": [
-        { "label": "Buffet Churrascaria", "url": "/vi/thuc-don/buffet", "openInNewTab": false },
-        { "label": "Rodizio Menu", "url": "/vi/thuc-don/rodizio", "openInNewTab": false },
-        { "label": "Salad & món ăn kèm", "url": "/vi/thuc-don/mon-kem", "openInNewTab": false },
-        { "label": "Gọi món", "url": "/vi/thuc-don/goi-mon", "openInNewTab": false },
-        { "label": "Tráng miệng", "url": "/vi/thuc-don/trang-mieng", "openInNewTab": false },
-        { "label": "Thực đơn mang về", "url": "/vi/thuc-don/mang-ve", "openInNewTab": false },
-        { "label": "Catering", "url": "/vi/thuc-don/catering", "openInNewTab": false }
+        {
+          "label": "Buffet Churrascaria",
+          "url": "/vi/thuc-don/buffet",
+          "openInNewTab": false
+        },
+        {
+          "label": "Rodizio Menu",
+          "url": "/vi/thuc-don/rodizio",
+          "openInNewTab": false
+        },
+        {
+          "label": "Salad & món ăn kèm",
+          "url": "/vi/thuc-don/mon-kem",
+          "openInNewTab": false
+        },
+        {
+          "label": "Gọi món",
+          "url": "/vi/thuc-don/goi-mon",
+          "openInNewTab": false
+        },
+        {
+          "label": "Tráng miệng",
+          "url": "/vi/thuc-don/trang-mieng",
+          "openInNewTab": false
+        },
+        {
+          "label": "Thực đơn mang về",
+          "url": "/vi/thuc-don/mang-ve",
+          "openInNewTab": false
+        },
+        {
+          "label": "Catering",
+          "url": "/vi/thuc-don/catering",
+          "openInNewTab": false
+        }
       ]
     },
     "en": {
@@ -5587,13 +5687,41 @@
         }
       ],
       "menuLinks": [
-        { "label": "Buffet Churrascaria", "url": "/en/menu/buffet", "openInNewTab": false },
-        { "label": "Rodizio Menu", "url": "/en/menu/rodizio", "openInNewTab": false },
-        { "label": "Salads & side dishes", "url": "/en/menu/sides", "openInNewTab": false },
-        { "label": "À la carte", "url": "/en/menu/a-la-carte", "openInNewTab": false },
-        { "label": "Desserts", "url": "/en/menu/desserts", "openInNewTab": false },
-        { "label": "Takeaway menu", "url": "/en/menu/takeaway", "openInNewTab": false },
-        { "label": "Catering", "url": "/en/menu/catering", "openInNewTab": false }
+        {
+          "label": "Buffet Churrascaria",
+          "url": "/en/menu/buffet",
+          "openInNewTab": false
+        },
+        {
+          "label": "Rodizio Menu",
+          "url": "/en/menu/rodizio",
+          "openInNewTab": false
+        },
+        {
+          "label": "Salads & side dishes",
+          "url": "/en/menu/sides",
+          "openInNewTab": false
+        },
+        {
+          "label": "À la carte",
+          "url": "/en/menu/a-la-carte",
+          "openInNewTab": false
+        },
+        {
+          "label": "Desserts",
+          "url": "/en/menu/desserts",
+          "openInNewTab": false
+        },
+        {
+          "label": "Takeaway menu",
+          "url": "/en/menu/takeaway",
+          "openInNewTab": false
+        },
+        {
+          "label": "Catering",
+          "url": "/en/menu/catering",
+          "openInNewTab": false
+        }
       ]
     }
   },

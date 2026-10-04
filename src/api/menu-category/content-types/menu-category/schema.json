@@ -71,6 +71,16 @@
       "type": "boolean",
       "required": true,
       "default": true
+    },
+    "seo": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "type": "component",
+      "component": "shared.seo",
+      "repeatable": false
     }
   }
 }
