@@ -104,6 +104,42 @@ Decisions locked in [`plans/admin-audit-log.md`](plans/admin-audit-log.md):
   back the occurrence-time, action, actor, success, target, label-prefix and
   request-ID lookups.
 
+### Reservation inbox — near-realtime notify (2026-10-04)
+
+New web reservation leads notify admins holding `admin::reservation-inbox.read`
+in ~1s without a page reload. Decisions locked in
+[`plans/reservation-inbox-realtime.md`](plans/reservation-inbox-realtime.md):
+
+- **In-process `EventEmitter` is the event source.** The public
+  `reservation-request` controller emits a mapped `ReservationInboxItem` right
+  after `scheduleFormLeadNotify`; emit failures are logged and never change the
+  201. No Redis — fan-out is per process, matching single-instance hosting; a
+  multi-instance deploy later needs a distributed bus (Redis pub/sub deferred).
+- **Transport = SSE primary + polling fallback.** `GET /reservation-inbox/stream`
+  sends `event: reservation.created` frames with a `: ping` heartbeat every 25s;
+  on failure the admin polls `GET /reservation-inbox/summary?since=` every 20s
+  and reconnects with capped exponential backoff (1s → 30s). The client uses
+  `fetch()` + `ReadableStream` (not `EventSource`, which cannot send the admin
+  `Authorization` header); the token is read via `useAuth`. Disconnect cleanup
+  listens on `ctx.res.on('close')` — Node 16+ `req.close` does not fire reliably
+  for completed requests.
+- **Admin endpoints are prefix-less.** `strapi.server.api('admin')` serves
+  `/reservation-inbox/*` (not `/admin/reservation-inbox/*`); each route uses
+  `admin::isAuthenticatedAdmin` + `auth.scope: ['admin::reservation-inbox.read']`.
+- **One global widget per tab, mounted via `router.addRoute` in custom
+  `bootstrap`.** `src/admin/app.tsx` captures the `StrapiApp` in `register` and
+  wraps `router._routes` in a pathless layout route during the custom bootstrap
+  — doing it in `register` crashes plugin bootstraps whose `addSettingsLink`
+  expects a top-level `settings/*` route. The provider owns the single
+  `useReservationInbox` instance; widget and `Hộp thư đặt bàn` screen share it
+  through context.
+- **No dynamic menu badge in Strapi 5.51.1.** `MenuItem.notificationsCount`
+  exists but is a static registration-time snapshot, so the widget renders a
+  floating unread pill (green dot = stream, amber = polling).
+- **Screen strings pass `defaultMessage`.** `config.translations.vi` applies
+  only when the admin UI locale is `vi`; `reservation-inbox.*` ids carry the
+  Vietnamese string as `defaultMessage` so labels render under any UI locale.
+
 ## Open decisions before staging
 
 These are hard Phase 4 entry gates. A role is accountable now; the project owner must

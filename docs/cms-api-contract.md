@@ -209,7 +209,7 @@ Content-Type: application/json
 | Required | `fullName`, `phone`, `preferredDate`, `preferredTime`, `guestCount`, `menuSelectionMode`, `sourceLocale` |
 | `menuSelectionMode` | `later` (no menu ids) or `now` (at least one package or item documentId, published+active) |
 | Soft overlap | Same date+time with status `new`\|`read` → store `overlapCount` via DB count; **does not reject** |
-| Rate limit | After successful validation + Turnstile; in-process per IP; default 5 / 10 min; env `RESERVATION_RATE_LIMIT_*`; over → `429` Strapi-shaped `{ error: { name: ApplicationError, details.code: RESERVATION_RATE_LIMITED } }` |
+| Rate limit | After successful validation + Turnstile; in-process per client IP; default 5 / 10 min; env `RESERVATION_RATE_LIMIT_*`; over → `429` Strapi-shaped `{ error: { name: ApplicationError, details.code: RESERVATION_RATE_LIMITED } }`. Client IP = `x-salanca-visitor-ip` when `x-salanca-intake-secret` matches `FORM_INTAKE_SHARED_SECRET`, else the socket IP (`TRUST_PROXY` for reverse proxies) |
 | Honeypot | `website` empty/absent; non-empty → `400` (does not consume rate limit) |
 | Turnstile | When `TURNSTILE_SECRET_KEY` is set: require token before rate limit; fail → `400` `RESERVATION_TURNSTILE` (does not consume rate limit). When unset, skipped. |
 | Client `status` | Ignored; server forces `new` |

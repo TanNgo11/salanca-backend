@@ -85,6 +85,31 @@ Collection **Yêu cầu đặt bàn** (`reservation-request`) nhận lead đặt
 
 Form **không** kiểm tra bàn trống realtime. Email staff notify **opt-in** (cùng Resend + `FORM_NOTIFY_TO` như liên hệ). Copy trang đặt bàn vẫn nằm ở **Trang đặt bàn**.
 
+## Hộp thư đặt bàn (thông báo realtime, 2026-10-04)
+
+Menu **Hộp thư đặt bàn** (biểu tượng chuông) mở màn hình liệt kê các yêu cầu
+đặt bàn mới. Khi khách gửi form trên website, mọi tab Admin đang mở nhận được
+thông báo trong khoảng 1 giây — không cần tải lại trang.
+
+- **Popup trong Admin:** mỗi yêu cầu mới hiện một toast "Đặt bàn mới: …" với
+  nút **Xem** mở thẳng hồ sơ trong Content Manager.
+- **Chấm tròn góc phải dưới:** hiện số yêu cầu chưa đọc trên mọi màn hình;
+  bấm để mở Hộp thư. Chấm màu **xanh lá** = kết nối trực tiếp (realtime);
+  **vàng** = đang kiểm tra mỗi 20 giây (khi kết nối trực tiếp bị gián đoạn).
+- **Cài đặt theo từng trình duyệt** (đầu trang Hộp thư): *Thông báo hệ điều
+  hành* — lần bật đầu tiên trình duyệt sẽ hỏi quyền thông báo, hãy chọn Cho
+  phép; *Âm thanh* — bật để nghe tiếng chuông ngắn mỗi yêu cầu mới (chuông chỉ
+  phát được sau khi đã bấm công tắc trong phiên đó — giới hạn của trình
+  duyệt). Cả hai mặc định tắt.
+- **Hành động trên từng dòng:** **Mở** = sang trang chỉnh sửa trong Content
+  Manager; **Đã đọc** = đánh dấu đã xử lý (đổi `status` thành `read`, dòng
+  biến khỏi hộp thư và số trên chấm tròn giảm đi một).
+- Cột **Trùng khung giờ** hiện nhãn vàng khi `overlapCount > 0` — cảnh báo mềm
+  nhiều bàn cùng khung giờ, không tự chặn chỗ.
+- Cần quyền *Xem hộp thư đặt bàn* (`reservation-inbox.read`) trong
+  Settings → Roles; mặc định chỉ Super Admin có. Yêu cầu do Admin tạo tay
+  trong Content Manager không bật thông báo realtime.
+
 ## Trước khi publish
 
 - Đúng locale và đúng trạng thái Draft/Published.

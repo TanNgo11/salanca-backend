@@ -1,6 +1,6 @@
 # Reservation inbox: near-realtime admin notification
 
-Status: Approved
+Status: Automated verification passed — ready for manual UAT
 Owner: Salanca technical owner
 Last updated: 2026-10-04
 Related phase: none (owner-requested follow-up to `phases/phase-forms-reservation-request.md`)
@@ -221,4 +221,39 @@ existing Resend email notify is unchanged and keeps running in parallel.
 
 ## Completion record
 
-- (pending)
+- 2026-10-04 — **implemented** (steps 0–6):
+  - Step 0 spike: global mount via `app.router.addRoute` in custom `bootstrap`
+    (see Decisions); floating pill replaces dynamic menu badge (unsupported).
+  - Step 1: `src/domain/reservation-request/reservation-inbox-events.ts`
+    (singleton bus + `ReservationInboxItem`).
+  - Step 2: emit in `reservation-request` controller after
+    `scheduleFormLeadNotify`, `try/catch` → `strapi.log.error`.
+  - Step 3: `src/api/reservation-inbox/` — action
+    `admin::reservation-inbox.read`, routes `/reservation-inbox/summary`,
+    `/stream` (SSE, `res.on('close')` idempotent cleanup), `/:documentId/read`;
+    Super Admin grant at bootstrap; wired in `src/index.ts`.
+  - Step 4: `src/admin/reservation-inbox/useReservationInbox.ts` +
+    `reservation-inbox.helper.ts` (`parseSseChunk`, `nextBackoffMs`,
+    `mergeNewItems`, `inboxReducer`, formatters) — reducer/helpers unit-tested
+    (no `@testing-library/react` dependency added).
+  - Step 5: `ReservationInboxProvider` (one stream per tab, `useRBAC` gate,
+    toast + OS `Notification` + Web Audio chime), `ReservationInboxWidget`
+    floating pill, `notification-preferences.ts` (`localStorage`
+    `salanca.reservationInbox.prefs`), plain CSS.
+  - Step 6: `Hộp thư đặt bàn` menu link (Bell icon, position 11,
+    permission-gated) + `ReservationInboxScreen` (status line, pref toggles,
+    mark-read/open actions, overlap chip, Asia/Ho_Chi_Minh times) + `vi.ts`.
+- **Automated verification passed** (2026-10-04): `pnpm run typecheck` clean;
+  `pnpm run lint` clean; `pnpm run test` 372 tests / 61 files pass;
+  `pnpm run build` pass; `pnpm run smoke:reservation-form` pass (public 201
+  unchanged). Live SSE frame + summary/mark-read/401/403 verified via curl.
+- **Browser-checked by agent** (not a substitute for owner UAT): toast + pill
+  on Media Library and Settings tabs, polling fallback + reconnect with
+  exactly-once backfill, mark-read decrement, "Mở" → Content Manager edit,
+  pref toggle persistence, no `reservation-inbox.*` console errors.
+- **Open manual gates (owner UAT):** two-tab toast on real form submit;
+  DevTools offline 40s → reconnect dedupe; OS notification + sound toggles
+  on/off; Editor role without `reservation-inbox.read` sees no menu link and
+  gets 403; "Đã đọc" sets `status=read` visible in Content Manager; SSE
+  buffering check behind the production proxy; multi-instance note (Redis
+  deferred).
