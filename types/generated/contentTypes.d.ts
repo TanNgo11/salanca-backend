@@ -1519,6 +1519,12 @@ export interface ApiHeaderSettingHeaderSetting extends Struct.SingleTypeSchema {
           localized: true;
         };
       }>;
+    menuLinks: Schema.Attribute.Component<'shared.link', true> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
     publishedAt: Schema.Attribute.DateTime;
     tagline: Schema.Attribute.String &
       Schema.Attribute.SetPluginOptions<{

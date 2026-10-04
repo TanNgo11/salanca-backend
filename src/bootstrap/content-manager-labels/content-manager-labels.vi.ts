@@ -67,6 +67,7 @@ export const CONTENT_MANAGER_FIELD_LABELS_VI: Readonly<Record<string, string>> =
   guestCount: 'Số lượng khách',
   guestOptions: 'Các mức số lượng khách có thể chọn',
   headerLinks: 'Các mục trên thanh điều hướng',
+  menuLinks: 'Submenu Thực đơn',
   heading: 'Tiêu đề',
   helpBody: 'Đoạn giới thiệu phần hỗ trợ',
   helpHeading: 'Tiêu đề phần hỗ trợ',

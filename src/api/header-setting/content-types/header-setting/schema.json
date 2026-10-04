@@ -54,6 +54,16 @@
       "type": "component",
       "component": "shared.link",
       "repeatable": true
+    },
+    "menuLinks": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "type": "component",
+      "component": "shared.link",
+      "repeatable": true
     }
   }
 }
