@@ -8,6 +8,8 @@ export enum ApiReservationInboxRoute {
   Summary = '/reservation-inbox/summary',
   Stream = '/reservation-inbox/stream',
   MarkRead = '/reservation-inbox/:documentId/read',
+  List = '/reservation-inbox/list',
+  SetStatus = '/reservation-inbox/:documentId/status',
 }
 
 export enum ReservationInboxErrorCode {
@@ -17,6 +19,11 @@ export enum ReservationInboxErrorCode {
 }
 
 export const RESERVATION_INBOX_SUMMARY_LIMIT = 20;
+export const RESERVATION_INBOX_PAGE_SIZE = 20;
+export const RESERVATION_INBOX_SEARCH_MAX_LENGTH = 100;
+
+export const RESERVATION_STATUSES = ['new', 'read', 'archived'] as const;
+export type ReservationStatus = (typeof RESERVATION_STATUSES)[number];
 
 export interface ApiReservationInboxSummaryResponse {
   data: {
@@ -39,6 +46,7 @@ export interface ApiReservationInboxRequestContext {
   notFound?: (message: string) => void;
   params?: { documentId?: string };
   query?: unknown;
+  request?: { body?: unknown };
   req: { on: (event: 'close', listener: () => void) => void };
   res: {
     end: () => void;
@@ -55,6 +63,8 @@ export interface ApiReservationInboxRequestContext {
 }
 
 export interface ApiReservationInboxController {
+  list: (context: ApiReservationInboxRequestContext) => Promise<void>;
+  setStatus: (context: ApiReservationInboxRequestContext) => Promise<void>;
   markRead: (context: ApiReservationInboxRequestContext) => Promise<void>;
   stream: (context: ApiReservationInboxRequestContext) => void;
   summary: (context: ApiReservationInboxRequestContext) => Promise<void>;

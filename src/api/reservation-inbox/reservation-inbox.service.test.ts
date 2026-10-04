@@ -105,3 +105,78 @@ describe('createReservationInboxService.markRead', () => {
     expect(result).toEqual({ documentId: 'abc123def456', status: 'read' });
   });
 });
+
+describe('createReservationInboxService.list', () => {
+  const row = {
+    documentId: 'doc1',
+    fullName: 'Nguyen Van A',
+    phone: '0901',
+    guestCount: 4,
+    preferredDate: '2030-06-15',
+    preferredTime: '19:00',
+    overlapCount: 0,
+    createdAt: '2030-06-10T12:00:00.000Z',
+    status: 'archived',
+  };
+
+  it('applies status and name/phone search, paginates, and returns per-status counts', async () => {
+    const findMany = vi.fn(async () => [row]);
+    const count = vi.fn(async ({ filters }: { filters: Record<string, unknown> }) => {
+      if (filters.$or) return 45;
+      if (filters.status === 'new') return 3;
+      if (filters.status === 'read') return 10;
+      return 32;
+    });
+    const service = createReservationInboxService(buildStrapi({ findMany, count }));
+
+    const result = await service.list({ status: 'archived', search: 'nguyen', page: 2 });
+
+    const expectedFilters = {
+      status: 'archived',
+      $or: [{ fullName: { $containsi: 'nguyen' } }, { phone: { $containsi: 'nguyen' } }],
+    };
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filters: expectedFilters,
+        sort: 'createdAt:desc',
+        limit: 20,
+        start: 20,
+      }),
+    );
+    expect(result.items[0]).toMatchObject({ documentId: 'doc1', status: 'archived' });
+    expect(result.total).toBe(45);
+    expect(result.pageCount).toBe(3);
+    expect(result.counts).toEqual({ new: 3, read: 10, archived: 32 });
+  });
+
+  it('lists every status when no filters are set', async () => {
+    const findMany = vi.fn(async () => []);
+    const count = vi.fn(async () => 0);
+    const service = createReservationInboxService(buildStrapi({ findMany, count }));
+
+    const result = await service.list({ page: 1 });
+
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ filters: {}, start: 0 }));
+    expect(result.pageCount).toBe(1);
+  });
+});
+
+describe('createReservationInboxService.setStatus', () => {
+  it('can move a request back to new or to archived', async () => {
+    const findOne = vi.fn(async () => ({ documentId: 'abc123def456', status: 'read' }));
+    const update = vi.fn(async ({ data }: { data: { status: string } }) => ({
+      documentId: 'abc123def456',
+      status: data.status,
+    }));
+    const service = createReservationInboxService(buildStrapi({ findOne, update }));
+
+    await expect(service.setStatus('abc123def456', 'archived')).resolves.toEqual({
+      documentId: 'abc123def456',
+      status: 'archived',
+    });
+    await expect(service.setStatus('abc123def456', 'new')).resolves.toEqual({
+      documentId: 'abc123def456',
+      status: 'new',
+    });
+  });
+});

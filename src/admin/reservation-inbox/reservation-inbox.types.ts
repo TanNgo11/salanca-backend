@@ -8,6 +8,25 @@ export interface ReservationInboxPermissions {
   read: { action: ApiReservationInboxPermission; subject: null }[];
 }
 
+export const RESERVATION_STATUSES = ['new', 'read', 'archived'] as const;
+export type ReservationStatus = (typeof RESERVATION_STATUSES)[number];
+
+/** Status filter value; `all` means no status constraint. */
+export type ReservationStatusFilter = ReservationStatus | 'all';
+
+export interface ReservationListItem extends ReservationInboxItem {
+  status: ReservationStatus;
+}
+
+export interface ApiReservationListResult {
+  items: ReservationListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  pageCount: number;
+  counts: Record<ReservationStatus, number>;
+}
+
 export interface ApiReservationInboxSummary {
   items: ReservationInboxItem[];
   unreadCount: number;
@@ -35,4 +54,25 @@ export enum ReservationInboxTranslationKey {
   OverlapCount = 'overlap.count',
   ToggleOn = 'toggle.on',
   ToggleOff = 'toggle.off',
+  ChipNew = 'chip.new',
+  ChipRead = 'chip.read',
+  ChipArchived = 'chip.archived',
+  FilterStatusLabel = 'filter.status',
+  FilterAll = 'filter.all',
+  StatusNew = 'status.new',
+  StatusRead = 'status.read',
+  StatusArchived = 'status.archived',
+  SearchLabel = 'search.label',
+  SearchPlaceholder = 'search.placeholder',
+  SearchClear = 'search.clear',
+  ColumnStatus = 'columns.status',
+  ActionArchive = 'actions.archive',
+  ActionRestore = 'actions.restore',
+  ActionMarkNew = 'actions.markNew',
+  PaginationSummary = 'pagination.summary',
+  PaginationPrev = 'pagination.prev',
+  PaginationNext = 'pagination.next',
+  EmptyFiltered = 'emptyFiltered',
+  LoadFailed = 'loadFailed',
+  ActionFailed = 'actionFailed',
 }

@@ -1,6 +1,7 @@
 import type { Core } from '@strapi/strapi';
 
 import {
+  applyContentManagerListView,
   areContentManagerMetadatasEqual,
   mergeContentManagerMetadatas,
 } from './content-manager-labels.helper';
@@ -11,6 +12,7 @@ import {
   type ContentManagerConfigurationInput,
   type ContentManagerContentTypeService,
   type ContentManagerFieldMetadataOverrideMap,
+  type ContentManagerListView,
   type ContentManagerModel,
 } from './content-manager-labels.types';
 import {
@@ -20,7 +22,10 @@ import {
 
 type SchemaWithLabelConfig = {
   attributes?: Record<string, unknown>;
-  config?: { metadatas?: ContentManagerFieldMetadataOverrideMap };
+  config?: {
+    metadatas?: ContentManagerFieldMetadataOverrideMap;
+    listView?: ContentManagerListView;
+  };
 };
 
 /**
@@ -54,30 +59,50 @@ const buildDesiredMetadatas = (
   };
 };
 
-const discoverLabeledUids = (
-  registry: unknown,
-): Array<readonly [string, ContentManagerFieldMetadataOverrideMap]> =>
+const SYSTEM_FIELDS = ['id', 'documentId', 'createdAt', 'updatedAt'] as const;
+
+type LabeledEntry = Readonly<{
+  uid: string;
+  metadatas: ContentManagerFieldMetadataOverrideMap;
+  listView: ContentManagerListView | undefined;
+  fields: ReadonlySet<string>;
+}>;
+
+const discoverLabeledUids = (registry: unknown): LabeledEntry[] =>
   Object.entries(asSchemaRegistry(registry))
-    .map(([uid, schema]) => [uid, buildDesiredMetadatas(schema)] as const)
-    .filter(([, metadatas]) => Object.keys(metadatas).length > 0)
-    .sort(([a], [b]) => a.localeCompare(b));
+    .map(([uid, schema]) => ({
+      uid,
+      metadatas: buildDesiredMetadatas(schema),
+      listView: schema.config?.listView,
+      fields: new Set([...SYSTEM_FIELDS, ...Object.keys(schema.attributes ?? {})]),
+    }))
+    .filter(
+      ({ metadatas, listView }) => Object.keys(metadatas).length > 0 || listView !== undefined,
+    )
+    .sort((a, b) => a.uid.localeCompare(b.uid));
 
 const buildConfigurationInput = (
   currentConfiguration: ContentManagerConfiguration,
-  desiredMetadatas: ContentManagerFieldMetadataOverrideMap,
-): { input: ContentManagerConfigurationInput; skippedFields: string[] } => {
+  entry: LabeledEntry,
+): {
+  input: ContentManagerConfigurationInput;
+  skippedFields: string[];
+  skippedColumns: string[];
+} => {
   const { mergedMetadatas, skippedFields } = mergeContentManagerMetadatas(
     currentConfiguration.metadatas,
-    desiredMetadatas,
+    entry.metadatas,
+  );
+  const { settings, layouts, skippedColumns } = applyContentManagerListView(
+    currentConfiguration,
+    entry.listView,
+    entry.fields,
   );
 
   return {
-    input: {
-      settings: currentConfiguration.settings,
-      metadatas: mergedMetadatas,
-      layouts: currentConfiguration.layouts,
-    },
+    input: { settings, metadatas: mergedMetadatas, layouts },
     skippedFields,
+    skippedColumns,
   };
 };
 
@@ -86,19 +111,18 @@ const synchronizeOne = async (
   kind: ContentManagerModelKind,
   uid: string,
   model: ContentManagerModel,
-  desiredMetadatas: ContentManagerFieldMetadataOverrideMap,
+  entry: LabeledEntry,
 ): Promise<void> => {
-  if (Object.keys(desiredMetadatas).length === 0) {
-    return;
-  }
-
   const service =
     kind === ContentManagerModelKind.ContentType
       ? strapi.plugin('content-manager').service<ContentManagerContentTypeService>('content-types')
       : strapi.plugin('content-manager').service<ContentManagerComponentService>('components');
 
   const currentConfiguration = await service.findConfiguration(model);
-  const { input, skippedFields } = buildConfigurationInput(currentConfiguration, desiredMetadatas);
+  const { input, skippedFields, skippedColumns } = buildConfigurationInput(
+    currentConfiguration,
+    entry,
+  );
 
   if (skippedFields.length > 0) {
     strapi.log.warn(
@@ -106,7 +130,17 @@ const synchronizeOne = async (
     );
   }
 
-  if (areContentManagerMetadatasEqual(currentConfiguration.metadatas, input.metadatas)) {
+  if (skippedColumns.length > 0) {
+    strapi.log.warn(
+      `Content Manager list columns skipped for ${uid} (not attributes): ${skippedColumns.join(', ')}`,
+    );
+  }
+
+  const unchanged =
+    areContentManagerMetadatasEqual(currentConfiguration.metadatas, input.metadatas) &&
+    JSON.stringify(currentConfiguration.settings) === JSON.stringify(input.settings) &&
+    JSON.stringify(currentConfiguration.layouts) === JSON.stringify(input.layouts);
+  if (unchanged) {
     return;
   }
 
@@ -121,25 +155,27 @@ export const synchronizeContentManagerLabels = async (strapi: Core.Strapi): Prom
     .plugin('content-manager')
     .service<ContentManagerComponentService>('components');
 
-  const contentTypeEntries = discoverLabeledUids(strapi.contentTypes).filter(([uid]) =>
+  const contentTypeEntries = discoverLabeledUids(strapi.contentTypes).filter(({ uid }) =>
     uid.startsWith('api::'),
   );
-  for (const [uid, desiredMetadatas] of contentTypeEntries) {
+  for (const entry of contentTypeEntries) {
+    const { uid } = entry;
     const model = contentTypeService.findContentType(uid);
     if (!model) {
       strapi.log.warn(`Content Manager content-type not found for label sync: ${uid}`);
       continue;
     }
-    await synchronizeOne(strapi, ContentManagerModelKind.ContentType, uid, model, desiredMetadatas);
+    await synchronizeOne(strapi, ContentManagerModelKind.ContentType, uid, model, entry);
   }
 
   const componentEntries = discoverLabeledUids(strapi.components);
-  for (const [uid, desiredMetadatas] of componentEntries) {
+  for (const entry of componentEntries) {
+    const { uid } = entry;
     const model = componentService.findComponent(uid);
     if (!model) {
       strapi.log.warn(`Content Manager component not found for label sync: ${uid}`);
       continue;
     }
-    await synchronizeOne(strapi, ContentManagerModelKind.Component, uid, model, desiredMetadatas);
+    await synchronizeOne(strapi, ContentManagerModelKind.Component, uid, model, entry);
   }
 };

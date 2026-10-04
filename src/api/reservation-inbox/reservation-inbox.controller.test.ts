@@ -153,3 +153,77 @@ describe('reservation inbox controller stream', () => {
     expect(context.res.write.mock.calls.length).toBe(writesAfterClose);
   });
 });
+
+describe('reservation inbox controller list', () => {
+  it('rejects an unknown status filter', async () => {
+    const findMany = vi.fn();
+    const controller = createReservationInboxController(buildStrapi({ findMany, count: vi.fn() }));
+    const context = buildContext({ query: { status: 'deleted' } });
+
+    await controller.list(context as never);
+
+    expect(context.badRequest).toHaveBeenCalledWith('Trạng thái không hợp lệ.');
+    expect(findMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects a non-positive page', async () => {
+    const controller = createReservationInboxController(
+      buildStrapi({ findMany: vi.fn(), count: vi.fn() }),
+    );
+    const context = buildContext({ query: { page: '0' } });
+
+    await controller.list(context as never);
+
+    expect(context.badRequest).toHaveBeenCalledWith('Số trang không hợp lệ.');
+  });
+
+  it('trims search and defaults to page 1', async () => {
+    const findMany = vi.fn(async () => []);
+    const controller = createReservationInboxController(
+      buildStrapi({ findMany, count: vi.fn(async () => 0) }),
+    );
+    const context = buildContext({ query: { status: 'new', search: '  09  ' } });
+
+    await controller.list(context as never);
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filters: {
+          status: 'new',
+          $or: [{ fullName: { $containsi: '09' } }, { phone: { $containsi: '09' } }],
+        },
+        start: 0,
+      }),
+    );
+  });
+});
+
+describe('reservation inbox controller setStatus', () => {
+  it('rejects a status outside the allowed set', async () => {
+    const findOne = vi.fn();
+    const controller = createReservationInboxController(buildStrapi({ findOne }));
+    const context = buildContext({
+      params: { documentId: 'abc123def456' },
+      request: { body: { status: 'spam' } },
+    });
+
+    await controller.setStatus(context as never);
+
+    expect(context.badRequest).toHaveBeenCalledWith('Trạng thái không hợp lệ.');
+    expect(findOne).not.toHaveBeenCalled();
+  });
+
+  it('archives a request', async () => {
+    const findOne = vi.fn(async () => ({ documentId: 'abc123def456', status: 'read' }));
+    const update = vi.fn(async () => ({ documentId: 'abc123def456', status: 'archived' }));
+    const controller = createReservationInboxController(buildStrapi({ findOne, update }));
+    const context = buildContext({
+      params: { documentId: 'abc123def456' },
+      request: { body: { status: 'archived' } },
+    });
+
+    await controller.setStatus(context as never);
+
+    expect(context.body).toEqual({ data: { documentId: 'abc123def456', status: 'archived' } });
+  });
+});

@@ -16,9 +16,12 @@ import {
 } from './reservation-inbox.sse';
 import {
   ReservationInboxErrorCode,
+  RESERVATION_INBOX_SEARCH_MAX_LENGTH,
   RESERVATION_INBOX_SUMMARY_LIMIT,
+  RESERVATION_STATUSES,
   type ApiReservationInboxController,
   type ApiReservationInboxRequestContext,
+  type ReservationStatus,
 } from './reservation-inbox.types';
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}([Tt ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$/;
@@ -74,6 +77,43 @@ const parseSummaryQuery = (
     );
   }
   return { since, limit: RESERVATION_INBOX_SUMMARY_LIMIT };
+};
+
+const invalidQuery = (reason: string, vietnameseMessage: string): ReservationInboxError =>
+  new ReservationInboxError(ReservationInboxErrorCode.InvalidQuery, reason, vietnameseMessage);
+
+const parseStatus = (value: unknown): ReservationStatus => {
+  const status = RESERVATION_STATUSES.find((candidate) => candidate === value);
+  if (!status) {
+    throw invalidQuery(
+      `Invalid status value: ${String(value)}.`,
+      'Trạng thái không hợp lệ.',
+    );
+  }
+  return status;
+};
+
+const parseListQuery = (
+  query: unknown,
+): { status?: ReservationStatus; search?: string; page: number } => {
+  const raw = (query ?? {}) as Record<string, unknown>;
+
+  const status =
+    raw.status === undefined || raw.status === null || raw.status === ''
+      ? undefined
+      : parseStatus(raw.status);
+
+  const search =
+    typeof raw.search === 'string'
+      ? raw.search.trim().slice(0, RESERVATION_INBOX_SEARCH_MAX_LENGTH)
+      : '';
+
+  const rawPage = raw.page === undefined || raw.page === '' ? 1 : Number(raw.page);
+  if (!Number.isInteger(rawPage) || rawPage < 1) {
+    throw invalidQuery(`Invalid page value: ${String(raw.page)}.`, 'Số trang không hợp lệ.');
+  }
+
+  return { status, search: search || undefined, page: rawPage };
 };
 
 const parseDocumentId = (documentId: unknown): string => {
@@ -141,6 +181,28 @@ export const createReservationInboxController = (
         }
       };
       context.res.on('close', cleanup);
+    },
+
+    async list(context): Promise<void> {
+      const requestId = readRequestId(context);
+      await Promise.resolve()
+        .then(async () => {
+          context.body = { data: await service.list(parseListQuery(context.query)) };
+        })
+        .catch((error: Error) => handleControllerError(strapi, context, error, requestId));
+    },
+
+    async setStatus(context): Promise<void> {
+      const requestId = readRequestId(context);
+      await Promise.resolve()
+        .then(async () => {
+          const documentId = parseDocumentId(context.params?.documentId);
+          const body = (context.request?.body ?? {}) as Record<string, unknown>;
+          context.body = {
+            data: await service.setStatus(documentId, parseStatus(body.status)),
+          };
+        })
+        .catch((error: Error) => handleControllerError(strapi, context, error, requestId));
     },
 
     async markRead(context): Promise<void> {

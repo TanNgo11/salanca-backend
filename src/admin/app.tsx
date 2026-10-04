@@ -1,5 +1,5 @@
 import type { StrapiApp } from '@strapi/strapi/admin';
-import { Bell, Clock } from '@strapi/icons';
+import { Bell, Calendar, Clock, Mail } from '@strapi/icons';
 import { Outlet } from 'react-router-dom';
 
 import { hideDeveloperOnlyAdminPermissions } from './admin-navigation-visibility.helper';
@@ -15,6 +15,12 @@ import {
   getAuditLogTranslationId,
 } from './audit-log/audit-log.helper';
 import { AuditLogTranslationKey } from './audit-log/audit-log.types';
+import { createLeadListRedirect } from './lead-shortcuts/LeadListRedirect';
+import {
+  contactMessageUid,
+  leadReadPermissions,
+  reservationRequestUid,
+} from './lead-shortcuts/lead-shortcuts.helper';
 import { auditLogVietnameseTranslations } from './audit-log/vi';
 import { watchContentManagerFieldHintVisibility } from './content-manager-field-hints.helper';
 import { hideContentTypeBuilderAdminSurface } from './content-type-builder-visibility.helper';
@@ -83,6 +89,25 @@ export default {
       Component: () => import('./reservation-inbox/ReservationInboxScreen'),
       permissions: reservationInboxPermissions.read,
       position: 11,
+    });
+    app.addMenuLink({
+      to: '/plugins/contact-messages',
+      icon: Mail,
+      intlLabel: { id: 'lead-shortcuts.contact-message', defaultMessage: 'Tin nhắn liên hệ' },
+      Component: async () => ({ default: createLeadListRedirect(contactMessageUid) }),
+      permissions: leadReadPermissions(contactMessageUid),
+      position: 12,
+    });
+    app.addMenuLink({
+      to: '/plugins/reservation-requests',
+      icon: Calendar,
+      intlLabel: {
+        id: 'lead-shortcuts.reservation-request',
+        defaultMessage: 'Yêu cầu đặt bàn',
+      },
+      Component: async () => ({ default: createLeadListRedirect(reservationRequestUid) }),
+      permissions: leadReadPermissions(reservationRequestUid),
+      position: 13,
     });
 
     if (!isProductionAdminBuild) {

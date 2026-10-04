@@ -16,6 +16,16 @@ export const INFORMATION_STATUS_CHIP_COLORS: Readonly<
     border: '#FECACA',
     text: '#991B1B',
   },
+  [InformationStatusChipTone.Info]: {
+    background: '#DBEAFE',
+    border: '#BFDBFE',
+    text: '#1E40AF',
+  },
+  [InformationStatusChipTone.Neutral]: {
+    background: '#F3F4F6',
+    border: '#E5E7EB',
+    text: '#374151',
+  },
 };
 
 export const informationStatusChipColor = (

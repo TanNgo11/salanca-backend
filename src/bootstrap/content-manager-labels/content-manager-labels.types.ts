@@ -31,6 +31,17 @@ export type ContentManagerMergeResult = {
   skippedFields: string[];
 };
 
+/**
+ * Declared under `config.listView` in a schema.json: which columns the Content
+ * Manager list shows (in order) and how it sorts and pages by default.
+ */
+export type ContentManagerListView = {
+  columns?: string[];
+  defaultSortBy?: string;
+  defaultSortOrder?: 'ASC' | 'DESC';
+  pageSize?: number;
+};
+
 export type ContentManagerConfiguration = {
   settings: unknown;
   metadatas: ContentManagerFieldMetadataMap;
@@ -47,6 +58,7 @@ export type ContentManagerModel = {
   uid: string;
   config?: {
     metadatas?: ContentManagerFieldMetadataOverrideMap;
+    listView?: ContentManagerListView;
   };
 };
 

@@ -63,5 +63,23 @@ export const registerReservationInboxAdminRoutes = (strapi: Core.Strapi): void =
         auth: { scope: [ApiReservationInboxPermission.Read] },
       },
     },
+    {
+      method: 'GET',
+      path: ApiReservationInboxRoute.List,
+      handler: controller.list as never,
+      config: {
+        policies: ['admin::isAuthenticatedAdmin'],
+        auth: { scope: [ApiReservationInboxPermission.Read] },
+      },
+    },
+    {
+      method: 'POST',
+      path: ApiReservationInboxRoute.SetStatus,
+      handler: controller.setStatus as never,
+      config: {
+        policies: ['admin::isAuthenticatedAdmin'],
+        auth: { scope: [ApiReservationInboxPermission.Read] },
+      },
+    },
   ]);
 };

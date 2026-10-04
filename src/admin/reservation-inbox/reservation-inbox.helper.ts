@@ -1,10 +1,13 @@
 import type { IntlShape } from 'react-intl';
 
 import type { ReservationInboxItem } from '../../domain/reservation-request/reservation-inbox-events';
+import { InformationStatusChipTone } from '../information-status-chip/information-status-chip.types';
 import {
   ApiReservationInboxPermission,
   ReservationInboxTranslationKey,
   type ReservationInboxPermissions,
+  type ReservationStatus,
+  type ReservationStatusFilter,
 } from './reservation-inbox.types';
 import { reservationInboxVietnameseTranslations } from './vi';
 
@@ -209,3 +212,75 @@ export const formatReservationInboxMessage = (
     },
     values,
   ) as string;
+
+export const INBOX_SEARCH_DEBOUNCE_MS = 300;
+
+export interface ReservationListFilters {
+  status: ReservationStatusFilter;
+  search: string;
+  page: number;
+}
+
+export const initialListFilters: ReservationListFilters = {
+  status: 'new',
+  search: '',
+  page: 1,
+};
+
+export const buildReservationListQuery = ({
+  status,
+  search,
+  page,
+}: ReservationListFilters): string => {
+  const params = new URLSearchParams();
+  if (status !== 'all') {
+    params.set('status', status);
+  }
+  const trimmed = search.trim();
+  if (trimmed) {
+    params.set('search', trimmed);
+  }
+  params.set('page', String(Math.max(1, page)));
+  return params.toString();
+};
+
+export const reservationStatusTone = (
+  status: ReservationStatus,
+): InformationStatusChipTone => {
+  switch (status) {
+    case 'new':
+      return InformationStatusChipTone.Info;
+    case 'read':
+      return InformationStatusChipTone.Published;
+    default:
+      return InformationStatusChipTone.Neutral;
+  }
+};
+
+export interface ReservationStatusAction {
+  /** Status the request moves to. */
+  target: ReservationStatus;
+  translationKey: ReservationInboxTranslationKey;
+}
+
+/** Row actions per current status: forward step first, then the side step. */
+export const reservationStatusActions = (
+  status: ReservationStatus,
+): ReservationStatusAction[] => {
+  switch (status) {
+    case 'new':
+      return [
+        { target: 'read', translationKey: ReservationInboxTranslationKey.ActionMarkRead },
+        { target: 'archived', translationKey: ReservationInboxTranslationKey.ActionArchive },
+      ];
+    case 'read':
+      return [
+        { target: 'archived', translationKey: ReservationInboxTranslationKey.ActionArchive },
+        { target: 'new', translationKey: ReservationInboxTranslationKey.ActionMarkNew },
+      ];
+    default:
+      return [
+        { target: 'read', translationKey: ReservationInboxTranslationKey.ActionRestore },
+      ];
+  }
+};

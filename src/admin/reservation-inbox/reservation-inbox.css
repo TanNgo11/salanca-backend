@@ -81,3 +81,17 @@
 .reservation-inbox__table-wrap table {
   min-width: 920px;
 }
+
+.reservation-inbox__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-block: 24px 16px;
+}
+
+.reservation-inbox__search {
+  flex: 0 1 320px;
+  min-width: 220px;
+}
