@@ -5572,12 +5572,12 @@
         }
       ],
       "menuLinks": [
-        { "label": "Buffet Churrascaria", "url": "/vi/thuc-don#buffet", "openInNewTab": false },
-        { "label": "Rodizio Menu", "url": "/vi/thuc-don#rodizio", "openInNewTab": false },
-        { "label": "Salad & món ăn kèm", "url": "/vi/thuc-don#mon-kem", "openInNewTab": false },
-        { "label": "Gọi món", "url": "/vi/thuc-don#goi-mon", "openInNewTab": false },
-        { "label": "Tráng miệng", "url": "/vi/thuc-don#trang-mieng", "openInNewTab": false },
-        { "label": "Thực đơn mang về", "url": "/vi/thuc-don#mang-ve", "openInNewTab": false }
+        { "label": "Buffet Churrascaria", "url": "/vi/thuc-don/buffet", "openInNewTab": false },
+        { "label": "Rodizio Menu", "url": "/vi/thuc-don/rodizio", "openInNewTab": false },
+        { "label": "Salad & món ăn kèm", "url": "/vi/thuc-don/mon-kem", "openInNewTab": false },
+        { "label": "Gọi món", "url": "/vi/thuc-don/goi-mon", "openInNewTab": false },
+        { "label": "Tráng miệng", "url": "/vi/thuc-don/trang-mieng", "openInNewTab": false },
+        { "label": "Thực đơn mang về", "url": "/vi/thuc-don/mang-ve", "openInNewTab": false }
       ]
     },
     "en": {
@@ -5628,12 +5628,12 @@
         }
       ],
       "menuLinks": [
-        { "label": "Buffet Churrascaria", "url": "/en/menu#buffet", "openInNewTab": false },
-        { "label": "Rodizio Menu", "url": "/en/menu#rodizio", "openInNewTab": false },
-        { "label": "Salads & side dishes", "url": "/en/menu#sides", "openInNewTab": false },
-        { "label": "À la carte", "url": "/en/menu#a-la-carte", "openInNewTab": false },
-        { "label": "Desserts", "url": "/en/menu#desserts", "openInNewTab": false },
-        { "label": "Takeaway menu", "url": "/en/menu#takeaway", "openInNewTab": false }
+        { "label": "Buffet Churrascaria", "url": "/en/menu/buffet", "openInNewTab": false },
+        { "label": "Rodizio Menu", "url": "/en/menu/rodizio", "openInNewTab": false },
+        { "label": "Salads & side dishes", "url": "/en/menu/sides", "openInNewTab": false },
+        { "label": "À la carte", "url": "/en/menu/a-la-carte", "openInNewTab": false },
+        { "label": "Desserts", "url": "/en/menu/desserts", "openInNewTab": false },
+        { "label": "Takeaway menu", "url": "/en/menu/takeaway", "openInNewTab": false }
       ]
     }
   },
