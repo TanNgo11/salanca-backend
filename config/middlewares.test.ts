@@ -162,3 +162,24 @@ describe('cors middleware', () => {
     ]);
   });
 });
+
+describe('structured request logging', () => {
+  const middlewareNames = (): string[] =>
+    config({ env: createEnv(s3Environment) } as Core.Config.Shared.ConfigParams).map((entry) => {
+      if (typeof entry === 'string') {
+        return entry;
+      }
+      return entry.resolve ?? entry.name ?? '';
+    });
+
+  it('replaces strapi::logger with the http-log middleware as the outermost middleware', () => {
+    const names = middlewareNames();
+    expect(names).not.toContain('strapi::logger');
+    expect(names[0]).toBe('./src/middlewares/http-log');
+  });
+
+  it('captures unhandled errors directly after strapi::errors', () => {
+    const names = middlewareNames();
+    expect(names.indexOf('./src/middlewares/error-capture')).toBe(names.indexOf('strapi::errors') + 1);
+  });
+});

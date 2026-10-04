@@ -28,6 +28,7 @@
 | CMS webhooks | Optional HMAC-signed publish/unpublish when `CMS_WEBHOOK_URL` + `CMS_WEBHOOK_SECRET` set |
 | Media WebP | Opt-in `MEDIA_PROCESSING_ENABLED` editorial-clean only (no watermark; no private source retention) |
 | Unit tests | Vitest for config/domain helpers |
+| Logging | `@tanngo11/log` (log contract v1): `config/logger.ts` routes `strapi.log` to one JSON line per log; `src/middlewares/http-log` replaces `strapi::logger` (one `http.request` line per request, server-issued `X-Request-ID`, inbound id kept as `upstream_request_id`); `error-capture` after `strapi::errors` logs unhandled errors once; VN phone numbers masked. Plan: `docs/plans/structured-logging.md` |
 | Admin | Generated Strapi Admin CRUD |
 | Source prototype | Read-only sibling `../salanca-cms` |
 

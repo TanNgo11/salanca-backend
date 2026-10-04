@@ -35,8 +35,11 @@ const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Middlewar
     : 'strapi::security';
 
   return [
-    'strapi::logger',
+    // Structured JSON request log (log contract v1); replaces strapi::logger.
+    { resolve: './src/middlewares/http-log' },
     'strapi::errors',
+    // Must stay directly after strapi::errors so unhandled errors are logged once.
+    { resolve: './src/middlewares/error-capture' },
     securityMiddleware,
     {
       name: 'strapi::cors',

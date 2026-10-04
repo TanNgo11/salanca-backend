@@ -94,6 +94,21 @@ npm run check:phase3
 
 Local env notes: `.env` aligned with batdongsan local Postgres (port `5432`, user `postgres`); Docker Compose on `5433` remains optional. Do not commit `.env`.
 
+### Structured logging (2026-10-04)
+
+Backend logs are JSON lines per log contract v1 (`@tanngo11/log@0.4.6`).
+
+- Each request has one `http.request` line and a server-issued `X-Request-ID`.
+- Unhandled errors are logged once.
+- Node process warnings carry their stack.
+
+Gates passed: lint, `verify:schema`, typecheck, build, and the logging tests.
+
+Known failing test, which predates this change and also fails on `main`:
+`content-manager-labels.vi.test.ts` ("covers every field in Salanca API schemas").
+
+Plan: [`plans/structured-logging.md`](plans/structured-logging.md).
+
 ## Open acceptance gates
 
 ### Manual Admin UAT (Phase 0)

@@ -1,3 +1,4 @@
+import { logProcessWarnings } from '@tanngo11/log';
 import type { Core } from '@strapi/strapi';
 
 import { synchronizeContentManagerLabels } from './bootstrap/content-manager-labels';
@@ -8,12 +9,15 @@ import { registerHealthRoutes } from './api/health';
 import { registerDocumentInvariants } from './domain/document-invariants/register-document-invariants';
 import { getOrCreateMediaProcessingRuntime } from './domain/media-processing/runtime';
 import { enforceMediaProcessingUploadSettings } from './domain/media-processing/upload-optimize';
+import { log } from './shared/log';
 
 export default {
   /**
    * Extends Strapi before initialization (Document Service middleware, etc.).
    */
   register({ strapi }: { strapi: Core.Strapi }) {
+    // Node warnings (deprecations...) as JSON with the call-site stack.
+    logProcessWarnings(log);
     getOrCreateMediaProcessingRuntime(strapi);
     registerDocumentInvariants(strapi);
     registerHealthRoutes(strapi);
