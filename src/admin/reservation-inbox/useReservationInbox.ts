@@ -59,6 +59,8 @@ export const useReservationInbox = ({
   const clientRef = useRef({ get, post });
   clientRef.current = { get, post };
   const streamAbortRef = useRef<AbortController | null>(null);
+  // Concurrent catch-ups read the same pre-render state; alert each item once.
+  const notifiedRef = useRef(new Set<string>());
 
   const applyIncoming = useCallback(
     (incoming: ReservationInboxItem[], unreadCount?: number) => {
@@ -68,7 +70,13 @@ export const useReservationInbox = ({
         stateRef.current.lastSeenAt,
       );
       dispatch({ type: 'itemsArrived', items: incoming, unreadCount });
-      merged.added.forEach((item) => onNewItemRef.current(item));
+      merged.added.forEach((item) => {
+        if (notifiedRef.current.has(item.documentId)) {
+          return;
+        }
+        notifiedRef.current.add(item.documentId);
+        onNewItemRef.current(item);
+      });
     },
     [],
   );
@@ -199,7 +207,10 @@ export const useReservationInbox = ({
         clearReconnectTimer();
         clearPollTimer();
       } else {
-        void refresh().catch(() => {});
+        // Alert on requests that arrived while hidden, then resync the list.
+        void refreshSince()
+          .then(refresh)
+          .catch(() => {});
         void openStream();
       }
     };
