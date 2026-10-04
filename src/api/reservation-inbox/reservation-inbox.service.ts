@@ -87,7 +87,7 @@ const toStatus = (value: unknown): ReservationStatus =>
 
 // Rows saved before the status column existed hold NULL. They are unhandled
 // requests, so every "new" query matches them too (as toStatus already does).
-const NEW_STATUS_FILTER = { $or: [{ status: 'new' }, { status: { $null: true } }] };
+const NEW_STATUS_FILTER = { $or: [{ status: 'new' as const }, { status: { $null: true } }] };
 
 const statusFilter = (status: ReservationStatus): Record<string, unknown> =>
   status === 'new' ? NEW_STATUS_FILTER : { status };
