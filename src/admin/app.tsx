@@ -25,6 +25,7 @@ import {
 } from './lead-shortcuts/lead-shortcuts.helper';
 import { auditLogVietnameseTranslations } from './audit-log/vi';
 import { watchContentManagerFieldHintVisibility } from './content-manager-field-hints.helper';
+import { registerDashboardWidgets } from './dashboard-widgets/register-dashboard-widgets';
 import { hideContentTypeBuilderAdminSurface } from './content-type-builder-visibility.helper';
 import { vietnameseAdminTranslations } from './translations/vi';
 
@@ -114,6 +115,7 @@ export default {
       permissions: leadReadPermissions(reservationRequestUid),
       position: 0.2,
     });
+    registerDashboardWidgets(app);
 
     if (!isProductionAdminBuild) {
       return;
