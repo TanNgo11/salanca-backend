@@ -79,6 +79,12 @@
   box-shadow: 0 0 0 3px rgb(217 130 47 / 18%);
 }
 
+/* Empty / failed row: a roomy centred block instead of a thin left-aligned line. */
+.reservation-inbox__empty {
+  padding-block: 56px;
+  text-align: center;
+}
+
 .reservation-inbox__prefs label {
   cursor: pointer;
 }

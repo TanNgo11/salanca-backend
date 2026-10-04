@@ -204,7 +204,9 @@ const ReservationInboxScreen = () => {
           subtitle={
             <Flex alignItems="center" gap={2} tag="span">
               <span className="reservation-inbox__live-dot" data-mode={mode} />
-              {statusLabel}
+              <Typography textColor="neutral600" variant="omega">
+                {statusLabel}
+              </Typography>
             </Flex>
           }
           title={translate(ReservationInboxTranslationKey.Title)}
@@ -271,19 +273,21 @@ const ReservationInboxScreen = () => {
                   {items.length === 0 ? (
                     <Tr>
                       <Td colSpan={8}>
-                        <Typography
-                          role={failed ? 'alert' : undefined}
-                          textColor={failed ? 'danger600' : 'neutral600'}
-                          variant="omega"
-                        >
-                          {failed
-                            ? translate(ReservationInboxTranslationKey.LoadFailed)
-                            : translate(
-                                hasFilters
-                                  ? ReservationInboxTranslationKey.EmptyFiltered
-                                  : ReservationInboxTranslationKey.Empty,
-                              )}
-                        </Typography>
+                        <div className="reservation-inbox__empty">
+                          <Typography
+                            role={failed ? 'alert' : undefined}
+                            textColor={failed ? 'danger600' : 'neutral600'}
+                            variant="omega"
+                          >
+                            {failed
+                              ? translate(ReservationInboxTranslationKey.LoadFailed)
+                              : translate(
+                                  hasFilters
+                                    ? ReservationInboxTranslationKey.EmptyFiltered
+                                    : ReservationInboxTranslationKey.Empty,
+                                )}
+                          </Typography>
+                        </div>
                       </Td>
                     </Tr>
                   ) : (
