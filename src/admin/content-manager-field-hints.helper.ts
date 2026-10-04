@@ -1,3 +1,11 @@
+import { injectAdminStyleSheet } from './inject-admin-styles.helper';
+
+/* `?inline` + manual injection, not `import './content-manager-field-hints.css'`:
+   an app-wide stylesheet imported the plain way never reaches the browser in a
+   production build. See inject-admin-styles.helper.ts. */
+import fieldHintStyles from './content-manager-field-hints.css?inline';
+
+const STYLE_ID = 'salanca-content-manager-field-hint-styles';
 const CONTENT_MANAGER_FIELD_HINTS_ATTR = 'data-cm-hide-field-hints';
 
 export const shouldHideContentManagerFieldHints = (pathname: string): boolean =>
@@ -19,6 +27,7 @@ export const watchContentManagerFieldHintVisibility = (): void => {
     return;
   }
 
+  injectAdminStyleSheet(STYLE_ID, fieldHintStyles);
   syncContentManagerFieldHintVisibility();
   window.addEventListener('popstate', syncContentManagerFieldHintVisibility);
 

@@ -44,8 +44,6 @@ import { runtimeFeedbackVietnameseTranslations } from './translations/runtime-fe
 import { usersPermissionsVietnameseTranslations } from './translations/users-permissions-plugin';
 import { vietnameseAdminTranslations } from './translations/vi';
 
-import './content-manager-field-hints.css';
-
 enum AdminLocale {
   Vietnamese = 'vi',
 }

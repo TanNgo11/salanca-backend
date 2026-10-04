@@ -11,3 +11,12 @@ interface ImportMeta {
 interface Window {
   readonly strapi: { readonly backendURL: string };
 }
+
+/* `?inline` hands the stylesheet over as a string instead of emitting a CSS
+   asset. Needed for stylesheets that must apply app-wide: Strapi writes its own
+   admin index.html and only injects the entry <script>, so the CSS asset Vite
+   emits for the entry chunk is never linked. See inject-admin-styles.helper.ts. */
+declare module '*.css?inline' {
+  const content: string;
+  export default content;
+}
