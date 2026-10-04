@@ -7,6 +7,7 @@ import { toReservationLeadNotifyPayload } from '../../../domain/form-intake/form
 import { FormValidationError } from '../../../domain/form-intake/form-validation-error';
 import { scheduleFormLeadNotify } from '../../../domain/form-intake/send-form-lead-notify';
 import { assertEnvTurnstile } from '../../../domain/form-intake/turnstile';
+import { writeApplicationError } from '../../../domain/form-intake/write-application-error';
 import { countSlotPeers } from '../../../domain/reservation-request/count-slot-peers';
 import { emitReservationCreated } from '../../../domain/reservation-request/reservation-inbox-events';
 import { getReservationRateLimit } from '../../../domain/reservation-request/reservation-rate-limit';
@@ -19,36 +20,6 @@ import { resolveMenuSelection } from '../../../domain/reservation-request/resolv
 const { ApplicationError } = errors;
 
 const UID = 'api::reservation-request.reservation-request' as const;
-
-/**
- * Strapi-shaped error body (same envelope as ApplicationError) with custom HTTP status.
- */
-const writeApplicationError = (
-  ctx: {
-    status: number;
-    set: (name: string, value: string) => void;
-    body: unknown;
-  },
-  status: number,
-  message: string,
-  code: string,
-  extraDetails: Record<string, unknown> = {},
-  headers: Record<string, string> = {},
-): void => {
-  for (const [name, value] of Object.entries(headers)) {
-    ctx.set(name, value);
-  }
-  ctx.status = status;
-  ctx.body = {
-    data: null,
-    error: {
-      status,
-      name: 'ApplicationError',
-      message,
-      details: { code, ...extraDetails },
-    },
-  };
-};
 
 export default factories.createCoreController(UID, ({ strapi }: { strapi: Core.Strapi }) => ({
   /**
