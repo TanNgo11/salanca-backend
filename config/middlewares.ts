@@ -8,10 +8,9 @@ import {
 } from './media-storage.helper';
 
 const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Middlewares => {
+  // Validated when the admin-audit-http middleware is instantiated at server
+  // start, not here: `strapi build` loads config without runtime secrets.
   const auditIdentifierHashSecret = env('AUDIT_IDENTIFIER_HASH_SECRET', '');
-  if (!auditIdentifierHashSecret.trim()) {
-    throw new Error('AUDIT_IDENTIFIER_HASH_SECRET is required.');
-  }
 
   const frontendOrigins = resolveFrontendOrigins(env);
   const mediaCdnOrigin = isObjectStorageEnabled(env)

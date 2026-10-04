@@ -12,6 +12,16 @@ const writeMock = vi.mocked(writeAdminAuditEvent);
 
 const REQUEST_ID = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
 
+describe('admin audit HTTP middleware startup', () => {
+  it('fails server start when AUDIT_IDENTIFIER_HASH_SECRET is missing or blank', () => {
+    for (const identifierHashSecret of ['', '  ']) {
+      expect(() =>
+        createAdminAuditHttpMiddleware({ identifierHashSecret }, { strapi: {} as never }),
+      ).toThrow('AUDIT_IDENTIFIER_HASH_SECRET is required.');
+    }
+  });
+});
+
 const createLoginContext = (overrides?: {
   next?: () => Promise<void>;
   status?: number;

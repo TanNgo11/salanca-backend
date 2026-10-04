@@ -195,13 +195,10 @@ describe('admin audit middleware', () => {
       return entry.resolve ?? entry.name ?? '';
     });
 
-  it('fails fast when AUDIT_IDENTIFIER_HASH_SECRET is missing or blank', () => {
+  it('loads without AUDIT_IDENTIFIER_HASH_SECRET so strapi build works without runtime secrets', () => {
     expect(() =>
       config({ env: createEnv({ ...s3Environment, AUDIT_IDENTIFIER_HASH_SECRET: undefined }) } as Core.Config.Shared.ConfigParams),
-    ).toThrow('AUDIT_IDENTIFIER_HASH_SECRET is required.');
-    expect(() =>
-      config({ env: createEnv({ ...s3Environment, AUDIT_IDENTIFIER_HASH_SECRET: '  ' }) } as Core.Config.Shared.ConfigParams),
-    ).toThrow('AUDIT_IDENTIFIER_HASH_SECRET is required.');
+    ).not.toThrow();
   });
 
   it('runs directly after strapi::body so login and token routes are classified', () => {
