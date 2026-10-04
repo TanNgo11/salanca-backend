@@ -1628,7 +1628,7 @@
               },
               "isFeatured": false,
               "showStar": false,
-              "isActive": true,
+              "isActive": false,
               "displayOrder": 106
             },
             "en": {
@@ -1647,7 +1647,7 @@
               },
               "isFeatured": false,
               "showStar": false,
-              "isActive": true,
+              "isActive": false,
               "displayOrder": 106
             }
           },
@@ -4602,12 +4602,7 @@
                 "showStar": false
               },
               {
-                "title": "Salad bar đa dạng",
-                "description": null,
-                "showStar": false
-              },
-              {
-                "title": "Dứa nướng Brazil",
+                "title": "Món ăn kèm",
                 "description": null,
                 "showStar": false
               },
@@ -4850,12 +4845,7 @@
                 "showStar": false
               },
               {
-                "title": "Generous salad bar",
-                "description": null,
-                "showStar": false
-              },
-              {
-                "title": "Brazilian grilled pineapple",
+                "title": "Side dishes",
                 "description": null,
                 "showStar": false
               },
@@ -5132,7 +5122,7 @@
             "canonicalPath": "/vi/thuc-don",
             "noIndex": false
           },
-          "priceNote": "Giá chưa bao gồm 5% phí phục vụ và thuế GTGT."
+          "priceNote": "Giá chưa bao gồm 5% phí phục vụ và 10% thuế GTGT."
         },
         "en": {
           "hero": {
@@ -5231,14 +5221,14 @@
             "canonicalPath": "/en/menu",
             "noIndex": false
           },
-          "priceNote": "Prices exclude a 5% service charge and VAT."
+          "priceNote": "Prices exclude a 5% service charge and 10% VAT."
         }
       },
       "api::story-page.story-page": {
         "vi": {
           "hero": {
             "eyebrow": "Hành trình Salanca Brazil",
-            "title": "Câu chuyện Salanca Brazil",
+            "title": "Câu chuyện thương hiệu – Hành trình Salanca Brazil",
             "description": "Hơn 20 năm gìn giữ và nâng tầm di sản Churrasco Brazil tại Việt Nam.",
             "backgroundImage": {
               "alt": "Phục vụ Rodizio tại bàn Salanca",
@@ -5313,24 +5303,13 @@
               }
             },
             {
-              "label": "2016",
-              "title": "Ngôi nhà 25 Trần Bình Trọng",
-              "body": "Năm 2016: Nhà hàng chuyển về 25 Trần Bình Trọng, mở ra một không gian ấm cúng, sang trọng và tĩnh lặng hơn, đáp ứng tiêu chuẩn khắt khe của những bữa tiệc ngoại giao và gặp gỡ trang trọng.",
+              "label": "2016 – 2020",
+              "title": "Chuyển mình và Tái định vị thương hiệu: Salanca Brazil ra đời",
+              "body": "Năm 2016: Nhà hàng chuyển về 25 Trần Bình Trọng, mở ra một không gian ấm cúng, sang trọng và tĩnh lặng hơn, đáp ứng tiêu chuẩn khắt khe của những bữa tiệc ngoại giao và gặp gỡ trang trọng.\n\nNăm 2020: Thương hiệu chính thức mang tên gọi mới - Salanca Brazil. Đây là dấu mốc tái định vị mang tính chiến lược: chuẩn hóa toàn diện từ nguồn thịt bò thượng hạng nhập khẩu, quy trình kiểm soát nhiệt than khắt khe đến bộ sưu tập rượu vang Nam Mỹ tuyển chọn. Tên gọi được làm mới để vươn tầm chuẩn mực đương đại, nhưng linh hồn của ngọn lửa và hương vị mộc mạc nguyên bản từ năm 2003 vẫn được trân trọng vẹn toàn.",
               "image": {
                 "alt": "Hình ảnh minh họa không gian và ẩm thực Salanca",
                 "media": {
                   "__file": "dd55109b2bbf47536306bd5dd08173af2f54f660ad45cb9abfe7e2354407cb32.jpg"
-                }
-              }
-            },
-            {
-              "label": "2020",
-              "title": "Salanca Brazil ra đời",
-              "body": "Năm 2020: Thương hiệu chính thức mang tên gọi mới - Salanca Brazil. Đây là dấu mốc tái định vị mang tính chiến lược: chuẩn hóa toàn diện từ nguồn thịt bò thượng hạng nhập khẩu, quy trình kiểm soát nhiệt than khắt khe đến bộ sưu tập rượu vang Nam Mỹ tuyển chọn. Tên gọi được làm mới để vươn tầm chuẩn mực đương đại, nhưng linh hồn của ngọn lửa và hương vị mộc mạc nguyên bản từ năm 2003 vẫn được trân trọng vẹn toàn.",
-              "image": {
-                "alt": "Hình ảnh minh họa không gian và ẩm thực Salanca",
-                "media": {
-                  "__file": "6b5461ba074055d2e298af3dff048a9ea3f7a11dbabdd18580639920debf6f18.webp"
                 }
               }
             },
@@ -5443,15 +5422,6 @@
                   "type": "text"
                 }
               ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "Năm 2020: Thương hiệu chính thức mang tên gọi mới - Salanca Brazil. Đây là dấu mốc tái định vị mang tính chiến lược: chuẩn hóa toàn diện từ nguồn thịt bò thượng hạng nhập khẩu, quy trình kiểm soát nhiệt than khắt khe đến bộ sưu tập rượu vang Nam Mỹ tuyển chọn. Tên gọi được làm mới để vươn tầm chuẩn mực đương đại, nhưng linh hồn của ngọn lửa và hương vị mộc mạc nguyên bản từ năm 2003 vẫn được trân trọng vẹn toàn.",
-                  "type": "text"
-                }
-              ]
             }
           ],
           "craftImage": {
@@ -5467,19 +5437,19 @@
           "values": [
             {
               "number": "01",
-              "title": "Hương vị Brazil nguyên bản",
+              "title": "Hương vị Brazil nguyên bản (Authentic Churrasco)",
               "body": "Gìn giữ trọn vẹn công thức tẩm ướp truyền thống và kỹ thuật nướng xiên quay than hồng, tôn vinh độ mềm ngọt nguyên sơ của thịt bò Picanha, sườn cừu và dứa nướng quế đặc trưng.",
               "image": null
             },
             {
               "number": "02",
-              "title": "Trải nghiệm Rodizio trọn vẹn",
+              "title": "Trải nghiệm Rodizio trọn vẹn (The Rodizio Experience)",
               "body": "Từng xiên nướng được cắt phục vụ liên tục ngay tại bàn ăn theo tốc độ thưởng thức của riêng bạn - chu đáo, hào sảng và đong đầy cảm xúc.",
               "image": null
             },
             {
               "number": "03",
-              "title": "Tinh thần hiếu khách & Kết nối",
+              "title": "Tinh thần hiếu khách & Kết nối (Warm Brazilian Hospitality)",
               "body": "Hơn 20 năm qua, dù ở bất kỳ địa điểm nào, Salanca Brazil luôn xem mỗi vị khách là một người bạn thân thiết, mang đến không gian ấm cúng để nâng ly và kỷ niệm những khoảnh khắc quý giá của cuộc sống.",
               "image": null
             }
@@ -5505,7 +5475,7 @@
         "en": {
           "hero": {
             "eyebrow": "The Salanca Brazil journey",
-            "title": "The Salanca Brazil story",
+            "title": "Our brand story – The Salanca Brazil journey",
             "description": "Over 20 years preserving and elevating Brazil’s Churrasco heritage in Vietnam.",
             "backgroundImage": {
               "alt": "Rodizio service at Salanca",
@@ -5580,24 +5550,13 @@
               }
             },
             {
-              "label": "2016",
-              "title": "A new home at 25 Trần Bình Trọng",
-              "body": "In 2016, the restaurant moved to 25 Trần Bình Trọng, offering a warmer, more elegant and peaceful setting for diplomatic dinners and formal gatherings.",
+              "label": "2016 – 2020",
+              "title": "Transformation and repositioning: Salanca Brazil is born",
+              "body": "In 2016, the restaurant moved to 25 Trần Bình Trọng, offering a warmer, more elegant and peaceful setting for diplomatic dinners and formal gatherings.\n\nIn 2020, the brand officially took the name Salanca Brazil. This strategic repositioning brought comprehensive standards to premium imported beef, precise charcoal temperature control and a curated collection of South American wines. The new name embraces contemporary standards while preserving the original flame and honest flavours that have been cherished since 2003.",
               "image": {
                 "alt": "Illustrative Salanca dining and cuisine photography",
                 "media": {
                   "__file": "dd55109b2bbf47536306bd5dd08173af2f54f660ad45cb9abfe7e2354407cb32.jpg"
-                }
-              }
-            },
-            {
-              "label": "2020",
-              "title": "The Salanca Brazil name",
-              "body": "In 2020, the brand officially took the name Salanca Brazil. This strategic repositioning brought comprehensive standards to premium imported beef, precise charcoal temperature control and a curated collection of South American wines. The new name embraces contemporary standards while preserving the original flame and honest flavours that have been cherished since 2003.",
-              "image": {
-                "alt": "Illustrative Salanca dining and cuisine photography",
-                "media": {
-                  "__file": "6b5461ba074055d2e298af3dff048a9ea3f7a11dbabdd18580639920debf6f18.webp"
                 }
               }
             },
@@ -5710,15 +5669,6 @@
                   "type": "text"
                 }
               ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "In 2020, the brand officially took the name Salanca Brazil. This strategic repositioning brought comprehensive standards to premium imported beef, precise charcoal temperature control and a curated collection of South American wines. The new name embraces contemporary standards while preserving the original flame and honest flavours that have been cherished since 2003.",
-                  "type": "text"
-                }
-              ]
             }
           ],
           "craftImage": {
@@ -5740,7 +5690,7 @@
             },
             {
               "number": "02",
-              "title": "The complete Rodizio experience",
+              "title": "The Rodizio Experience",
               "body": "Skewers are carved and served continuously at your table, at your own pace — attentive, generous and full of feeling.",
               "image": null
             },
@@ -8025,7 +7975,8 @@
           { "label": "Salad & món ăn kèm", "url": "/vi/thuc-don#mon-kem", "openInNewTab": false },
           { "label": "Gọi món", "url": "/vi/thuc-don#goi-mon", "openInNewTab": false },
           { "label": "Tráng miệng", "url": "/vi/thuc-don#trang-mieng", "openInNewTab": false },
-          { "label": "Thực đơn mang về", "url": "/vi/thuc-don#mang-ve", "openInNewTab": false }
+          { "label": "Thực đơn mang về", "url": "/vi/thuc-don#mang-ve", "openInNewTab": false },
+          { "label": "Catering", "url": "/vi/thuc-don/catering", "openInNewTab": false }
         ]
       },
       "en": {
@@ -8083,7 +8034,8 @@
           { "label": "Salads & side dishes", "url": "/en/menu#sides", "openInNewTab": false },
           { "label": "À la carte", "url": "/en/menu#a-la-carte", "openInNewTab": false },
           { "label": "Desserts", "url": "/en/menu#desserts", "openInNewTab": false },
-          { "label": "Takeaway menu", "url": "/en/menu#takeaway", "openInNewTab": false }
+          { "label": "Takeaway menu", "url": "/en/menu#takeaway", "openInNewTab": false },
+          { "label": "Catering", "url": "/en/menu/catering", "openInNewTab": false }
         ]
       }
     },
