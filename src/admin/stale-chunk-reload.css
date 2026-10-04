@@ -1,0 +1,42 @@
+/* Sits above the Admin content but below Strapi's own modals, so a dialog the
+   user already opened stays usable while the banner waits for them. */
+#salanca-stale-chunk-banner {
+  position: fixed;
+  z-index: 20;
+  top: 50%;
+  right: 16px;
+  left: 16px;
+  transform: translateY(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 14px 18px;
+  border: 1px solid #d9d8ff;
+  border-radius: 8px;
+  background: #f0f0ff;
+  box-shadow: 0 2px 12px rgb(33 33 52 / 20%);
+  color: #32324d;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+#salanca-stale-chunk-banner-reload {
+  flex: 0 0 auto;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 4px;
+  background: #4945ff;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+#salanca-stale-chunk-banner-reload:hover {
+  background: #7b79ff;
+}

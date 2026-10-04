@@ -110,6 +110,21 @@ thông báo trong khoảng 1 giây — không cần tải lại trang.
   Settings → Roles; mặc định chỉ Super Admin có. Yêu cầu do Admin tạo tay
   trong Content Manager không bật thông báo realtime.
 
+## Giao diện Admin (2026-10-04)
+
+- **Ngôn ngữ:** Admin mở bằng tiếng Việt ngay từ màn đăng nhập. Tài khoản
+  admin mới mặc định tiếng Việt; tài khoản cũ chưa chọn ngôn ngữ được chuyển
+  sang tiếng Việt một lần khi server khởi động. Ai đã chọn English trong Hồ sơ
+  thì giữ nguyên.
+- **Menu trái:** trên màn hình rộng, menu hiện chữ cạnh biểu tượng. Nút
+  **Thu gọn menu** ở cuối menu chuyển về dạng chỉ biểu tượng; lựa chọn được
+  nhớ theo trình duyệt.
+- **Banner "Trang quản trị vừa được cập nhật":** xuất hiện khi server vừa
+  deploy bản mới trong lúc tab Admin đang mở. Lưu phần đang làm rồi bấm
+  **Tải lại**; trang không tự tải lại để không mất dữ liệu đang nhập.
+- Các mục chỉ có ở bản trả phí của Strapi (Lịch sử nội dung, Releases, Review
+  Workflows, SSO, Nhật ký kiểm tra) đã được ẩn khỏi Cài đặt.
+
 ## Trước khi publish
 
 - Đúng locale và đúng trạng thái Draft/Published.

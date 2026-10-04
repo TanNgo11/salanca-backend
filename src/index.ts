@@ -1,6 +1,10 @@
 import { logProcessWarnings } from '@tanngo11/log';
 import type { Core } from '@strapi/strapi';
 
+import {
+  backfillAdminUserLanguage,
+  registerAdminUserLanguageDefault,
+} from './bootstrap/admin-user-language';
 import { synchronizeContentManagerLabels } from './bootstrap/content-manager-labels';
 import { warnIfFormIntakeSecretMissing } from './bootstrap/form-intake-secret-warning';
 import { provisionContentLocales } from './bootstrap/content-locales';
@@ -38,6 +42,7 @@ export default {
     registerReservationInboxPermissions(strapi);
     registerReservationInboxAdminRoutes(strapi);
     registerAdminAuditEventHub(strapi);
+    registerAdminUserLanguageDefault(strapi);
   },
 
   /**
@@ -52,5 +57,6 @@ export default {
     await enforceMediaProcessingUploadSettings(strapi);
     await bootstrapAuditLogPermissions(strapi);
     await bootstrapReservationInboxPermissions(strapi);
+    await backfillAdminUserLanguage(strapi);
   },
 };

@@ -25,8 +25,11 @@ import {
 } from './lead-shortcuts/lead-shortcuts.helper';
 import { auditLogVietnameseTranslations } from './audit-log/vi';
 import { watchContentManagerFieldHintVisibility } from './content-manager-field-hints.helper';
+import { seedDefaultAdminLocale } from './interface-language/interface-language.helper';
 import { registerDashboardWidgets } from './dashboard-widgets/register-dashboard-widgets';
 import { hideContentTypeBuilderAdminSurface } from './content-type-builder-visibility.helper';
+import { setupMainNavLabels } from './main-nav-labels.helper';
+import { watchStaleChunkPreloadErrors } from './stale-chunk-reload.helper';
 import { adminChromeVietnameseTranslations } from './translations/admin-chrome';
 import { adminSettingsVietnameseTranslations } from './translations/admin-settings';
 import { contentManagerChromeVietnameseTranslations } from './translations/content-manager-chrome';
@@ -155,6 +158,11 @@ export default {
     );
   },
   bootstrap(app: StrapiApp) {
+    // Runs before Strapi builds its store, so the login screen is Vietnamese on
+    // a browser that has never signed in here.
+    if (typeof window !== 'undefined') {
+      seedDefaultAdminLocale(window.localStorage);
+    }
     app.registerHook(LEAD_COLLECTION_LINKS_HOOK, hideLeadCollectionLinks);
     // Route wrapping must run after plugin bootstraps: some plugins call
     // addSettingsLink from bootstrap, which looks up a top-level `settings/*`
@@ -171,5 +179,7 @@ export default {
       },
     ]);
     watchContentManagerFieldHintVisibility();
+    setupMainNavLabels();
+    watchStaleChunkPreloadErrors();
   },
 };

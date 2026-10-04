@@ -1,0 +1,138 @@
+/* Strapi 5.51 removed the expandable side nav; menu items are icon-only with
+   hover tooltips. This restores text labels on desktop and pairs with
+   main-nav-labels.helper.ts, which stamps `#salanca-main-nav` (plus a matching
+   class) on the <nav>, injects a collapse toggle, and sets
+   `data-salanca-nav-collapsed` on <html> when the user wants the compact look.
+
+   The id is the load-bearing hook: React owns the nav's `class` attribute
+   (styled-components) and rewrites it on re-render, so a class-only hook gets
+   dropped. `:is(#salanca-main-nav, .salanca-main-nav)` keeps the class as a fallback
+   at id specificity.
+
+   Selectors target internal @strapi/admin MainNav markup (styled-components
+   classes, no stable hooks), so recheck this file after any
+   `pnpm up "@strapi/*"` upgrade. Current target: @strapi/admin 5.51.1,
+   @strapi/design-system 2.2.3. Link markup is:
+     <li><span>            (Tooltip wrapper)
+       <a aria-label="Label">
+         <svg aria-hidden="true"></svg>
+         <span [visually-hidden]>Label</span>   (AccessibleIcon)
+       </a>
+     </span></li>
+   and the nav width comes from a DS `width={{large:10}}` prop (5.6rem rail),
+   which our `!important` rules override. The 1080px breakpoint mirrors the
+   design system's `large` breakpoint — above it we widen the rail and show
+   labels; below it (mobile horizontal bar) we only hide our collapse toggle
+   and leave Strapi's own mobile layout alone. */
+
+@media (min-width: 1080px) {
+  /* --- expanded state (default): widen the rail, show labels --- */
+  :root:not([data-salanca-nav-collapsed]) :is(#salanca-main-nav, .salanca-main-nav) {
+    width: 210px !important;
+    max-width: 210px !important;
+    align-items: stretch !important;
+  }
+
+  /* let every inner container use the new width instead of centering
+     around the 5.6rem icon rail */
+  :root:not([data-salanca-nav-collapsed]) :is(#salanca-main-nav, .salanca-main-nav) ul,
+  :root:not([data-salanca-nav-collapsed]) :is(#salanca-main-nav, .salanca-main-nav) ul > li,
+  :root:not([data-salanca-nav-collapsed]) :is(#salanca-main-nav, .salanca-main-nav) ul > li > span {
+    width: 100% !important;
+    max-width: none !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+  }
+
+  :root:not([data-salanca-nav-collapsed]) :is(#salanca-main-nav, .salanca-main-nav) a[aria-label] {
+    justify-content: flex-start !important;
+    gap: 1rem;
+    min-width: 0;
+    padding-inline: 1.2rem !important;
+  }
+
+  /* un-hide the visually-hidden label span that follows each icon */
+  :root:not([data-salanca-nav-collapsed]) :is(#salanca-main-nav, .salanca-main-nav) a[aria-label] svg + span {
+    position: static !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    clip: auto !important;
+    clip-path: none !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    font-size: 1.2rem !important;
+    font-weight: 500;
+    line-height: 1;
+    color: inherit;
+  }
+
+  /* --- collapse toggle button (injected by the helper) --- */
+  #salanca-main-nav-toggle {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    margin-top: auto;
+    padding: 1rem 1.2rem;
+    border: 0;
+    border-top: 1px solid #eaeaef;
+    background: transparent;
+    color: #666687;
+    font-size: 1.2rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    cursor: pointer;
+  }
+
+  #salanca-main-nav-toggle:hover {
+    background: #f6f6f9;
+  }
+
+  #salanca-main-nav-toggle .salanca-nav-toggle-icon {
+    flex: none;
+    font-size: 1.6rem;
+    line-height: 1;
+    transition: transform 0.15s ease;
+  }
+
+  #salanca-main-nav-toggle .salanca-nav-toggle-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* --- collapsed state: hide labels, center + flip the toggle --- */
+  :root[data-salanca-nav-collapsed] #salanca-main-nav-toggle {
+    justify-content: center;
+  }
+
+  :root[data-salanca-nav-collapsed] #salanca-main-nav-toggle .salanca-nav-toggle-label {
+    display: none;
+  }
+
+  :root[data-salanca-nav-collapsed] #salanca-main-nav-toggle .salanca-nav-toggle-icon {
+    transform: rotate(180deg);
+  }
+}
+
+/* hide the toggle on the mobile top nav
+
+   Nothing else is touched here. The icon row in Strapi's mobile top bar is not
+   redundant with the burger menu: `LeftMenu` (@strapi/admin 5.51.1) splits
+   mobile navigation in two and the halves do not overlap. The top row renders
+   only `topMobileNavigation` (`/`, `content-manager`,
+   `plugins/content-releases`, `plugins/upload`), while the burger menu drops
+   every link whose path contains `content-manager`, `content-type-builder`,
+   `upload` or `content-releases`. Hiding the row therefore left Trang chủ,
+   Content Manager and Thư viện media unreachable on phones. */
+@media (max-width: 1079.98px) {
+  #salanca-main-nav-toggle {
+    display: none;
+  }
+}
