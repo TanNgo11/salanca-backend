@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 // Runtime operations helpers are plain ESM; tests assert transport boundaries.
 // @ts-expect-error Plain ESM helper has no declaration file.
-import { serialize, replaceFiles, sha, validateBundle, editableProjection, matchesRestoredGallery } from './content-bundle.helper.mjs';
-import { resolvePlaceholders } from './seed-salanca-content/resolve.mjs';
+import { serialize, replaceFiles, sha, validateBundle, editableProjection, matchesRestoredGallery } from './lib/content-release.helper.mjs';
+import { resolvePlaceholders } from './lib/content-import/resolve.mjs';
 
 describe('content bundle transport', () => {
   it('only permits republishing an unchanged approved gallery draft', () => {

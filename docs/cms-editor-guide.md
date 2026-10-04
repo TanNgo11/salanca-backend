@@ -84,8 +84,8 @@ VI and EN independently. FE renders native HTML from menu-package, menu-category
 and menu-item, including CMS images and displayOrder. Takeaway contact uses
 global-setting hotline. Blank priceNote is omitted. No permissions are expanded.
 
-`apply-native-menu-media.mjs` previews first and requires `--apply` to write to a
-loopback database. It replaces only recognized legacy media pointers, retains
-editor replacements, aborts on different drafts and saves a field snapshot.
+Use `node scripts/seed-production-content.mjs` for the complete approved release.
+It validates schema/media, blocks unpublished edits and records recovery content.
+Optional `--preview` inspects without writes.
 The Rodizio, origin and experience photos are separate image components, not
 whole PDF pages.

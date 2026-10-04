@@ -46,6 +46,10 @@
       "default": 50,
       "min": 0,
       "max": 100
+    },
+    "mirrorHorizontally": {
+      "type": "boolean",
+      "default": false
     }
   },
   "config": {
@@ -92,6 +96,15 @@
         },
         "list": {
           "label": "Lấy nét Y"
+        }
+      },
+      "mirrorHorizontally": {
+        "edit": {
+          "label": "Lật ảnh theo chiều ngang",
+          "description": "Bật khi cần bố cục ảnh đối xứng như bản thiết kế."
+        },
+        "list": {
+          "label": "Lật ảnh ngang"
         }
       }
     }

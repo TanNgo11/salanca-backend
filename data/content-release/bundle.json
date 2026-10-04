@@ -1,7 +1,7 @@
 {
   "version": 1,
   "createdAt": "2026-10-03T03:23:42.417Z",
-  "schemaHash": "2960d6df6fed18d20ca36c18bcafcfdab8bf5f7700d45f5f0a94b415c3220023",
+  "schemaHash": "9788d3e6519b97ef04c24750b187715525e1c408a0d91316335225cb546a33cd",
   "files": [
     {
       "name": "ea999245bede5a2d247e7da3560014f721d2e80b7cbc2d624a634b80dc8b4502.webp",
@@ -284,6 +284,12 @@
       "sha256": "e5fad4abcd7c2f2a3352d15873df5e6847aeeeb11a77192c817fc48daa524238",
       "sourceFile": "booking-facebook-qr.jpg",
       "originalName": "booking-facebook-qr.jpg"
+    },
+    {
+      "name": "cb9199756b5c8d391bd86fb180066ef8609b04057df3c674c4201edd46347686.jpg",
+      "sha256": "cb9199756b5c8d391bd86fb180066ef8609b04057df3c674c4201edd46347686",
+      "originalName": "dessert-fruit-background.jpg",
+      "sourceFile": "dessert-fruit-background.jpg"
     }
   ],
   "payload": {
@@ -490,16 +496,30 @@
             "vi": {
               "name": "Tráng miệng",
               "slug": "trang-mieng",
-              "description": null,
-              "image": null,
+              "description": "DESSERT\nMENU",
+              "image": {
+                "media": {
+                  "__file": "cb9199756b5c8d391bd86fb180066ef8609b04057df3c674c4201edd46347686.jpg"
+                },
+                "alt": "Trái cây mùa hè trong thực đơn tráng miệng",
+                "focalPointX": 50,
+                "focalPointY": 50
+              },
               "displayOrder": 5,
               "isActive": true
             },
             "en": {
               "name": "Desserts",
               "slug": "desserts",
-              "description": null,
-              "image": null,
+              "description": "DESSERT\nMENU",
+              "image": {
+                "media": {
+                  "__file": "cb9199756b5c8d391bd86fb180066ef8609b04057df3c674c4201edd46347686.jpg"
+                },
+                "alt": "Summer fruit in the dessert menu",
+                "focalPointX": 50,
+                "focalPointY": 50
+              },
               "displayOrder": 5,
               "isActive": true
             }
@@ -1270,14 +1290,14 @@
             "vi": {
               "name": "Steak Salanca",
               "slug": "a-la-carte",
-              "shortDescription": "Steak Salanca dùng kèm sốt nấm hoặc sốt tiêu.",
+              "shortDescription": "(Rib eye steak – Served with Mushroom or Pepper Sauce) Thăn Nội Bò Nướng Được Dùng Với Xốt Nấm hoặc Xốt Tiêu",
               "portion": null,
               "description": [
                 {
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "Steak Salanca dùng kèm sốt nấm hoặc sốt tiêu.",
+                      "text": "(Rib eye steak – Served with Mushroom or Pepper Sauce) Thăn Nội Bò Nướng Được Dùng Với Xốt Nấm hoặc Xốt Tiêu",
                       "type": "text"
                     }
                   ]
@@ -1291,7 +1311,8 @@
                 "alt": "Steak Salanca trong thực đơn",
                 "caption": null,
                 "focalPointX": 50,
-                "focalPointY": 50
+                "focalPointY": 50,
+                "mirrorHorizontally": true
               },
               "category": {
                 "__ref": {
@@ -1307,14 +1328,14 @@
             "en": {
               "name": "Steak Salanca",
               "slug": "a-la-carte",
-              "shortDescription": "Steak Salanca served with mushroom or pepper sauce.",
+              "shortDescription": "(Rib eye steak – Served with Mushroom or Pepper Sauce)",
               "portion": null,
               "description": [
                 {
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "Steak Salanca served with mushroom or pepper sauce.",
+                      "text": "(Rib eye steak – Served with Mushroom or Pepper Sauce)",
                       "type": "text"
                     }
                   ]
@@ -1328,7 +1349,8 @@
                 "alt": "Steak Salanca from the menu",
                 "caption": null,
                 "focalPointX": 50,
-                "focalPointY": 50
+                "focalPointY": 50,
+                "mirrorHorizontally": true
               },
               "category": {
                 "__ref": {
@@ -5058,9 +5080,9 @@
           "itemSectionHeading": "Các món nướng đặc trưng",
           "packageListingHeading": "Rodizio Menu",
           "aLaCarte": {
-            "eyebrow": "A la carte",
+            "eyebrow": "A LA CARTE\nMENU",
             "title": "Steak Salanca",
-            "body": "Steak Salanca dùng kèm sốt nấm hoặc sốt tiêu.",
+            "body": "(Rib eye steak – Served with Mushroom or Pepper Sauce) Thăn Nội Bò Nướng Được Dùng Với Xốt Nấm hoặc Xốt Tiêu",
             "price": 850000,
             "image": {
               "media": {
@@ -5157,9 +5179,9 @@
           "itemSectionHeading": "Signature cuts",
           "packageListingHeading": "Rodizio Menu",
           "aLaCarte": {
-            "eyebrow": "A la carte",
+            "eyebrow": "A LA CARTE\nMENU",
             "title": "Steak Salanca",
-            "body": "Steak Salanca served with mushroom or pepper sauce.",
+            "body": "(Rib eye steak – Served with Mushroom or Pepper Sauce)",
             "price": 850000,
             "image": {
               "media": {
@@ -8200,7 +8222,8 @@
       "2d0982f4dd689cf0a773bf9d33b319a303b8cebac7bb18e0fe86d140bf5725a4.png",
       "1afc35fbff9e3dd05fc8ee8c9748343f6d6f6cca794359f68f08a2e65cd011ca.png",
       "8cfb50db8612711a5c151cb4ea86cbc72c0bc8d836c2bbd89547398e5525b30a.jpg",
-      "e5fad4abcd7c2f2a3352d15873df5e6847aeeeb11a77192c817fc48daa524238.jpg"
+      "e5fad4abcd7c2f2a3352d15873df5e6847aeeeb11a77192c817fc48daa524238.jpg",
+      "cb9199756b5c8d391bd86fb180066ef8609b04057df3c674c4201edd46347686.jpg"
     ]
   },
   "generatedFrom": "Published CMS content with approved original source artwork"

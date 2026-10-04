@@ -1,13 +1,13 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs';
 import { resolve, extname } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { loadStrapiApp } from './lib/strapi-load.mjs';
-import { allUids, collectionFields, singleUids, locales, populateFor, serialize, sha, replaceFiles, validateBundle, editableProjection, matchesRestoredGallery } from './content-bundle.helper.mjs';
+import { loadStrapiApp } from './strapi-load.mjs';
+import { allUids, collectionFields, singleUids, locales, populateFor, serialize, sha, replaceFiles, validateBundle, editableProjection, matchesRestoredGallery } from './content-release.helper.mjs';
 
-process.chdir(resolve(import.meta.dirname, '..'));
+process.chdir(resolve(import.meta.dirname, '../..'));
 const args = process.argv.slice(2).filter(a => a !== '--');
 const [mode, directory] = args;
-if (!['pack', 'deploy', 'seed'].includes(mode) || !directory) throw new Error('Use seed-production-content.mjs or content:pack / content:deploy.');
+if (mode !== 'seed' || !directory) throw new Error('Use seed-production-content.mjs or content:pack / content:deploy.');
 const shipped = mode === 'seed';
 const restoreStory = args.includes('--restore-story');
 const restoreBooking = args.includes('--restore-booking');
@@ -172,7 +172,7 @@ if (mode !== 'pack' && apply) {
     for (const file of bundle.files) copyFileSync(resolve('data/media/salanca', file.sourceFile), resolve(executionRoot, 'media', file.name));
   }
   const payloadPath = resolve(executionRoot, 'payload.json'); writeFileSync(payloadPath, JSON.stringify(bundle.payload));
-  const result = spawnSync(process.execPath, ['scripts/seed-salanca-content/index.mjs', payloadPath, ...(restorePages ? [restoreBooking ? '--restore-booking' : restoreStory ? '--restore-story' : restoreMarketing ? '--restore-marketing-pages' : '--restore-experience-space'] : [])], { env: { ...process.env, SALANCA_WEB_MEDIA_DIR: resolve(executionRoot, 'media'), ...(shipped ? { SALANCA_SEED_REQUIRE_S3: 'true' } : {}) }, stdio: 'inherit' });
+  const result = spawnSync(process.execPath, ['scripts/lib/content-import/index.mjs', payloadPath, ...(restorePages ? [restoreBooking ? '--restore-booking' : restoreStory ? '--restore-story' : restoreMarketing ? '--restore-marketing-pages' : '--restore-experience-space'] : [])], { env: { ...process.env, SALANCA_WEB_MEDIA_DIR: resolve(executionRoot, 'media'), ...(shipped ? { SALANCA_SEED_REQUIRE_S3: 'true' } : {}) }, stdio: 'inherit' });
   if (result.status !== 0) throw new Error('Seed failed; partial writes may exist. Preserve the recorded recovery snapshot and inspect the failure before retrying.');
   console.log('Content/media deployment complete. Rebuild/revalidate the frontend using its existing deployment pipeline.');
 }

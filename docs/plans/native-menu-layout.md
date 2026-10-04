@@ -1,3 +1,5 @@
+> Historical implementation record. Script cleanup on 2026-10-03 supersedes old commands; use the complete-release command in docs/content-bundle-deploy.md.
+
 # Native menu and CMS media correction
 
 Status: Implemented locally; exact visual UAT pending. Owner request: 2026-10-01.

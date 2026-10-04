@@ -203,3 +203,8 @@ contact fields only; hours/price still open).
 Local restoration verified 2026-10-03: scoped seed created 17 S3 media and updated 16 VI/EN page/gallery documents. FE adapter tests (23), BE seed tests (8), schema/typecheck/lint and desktop/mobile (375px) browser checks passed. Other release pages/menu/global settings were verified unchanged. Build/production E2E and production apply not run. Servers: FE 3001, BE 1338; no Git push for this restoration.
 
 Homepage dish image restoration verified 2026-10-03: restored the approved f3b9865 image mapping for Picanha, Costela, Cupim, Panceta, Cordeiro and Camarão in 12 published VI/EN menu-item documents. Homepage continues to read their CMS media relations. The release now contains 40 approved originals. Run `node scripts/restore-home-dish-images.mjs` on the backend for this image-only restore; it blocks unpublished edits and writes a recovery snapshot before updates. A second local run exited successfully and reused all six S3 files (created=0, skipped=6). FE typecheck/scoped lint, two release tests and VI/EN homepage browser inspection passed; screenshot: `salanca-web/.tmp/restored-pages/home-dishes-vi.png`. Production apply and Git push remain unrun.
+
+
+## Script cleanup — 2026-10-03
+
+Removed 19 obsolete demo/deploy/one-off scripts and duplicate seed package aliases. Use `node scripts/seed-production-content.mjs` once for the complete approved release; separate page commands are unnecessary. Production internals, validation and backup tools are retained. Earlier commands in historical reports are superseded by content-bundle-deploy.md. No CMS writes or production apply during cleanup.

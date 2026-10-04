@@ -75,8 +75,7 @@ npm run check:phase3
 Seed / ops (BDS-style):
 
 ```powershell
-npm run seed:demo          # modular scripts/seed-salanca-demo/*
-npm run verify:seed
+npm run seed:production    # shipped approved content and S3 images
 npm run media:reconcile    # read-only S3 vs DB (requires S3 env); not part of check:phase6
 npm run data:export
 npm run data:import

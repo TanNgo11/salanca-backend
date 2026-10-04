@@ -1,3 +1,5 @@
+> Historical implementation record. Script cleanup on 2026-10-03 supersedes old commands; use the complete-release command in docs/content-bundle-deploy.md.
+
 # Published content bundle deployment
 
 Status: Automated verification passed; production apply unrun. Owner authorization: create an automatic content/media deployment script, 2026-10-03.

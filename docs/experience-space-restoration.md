@@ -1,3 +1,5 @@
+> Historical implementation record. Script cleanup on 2026-10-03 supersedes old commands; use the complete-release command in docs/content-bundle-deploy.md.
+
 # Experience and space restoration
 
 2026-10-03: Owner requested the old blocks and images from the mockup reference. No remote branch named mockup is advertised; f3b9865 (before the PDF refresh) is the working reference pending clarification. Experience restores SplitBand intro, Rodizio signal cards, original photography and white-flower quote art. Space restores the gallery, zones, amenities and optional configured-video composition. Public runtime still reads localized published CMS content.

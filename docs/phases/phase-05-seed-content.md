@@ -1,3 +1,5 @@
+> Historical implementation record. Script cleanup on 2026-10-03 supersedes old commands; use the complete-release command in docs/content-bundle-deploy.md.
+
 # Phase 5 — Seed nội dung prototype
 
 ## 1. Mục tiêu

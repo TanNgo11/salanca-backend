@@ -113,10 +113,14 @@ export interface HomeHero extends Struct.ComponentSchema {
     displayName: 'Trang ch\u1EE7 - M\u1EDF \u0111\u1EA7u';
   };
   attributes: {
-    decorativeImage: Schema.Attribute.Component<'shared.image', false> &
-      Schema.Attribute.SetPluginOptions<{ i18n: { localized: true } }>;
     backgroundImage: Schema.Attribute.Component<'shared.image', false> &
       Schema.Attribute.Required &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
+    decorativeImage: Schema.Attribute.Component<'shared.image', false> &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
           localized: true;
@@ -313,6 +317,20 @@ export interface HomeStory extends Struct.ComponentSchema {
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 180;
       }>;
+  };
+}
+
+export interface SharedBookingContact extends Struct.ComponentSchema {
+  collectionName: 'components_shared_booking_contacts';
+  info: {
+    displayName: 'Th\u00F4ng tin \u0111\u1EB7t b\u00E0n';
+  };
+  attributes: {
+    address: Schema.Attribute.Text & Schema.Attribute.Required;
+    facebook: Schema.Attribute.Component<'shared.link', false>;
+    mapUrl: Schema.Attribute.String & Schema.Attribute.Required;
+    phones: Schema.Attribute.Component<'shared.link', true>;
+    qrImage: Schema.Attribute.Component<'shared.image', false>;
   };
 }
 
@@ -613,6 +631,8 @@ export interface SharedImage extends Struct.ComponentSchema {
       > &
       Schema.Attribute.DefaultTo<50>;
     media: Schema.Attribute.Media<'images'> & Schema.Attribute.Required;
+    mirrorHorizontally: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<false>;
   };
 }
 
@@ -907,6 +927,7 @@ declare module '@strapi/strapi' {
       'home.process': HomeProcess;
       'home.space': HomeSpace;
       'home.story': HomeStory;
+      'shared.booking-contact': SharedBookingContact;
       'shared.cta': SharedCta;
       'shared.editorial-card': SharedEditorialCard;
       'shared.faq-item': SharedFaqItem;

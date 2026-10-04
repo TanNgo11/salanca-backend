@@ -14,8 +14,8 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { createSummary, upsertBySlug, upsertLocalization, upsertSingleType } from '../lib/seed-document.mjs';
-import { loadStrapiApp } from '../lib/strapi-load.mjs';
+import { createSummary, upsertBySlug, upsertLocalization, upsertSingleType } from '../seed-document.mjs';
+import { loadStrapiApp } from '../strapi-load.mjs';
 import { adaptHomePageForCurrentSchema } from './adapt-current-schema.mjs';
 import { ensureContentMedia, mediaDirectory } from './media.mjs';
 import { resolvePlaceholders } from './resolve.mjs';

@@ -77,7 +77,7 @@ const nonLocalizedByComponent = {
   'faq-item': [],
   'feature-block': ['price'],
   hero: [],
-  image: ['media', 'focalPointX', 'focalPointY'],
+  image: ['media', 'focalPointX', 'focalPointY', 'mirrorHorizontally'],
   link: ['openInNewTab'],
   'list-item': [],
   'operating-period': ['opensAt', 'closesAt'],

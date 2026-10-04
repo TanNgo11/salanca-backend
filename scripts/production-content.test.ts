@@ -2,10 +2,10 @@ import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 // @ts-expect-error Runtime ESM helper.
-import { sha, validateBundle } from './content-bundle.helper.mjs';
+import { sha, validateBundle } from './lib/content-release.helper.mjs';
 // @ts-expect-error Runtime ESM helper.
-import { ensureContentMedia } from './seed-salanca-content/media.mjs';
-import { resolvePlaceholders } from './seed-salanca-content/resolve.mjs';
+import { ensureContentMedia } from './lib/content-import/media.mjs';
+import { resolvePlaceholders } from './lib/content-import/resolve.mjs';
 
 const bundle = JSON.parse(readFileSync(resolve('data/content-release/bundle.json'), 'utf8'));
 
