@@ -127,6 +127,15 @@ export const formatInboxReceivedAt = (createdAt: string): string =>
 export const contentManagerEditPath = (documentId: string): string =>
   `/content-manager/collection-types/api::reservation-request.reservation-request/${documentId}`;
 
+/**
+ * Full admin URL for plain `href`s (Strapi notification links) that bypass the
+ * router basename. Mirrors Strapi's own `getBasename()`.
+ */
+export const adminHref = (path: string): string => {
+  const basename = (process.env.ADMIN_PATH ?? '').replace(window.location.origin, '');
+  return `${basename.replace(/\/+$/, '')}${path}`;
+};
+
 export type InboxMode = 'stream' | 'polling';
 
 export interface InboxState {

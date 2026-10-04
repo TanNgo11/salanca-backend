@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ReservationInboxItem } from '../../domain/reservation-request/reservation-inbox-events';
 import {
+  adminHref,
   contentManagerEditPath,
   formatInboxToastMessage,
   formatInboxVisitDateTime,
@@ -130,6 +131,23 @@ describe('contentManagerEditPath', () => {
     expect(contentManagerEditPath('doc123456789')).toBe(
       '/content-manager/collection-types/api::reservation-request.reservation-request/doc123456789',
     );
+  });
+});
+
+describe('adminHref', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it.each([
+    ['https://quanly.example.com/admin', '/admin/content-manager'],
+    ['/admin/', '/admin/content-manager'],
+    ['', '/content-manager'],
+  ])('prefixes the admin base path from ADMIN_PATH %j', (adminPath, expected) => {
+    vi.stubEnv('ADMIN_PATH', adminPath);
+    vi.stubGlobal('window', { location: { origin: 'https://quanly.example.com' } });
+    expect(adminHref('/content-manager')).toBe(expected);
   });
 });
 

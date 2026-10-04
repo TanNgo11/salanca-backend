@@ -12,6 +12,7 @@ import {
 import { ReservationInboxWidget } from './ReservationInboxWidget';
 import { ReservationInboxContext } from './reservation-inbox.context';
 import {
+  adminHref,
   contentManagerEditPath,
   formatInboxToastMessage,
   reservationInboxPermissions,
@@ -47,7 +48,7 @@ export const ReservationInboxProvider = ({ children }: ReservationInboxProviderP
         type: 'info',
         message,
         link: {
-          url: contentManagerEditPath(item.documentId),
+          url: adminHref(contentManagerEditPath(item.documentId)),
           label: 'Xem',
         },
         timeout: 8_000,
