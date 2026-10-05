@@ -107,6 +107,25 @@
       "component": "shared.link",
       "repeatable": false
     },
+    "videoUrl": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "type": "string",
+      "maxLength": 2048
+    },
+    "videoThumbs": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "type": "component",
+      "component": "shared.image",
+      "repeatable": true
+    },
     "experienceHeading": {
       "pluginOptions": {
         "i18n": {
@@ -174,6 +193,16 @@
       "component": "shared.cta",
       "repeatable": false,
       "required": true
+    },
+    "closingSecondaryLink": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "type": "component",
+      "component": "shared.link",
+      "repeatable": false
     },
     "seo": {
       "pluginOptions": {

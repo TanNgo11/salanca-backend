@@ -86,6 +86,16 @@
       "component": "shared.feature-block",
       "repeatable": false
     },
+    "catering": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "type": "component",
+      "component": "shared.feature-block",
+      "repeatable": false
+    },
     "bookingCta": {
       "pluginOptions": {
         "i18n": {

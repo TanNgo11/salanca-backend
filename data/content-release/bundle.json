@@ -1,7 +1,7 @@
 {
   "version": 1,
   "createdAt": "2026-10-03T03:23:42.417Z",
-  "schemaHash": "36932a7241a028496ef1dd287b943f777b40ee624b17989789c7c227e3fd1157",
+  "schemaHash": "ff230c716f29a216ec5014595d4d5516ce6591083fd8c9c09c0b34b284434d72",
   "files": [
     {
       "name": "ea999245bede5a2d247e7da3560014f721d2e80b7cbc2d624a634b80dc8b4502.webp",
@@ -290,6 +290,30 @@
       "sha256": "cb9199756b5c8d391bd86fb180066ef8609b04057df3c674c4201edd46347686",
       "originalName": "dessert-fruit-background.jpg",
       "sourceFile": "dessert-fruit-background.jpg"
+    },
+    {
+      "name": "6cf74f2a17fe4296d6881dd3840f6a7db8d5b231451bc0e0e727422436b5bf6a.png",
+      "sha256": "6cf74f2a17fe4296d6881dd3840f6a7db8d5b231451bc0e0e727422436b5bf6a",
+      "originalName": "amenity-private.png",
+      "sourceFile": "amenity-private.png"
+    },
+    {
+      "name": "3be37493a85f8866ab4f2643e03972afb488799d2a5fd3f5b9dd0d3b4fd6cf36.png",
+      "sha256": "3be37493a85f8866ab4f2643e03972afb488799d2a5fd3f5b9dd0d3b4fd6cf36",
+      "originalName": "amenity-table.png",
+      "sourceFile": "amenity-table.png"
+    },
+    {
+      "name": "7f65c7ca202f4ed76ac5ac3e07a5f1e303cc606c83b4ec9033fa38e939c8ad1d.png",
+      "sha256": "7f65c7ca202f4ed76ac5ac3e07a5f1e303cc606c83b4ec9033fa38e939c8ad1d",
+      "originalName": "amenity-event.png",
+      "sourceFile": "amenity-event.png"
+    },
+    {
+      "name": "4c907ddf411bae29ee954c30a5f5485773f1e9e884a82bdf0b0ab7b2739e2772.png",
+      "sha256": "4c907ddf411bae29ee954c30a5f5485773f1e9e884a82bdf0b0ab7b2739e2772",
+      "originalName": "amenity-service.png",
+      "sourceFile": "amenity-service.png"
     }
   ],
   "payload": {
@@ -5189,6 +5213,24 @@
               "openInNewTab": false
             }
           },
+          "catering": {
+            "title": "Catering",
+            "body": "Trải nghiệm phong cách ẩm thực Brazil tại gia",
+            "link": {
+              "label": "Đặt bàn",
+              "url": "/vi/dat-ban",
+              "openInNewTab": false
+            },
+            "image": {
+              "media": {
+                "__file": "6b5461ba074055d2e298af3dff048a9ea3f7a11dbabdd18580639920debf6f18.webp"
+              },
+              "alt": "Thịt nướng Brazil được phục vụ tận nơi",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            }
+          },
           "bookingCta": {
             "heading": "Sẵn sàng cho một bữa tiệc đậm chất Brazil?",
             "body": "Đặt bàn ngay để giữ chỗ và tận hưởng trải nghiệm Churrascaria trọn vẹn.",
@@ -5286,6 +5328,24 @@
               "label": "Book a table to enjoy",
               "url": "/en/reservations",
               "openInNewTab": false
+            }
+          },
+          "catering": {
+            "title": "Catering",
+            "body": "Brazilian churrasco dining, brought to your home",
+            "link": {
+              "label": "Book now",
+              "url": "/en/reservations",
+              "openInNewTab": false
+            },
+            "image": {
+              "media": {
+                "__file": "6b5461ba074055d2e298af3dff048a9ea3f7a11dbabdd18580639920debf6f18.webp"
+              },
+              "alt": "Brazilian grilled meats served at your table",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
             }
           },
           "bookingCta": {
@@ -6301,6 +6361,54 @@
             "url": "/vi/khong-gian",
             "openInNewTab": false
           },
+          "videoUrl": null,
+          "videoThumbs": [
+            {
+              "media": {
+                "__file": "22773a238369ffdf893a836d03276abb0fdd0b213df9f61810cc6c20bcac8a8c.jpg"
+              },
+              "alt": "Sảnh chính với ánh đèn vàng",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            {
+              "media": {
+                "__file": "dd55109b2bbf47536306bd5dd08173af2f54f660ad45cb9abfe7e2354407cb32.jpg"
+              },
+              "alt": "Sảnh với vòm cửa và rèm đỏ",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            {
+              "media": {
+                "__file": "55917a9795da1574d4febbb4449a161c38b88a63eebc309a27f59d8e81d97c57.jpg"
+              },
+              "alt": "Phòng mang màu sắc Brazil",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            {
+              "media": {
+                "__file": "1e97df50679298713d08e7a781c57d490acb715608e81055cb78a0205d099170.jpg"
+              },
+              "alt": "Không gian bàn ăn cạnh cửa xanh",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            {
+              "media": {
+                "__file": "b6b85342617351aa8839a685a01a316857331243d2bac3eb6d8809390fd38eb9.jpg"
+              },
+              "alt": "Bàn ăn cạnh hiên xanh",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            }
+          ],
           "experienceHeading": "Không gian cho mọi cuộc hẹn",
           "experienceBody": "Từ sảnh chính sôi động đến phòng riêng kín đáo, mỗi khu vực được chuẩn bị cho một nhịp gặp gỡ khác nhau.",
           "experienceImage": {
@@ -6357,19 +6465,55 @@
           "amenities": [
             {
               "title": "Không gian",
-              "body": "riêng tư"
+              "body": "riêng tư",
+              "image": {
+                "media": {
+                  "__file": "6cf74f2a17fe4296d6881dd3840f6a7db8d5b231451bc0e0e727422436b5bf6a.png"
+                },
+                "alt": "Không gian riêng tư",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50
+              }
             },
             {
               "title": "Bàn tiệc",
-              "body": "linh hoạt"
+              "body": "linh hoạt",
+              "image": {
+                "media": {
+                  "__file": "3be37493a85f8866ab4f2643e03972afb488799d2a5fd3f5b9dd0d3b4fd6cf36.png"
+                },
+                "alt": "Bàn tiệc linh hoạt",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50
+              }
             },
             {
               "title": "Hỗ trợ",
-              "body": "sự kiện"
+              "body": "sự kiện",
+              "image": {
+                "media": {
+                  "__file": "7f65c7ca202f4ed76ac5ac3e07a5f1e303cc606c83b4ec9033fa38e939c8ad1d.png"
+                },
+                "alt": "Hỗ trợ sự kiện",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50
+              }
             },
             {
               "title": "Phục vụ",
-              "body": "tận tâm"
+              "body": "tận tâm",
+              "image": {
+                "media": {
+                  "__file": "4c907ddf411bae29ee954c30a5f5485773f1e9e884a82bdf0b0ab7b2739e2772.png"
+                },
+                "alt": "Phục vụ tận tâm",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50
+              }
             }
           ],
           "closingCta": {
@@ -6379,6 +6523,11 @@
               "url": "/vi/dat-ban",
               "openInNewTab": false
             }
+          },
+          "closingSecondaryLink": {
+            "label": "Tư vấn sự kiện",
+            "url": "/vi/lien-he",
+            "openInNewTab": false
           },
           "seo": {
             "metaTitle": "Không gian",
@@ -6477,6 +6626,54 @@
             "url": "/en/space",
             "openInNewTab": false
           },
+          "videoUrl": null,
+          "videoThumbs": [
+            {
+              "media": {
+                "__file": "22773a238369ffdf893a836d03276abb0fdd0b213df9f61810cc6c20bcac8a8c.jpg"
+              },
+              "alt": "Main hall with warm lighting",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            {
+              "media": {
+                "__file": "dd55109b2bbf47536306bd5dd08173af2f54f660ad45cb9abfe7e2354407cb32.jpg"
+              },
+              "alt": "Hall with arched doorways and red curtains",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            {
+              "media": {
+                "__file": "55917a9795da1574d4febbb4449a161c38b88a63eebc309a27f59d8e81d97c57.jpg"
+              },
+              "alt": "Brazilian-inspired dining room",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            {
+              "media": {
+                "__file": "1e97df50679298713d08e7a781c57d490acb715608e81055cb78a0205d099170.jpg"
+              },
+              "alt": "Dining tables beside green doors",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            },
+            {
+              "media": {
+                "__file": "b6b85342617351aa8839a685a01a316857331243d2bac3eb6d8809390fd38eb9.jpg"
+              },
+              "alt": "A table set beside the green veranda",
+              "caption": null,
+              "focalPointX": 50,
+              "focalPointY": 50
+            }
+          ],
           "experienceHeading": "Spaces for every occasion",
           "experienceBody": "From the lively main hall to private rooms, each area is prepared for a different kind of gathering.",
           "experienceImage": {
@@ -6533,19 +6730,55 @@
           "amenities": [
             {
               "title": "Private",
-              "body": "spaces"
+              "body": "spaces",
+              "image": {
+                "media": {
+                  "__file": "6cf74f2a17fe4296d6881dd3840f6a7db8d5b231451bc0e0e727422436b5bf6a.png"
+                },
+                "alt": "Private spaces",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50
+              }
             },
             {
               "title": "Flexible",
-              "body": "tables"
+              "body": "tables",
+              "image": {
+                "media": {
+                  "__file": "3be37493a85f8866ab4f2643e03972afb488799d2a5fd3f5b9dd0d3b4fd6cf36.png"
+                },
+                "alt": "Flexible tables",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50
+              }
             },
             {
               "title": "Event",
-              "body": "support"
+              "body": "support",
+              "image": {
+                "media": {
+                  "__file": "7f65c7ca202f4ed76ac5ac3e07a5f1e303cc606c83b4ec9033fa38e939c8ad1d.png"
+                },
+                "alt": "Event support",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50
+              }
             },
             {
               "title": "Attentive",
-              "body": "service"
+              "body": "service",
+              "image": {
+                "media": {
+                  "__file": "4c907ddf411bae29ee954c30a5f5485773f1e9e884a82bdf0b0ab7b2739e2772.png"
+                },
+                "alt": "Attentive service",
+                "caption": null,
+                "focalPointX": 50,
+                "focalPointY": 50
+              }
             }
           ],
           "closingCta": {
@@ -6555,6 +6788,11 @@
               "url": "/en/reservations",
               "openInNewTab": false
             }
+          },
+          "closingSecondaryLink": {
+            "label": "Event consult",
+            "url": "/en/contact",
+            "openInNewTab": false
           },
           "seo": {
             "metaTitle": "Space",
@@ -6602,6 +6840,8 @@
             }
           },
           "listingHeading": "Chương trình dành cho bạn",
+          "newsletterHeading": "Đừng bỏ lỡ những câu chuyện mới",
+          "newsletterNote": "Chúng tôi trân trọng quyền riêng tư của bạn và cam kết bảo mật thông tin.",
           "eventCta": {
             "heading": "Tổ chức sự kiện của riêng bạn",
             "body": "Tiệc công ty, họp mặt bạn bè đến những dịp kỷ niệm đáng nhớ, Salanca mang đến trải nghiệm ẩm thực và không gian được thiết kế riêng cho bạn.",
@@ -6681,6 +6921,8 @@
             }
           },
           "listingHeading": "Programs for you",
+          "newsletterHeading": "Don’t miss the next stories",
+          "newsletterNote": "We respect your privacy and keep your information secure.",
           "eventCta": {
             "heading": "Host your own event",
             "body": "From company dinners and reunions to milestones worth remembering, Salanca brings the food experience and a room shaped around you.",
@@ -6771,6 +7013,7 @@
             }
           },
           "mapHeading": "TÌM ĐƯỜNG ĐẾN SALANCA",
+          "mapImage": null,
           "formHeading": "GỬI LỜI NHẮN",
           "helpHeading": "SALANCA CÓ THỂ GIÚP GÌ CHO BẠN?",
           "helpBody": "Chọn nội dung phù hợp để đội ngũ Salanca hỗ trợ bạn nhanh hơn.",
@@ -6921,6 +7164,7 @@
             }
           },
           "mapHeading": "FIND YOUR WAY TO SALANCA",
+          "mapImage": null,
           "formHeading": "SEND A MESSAGE",
           "helpHeading": "HOW CAN SALANCA HELP YOU?",
           "helpBody": "Choose the topic that best matches what you need from our team.",
@@ -8411,7 +8655,11 @@
       "1afc35fbff9e3dd05fc8ee8c9748343f6d6f6cca794359f68f08a2e65cd011ca.png",
       "8cfb50db8612711a5c151cb4ea86cbc72c0bc8d836c2bbd89547398e5525b30a.jpg",
       "e5fad4abcd7c2f2a3352d15873df5e6847aeeeb11a77192c817fc48daa524238.jpg",
-      "cb9199756b5c8d391bd86fb180066ef8609b04057df3c674c4201edd46347686.jpg"
+      "cb9199756b5c8d391bd86fb180066ef8609b04057df3c674c4201edd46347686.jpg",
+      "6cf74f2a17fe4296d6881dd3840f6a7db8d5b231451bc0e0e727422436b5bf6a.png",
+      "3be37493a85f8866ab4f2643e03972afb488799d2a5fd3f5b9dd0d3b4fd6cf36.png",
+      "7f65c7ca202f4ed76ac5ac3e07a5f1e303cc606c83b4ec9033fa38e939c8ad1d.png",
+      "4c907ddf411bae29ee954c30a5f5485773f1e9e884a82bdf0b0ab7b2739e2772.png"
     ]
   },
   "generatedFrom": "Published CMS content with approved original source artwork"

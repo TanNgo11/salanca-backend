@@ -441,6 +441,22 @@
           "metaDescription": "Khám phá thực đơn Salanca — buffet churrascaria, rodizio, a la carte và các món nướng đặc trưng.",
           "canonicalPath": "/vi/thuc-don",
           "noIndex": false
+        },
+        "catering": {
+          "title": "Catering",
+          "body": "Trải nghiệm phong cách ẩm thực Brazil tại gia",
+          "link": {
+            "label": "Đặt bàn",
+            "url": "/vi/dat-ban",
+            "openInNewTab": false
+          },
+          "image": {
+            "__media": "pdf-churrasco-service-4k.webp",
+            "alt": "Thịt nướng Brazil được phục vụ tận nơi",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          }
         }
       },
       "en": {
@@ -526,6 +542,22 @@
           "metaDescription": "Explore the Salanca menu — churrascaria buffet, rodizio, a la carte, and signature grilled cuts.",
           "canonicalPath": "/en/menu",
           "noIndex": false
+        },
+        "catering": {
+          "title": "Catering",
+          "body": "Brazilian churrasco dining, brought to your home",
+          "link": {
+            "label": "Book now",
+            "url": "/en/reservations",
+            "openInNewTab": false
+          },
+          "image": {
+            "__media": "pdf-churrasco-service-4k.webp",
+            "alt": "Brazilian grilled meats served at your table",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          }
         }
       }
     },
@@ -1017,6 +1049,49 @@
           "metaDescription": "Câu chuyện về ngôi nhà mới của Salanca tại 49 Phan Bội Châu, Hà Nội.",
           "canonicalPath": "/vi/khong-gian",
           "noIndex": false
+        },
+        "videoUrl": null,
+        "videoThumbs": [
+          {
+            "__media": "client-interior-main.jpg",
+            "alt": "Sảnh chính với ánh đèn vàng",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          {
+            "__media": "client-interior-hall.jpg",
+            "alt": "Sảnh với vòm cửa và rèm đỏ",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          {
+            "__media": "client-interior-brazil.jpg",
+            "alt": "Phòng mang màu sắc Brazil",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          {
+            "__media": "client-interior-green.jpg",
+            "alt": "Không gian bàn ăn cạnh cửa xanh",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          {
+            "__media": "client-table-setting.jpg",
+            "alt": "Bàn ăn cạnh hiên xanh",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          }
+        ],
+        "closingSecondaryLink": {
+          "label": "Tư vấn sự kiện",
+          "url": "/vi/lien-he",
+          "openInNewTab": false
         }
       },
       "en": {
@@ -1094,6 +1169,49 @@
           "metaDescription": "The story of Salanca’s new home at 49 Phan Boi Chau, Hanoi.",
           "canonicalPath": "/en/space",
           "noIndex": false
+        },
+        "videoUrl": null,
+        "videoThumbs": [
+          {
+            "__media": "client-interior-main.jpg",
+            "alt": "Main hall with warm lighting",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          {
+            "__media": "client-interior-hall.jpg",
+            "alt": "Hall with arched doorways and red curtains",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          {
+            "__media": "client-interior-brazil.jpg",
+            "alt": "Brazilian-inspired dining room",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          {
+            "__media": "client-interior-green.jpg",
+            "alt": "Dining tables beside green doors",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          },
+          {
+            "__media": "client-table-setting.jpg",
+            "alt": "A table set beside the green veranda",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          }
+        ],
+        "closingSecondaryLink": {
+          "label": "Event consult",
+          "url": "/en/contact",
+          "openInNewTab": false
         }
       }
     },
@@ -1409,7 +1527,9 @@
           "metaDescription": "Liên hệ Salanca để hỏi thông tin ưu đãi.",
           "canonicalPath": "/vi/uu-dai",
           "noIndex": false
-        }
+        },
+        "newsletterHeading": "Đừng bỏ lỡ những câu chuyện mới",
+        "newsletterNote": "Chúng tôi trân trọng quyền riêng tư của bạn và cam kết bảo mật thông tin."
       },
       "en": {
         "hero": {
@@ -1460,7 +1580,9 @@
           "metaDescription": "Contact Salanca for offer information.",
           "canonicalPath": "/en/offers",
           "noIndex": false
-        }
+        },
+        "newsletterHeading": "Don’t miss the next stories",
+        "newsletterNote": "We respect your privacy and keep your information secure."
       }
     },
     "api::booking-page.booking-page": {
@@ -2381,7 +2503,8 @@
           "metaDescription": "Liên hệ Salanca — địa chỉ Hà Nội, hotline, form gửi tin nhắn và hướng dẫn đến nhà hàng.",
           "canonicalPath": "/vi/lien-he",
           "noIndex": false
-        }
+        },
+        "mapImage": null
       },
       "en": {
         "hero": {
@@ -2470,7 +2593,8 @@
           "metaDescription": "Contact Salanca — Hanoi address, hotline, message form, and directions to the restaurant.",
           "canonicalPath": "/en/contact",
           "noIndex": false
-        }
+        },
+        "mapImage": null
       }
     }
   },
@@ -5904,14 +6028,19 @@
     }
   },
   "media": [
+    "client-interior-brazil.jpg",
+    "client-interior-green.jpg",
+    "client-interior-hall.jpg",
+    "client-interior-main.jpg",
+    "client-table-setting.jpg",
+    "logo-salanca-brazil-transparent.png",
     "pdf-birds-right-4k.webp",
     "pdf-botanical-4k.webp",
-    "pdf-churrascaria-cover-exact.webp",
     "pdf-charcoal-skewers-4k.webp",
+    "pdf-churrascaria-cover-exact.webp",
     "pdf-churrasco-service-4k.webp",
     "pdf-grilled-selection-4k.webp",
     "pdf-lamb-chops-4k.webp",
-    "logo-salanca-brazil-transparent.png",
     "pdf-rodizio-skewer-4k.webp",
     "pdf-salad-bar-4k.webp",
     "pdf-salad-selection-4k.webp",

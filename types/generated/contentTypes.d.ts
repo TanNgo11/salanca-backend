@@ -844,6 +844,24 @@ export interface ApiCampaignPageCampaignPage extends Struct.SingleTypeSchema {
       'oneToMany',
       'api::campaign-page.campaign-page'
     >;
+    newsletterHeading: Schema.Attribute.String &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }> &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 180;
+      }>;
+    newsletterNote: Schema.Attribute.Text &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }> &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 500;
+      }>;
     publishedAt: Schema.Attribute.DateTime;
     seo: Schema.Attribute.Component<'shared.seo', false> &
       Schema.Attribute.Required &
@@ -1136,6 +1154,12 @@ export interface ApiContactPageContactPage extends Struct.SingleTypeSchema {
       }> &
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 180;
+      }>;
+    mapImage: Schema.Attribute.Component<'shared.image', false> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
       }>;
     publishedAt: Schema.Attribute.DateTime;
     seo: Schema.Attribute.Component<'shared.seo', false> &
@@ -2238,6 +2262,12 @@ export interface ApiMenuPageMenuPage extends Struct.SingleTypeSchema {
           localized: true;
         };
       }>;
+    catering: Schema.Attribute.Component<'shared.feature-block', false> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -2455,6 +2485,12 @@ export interface ApiSpacePageSpacePage extends Struct.SingleTypeSchema {
           localized: true;
         };
       }>;
+    closingSecondaryLink: Schema.Attribute.Component<'shared.link', false> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -2570,6 +2606,21 @@ export interface ApiSpacePageSpacePage extends Struct.SingleTypeSchema {
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    videoThumbs: Schema.Attribute.Component<'shared.image', true> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
+    videoUrl: Schema.Attribute.String &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }> &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 2048;
+      }>;
     zones: Schema.Attribute.Component<'shared.editorial-card', true> &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
@@ -3198,6 +3249,11 @@ export interface PluginUsersPermissionsUser
   options: {
     draftAndPublish: false;
     timestamps: true;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
   };
   attributes: {
     blocked: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;

@@ -61,6 +61,16 @@
       "type": "string",
       "maxLength": 180
     },
+    "mapImage": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "type": "component",
+      "component": "shared.image",
+      "repeatable": false
+    },
     "formHeading": {
       "pluginOptions": {
         "i18n": {
