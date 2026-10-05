@@ -245,6 +245,39 @@ export interface HomeSpace extends Struct.ComponentSchema {
     displayName: 'Trang ch\u1EE7 - Kh\u00F4ng gian';
   };
   attributes: {
+    bannerBody: Schema.Attribute.Text &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }> &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 800;
+      }>;
+    bannerImage: Schema.Attribute.Component<'shared.image', false> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
+    bannerQuote: Schema.Attribute.Text &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }> &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 160;
+      }>;
+    bannerTitle: Schema.Attribute.Text &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }> &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 240;
+      }>;
     eyebrow: Schema.Attribute.String &
       Schema.Attribute.SetPluginOptions<{
         i18n: {

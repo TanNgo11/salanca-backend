@@ -163,7 +163,17 @@
             "url": "/vi/khong-gian",
             "openInNewTab": false
           },
-          "images": []
+          "images": [],
+          "bannerTitle": "MENU MÓN ĂN\nTRUYỀN THỐNG\nCỦA BRAZIL",
+          "bannerBody": "Thịt bò và cừu sử dụng trong nhà hàng được nhập từ New Zealand và được nướng trên lò than củi để tạo nên và giữ lại mùi vị thơm ngon nhất của nguyên liệu. Với hơn 12 món nướng, dùng kèm với nhiều loại salad khác nhau, cơm bơ, thơm nướng, ... cùng món đậu đen Feijoada truyền thống Brazil được phục vụ ngay tại bàn",
+          "bannerQuote": "QUÝ KHÁCH THOẢI MÁI ĂN NO HẾT MỨC CÓ THỂ",
+          "bannerImage": {
+            "__media": "pdf-churrasco-service-4k.webp",
+            "alt": "Thịt nướng trên xiên phục vụ tại bàn",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          }
         },
         "bookingStrip": {
           "heading": "Sẵn sàng cho một bữa tiệc đậm chất Brazil?",
@@ -338,7 +348,17 @@
             "url": "/en/space",
             "openInNewTab": false
           },
-          "images": []
+          "images": [],
+          "bannerTitle": "OUR TRADITIONAL\nBRAZILIAN MENU",
+          "bannerBody": "All our Beef and Lamb are imported from New Zealand and are considered to be one of World top class quality. The grilling is made on charcoal and wood to obtain the best taste of the meat. Over 12 different kinds of BBQ, served on huge skewer, with selections of salad, Brazilian typical dishes and grilled pineapple are serving at your table.",
+          "bannerQuote": "ALL YOU CAN EAT & EAT AS MUCH AS YOU CAN",
+          "bannerImage": {
+            "__media": "pdf-samba-dancer-4k.webp",
+            "alt": "Samba dancer in festival costume",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50
+          }
         },
         "bookingStrip": {
           "heading": "Ready for a true Brazilian feast?",
@@ -2821,8 +2841,8 @@
           "key": "picanha",
           "vi": {
             "slug": "picanha",
-            "name": "Picanha",
-            "shortDescription": "Phần ngon nhất của mông bò",
+            "name": "Beef Picanha - The Best part of Rump Steak",
+            "shortDescription": "Picanha - Phần ngon nhất của mông bò",
             "portion": null,
             "description": [
               {
@@ -2851,12 +2871,13 @@
             },
             "isFeatured": true,
             "isActive": true,
-            "displayOrder": 1
+            "displayOrder": 10,
+            "showStar": true
           },
           "en": {
             "slug": "picanha",
-            "name": "Picanha",
-            "shortDescription": "The prized cut from the rump cap",
+            "name": "Beef Picanha - The Best part of Rump Steak",
+            "shortDescription": "The most prized cut of rump steak",
             "portion": null,
             "description": [
               {
@@ -2885,15 +2906,16 @@
             },
             "isFeatured": true,
             "isActive": true,
-            "displayOrder": 1
+            "displayOrder": 10,
+            "showStar": true
           }
         },
         {
           "key": "costela",
           "vi": {
             "slug": "costela",
-            "name": "Costela",
-            "shortDescription": "Sườn bò nướng",
+            "name": "Costelao - Prime Beef Rib . Sườn bò",
+            "shortDescription": "",
             "portion": null,
             "description": [
               {
@@ -2922,12 +2944,13 @@
             },
             "isFeatured": true,
             "isActive": true,
-            "displayOrder": 2
+            "displayOrder": 3,
+            "showStar": false
           },
           "en": {
             "slug": "costela",
-            "name": "Costela",
-            "shortDescription": "Grilled beef ribs",
+            "name": "Costelao - Prime Beef Rib",
+            "shortDescription": "",
             "portion": null,
             "description": [
               {
@@ -2956,15 +2979,16 @@
             },
             "isFeatured": true,
             "isActive": true,
-            "displayOrder": 2
+            "displayOrder": 3,
+            "showStar": false
           }
         },
         {
           "key": "cupim",
           "vi": {
             "slug": "cupim",
-            "name": "Cupim",
-            "shortDescription": "U bò",
+            "name": "Cupim (beef Hump) . U bò",
+            "shortDescription": "",
             "portion": null,
             "description": [
               {
@@ -2993,12 +3017,13 @@
             },
             "isFeatured": true,
             "isActive": true,
-            "displayOrder": 3
+            "displayOrder": 8,
+            "showStar": false
           },
           "en": {
             "slug": "cupim",
-            "name": "Cupim",
-            "shortDescription": "Beef hump",
+            "name": "Cupim (beef Hump)",
+            "shortDescription": "",
             "portion": null,
             "description": [
               {
@@ -3027,15 +3052,16 @@
             },
             "isFeatured": true,
             "isActive": true,
-            "displayOrder": 3
+            "displayOrder": 8,
+            "showStar": false
           }
         },
         {
           "key": "panceta",
           "vi": {
             "slug": "panceta",
-            "name": "Panceta",
-            "shortDescription": "Ba chỉ heo nướng",
+            "name": "Panceta . Ba chỉ heo",
+            "shortDescription": "",
             "portion": null,
             "description": [
               {
@@ -3064,12 +3090,13 @@
             },
             "isFeatured": true,
             "isActive": true,
-            "displayOrder": 4
+            "displayOrder": 5,
+            "showStar": false
           },
           "en": {
             "slug": "panceta",
             "name": "Panceta",
-            "shortDescription": "Grilled pork belly",
+            "shortDescription": "",
             "portion": null,
             "description": [
               {
@@ -3098,15 +3125,16 @@
             },
             "isFeatured": true,
             "isActive": true,
-            "displayOrder": 4
+            "displayOrder": 5,
+            "showStar": false
           }
         },
         {
           "key": "cordeiro",
           "vi": {
             "slug": "cordeiro",
-            "name": "Cordeiro",
-            "shortDescription": "Đùi cừu",
+            "name": "Lamb leg . Đùi cừu",
+            "shortDescription": "",
             "portion": null,
             "description": [
               {
@@ -3135,12 +3163,13 @@
             },
             "isFeatured": true,
             "isActive": true,
-            "displayOrder": 5
+            "displayOrder": 7,
+            "showStar": false
           },
           "en": {
             "slug": "cordeiro",
-            "name": "Cordeiro",
-            "shortDescription": "Lamb leg",
+            "name": "Lamb leg",
+            "shortDescription": "",
             "portion": null,
             "description": [
               {
@@ -3169,15 +3198,16 @@
             },
             "isFeatured": true,
             "isActive": true,
-            "displayOrder": 5
+            "displayOrder": 7,
+            "showStar": false
           }
         },
         {
           "key": "camarao",
           "vi": {
             "slug": "camarao",
-            "name": "Camarão",
-            "shortDescription": "Tôm cuộn bacon",
+            "name": "Shrimp with Bacon . Bacon cuốn tôm",
+            "shortDescription": "",
             "portion": null,
             "description": [
               {
@@ -3206,12 +3236,13 @@
             },
             "isFeatured": true,
             "isActive": true,
-            "displayOrder": 6
+            "displayOrder": 4,
+            "showStar": false
           },
           "en": {
             "slug": "camarao",
-            "name": "Camarão",
-            "shortDescription": "Bacon-wrapped prawns",
+            "name": "Shrimp with Bacon",
+            "shortDescription": "",
             "portion": null,
             "description": [
               {
@@ -3240,7 +3271,8 @@
             },
             "isFeatured": true,
             "isActive": true,
-            "displayOrder": 6
+            "displayOrder": 4,
+            "showStar": false
           }
         },
         {
@@ -3316,7 +3348,7 @@
           "key": "calabrian-sausage",
           "vi": {
             "slug": "calabrian-sausage",
-            "name": "Xúc xích Calabrian",
+            "name": "Calabrian Sausage . Xúc xích",
             "shortDescription": "",
             "description": [],
             "portion": null,
@@ -3330,11 +3362,11 @@
             "isFeatured": false,
             "showStar": false,
             "isActive": true,
-            "displayOrder": 100
+            "displayOrder": 1
           },
           "en": {
             "slug": "calabrian-sausage",
-            "name": "Calabrian sausage",
+            "name": "Calabrian Sausage",
             "shortDescription": "",
             "description": [],
             "portion": null,
@@ -3348,14 +3380,14 @@
             "isFeatured": false,
             "showStar": false,
             "isActive": true,
-            "displayOrder": 100
+            "displayOrder": 1
           }
         },
         {
           "key": "fish-fillet",
           "vi": {
             "slug": "fish-fillet",
-            "name": "Philê cá",
+            "name": "Fish fillet . Philê cá",
             "shortDescription": "",
             "description": [],
             "portion": null,
@@ -3369,7 +3401,7 @@
             "isFeatured": false,
             "showStar": false,
             "isActive": true,
-            "displayOrder": 101
+            "displayOrder": 2
           },
           "en": {
             "slug": "fish-fillet",
@@ -3387,14 +3419,14 @@
             "isFeatured": false,
             "showStar": false,
             "isActive": true,
-            "displayOrder": 101
+            "displayOrder": 2
           }
         },
         {
           "key": "d-rump",
           "vi": {
             "slug": "d-rump",
-            "name": "Mông bò D-rump",
+            "name": "D-rump . Mông bò",
             "shortDescription": "",
             "description": [],
             "portion": null,
@@ -3408,7 +3440,7 @@
             "isFeatured": false,
             "showStar": false,
             "isActive": true,
-            "displayOrder": 102
+            "displayOrder": 6
           },
           "en": {
             "slug": "d-rump",
@@ -3426,14 +3458,14 @@
             "isFeatured": false,
             "showStar": false,
             "isActive": true,
-            "displayOrder": 102
+            "displayOrder": 6
           }
         },
         {
           "key": "chicken-wings",
           "vi": {
             "slug": "chicken-wings",
-            "name": "Cánh gà",
+            "name": "Chicken wings . Cánh gà",
             "shortDescription": "",
             "description": [],
             "portion": null,
@@ -3447,7 +3479,7 @@
             "isFeatured": false,
             "showStar": false,
             "isActive": true,
-            "displayOrder": 103
+            "displayOrder": 9
           },
           "en": {
             "slug": "chicken-wings",
@@ -3465,14 +3497,14 @@
             "isFeatured": false,
             "showStar": false,
             "isActive": true,
-            "displayOrder": 103
+            "displayOrder": 9
           }
         },
         {
           "key": "smoked-ham",
           "vi": {
             "slug": "smoked-ham",
-            "name": "Đùi heo muối",
+            "name": "Smoked Ham . Đùi heo muối",
             "shortDescription": "",
             "description": [],
             "portion": null,
@@ -3486,11 +3518,11 @@
             "isFeatured": false,
             "showStar": false,
             "isActive": true,
-            "displayOrder": 104
+            "displayOrder": 11
           },
           "en": {
             "slug": "smoked-ham",
-            "name": "Smoked ham",
+            "name": "Smoked Ham",
             "shortDescription": "",
             "description": [],
             "portion": null,
@@ -3504,14 +3536,14 @@
             "isFeatured": false,
             "showStar": false,
             "isActive": true,
-            "displayOrder": 104
+            "displayOrder": 11
           }
         },
         {
           "key": "grilled-pineapple",
           "vi": {
             "slug": "grilled-pineapple",
-            "name": "Dứa nướng",
+            "name": "Grilled Pineapple . Dứa nướng",
             "shortDescription": "",
             "description": [],
             "portion": null,
@@ -3525,11 +3557,11 @@
             "isFeatured": false,
             "showStar": true,
             "isActive": true,
-            "displayOrder": 105
+            "displayOrder": 13
           },
           "en": {
             "slug": "grilled-pineapple",
-            "name": "Grilled pineapple",
+            "name": "Grilled Pineapple",
             "shortDescription": "",
             "description": [],
             "portion": null,
@@ -3543,7 +3575,7 @@
             "isFeatured": false,
             "showStar": true,
             "isActive": true,
-            "displayOrder": 105
+            "displayOrder": 13
           }
         },
         {
@@ -5332,16 +5364,14 @@
             "childPrice": 590000,
             "includedItems": [
               {
-                "title": "Hơn 12 loại thịt nướng",
-                "description": null
+                "title": "CHURRASCARIA",
+                "description": null,
+                "showStar": false
               },
               {
-                "title": "Món ăn kèm",
-                "description": null
-              },
-              {
-                "title": "Phục vụ không giới hạn",
-                "description": null
+                "title": "CHURRASCARIA",
+                "description": null,
+                "showStar": false
               }
             ],
             "image": {
@@ -5378,16 +5408,14 @@
             "childPrice": 590000,
             "includedItems": [
               {
-                "title": "12+ grilled meats",
-                "description": null
+                "title": "CHURRASCARIA",
+                "description": null,
+                "showStar": false
               },
               {
-                "title": "Side dishes",
-                "description": null
-              },
-              {
-                "title": "Unlimited tableside service",
-                "description": null
+                "title": "CHURRASCARIA",
+                "description": null,
+                "showStar": false
               }
             ],
             "image": {
@@ -5427,42 +5455,42 @@
             "childPrice": 490000,
             "includedItems": [
               {
-                "title": "Xúc xích Calabresa",
+                "title": "Calabrian Sausage . Xúc xích",
                 "description": null,
                 "showStar": false
               },
               {
-                "title": "Cupim",
+                "title": "Beef Tenderloin with Bacon",
+                "description": "Bacon cuốn thăn bò",
+                "showStar": false
+              },
+              {
+                "title": "Panceta . Ba chỉ heo",
+                "description": null,
+                "showStar": false
+              },
+              {
+                "title": "D-rump . Mông bò",
                 "description": null,
                 "showStar": true
               },
               {
-                "title": "Thăn bò cuộn bacon",
-                "description": null,
-                "showStar": false
-              },
-              {
-                "title": "Cánh gà",
-                "description": null,
-                "showStar": false
-              },
-              {
-                "title": "Ba chỉ heo",
-                "description": null,
-                "showStar": false
-              },
-              {
-                "title": "Đùi heo muối",
-                "description": null,
-                "showStar": false
-              },
-              {
-                "title": "Mông bò",
+                "title": "Cupim (beef Hump) . U bò",
                 "description": null,
                 "showStar": true
               },
               {
-                "title": "Dứa nướng",
+                "title": "Chicken wings . Cánh gà",
+                "description": null,
+                "showStar": false
+              },
+              {
+                "title": "Smoked Ham . Đùi heo muối",
+                "description": null,
+                "showStar": false
+              },
+              {
+                "title": "Grilled Pineapple . Dứa nướng",
                 "description": null,
                 "showStar": false
               }
@@ -5501,19 +5529,29 @@
             "childPrice": 490000,
             "includedItems": [
               {
-                "title": "Calabresa sausage",
+                "title": "Calabrian Sausage",
                 "description": null,
                 "showStar": false
               },
               {
-                "title": "Cupim",
+                "title": "Beef Tenderloin with Bacon",
+                "description": "Beef tenderloin wrapped in bacon",
+                "showStar": false
+              },
+              {
+                "title": "Panceta",
+                "description": null,
+                "showStar": false
+              },
+              {
+                "title": "D-rump",
                 "description": null,
                 "showStar": true
               },
               {
-                "title": "Bacon-wrapped beef",
+                "title": "Cupim (beef Hump)",
                 "description": null,
-                "showStar": false
+                "showStar": true
               },
               {
                 "title": "Chicken wings",
@@ -5521,22 +5559,12 @@
                 "showStar": false
               },
               {
-                "title": "Pork belly",
+                "title": "Smoked Ham",
                 "description": null,
                 "showStar": false
               },
               {
-                "title": "Salted pork leg",
-                "description": null,
-                "showStar": false
-              },
-              {
-                "title": "Beef rump",
-                "description": null,
-                "showStar": true
-              },
-              {
-                "title": "Grilled pineapple",
+                "title": "Grilled Pineapple",
                 "description": null,
                 "showStar": false
               }
