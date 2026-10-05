@@ -5,7 +5,7 @@ import { ensureContentMedia } from './lib/content-import/media.mjs';
 
 /**
  * Fills the CMS fields that replaced frontend hardcoding, for vi and en:
- * global/footer logo, opening hours and WhatsApp; menu-page catering;
+ * global/footer logo, opening hours, landline and WhatsApp; menu-page catering;
  * space-page video thumbs, closing secondary link and amenity icons;
  * campaign-page newsletter copy.
  *
@@ -27,13 +27,13 @@ const TARGETS = [
   {
     uid: 'api::global-setting.global-setting',
     source: (locale) => content.globalSetting[locale],
-    fields: ['logo', 'openingHours', 'whatsapp'],
+    fields: ['logo', 'openingHours', 'phone', 'whatsapp'],
     populate: { logo: IMAGE, openingHours: true },
   },
   {
     uid: 'api::footer-setting.footer-setting',
     source: (locale) => content.footerSetting[locale],
-    fields: ['logo', 'openingHours', 'whatsapp'],
+    fields: ['logo', 'openingHours', 'phone', 'whatsapp'],
     populate: { logo: IMAGE, openingHours: true },
   },
   {

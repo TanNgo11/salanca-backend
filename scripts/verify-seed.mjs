@@ -62,7 +62,7 @@ try {
   });
   assert.ok(globalVi, 'global-setting VI published required');
   assert.equal(globalVi.brandName, 'Salanca Brazil');
-  assert.equal(globalVi.email, 'booking@salanca.com.vn');
+  assert.equal(globalVi.email, 'booking@salancarest.com.vn');
   assert.match(globalVi.hotline ?? '', /0989561159/);
 
   const homeVi = await app.documents('api::home-page.home-page').findFirst({

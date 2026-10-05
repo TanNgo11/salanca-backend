@@ -1458,6 +1458,10 @@ export interface ApiFooterSettingFooterSetting extends Struct.SingleTypeSchema {
           localized: true;
         };
       }>;
+    phone: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 40;
+      }>;
     publishedAt: Schema.Attribute.DateTime;
     socialLinks: Schema.Attribute.Component<'shared.social-link', true> &
       Schema.Attribute.SetPluginOptions<{
@@ -1636,6 +1640,10 @@ export interface ApiGlobalSettingGlobalSetting extends Struct.SingleTypeSchema {
         i18n: {
           localized: true;
         };
+      }>;
+    phone: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 40;
       }>;
     publishedAt: Schema.Attribute.DateTime;
     socialLinks: Schema.Attribute.Component<'shared.social-link', true> &

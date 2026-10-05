@@ -50,6 +50,10 @@
       "required": true,
       "maxLength": 40
     },
+    "phone": {
+      "type": "string",
+      "maxLength": 40
+    },
     "whatsapp": {
       "type": "string",
       "maxLength": 40

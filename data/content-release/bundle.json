@@ -1,7 +1,7 @@
 {
   "version": 1,
   "createdAt": "2026-10-03T03:23:42.417Z",
-  "schemaHash": "4da66dd09caa8a3cc1f51be862a5f701bbcfcf434d8f3f035e00e3a8f9d166b4",
+  "schemaHash": "3bcf0037ef8b461d61cf8ddbec13d7e6143284760d205dc6c80b682999d8f017",
   "files": [
     {
       "name": "ea999245bede5a2d247e7da3560014f721d2e80b7cbc2d624a634b80dc8b4502.webp",
@@ -331,7 +331,7 @@
           "address": "49 Phan Bội Châu, phường Cửa Nam, TP. Hà Nội",
           "mapUrl": "https://www.google.com/maps?q=49+Phan+B%E1%BB%99i+Ch%C3%A2u,+Hanoi,+Vietnam",
           "phone": "0989 561 159",
-          "email": "booking@salanca.com.vn",
+          "email": "booking@salancarest.com.vn",
           "operatingHours": [
             {
               "label": "Hằng ngày",
@@ -370,7 +370,7 @@
           "address": "49 Phan Bội Châu, phường Cửa Nam, TP. Hà Nội",
           "mapUrl": "https://www.google.com/maps?q=49+Phan+B%E1%BB%99i+Ch%C3%A2u,+Hanoi,+Vietnam",
           "phone": "0989 561 159",
-          "email": "booking@salanca.com.vn",
+          "email": "booking@salancarest.com.vn",
           "operatingHours": [
             {
               "label": "Daily",
@@ -8223,8 +8223,9 @@
           "focalPointY": 50
         },
         "hotline": "0989 561 159",
+        "phone": "024 3845 5224",
         "whatsapp": "0903 290 991",
-        "email": "booking@salanca.com.vn",
+        "email": "booking@salancarest.com.vn",
         "address": "49 Phan Bội Châu, phường Cửa Nam, TP. Hà Nội",
         "mapUrl": "https://www.google.com/maps?q=49+Phan+B%E1%BB%99i+Ch%C3%A2u,+Hanoi,+Vietnam",
         "openingHours": [
@@ -8273,8 +8274,9 @@
           "focalPointY": 50
         },
         "hotline": "0989 561 159",
+        "phone": "024 3845 5224",
         "whatsapp": "0903 290 991",
-        "email": "booking@salanca.com.vn",
+        "email": "booking@salancarest.com.vn",
         "address": "49 Phan Bội Châu, phường Cửa Nam, TP. Hà Nội",
         "mapUrl": "https://www.google.com/maps?q=49+Phan+B%E1%BB%99i+Ch%C3%A2u,+Hanoi,+Vietnam",
         "openingHours": [
@@ -8501,8 +8503,9 @@
           "focalPointY": 50
         },
         "hotline": "0989 561 159",
+        "phone": "024 3845 5224",
         "whatsapp": "0903 290 991",
-        "email": "booking@salanca.com.vn",
+        "email": "booking@salancarest.com.vn",
         "address": "49 Phan Bội Châu, phường Cửa Nam, TP. Hà Nội",
         "mapUrl": "https://www.google.com/maps?q=49+Phan+B%E1%BB%99i+Ch%C3%A2u,+Hanoi,+Vietnam",
         "openingHours": [
@@ -8572,8 +8575,9 @@
           "focalPointY": 50
         },
         "hotline": "0989 561 159",
+        "phone": "024 3845 5224",
         "whatsapp": "0903 290 991",
-        "email": "booking@salanca.com.vn",
+        "email": "booking@salancarest.com.vn",
         "address": "49 Phan Bội Châu, phường Cửa Nam, TP. Hà Nội",
         "mapUrl": "https://www.google.com/maps?q=49+Phan+B%E1%BB%99i+Ch%C3%A2u,+Hanoi,+Vietnam",
         "openingHours": [
