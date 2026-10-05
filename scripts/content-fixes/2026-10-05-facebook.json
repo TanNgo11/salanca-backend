@@ -1,0 +1,71 @@
+{
+  "purpose": "Owner-confirmed Facebook page is facebook.com/Salancarest (2026-10-05).",
+  "edits": [
+    {
+      "uid": "api::global-setting.global-setting",
+      "locale": "vi",
+      "path": [
+        "socialLinks",
+        0,
+        "url"
+      ],
+      "from": "https://www.facebook.com/SalancaBrazil/",
+      "to": "https://www.facebook.com/Salancarest/"
+    },
+    {
+      "uid": "api::booking-page.booking-page",
+      "locale": "vi",
+      "path": [
+        "contactInfo",
+        "facebook",
+        "url"
+      ],
+      "from": "https://www.facebook.com/SalancaBrazil/",
+      "to": "https://www.facebook.com/Salancarest/"
+    },
+    {
+      "uid": "api::booking-page.booking-page",
+      "locale": "vi",
+      "path": [
+        "contactInfo",
+        "facebook",
+        "label"
+      ],
+      "from": "SalancaBrazil",
+      "to": "Salancarest"
+    },
+    {
+      "uid": "api::global-setting.global-setting",
+      "locale": "en",
+      "path": [
+        "socialLinks",
+        0,
+        "url"
+      ],
+      "from": "https://www.facebook.com/SalancaBrazil/",
+      "to": "https://www.facebook.com/Salancarest/"
+    },
+    {
+      "uid": "api::booking-page.booking-page",
+      "locale": "en",
+      "path": [
+        "contactInfo",
+        "facebook",
+        "url"
+      ],
+      "from": "https://www.facebook.com/SalancaBrazil/",
+      "to": "https://www.facebook.com/Salancarest/"
+    },
+    {
+      "uid": "api::booking-page.booking-page",
+      "locale": "en",
+      "path": [
+        "contactInfo",
+        "facebook",
+        "label"
+      ],
+      "from": "SalancaBrazil",
+      "to": "Salancarest"
+    }
+  ]
+}
