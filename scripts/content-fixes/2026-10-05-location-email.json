@@ -1,0 +1,29 @@
+{
+  "purpose": "F6: Hanoi location still published the old booking email; use the Salancarest one shown sitewide (2026-10-05).",
+  "edits": [
+    {
+      "uid": "api::location.location",
+      "locale": "vi",
+      "match": {
+        "slug": "salanca-hanoi"
+      },
+      "path": [
+        "email"
+      ],
+      "from": "booking@salanca.com.vn",
+      "to": "booking@salancarest.com.vn"
+    },
+    {
+      "uid": "api::location.location",
+      "locale": "en",
+      "match": {
+        "slug": "salanca-hanoi"
+      },
+      "path": [
+        "email"
+      ],
+      "from": "booking@salanca.com.vn",
+      "to": "booking@salancarest.com.vn"
+    }
+  ]
+}
