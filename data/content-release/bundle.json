@@ -367,7 +367,7 @@
         "en": {
           "name": "Salanca Hanoi",
           "slug": "salanca-hanoi",
-          "address": "49 Phan Bội Châu, phường Cửa Nam, TP. Hà Nội",
+          "address": "49 Phan Boi Chau, Cua Nam Ward, Hanoi, Vietnam",
           "mapUrl": "https://www.google.com/maps?q=49+Phan+B%E1%BB%99i+Ch%C3%A2u,+Hanoi,+Vietnam",
           "phone": "0989 561 159",
           "email": "booking@salancarest.com.vn",
@@ -576,7 +576,7 @@
             "vi": {
               "name": "Tráng miệng",
               "slug": "trang-mieng",
-              "description": "DESSERT\nMENU",
+              "description": "THỰC ĐƠN\nTRÁNG MIỆNG",
               "image": {
                 "media": {
                   "__file": "cb9199756b5c8d391bd86fb180066ef8609b04057df3c674c4201edd46347686.jpg"
@@ -675,7 +675,7 @@
           {
             "key": "rodizio",
             "vi": {
-              "name": "Rodizio Menu",
+              "name": "Thực đơn Rodizio",
               "slug": "rodizio",
               "description": [
                 {
@@ -692,42 +692,42 @@
               "childPrice": 490000,
               "includedItems": [
                 {
-                  "title": "Calabrian Sausage . Xúc xích",
+                  "title": "Xúc xích",
                   "description": null,
                   "showStar": false
                 },
                 {
-                  "title": "Beef Tenderloin with Bacon",
-                  "description": "Bacon cuốn thăn bò",
-                  "showStar": false
-                },
-                {
-                  "title": "Panceta . Ba chỉ heo",
+                  "title": "Thăn bò cuộn bacon",
                   "description": null,
                   "showStar": false
                 },
                 {
-                  "title": "D-rump . Mông bò",
+                  "title": "Ba chỉ heo",
+                  "description": null,
+                  "showStar": false
+                },
+                {
+                  "title": "Mông bò",
                   "description": null,
                   "showStar": true
                 },
                 {
-                  "title": "Cupim (beef Hump) . U bò",
+                  "title": "U bò",
                   "description": null,
                   "showStar": true
                 },
                 {
-                  "title": "Chicken wings . Cánh gà",
+                  "title": "Cánh gà",
                   "description": null,
                   "showStar": false
                 },
                 {
-                  "title": "Smoked Ham . Đùi heo muối",
+                  "title": "Đùi heo muối",
                   "description": null,
                   "showStar": false
                 },
                 {
-                  "title": "Grilled Pineapple . Dứa nướng",
+                  "title": "Dứa nướng",
                   "description": null,
                   "showStar": false
                 }
@@ -744,7 +744,7 @@
               "isActive": true,
               "displayOrder": 2,
               "seo": {
-                "metaTitle": "Rodizio Menu",
+                "metaTitle": "Thực đơn Rodizio",
                 "metaDescription": "Hơn 12 loại thịt nướng trên than hồng, phục vụ liên tục tại bàn. Thịt bò và cừu nhập khẩu từ New Zealand, dùng cùng salad, món ăn kèm và sốt Brazil.",
                 "shareImage": null,
                 "canonicalPath": "/vi/thuc-don",
@@ -934,9 +934,9 @@
           {
             "key": "picanha",
             "vi": {
-              "name": "Beef Picanha - The Best part of Rump Steak",
+              "name": "Picanha - Phần ngon nhất của mông bò",
               "slug": "picanha",
-              "shortDescription": "Picanha - Phần ngon nhất của mông bò",
+              "shortDescription": "",
               "portion": null,
               "description": [
                 {
@@ -1011,7 +1011,7 @@
           {
             "key": "costela",
             "vi": {
-              "name": "Costelao - Prime Beef Rib . Sườn bò",
+              "name": "Sườn bò",
               "slug": "costela",
               "shortDescription": "",
               "portion": null,
@@ -1088,7 +1088,7 @@
           {
             "key": "cupim",
             "vi": {
-              "name": "Cupim (beef Hump) . U bò",
+              "name": "U bò",
               "slug": "cupim",
               "shortDescription": "",
               "portion": null,
@@ -1165,7 +1165,7 @@
           {
             "key": "panceta",
             "vi": {
-              "name": "Panceta . Ba chỉ heo",
+              "name": "Ba chỉ heo",
               "slug": "panceta",
               "shortDescription": "",
               "portion": null,
@@ -1242,7 +1242,7 @@
           {
             "key": "cordeiro",
             "vi": {
-              "name": "Lamb leg . Đùi cừu",
+              "name": "Đùi cừu",
               "slug": "cordeiro",
               "shortDescription": "",
               "portion": null,
@@ -1319,7 +1319,7 @@
           {
             "key": "camarao",
             "vi": {
-              "name": "Shrimp with Bacon . Bacon cuốn tôm",
+              "name": "Bacon cuốn tôm",
               "slug": "camarao",
               "shortDescription": "",
               "portion": null,
@@ -1475,7 +1475,7 @@
           {
             "key": "calabrian-sausage",
             "vi": {
-              "name": "Calabrian Sausage . Xúc xích",
+              "name": "Xúc xích",
               "slug": "calabrian-sausage",
               "shortDescription": "",
               "portion": null,
@@ -1516,7 +1516,7 @@
           {
             "key": "fish-fillet",
             "vi": {
-              "name": "Fish fillet . Philê cá",
+              "name": "Philê cá",
               "slug": "fish-fillet",
               "shortDescription": "",
               "portion": null,
@@ -1557,7 +1557,7 @@
           {
             "key": "d-rump",
             "vi": {
-              "name": "D-rump . Mông bò",
+              "name": "Mông bò",
               "slug": "d-rump",
               "shortDescription": "",
               "portion": null,
@@ -1598,7 +1598,7 @@
           {
             "key": "chicken-wings",
             "vi": {
-              "name": "Chicken wings . Cánh gà",
+              "name": "Cánh gà",
               "slug": "chicken-wings",
               "shortDescription": "",
               "portion": null,
@@ -1639,7 +1639,7 @@
           {
             "key": "smoked-ham",
             "vi": {
-              "name": "Smoked Ham . Đùi heo muối",
+              "name": "Đùi heo muối",
               "slug": "smoked-ham",
               "shortDescription": "",
               "portion": null,
@@ -1680,7 +1680,7 @@
           {
             "key": "grilled-pineapple",
             "vi": {
-              "name": "Grilled Pineapple . Dứa nướng",
+              "name": "Dứa nướng",
               "slug": "grilled-pineapple",
               "shortDescription": "",
               "portion": null,
@@ -5021,7 +5021,7 @@
           },
           "story": {
             "title": "The Salanca story",
-            "body": "From our roots as Au Lac do Brazil in 2003, Salanca Brazil has preserved over two decades of Churrasco heritage in Vietnam. In 2026, the journey continues at our new home at 49 Phan Bội Châu, Hanoi — where charcoal fire and warm hospitality bring every table together.",
+            "body": "From our roots as Au Lac do Brazil in 2003, Salanca Brazil has preserved over two decades of Churrasco heritage in Vietnam. In 2026, the journey continues at our new home at 49 Phan Boi Chau, Hanoi — where charcoal fire and warm hospitality bring every table together.",
             "image": {
               "media": {
                 "__file": "810017fdf297171e94f057261fcb09020c532af599f553db5e7dbd832a469eb1.webp"
@@ -5200,9 +5200,9 @@
             }
           },
           "itemSectionHeading": "Các món nướng đặc trưng",
-          "packageListingHeading": "Rodizio Menu",
+          "packageListingHeading": "Thực đơn Rodizio",
           "aLaCarte": {
-            "eyebrow": "A LA CARTE\nMENU",
+            "eyebrow": "THỰC ĐƠN\nGỌI MÓN",
             "title": "Steak Salanca",
             "body": "(Rib eye steak – Served with Mushroom or Pepper Sauce) Thăn Ngoại Bò Nướng Được Dùng Với Sốt Nấm hoặc Sốt Tiêu",
             "price": 850000,
@@ -5611,7 +5611,7 @@
             },
             {
               "number": "02",
-              "title": "Trải nghiệm Rodizio trọn vẹn (The Rodizio Experience)",
+              "title": "Trải nghiệm Rodizio trọn vẹn",
               "body": "Từng xiên nướng được cắt phục vụ liên tục ngay tại bàn ăn theo tốc độ thưởng thức của riêng bạn - chu đáo, hào sảng và đong đầy cảm xúc.",
               "image": null
             },
@@ -5708,8 +5708,8 @@
             },
             {
               "label": "2006",
-              "title": "Heading north to 6 Cao Bá Quát",
-              "body": "In 2006, South American charcoal flavours arrived in Hanoi at 6 Cao Bá Quát. The aroma of sizzling Picanha brought a distinctive dining experience to the capital. For a decade, the restaurant held memories of family reunions, diplomatic gatherings and meetings with international friends.",
+              "title": "Heading north to 6 Cao Ba Quat",
+              "body": "In 2006, South American charcoal flavours arrived in Hanoi at 6 Cao Ba Quat. The aroma of sizzling Picanha brought a distinctive dining experience to the capital. For a decade, the restaurant held memories of family reunions, diplomatic gatherings and meetings with international friends.",
               "image": {
                 "alt": "Illustrative Salanca dining and cuisine photography",
                 "media": {
@@ -5720,7 +5720,7 @@
             {
               "label": "2016 – 2020",
               "title": "Transformation and repositioning: Salanca Brazil is born",
-              "body": "In 2016, the restaurant moved to 25 Trần Bình Trọng, offering a warmer, more elegant and peaceful setting for diplomatic dinners and formal gatherings.\n\nIn 2020, the brand officially took the name Salanca Brazil. This strategic repositioning brought comprehensive standards to premium imported beef, precise charcoal temperature control and a curated collection of South American wines. The new name embraces contemporary standards while preserving the original flame and honest flavours that have been cherished since 2003.",
+              "body": "In 2016, the restaurant moved to 25 Tran Binh Trong, offering a warmer, more elegant and peaceful setting for diplomatic dinners and formal gatherings.\n\nIn 2020, the brand officially took the name Salanca Brazil. This strategic repositioning brought comprehensive standards to premium imported beef, precise charcoal temperature control and a curated collection of South American wines. The new name embraces contemporary standards while preserving the original flame and honest flavours that have been cherished since 2003.",
               "image": {
                 "alt": "Illustrative Salanca dining and cuisine photography",
                 "media": {
@@ -5730,8 +5730,8 @@
             },
             {
               "label": "2026",
-              "title": "A new chapter at 49 Phan Bội Châu",
-              "body": "In 2026, Salanca Brazil began a new chapter at 49 Phan Bội Châu, in the cultural and culinary heart of Hanoi. Our new home brings together refined contemporary architecture and Brazil’s warm tropical spirit. The charcoal fires keep burning as we welcome old friends to raise a glass and write new stories around the table.",
+              "title": "A new chapter at 49 Phan Boi Chau",
+              "body": "In 2026, Salanca Brazil began a new chapter at 49 Phan Boi Chau, in the cultural and culinary heart of Hanoi. Our new home brings together refined contemporary architecture and Brazil’s warm tropical spirit. The charcoal fires keep burning as we welcome old friends to raise a glass and write new stories around the table.",
               "image": {
                 "alt": "Illustrative Salanca dining and cuisine photography",
                 "media": {
@@ -5870,7 +5870,7 @@
             }
           ],
           "closingCta": {
-            "heading": "Write the next chapter at 49 Phan Bội Châu",
+            "heading": "Write the next chapter at 49 Phan Boi Chau",
             "body": "Raise a glass and make new memories around the table at Salanca Brazil.",
             "link": {
               "label": "Book a table",
@@ -7724,7 +7724,7 @@
             "noIndex": false
           },
           "contactInfo": {
-            "address": "49 Phan Boi Chau\nCua Nam Ward, Hanoi, Vietnam",
+            "address": "49 Phan Bội Châu\nphường Cửa Nam, TP. Hà Nội",
             "mapUrl": "https://www.google.com/maps?q=49+Phan+Boi+Chau,+Hanoi,+Vietnam",
             "phones": [
               {
@@ -8277,7 +8277,7 @@
         "phone": "024 3845 5224",
         "whatsapp": "0903 290 991",
         "email": "booking@salancarest.com.vn",
-        "address": "49 Phan Bội Châu, phường Cửa Nam, TP. Hà Nội",
+        "address": "49 Phan Boi Chau, Cua Nam Ward, Hanoi, Vietnam",
         "mapUrl": "https://www.google.com/maps?q=49+Phan+B%E1%BB%99i+Ch%C3%A2u,+Hanoi,+Vietnam",
         "openingHours": [
           {
@@ -8370,7 +8370,7 @@
             "openInNewTab": false
           },
           {
-            "label": "Rodizio Menu",
+            "label": "Thực đơn Rodizio",
             "url": "/vi/thuc-don#rodizio",
             "openInNewTab": false
           },
