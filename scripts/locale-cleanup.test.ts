@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 type Edit = { uid: string; locale: 'vi' | 'en'; match?: Record<string, string>; path: (string | number)[]; from: unknown; to: unknown };
 
 const read = (file: string) => JSON.parse(readFileSync(resolve(import.meta.dirname, '..', file), 'utf8'));
-const { edits } = read('data/locale-cleanup-2026-10-05.json') as { edits: Edit[] };
+const { edits } = read('scripts/locale-cleanup-2026-10-05.json') as { edits: Edit[] };
 const { payload } = read('data/content-release/bundle.json');
 const settings: Record<string, string> = {
   'api::global-setting.global-setting': 'globalSetting',

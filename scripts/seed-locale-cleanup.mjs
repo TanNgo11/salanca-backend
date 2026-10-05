@@ -4,7 +4,7 @@ import { applyRequested, backendRoot, withStrapi } from './lib/scoped-seed.mjs';
 import { populateFor } from './lib/content-release.helper.mjs';
 
 /**
- * Applies data/locale-cleanup-2026-10-05.json: VI pages show Vietnamese only,
+ * Applies scripts/locale-cleanup-2026-10-05.json: VI pages show Vietnamese only,
  * EN pages show English only.
  *
  * Compare-and-set per field: a field is written only while it still holds the
@@ -16,7 +16,7 @@ import { populateFor } from './lib/content-release.helper.mjs';
 
 const apply = applyRequested();
 const { edits } = JSON.parse(
-  readFileSync(resolve(backendRoot, 'data/locale-cleanup-2026-10-05.json'), 'utf8'),
+  readFileSync(resolve(backendRoot, 'scripts/locale-cleanup-2026-10-05.json'), 'utf8'),
 );
 
 const READ_ONLY = new Set(['id', 'documentId', 'locale', 'publishedAt', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy', 'localizations']);

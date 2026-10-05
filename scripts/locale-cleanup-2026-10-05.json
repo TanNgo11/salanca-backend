@@ -1,0 +1,471 @@
+{
+  "purpose": "VI pages show Vietnamese only, EN pages show English only (2026-10-05).",
+  "edits": [
+    {
+      "uid": "api::global-setting.global-setting",
+      "locale": "en",
+      "path": [
+        "address"
+      ],
+      "from": "49 Phan Bội Châu, phường Cửa Nam, TP. Hà Nội",
+      "to": "49 Phan Boi Chau, Cua Nam Ward, Hanoi, Vietnam"
+    },
+    {
+      "uid": "api::header-setting.header-setting",
+      "locale": "vi",
+      "path": [
+        "menuLinks",
+        1,
+        "label"
+      ],
+      "from": "Rodizio Menu",
+      "to": "Thực đơn Rodizio"
+    },
+    {
+      "uid": "api::home-page.home-page",
+      "locale": "en",
+      "path": [
+        "story",
+        "body"
+      ],
+      "from": "From our roots as Au Lac do Brazil in 2003, Salanca Brazil has preserved over two decades of Churrasco heritage in Vietnam. In 2026, the journey continues at our new home at 49 Phan Bội Châu, Hanoi — where charcoal fire and warm hospitality bring every table together.",
+      "to": "From our roots as Au Lac do Brazil in 2003, Salanca Brazil has preserved over two decades of Churrasco heritage in Vietnam. In 2026, the journey continues at our new home at 49 Phan Boi Chau, Hanoi — where charcoal fire and warm hospitality bring every table together."
+    },
+    {
+      "uid": "api::menu-page.menu-page",
+      "locale": "vi",
+      "path": [
+        "packageListingHeading"
+      ],
+      "from": "Rodizio Menu",
+      "to": "Thực đơn Rodizio"
+    },
+    {
+      "uid": "api::menu-page.menu-page",
+      "locale": "vi",
+      "path": [
+        "aLaCarte",
+        "eyebrow"
+      ],
+      "from": "A LA CARTE\nMENU",
+      "to": "THỰC ĐƠN\nGỌI MÓN"
+    },
+    {
+      "uid": "api::story-page.story-page",
+      "locale": "vi",
+      "path": [
+        "values",
+        1,
+        "title"
+      ],
+      "from": "Trải nghiệm Rodizio trọn vẹn (The Rodizio Experience)",
+      "to": "Trải nghiệm Rodizio trọn vẹn"
+    },
+    {
+      "uid": "api::story-page.story-page",
+      "locale": "en",
+      "path": [
+        "timelineEntries",
+        1,
+        "title"
+      ],
+      "from": "Heading north to 6 Cao Bá Quát",
+      "to": "Heading north to 6 Cao Ba Quat"
+    },
+    {
+      "uid": "api::story-page.story-page",
+      "locale": "en",
+      "path": [
+        "timelineEntries",
+        1,
+        "body"
+      ],
+      "from": "In 2006, South American charcoal flavours arrived in Hanoi at 6 Cao Bá Quát. The aroma of sizzling Picanha brought a distinctive dining experience to the capital. For a decade, the restaurant held memories of family reunions, diplomatic gatherings and meetings with international friends.",
+      "to": "In 2006, South American charcoal flavours arrived in Hanoi at 6 Cao Ba Quat. The aroma of sizzling Picanha brought a distinctive dining experience to the capital. For a decade, the restaurant held memories of family reunions, diplomatic gatherings and meetings with international friends."
+    },
+    {
+      "uid": "api::story-page.story-page",
+      "locale": "en",
+      "path": [
+        "timelineEntries",
+        2,
+        "body"
+      ],
+      "from": "In 2016, the restaurant moved to 25 Trần Bình Trọng, offering a warmer, more elegant and peaceful setting for diplomatic dinners and formal gatherings.\n\nIn 2020, the brand officially took the name Salanca Brazil. This strategic repositioning brought comprehensive standards to premium imported beef, precise charcoal temperature control and a curated collection of South American wines. The new name embraces contemporary standards while preserving the original flame and honest flavours that have been cherished since 2003.",
+      "to": "In 2016, the restaurant moved to 25 Tran Binh Trong, offering a warmer, more elegant and peaceful setting for diplomatic dinners and formal gatherings.\n\nIn 2020, the brand officially took the name Salanca Brazil. This strategic repositioning brought comprehensive standards to premium imported beef, precise charcoal temperature control and a curated collection of South American wines. The new name embraces contemporary standards while preserving the original flame and honest flavours that have been cherished since 2003."
+    },
+    {
+      "uid": "api::story-page.story-page",
+      "locale": "en",
+      "path": [
+        "timelineEntries",
+        3,
+        "title"
+      ],
+      "from": "A new chapter at 49 Phan Bội Châu",
+      "to": "A new chapter at 49 Phan Boi Chau"
+    },
+    {
+      "uid": "api::story-page.story-page",
+      "locale": "en",
+      "path": [
+        "timelineEntries",
+        3,
+        "body"
+      ],
+      "from": "In 2026, Salanca Brazil began a new chapter at 49 Phan Bội Châu, in the cultural and culinary heart of Hanoi. Our new home brings together refined contemporary architecture and Brazil’s warm tropical spirit. The charcoal fires keep burning as we welcome old friends to raise a glass and write new stories around the table.",
+      "to": "In 2026, Salanca Brazil began a new chapter at 49 Phan Boi Chau, in the cultural and culinary heart of Hanoi. Our new home brings together refined contemporary architecture and Brazil’s warm tropical spirit. The charcoal fires keep burning as we welcome old friends to raise a glass and write new stories around the table."
+    },
+    {
+      "uid": "api::story-page.story-page",
+      "locale": "en",
+      "path": [
+        "closingCta",
+        "heading"
+      ],
+      "from": "Write the next chapter at 49 Phan Bội Châu",
+      "to": "Write the next chapter at 49 Phan Boi Chau"
+    },
+    {
+      "uid": "api::booking-page.booking-page",
+      "locale": "vi",
+      "path": [
+        "contactInfo",
+        "address"
+      ],
+      "from": "49 Phan Boi Chau\nCua Nam Ward, Hanoi, Vietnam",
+      "to": "49 Phan Bội Châu\nphường Cửa Nam, TP. Hà Nội"
+    },
+    {
+      "uid": "api::location.location",
+      "locale": "en",
+      "match": {
+        "slug": "salanca-hanoi"
+      },
+      "path": [
+        "address"
+      ],
+      "from": "49 Phan Bội Châu, phường Cửa Nam, TP. Hà Nội",
+      "to": "49 Phan Boi Chau, Cua Nam Ward, Hanoi, Vietnam"
+    },
+    {
+      "uid": "api::menu-category.menu-category",
+      "locale": "vi",
+      "match": {
+        "slug": "trang-mieng"
+      },
+      "path": [
+        "description"
+      ],
+      "from": "DESSERT\nMENU",
+      "to": "THỰC ĐƠN\nTRÁNG MIỆNG"
+    },
+    {
+      "uid": "api::menu-package.menu-package",
+      "locale": "vi",
+      "match": {
+        "slug": "rodizio"
+      },
+      "path": [
+        "name"
+      ],
+      "from": "Rodizio Menu",
+      "to": "Thực đơn Rodizio"
+    },
+    {
+      "uid": "api::menu-package.menu-package",
+      "locale": "vi",
+      "match": {
+        "slug": "rodizio"
+      },
+      "path": [
+        "includedItems",
+        0,
+        "title"
+      ],
+      "from": "Calabrian Sausage . Xúc xích",
+      "to": "Xúc xích"
+    },
+    {
+      "uid": "api::menu-package.menu-package",
+      "locale": "vi",
+      "match": {
+        "slug": "rodizio"
+      },
+      "path": [
+        "includedItems",
+        1,
+        "title"
+      ],
+      "from": "Beef Tenderloin with Bacon",
+      "to": "Thăn bò cuộn bacon"
+    },
+    {
+      "uid": "api::menu-package.menu-package",
+      "locale": "vi",
+      "match": {
+        "slug": "rodizio"
+      },
+      "path": [
+        "includedItems",
+        1,
+        "description"
+      ],
+      "from": "Bacon cuốn thăn bò",
+      "to": null
+    },
+    {
+      "uid": "api::menu-package.menu-package",
+      "locale": "vi",
+      "match": {
+        "slug": "rodizio"
+      },
+      "path": [
+        "includedItems",
+        2,
+        "title"
+      ],
+      "from": "Panceta . Ba chỉ heo",
+      "to": "Ba chỉ heo"
+    },
+    {
+      "uid": "api::menu-package.menu-package",
+      "locale": "vi",
+      "match": {
+        "slug": "rodizio"
+      },
+      "path": [
+        "includedItems",
+        3,
+        "title"
+      ],
+      "from": "D-rump . Mông bò",
+      "to": "Mông bò"
+    },
+    {
+      "uid": "api::menu-package.menu-package",
+      "locale": "vi",
+      "match": {
+        "slug": "rodizio"
+      },
+      "path": [
+        "includedItems",
+        4,
+        "title"
+      ],
+      "from": "Cupim (beef Hump) . U bò",
+      "to": "U bò"
+    },
+    {
+      "uid": "api::menu-package.menu-package",
+      "locale": "vi",
+      "match": {
+        "slug": "rodizio"
+      },
+      "path": [
+        "includedItems",
+        5,
+        "title"
+      ],
+      "from": "Chicken wings . Cánh gà",
+      "to": "Cánh gà"
+    },
+    {
+      "uid": "api::menu-package.menu-package",
+      "locale": "vi",
+      "match": {
+        "slug": "rodizio"
+      },
+      "path": [
+        "includedItems",
+        6,
+        "title"
+      ],
+      "from": "Smoked Ham . Đùi heo muối",
+      "to": "Đùi heo muối"
+    },
+    {
+      "uid": "api::menu-package.menu-package",
+      "locale": "vi",
+      "match": {
+        "slug": "rodizio"
+      },
+      "path": [
+        "includedItems",
+        7,
+        "title"
+      ],
+      "from": "Grilled Pineapple . Dứa nướng",
+      "to": "Dứa nướng"
+    },
+    {
+      "uid": "api::menu-package.menu-package",
+      "locale": "vi",
+      "match": {
+        "slug": "rodizio"
+      },
+      "path": [
+        "seo",
+        "metaTitle"
+      ],
+      "from": "Rodizio Menu",
+      "to": "Thực đơn Rodizio"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "vi",
+      "match": {
+        "slug": "picanha"
+      },
+      "path": [
+        "name"
+      ],
+      "from": "Beef Picanha - The Best part of Rump Steak",
+      "to": "Picanha - Phần ngon nhất của mông bò"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "vi",
+      "match": {
+        "slug": "picanha"
+      },
+      "path": [
+        "shortDescription"
+      ],
+      "from": "Picanha - Phần ngon nhất của mông bò",
+      "to": ""
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "vi",
+      "match": {
+        "slug": "costela"
+      },
+      "path": [
+        "name"
+      ],
+      "from": "Costelao - Prime Beef Rib . Sườn bò",
+      "to": "Sườn bò"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "vi",
+      "match": {
+        "slug": "cupim"
+      },
+      "path": [
+        "name"
+      ],
+      "from": "Cupim (beef Hump) . U bò",
+      "to": "U bò"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "vi",
+      "match": {
+        "slug": "panceta"
+      },
+      "path": [
+        "name"
+      ],
+      "from": "Panceta . Ba chỉ heo",
+      "to": "Ba chỉ heo"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "vi",
+      "match": {
+        "slug": "cordeiro"
+      },
+      "path": [
+        "name"
+      ],
+      "from": "Lamb leg . Đùi cừu",
+      "to": "Đùi cừu"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "vi",
+      "match": {
+        "slug": "camarao"
+      },
+      "path": [
+        "name"
+      ],
+      "from": "Shrimp with Bacon . Bacon cuốn tôm",
+      "to": "Bacon cuốn tôm"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "vi",
+      "match": {
+        "slug": "calabrian-sausage"
+      },
+      "path": [
+        "name"
+      ],
+      "from": "Calabrian Sausage . Xúc xích",
+      "to": "Xúc xích"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "vi",
+      "match": {
+        "slug": "fish-fillet"
+      },
+      "path": [
+        "name"
+      ],
+      "from": "Fish fillet . Philê cá",
+      "to": "Philê cá"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "vi",
+      "match": {
+        "slug": "d-rump"
+      },
+      "path": [
+        "name"
+      ],
+      "from": "D-rump . Mông bò",
+      "to": "Mông bò"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "vi",
+      "match": {
+        "slug": "chicken-wings"
+      },
+      "path": [
+        "name"
+      ],
+      "from": "Chicken wings . Cánh gà",
+      "to": "Cánh gà"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "vi",
+      "match": {
+        "slug": "smoked-ham"
+      },
+      "path": [
+        "name"
+      ],
+      "from": "Smoked Ham . Đùi heo muối",
+      "to": "Đùi heo muối"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "vi",
+      "match": {
+        "slug": "grilled-pineapple"
+      },
+      "path": [
+        "name"
+      ],
+      "from": "Grilled Pineapple . Dứa nướng",
+      "to": "Dứa nướng"
+    }
+  ]
+}
