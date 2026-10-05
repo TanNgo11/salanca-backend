@@ -8,3 +8,8 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - '@tanngo11/log@0.4.6'
+
+# One sharp (and one libvips) per process: Strapi's upload plugin pins an
+# older sharp, and two libvips builds loaded together crash image uploads.
+overrides:
+  sharp: 0.35.4
