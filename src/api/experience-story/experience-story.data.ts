@@ -22,12 +22,12 @@ export const EXPERIENCE_HERITAGE_DATA: Record<'vi' | 'en', ExperienceHeritageSto
       'Bước tiếp những thành công của Au Lac do Brazil, thương hiệu Salanca giữ vững các giá trị và tri ân sự ủng hộ của thực khách. Với mục tiêu lan toả lối sống nồng nhiệt và chân thành, ăn steak là phải thoả thích, vậy tới Salanca Brazil, bạn hãy tạm quên các chế độ ăn uống hà khắc một ngày để khai vị 1 ly caipirinha và thưởng thức thịt nóng được phục vụ tại bàn.',
     ],
     illustration: {
-      src: 'https://salanca-s3.s3.cloudfly.vn/uploads/pdf_heritage_vi_bg_0162c6d1ee.webp',
+      src: 'https://salanca-s3.s3.cloudfly.vn/uploads/pdf_heritage_vi_bg_31b47c68a5.webp',
       alt: 'Họa tiết chim vẹt và thiên nhiên nhiệt đới Brazil',
       position: 'left',
     },
     background: {
-      src: 'https://salanca-s3.s3.cloudfly.vn/uploads/pdf_heritage_vi_bg_0162c6d1ee.webp',
+      src: 'https://salanca-s3.s3.cloudfly.vn/uploads/pdf_heritage_vi_bg_31b47c68a5.webp',
       color: '#9e151b',
     },
   },
@@ -40,12 +40,12 @@ export const EXPERIENCE_HERITAGE_DATA: Record<'vi' | 'en', ExperienceHeritageSto
       'Moving forward from the previous success of Au Lac do Brazil, the brand Salanca has strengthened their values and always appreciated the diners’ continuous support. Salanca spreads an intense and sincere lifestyle, eating steaks delightfully. Therefore, arriving at Salanca Brazil, you can temporarily leave behind a strict day diet, start with a caipirinha and enjoy the fresh meats served right at your table.',
     ],
     illustration: {
-      src: 'https://salanca-s3.s3.cloudfly.vn/uploads/pdf_heritage_en_bg_64e909b12d.webp',
+      src: 'https://salanca-s3.s3.cloudfly.vn/uploads/pdf_heritage_en_bg_9586bf937b.webp',
       alt: 'Brazilian macaws and tropical flora',
       position: 'right',
     },
     background: {
-      src: 'https://salanca-s3.s3.cloudfly.vn/uploads/pdf_heritage_en_bg_64e909b12d.webp',
+      src: 'https://salanca-s3.s3.cloudfly.vn/uploads/pdf_heritage_en_bg_9586bf937b.webp',
       color: '#9e151b',
     },
   },
