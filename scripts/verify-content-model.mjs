@@ -60,7 +60,7 @@ const nonLocalizedByContentType = {
   'contact-page': [],
   'experience-page': [],
   'gallery-item': ['area', 'displayOrder', 'isActive'],
-  'footer-setting': ['hotline', 'phone', 'whatsapp', 'email', 'mapUrl'],
+  'footer-setting': [],
   'global-setting': ['hotline', 'phone', 'whatsapp', 'email', 'mapUrl'],
   'header-setting': [],
   'home-page': [],

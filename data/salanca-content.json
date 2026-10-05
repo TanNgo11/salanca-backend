@@ -5919,40 +5919,6 @@
   },
   "footerSetting": {
     "vi": {
-      "brandName": "Salanca",
-      "tagline": "Churrascaria Brazil",
-      "logo": {
-        "__media": "logo-salanca-brazil-transparent.png",
-        "alt": "Salanca Brazil",
-        "caption": null,
-        "focalPointX": 50,
-        "focalPointY": 50
-      },
-      "hotline": "0989 561 159",
-      "phone": "024 3845 5224",
-      "whatsapp": "0903 290 991",
-      "email": "booking@salancarest.com.vn",
-      "address": "49 Phan Bội Châu, phường Cửa Nam, TP. Hà Nội",
-      "mapUrl": "https://www.google.com/maps?q=49+Phan+B%E1%BB%99i+Ch%C3%A2u,+Hanoi,+Vietnam",
-      "openingHours": [
-        {
-          "label": "Hằng ngày",
-          "opensAt": "11:00:00.000",
-          "closesAt": "14:00:00.000"
-        },
-        {
-          "label": "Hằng ngày",
-          "opensAt": "17:30:00.000",
-          "closesAt": "22:00:00.000"
-        }
-      ],
-      "socialLinks": [
-        {
-          "platform": "facebook",
-          "label": "Facebook",
-          "url": "https://www.facebook.com/SalancaBrazil/"
-        }
-      ],
       "footerExploreLinks": [
         {
           "label": "Thực đơn",
@@ -5989,40 +5955,6 @@
       ]
     },
     "en": {
-      "brandName": "Salanca",
-      "tagline": "Churrascaria Brazil",
-      "logo": {
-        "__media": "logo-salanca-brazil-transparent.png",
-        "alt": "Salanca Brazil",
-        "caption": null,
-        "focalPointX": 50,
-        "focalPointY": 50
-      },
-      "hotline": "0989 561 159",
-      "phone": "024 3845 5224",
-      "whatsapp": "0903 290 991",
-      "email": "booking@salancarest.com.vn",
-      "address": "49 Phan Bội Châu, phường Cửa Nam, TP. Hà Nội",
-      "mapUrl": "https://www.google.com/maps?q=49+Phan+B%E1%BB%99i+Ch%C3%A2u,+Hanoi,+Vietnam",
-      "openingHours": [
-        {
-          "label": "Daily",
-          "opensAt": "11:00:00.000",
-          "closesAt": "14:00:00.000"
-        },
-        {
-          "label": "Daily",
-          "opensAt": "17:30:00.000",
-          "closesAt": "22:00:00.000"
-        }
-      ],
-      "socialLinks": [
-        {
-          "platform": "facebook",
-          "label": "Facebook",
-          "url": "https://www.facebook.com/SalancaBrazil/"
-        }
-      ],
       "footerExploreLinks": [
         {
           "label": "Menu",

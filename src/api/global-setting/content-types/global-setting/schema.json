@@ -152,11 +152,11 @@
       },
       "phone": {
         "edit": {
-          "label": "Số điện thoại bàn",
+          "label": "Số đặt bàn (Booking)",
           "placeholder": "02438455224"
         },
         "list": {
-          "label": "Số điện thoại bàn"
+          "label": "Số đặt bàn (Booking)"
         }
       },
       "whatsapp": {

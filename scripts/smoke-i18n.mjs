@@ -308,10 +308,7 @@ try {
     tagline: 'Churrascaria Brazil',
   });
   await create('api::footer-setting.footer-setting', 'vi', {
-    brandName: `Footer ${suffix}`,
-    hotline: '0900000000',
-    email: 'smoke@example.com',
-    address: 'Địa chỉ footer tiếng Việt',
+    footerInfoLinks: [{ label: `Footer ${suffix}`, url: '/vi/lien-he', openInNewTab: false }],
   });
   await localize('api::global-setting.global-setting', globalVi.documentId, {
     brandName: `Salanca test ${suffix}`,

@@ -1382,7 +1382,7 @@ export interface ApiExperiencePageExperiencePage
 export interface ApiFooterSettingFooterSetting extends Struct.SingleTypeSchema {
   collectionName: 'footer_settings';
   info: {
-    description: 'Footer brand, link columns, contact facts, hours, and social';
+    description: 'Hai c\u1ED9t link c\u1EE7a footer. Th\u00F4ng tin li\u00EAn h\u1EC7, gi\u1EDD, m\u1EA1ng x\u00E3 h\u1ED9i v\u00E0 logo l\u1EA5y t\u1EEB C\u1EA5u h\u00ECnh chung.';
     displayName: 'Ch\u00E2n trang';
     pluralName: 'footer-settings';
     singularName: 'footer-setting';
@@ -1396,30 +1396,9 @@ export interface ApiFooterSettingFooterSetting extends Struct.SingleTypeSchema {
     };
   };
   attributes: {
-    address: Schema.Attribute.Text &
-      Schema.Attribute.Required &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }> &
-      Schema.Attribute.SetMinMaxLength<{
-        maxLength: 500;
-      }>;
-    brandName: Schema.Attribute.String &
-      Schema.Attribute.Required &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }> &
-      Schema.Attribute.SetMinMaxLength<{
-        maxLength: 120;
-      }>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    email: Schema.Attribute.Email & Schema.Attribute.Required;
     footerExploreLinks: Schema.Attribute.Component<'shared.link', true> &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
@@ -1432,59 +1411,15 @@ export interface ApiFooterSettingFooterSetting extends Struct.SingleTypeSchema {
           localized: true;
         };
       }>;
-    hotline: Schema.Attribute.String &
-      Schema.Attribute.Required &
-      Schema.Attribute.SetMinMaxLength<{
-        maxLength: 40;
-      }>;
     locale: Schema.Attribute.String;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
       'api::footer-setting.footer-setting'
     >;
-    logo: Schema.Attribute.Component<'shared.image', false> &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }>;
-    mapUrl: Schema.Attribute.String &
-      Schema.Attribute.SetMinMaxLength<{
-        maxLength: 500;
-      }>;
-    openingHours: Schema.Attribute.Component<'shared.operating-period', true> &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }>;
-    phone: Schema.Attribute.String &
-      Schema.Attribute.SetMinMaxLength<{
-        maxLength: 40;
-      }>;
     publishedAt: Schema.Attribute.DateTime;
-    socialLinks: Schema.Attribute.Component<'shared.social-link', true> &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }>;
-    tagline: Schema.Attribute.String &
-      Schema.Attribute.SetPluginOptions<{
-        i18n: {
-          localized: true;
-        };
-      }> &
-      Schema.Attribute.SetMinMaxLength<{
-        maxLength: 180;
-      }>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    whatsapp: Schema.Attribute.String &
-      Schema.Attribute.SetMinMaxLength<{
-        maxLength: 40;
-      }>;
   };
 }
 
