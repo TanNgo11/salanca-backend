@@ -1,0 +1,58 @@
+{
+  "purpose": "Copy polish: one landline format (024 38 455 224, as printed in the PDF); final full stop on the 2026 story entry (2026-10-05).",
+  "edits": [
+    {
+      "uid": "api::global-setting.global-setting",
+      "locale": "vi",
+      "path": [
+        "phone"
+      ],
+      "from": "024 3845 5224",
+      "to": "024 38 455 224"
+    },
+    {
+      "uid": "api::global-setting.global-setting",
+      "locale": "en",
+      "path": [
+        "phone"
+      ],
+      "from": "024 3845 5224",
+      "to": "024 38 455 224"
+    },
+    {
+      "uid": "api::story-page.story-page",
+      "locale": "vi",
+      "path": [
+        "timelineEntries",
+        3,
+        "body"
+      ],
+      "from": "Năm 2026, Salanca Brazil tự hào bước sang một chương mới khi tọa lạc tại 49 Phan Bội Châu - vị trí đắc địa ngay trung tâm văn hóa và ẩm thực thủ đô.\n\nNgôi nhà mới được kiến tạo với tinh thần giao thoa: sang trọng, tinh tế trong đường nét kiến trúc hiện đại nhưng vẫn đong đầy hơi thở nhiệt đới ấm áp của Brazil. Tại 49 Phan Bội Châu, những xiên than hồng tiếp tục đỏ lửa, sẵn sàng đón tiếp những thực khách tri kỷ cùng nâng ly và viết tiếp những câu chuyện đẹp bên bàn tiệc",
+      "to": "Năm 2026, Salanca Brazil tự hào bước sang một chương mới khi tọa lạc tại 49 Phan Bội Châu - vị trí đắc địa ngay trung tâm văn hóa và ẩm thực thủ đô.\n\nNgôi nhà mới được kiến tạo với tinh thần giao thoa: sang trọng, tinh tế trong đường nét kiến trúc hiện đại nhưng vẫn đong đầy hơi thở nhiệt đới ấm áp của Brazil. Tại 49 Phan Bội Châu, những xiên than hồng tiếp tục đỏ lửa, sẵn sàng đón tiếp những thực khách tri kỷ cùng nâng ly và viết tiếp những câu chuyện đẹp bên bàn tiệc."
+    },
+    {
+      "uid": "api::booking-page.booking-page",
+      "locale": "vi",
+      "path": [
+        "contactInfo",
+        "phones",
+        0,
+        "label"
+      ],
+      "from": "024. 38 455 224",
+      "to": "024 38 455 224"
+    },
+    {
+      "uid": "api::booking-page.booking-page",
+      "locale": "en",
+      "path": [
+        "contactInfo",
+        "phones",
+        0,
+        "label"
+      ],
+      "from": "024. 38 455 224",
+      "to": "024 38 455 224"
+    }
+  ]
+}
