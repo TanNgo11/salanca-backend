@@ -1,15 +1,18 @@
 import { useState } from 'react';
 
-import { Badge, Box, Flex, Typography } from '@strapi/design-system';
+import { Box, Flex, Typography } from '@strapi/design-system';
 import { Widget } from '@strapi/strapi/admin';
 import { Link } from 'react-router-dom';
 
+import { InformationStatusChip } from '../information-status-chip/InformationStatusChip';
+import { informationStatusChipColor } from '../information-status-chip/information-status-chip.helper';
 import { reservationRequestUid } from '../lead-shortcuts/lead-shortcuts.helper';
 import {
   buildUpcomingReservationsUrl,
   formatReservationDay,
   leadEditHref,
   leadStatusLabel,
+  leadStatusTone,
   type LeadStatus,
 } from './dashboard-widgets.helper';
 import { useAdminLists } from './useAdminList';
@@ -80,12 +83,10 @@ export const UpcomingReservationsWidget = () => {
               {(row.overlapCount ?? 0) > 0 ? ' · trùng giờ' : ''}
             </Typography>
           </Flex>
-          <Badge
-            backgroundColor={row.status === 'new' ? 'primary100' : 'success100'}
-            textColor={row.status === 'new' ? 'primary700' : 'success700'}
-          >
-            {leadStatusLabel[row.status] ?? row.status}
-          </Badge>
+          <InformationStatusChip
+            color={informationStatusChipColor(leadStatusTone(row.status))}
+            label={leadStatusLabel[row.status] ?? row.status}
+          />
         </Box>
       ))}
     </Flex>

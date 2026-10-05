@@ -1,15 +1,18 @@
 import { useState } from 'react';
 
-import { Badge, Box, Flex, Typography } from '@strapi/design-system';
+import { Box, Flex, Typography } from '@strapi/design-system';
 import { Widget } from '@strapi/strapi/admin';
 import { useIntl } from 'react-intl';
 import { Link } from 'react-router-dom';
 
+import { InformationStatusChip } from '../information-status-chip/InformationStatusChip';
+import { informationStatusChipColor } from '../information-status-chip/information-status-chip.helper';
 import { contactMessageUid } from '../lead-shortcuts/lead-shortcuts.helper';
 import {
   buildLatestContactsUrl,
   leadEditHref,
   leadStatusLabel,
+  leadStatusTone,
   truncate,
   type LeadStatus,
 } from './dashboard-widgets.helper';
@@ -72,12 +75,10 @@ export const LatestContactMessagesWidget = () => {
             </Typography>
           </Flex>
           <Flex direction="column" alignItems="flex-end" gap={1}>
-            <Badge
-              backgroundColor={row.status === 'new' ? 'primary100' : 'neutral150'}
-              textColor={row.status === 'new' ? 'primary700' : 'neutral700'}
-            >
-              {leadStatusLabel[row.status] ?? row.status}
-            </Badge>
+            <InformationStatusChip
+              color={informationStatusChipColor(leadStatusTone(row.status))}
+              label={leadStatusLabel[row.status] ?? row.status}
+            />
             <Typography variant="pi" textColor="neutral500">
               {formatDate(row.createdAt, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
             </Typography>

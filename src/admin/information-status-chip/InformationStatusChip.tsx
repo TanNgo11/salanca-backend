@@ -2,6 +2,8 @@ import type { CSSProperties } from 'react';
 
 import type { InformationStatusChipColor } from './information-status-chip.types';
 
+import './information-status-chip.css';
+
 export interface InformationStatusChipProps {
   color: InformationStatusChipColor;
   label: string;

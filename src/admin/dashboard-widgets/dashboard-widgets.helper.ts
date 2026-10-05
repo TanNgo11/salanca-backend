@@ -1,3 +1,4 @@
+import { InformationStatusChipTone } from '../information-status-chip/information-status-chip.types';
 import { contactMessageUid, reservationRequestUid } from '../lead-shortcuts/lead-shortcuts.helper';
 
 export type LeadStatus = 'new' | 'read' | 'archived';
@@ -121,6 +122,18 @@ export const leadStatusLabel: Record<LeadStatus, string> = {
   new: 'Mới',
   read: 'Đã xem',
   archived: 'Lưu trữ',
+};
+
+/** Same tone mapping as the reservation inbox chip, so status reads alike everywhere. */
+export const leadStatusTone = (status: LeadStatus): InformationStatusChipTone => {
+  switch (status) {
+    case 'new':
+      return InformationStatusChipTone.Info;
+    case 'read':
+      return InformationStatusChipTone.Published;
+    default:
+      return InformationStatusChipTone.Neutral;
+  }
 };
 
 /** Short Vietnamese day label: "Hôm nay", "Ngày mai", or "T7 10/10". */

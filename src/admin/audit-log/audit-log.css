@@ -14,20 +14,6 @@ html:has(.audit-log) main {
   -webkit-overflow-scrolling: touch;
 }
 
-.information-status-chip {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  min-height: 24px;
-  padding: 3px 9px;
-  border: 1px solid;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 16px;
-  white-space: nowrap;
-}
-
 .audit-log {
   width: 100%;
   min-width: 0;
