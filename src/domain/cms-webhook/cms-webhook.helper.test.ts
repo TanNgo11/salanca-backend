@@ -9,7 +9,7 @@ import {
   CmsWebhookValidationError,
   CmsWebhookValidationErrorCode,
 } from './cms-webhook.helper';
-import { CmsWebhookContentUid, CmsWebhookEvent } from './cms-webhook.types';
+import { CMS_WEBHOOK_ALLOWED_UIDS, CmsWebhookContentUid, CmsWebhookEvent } from './cms-webhook.types';
 
 describe('cms webhook signing', () => {
   it('round-trips a signature', () => {
@@ -59,6 +59,13 @@ describe('parseCmsWebhookPayload', () => {
         event: CmsWebhookEvent.Publish,
       }),
     ).toThrow(CmsWebhookValidationError);
+  });
+});
+
+describe('CMS_WEBHOOK_ALLOWED_UIDS', () => {
+  it('includes the header and footer single types so their publishes revalidate the web', () => {
+    expect(CMS_WEBHOOK_ALLOWED_UIDS.has('api::header-setting.header-setting')).toBe(true);
+    expect(CMS_WEBHOOK_ALLOWED_UIDS.has('api::footer-setting.footer-setting')).toBe(true);
   });
 });
 
