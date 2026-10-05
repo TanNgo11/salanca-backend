@@ -24,7 +24,7 @@
     "seed:menu-links": "node scripts/seed-menu-links.mjs",
     "seed:menu-decorations": "node scripts/seed-menu-decorations.mjs",
     "seed:cms-fields": "node scripts/seed-cms-fields.mjs",
-    "seed:locale-cleanup": "node scripts/seed-locale-cleanup.mjs",
+    "seed:content-fixes": "node scripts/seed-content-fixes.mjs",
     "seed:production": "node scripts/seed-production-content.mjs",
     "token:preview": "node scripts/create-preview-token.mjs",
     "verify:seed": "node scripts/verify-seed.mjs",

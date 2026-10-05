@@ -357,8 +357,8 @@
           "isActive": true,
           "displayOrder": 1,
           "seo": {
-            "metaTitle": "Liên hệ",
-            "metaDescription": "Liên hệ Salanca — địa chỉ Hà Nội, hotline, form gửi tin nhắn và hướng dẫn đến nhà hàng.",
+            "metaTitle": "Chi nhánh Hà Nội – 49 Phan Bội Châu",
+            "metaDescription": "Nhà hàng Salanca tại 49 Phan Bội Châu, phường Cửa Nam, Hà Nội. Xem giờ mở cửa, bản đồ chỉ đường, hotline và hình ảnh không gian nhà hàng.",
             "shareImage": null,
             "canonicalPath": "/vi/lien-he",
             "noIndex": false
@@ -396,8 +396,8 @@
           "isActive": true,
           "displayOrder": 1,
           "seo": {
-            "metaTitle": "Contact",
-            "metaDescription": "Contact Salanca — Hanoi address, hotline, message form, and directions to the restaurant.",
+            "metaTitle": "Hanoi Restaurant – 49 Phan Boi Chau",
+            "metaDescription": "Salanca at 49 Phan Boi Chau, Cua Nam Ward, Hanoi. See opening hours, map directions, the hotline and photos of the restaurant space.",
             "shareImage": null,
             "canonicalPath": "/en/contact",
             "noIndex": false
@@ -425,8 +425,8 @@
               "displayOrder": 1,
               "isActive": true,
               "seo": {
-                "metaTitle": "Các món nướng đặc trưng",
-                "metaDescription": "Hơn 12 loại thịt nướng trên than hồng, phục vụ liên tục tại bàn. Thịt bò và cừu nhập khẩu từ New Zealand, dùng cùng salad, món ăn kèm và sốt Brazil.",
+                "metaTitle": "Các món thịt nướng Brazil đặc trưng",
+                "metaDescription": "Các phần thịt nướng đặc trưng của Salanca: bò và cừu nhập khẩu New Zealand cùng nhiều loại thịt khác nướng trên than hồng kiểu Churrascaria Brazil.",
                 "shareImage": null,
                 "canonicalPath": "/vi/thuc-don/nhom/thit-nuong",
                 "noIndex": false
@@ -448,8 +448,8 @@
               "displayOrder": 1,
               "isActive": true,
               "seo": {
-                "metaTitle": "Signature cuts",
-                "metaDescription": "More than twelve cuts over charcoal, carved continuously at your table. Beef and lamb imported from New Zealand, served with salads, sides and Brazilian sauces.",
+                "metaTitle": "Signature Brazilian Grilled Meats",
+                "metaDescription": "Salanca's signature cuts: New Zealand beef and lamb alongside more meats grilled over charcoal in the Brazilian churrascaria tradition.",
                 "shareImage": null,
                 "canonicalPath": "/en/menu/category/grilled-meats",
                 "noIndex": false
@@ -474,8 +474,8 @@
               "displayOrder": 2,
               "isActive": true,
               "seo": {
-                "metaTitle": "Salad & món ăn kèm",
-                "metaDescription": "Salad & món ăn kèm tại Salanca — nhà hàng Brazilian Churrascaria ở Hà Nội.",
+                "metaTitle": "Salad và món ăn kèm kiểu Brazil",
+                "metaDescription": "Salad và món ăn kèm theo phong cách Brazil tại Salanca, dùng cùng thịt nướng than hồng. Xem đầy đủ danh sách salad và món ăn kèm trong thực đơn.",
                 "shareImage": null,
                 "canonicalPath": "/vi/thuc-don/nhom/mon-kem",
                 "noIndex": false
@@ -497,8 +497,8 @@
               "displayOrder": 2,
               "isActive": true,
               "seo": {
-                "metaTitle": "Salads & side dishes",
-                "metaDescription": "Salads & side dishes at Salanca — Brazilian churrascaria in Hanoi.",
+                "metaTitle": "Brazilian-Style Salads and Side Dishes",
+                "metaDescription": "Salads and Brazilian-style side dishes at Salanca to pair with charcoal-grilled meats. See the full list of salads and sides on our Hanoi menu.",
                 "shareImage": null,
                 "canonicalPath": "/en/menu/category/sides",
                 "noIndex": false
@@ -515,8 +515,8 @@
               "displayOrder": 3,
               "isActive": true,
               "seo": {
-                "metaTitle": "Sốt",
-                "metaDescription": "Sốt tại Salanca — nhà hàng Brazilian Churrascaria ở Hà Nội.",
+                "metaTitle": "Các loại sốt Brazil cho thịt nướng",
+                "metaDescription": "Các loại sốt kiểu Brazil tại Salanca giúp trọn vị cho thịt nướng than hồng. Xem đầy đủ danh sách sốt trong thực đơn của nhà hàng tại Hà Nội.",
                 "shareImage": null,
                 "canonicalPath": "/vi/thuc-don/nhom/sot",
                 "noIndex": false
@@ -530,8 +530,8 @@
               "displayOrder": 3,
               "isActive": true,
               "seo": {
-                "metaTitle": "Sauces & dressings",
-                "metaDescription": "Sauces & dressings at Salanca — Brazilian churrascaria in Hanoi.",
+                "metaTitle": "Brazilian Sauces and Dressings",
+                "metaDescription": "Brazilian sauces and dressings at Salanca that complete every charcoal-grilled cut. See the full list of sauces on our Hanoi restaurant menu.",
                 "shareImage": null,
                 "canonicalPath": "/en/menu/category/sauces",
                 "noIndex": false
@@ -548,8 +548,8 @@
               "displayOrder": 4,
               "isActive": true,
               "seo": {
-                "metaTitle": "Gọi món",
-                "metaDescription": "Chọn một món ăn kèm với bất kỳ món chính nào: Salad xanh hoặc Caesar với sốt Thousand Island Cơm bơ Jasmine Hành tây nướng hoặc khoai tây chiên",
+                "metaTitle": "Thực đơn gọi món – steak, picanha, sườn cừu",
+                "metaDescription": "Món gọi tại Salanca: Steak Salanca, Picanha a Cavalo, sườn cừu nướng, cá hồi Brazil và hải sản Moqueca, mỗi món kèm một lựa chọn món ăn kèm.",
                 "shareImage": null,
                 "canonicalPath": "/vi/thuc-don/nhom/goi-mon",
                 "noIndex": false
@@ -563,8 +563,8 @@
               "displayOrder": 4,
               "isActive": true,
               "seo": {
-                "metaTitle": "À la carte",
-                "metaDescription": "Choose one side dish with any main course: Green or Caesar salad with Thousand Island dressing Buttered rice with Feijoada (Brazilian bean stew) Grilled onions ",
+                "metaTitle": "À la Carte: Steak, Picanha and Lamb Chops",
+                "metaDescription": "À la carte at Salanca: Steak Salanca, Picanha a Cavalo, grilled lamb chops, Brazilian salmon and seafood Moqueca, each with a side of your choice.",
                 "shareImage": null,
                 "canonicalPath": "/en/menu/category/a-la-carte",
                 "noIndex": false
@@ -588,8 +588,8 @@
               "displayOrder": 5,
               "isActive": true,
               "seo": {
-                "metaTitle": "Tráng miệng",
-                "metaDescription": "Tráng miệng tại Salanca — nhà hàng Brazilian Churrascaria ở Hà Nội.",
+                "metaTitle": "Món tráng miệng kiểu Brazil",
+                "metaDescription": "Món tráng miệng khép lại bữa tiệc nướng Brazil tại Salanca, Hà Nội. Xem danh sách món tráng miệng và giá trong thực đơn của nhà hàng.",
                 "shareImage": null,
                 "canonicalPath": "/vi/thuc-don/nhom/trang-mieng",
                 "noIndex": false
@@ -610,8 +610,8 @@
               "displayOrder": 5,
               "isActive": true,
               "seo": {
-                "metaTitle": "Desserts",
-                "metaDescription": "Desserts at Salanca — Brazilian churrascaria in Hanoi.",
+                "metaTitle": "Brazilian-Style Desserts",
+                "metaDescription": "Desserts to finish your Brazilian grill feast at Salanca, Hanoi. See the full list of desserts and prices on the restaurant menu.",
                 "shareImage": null,
                 "canonicalPath": "/en/menu/category/desserts",
                 "noIndex": false
@@ -636,8 +636,8 @@
               "displayOrder": 6,
               "isActive": true,
               "seo": {
-                "metaTitle": "Thực đơn mang về",
-                "metaDescription": "Thực đơn mang về tại Salanca — nhà hàng Brazilian Churrascaria ở Hà Nội.",
+                "metaTitle": "Thực đơn mang về – thịt nướng Brazil",
+                "metaDescription": "Thưởng thức thịt nướng Brazil của Salanca tại nhà với thực đơn mang về. Xem món, giá và gọi hotline để đặt món tại 49 Phan Bội Châu, Hà Nội.",
                 "shareImage": null,
                 "canonicalPath": "/vi/thuc-don/nhom/mang-ve",
                 "noIndex": false
@@ -659,8 +659,8 @@
               "displayOrder": 6,
               "isActive": true,
               "seo": {
-                "metaTitle": "Takeaway menu",
-                "metaDescription": "Takeaway menu at Salanca — Brazilian churrascaria in Hanoi.",
+                "metaTitle": "Takeaway Menu: Brazilian Grilled Meats",
+                "metaDescription": "Enjoy Salanca's Brazilian grilled meats at home with our takeaway menu. See dishes and prices, then call the hotline to order from 49 Phan Boi Chau, Hanoi.",
                 "shareImage": null,
                 "canonicalPath": "/en/menu/category/takeaway",
                 "noIndex": false
@@ -744,8 +744,8 @@
               "isActive": true,
               "displayOrder": 2,
               "seo": {
-                "metaTitle": "Thực đơn Rodizio",
-                "metaDescription": "Hơn 12 loại thịt nướng trên than hồng, phục vụ liên tục tại bàn. Thịt bò và cừu nhập khẩu từ New Zealand, dùng cùng salad, món ăn kèm và sốt Brazil.",
+                "metaTitle": "Thực đơn Rodizio – thịt nướng cắt tại bàn",
+                "metaDescription": "Rodizio tại Salanca: hơn 12 loại thịt nướng than hồng cắt trực tiếp từ xiên, phục vụ liên tục tại bàn, kèm salad, món ăn kèm và sốt Brazil.",
                 "shareImage": null,
                 "canonicalPath": "/vi/thuc-don",
                 "noIndex": false
@@ -821,8 +821,8 @@
               "isActive": true,
               "displayOrder": 2,
               "seo": {
-                "metaTitle": "Rodizio Menu",
-                "metaDescription": "More than twelve cuts over charcoal, carved continuously at your table. Beef and lamb imported from New Zealand, served with salads, sides and Brazilian sauces.",
+                "metaTitle": "Rodizio Menu: Meats Carved at Your Table",
+                "metaDescription": "Rodizio at Salanca: over 12 charcoal-grilled meats carved straight from the skewer and served continuously at your table, with salads, sides and sauces.",
                 "shareImage": null,
                 "canonicalPath": "/en/menu",
                 "noIndex": false
@@ -871,8 +871,8 @@
               "isActive": true,
               "displayOrder": 1,
               "seo": {
-                "metaTitle": "Buffet Churrascaria",
-                "metaDescription": "Hơn 12 loại thịt nướng trên than hồng, phục vụ liên tục tại bàn. Thịt bò và cừu nhập khẩu từ New Zealand, dùng cùng salad, món ăn kèm và sốt Brazil.",
+                "metaTitle": "Buffet Churrascaria – buffet nướng Brazil",
+                "metaDescription": "Buffet Churrascaria tại Salanca, Hà Nội: xiên thịt nướng Brazil trên lửa than, bò và cừu nhập khẩu New Zealand, dùng cùng salad, món ăn kèm và sốt.",
                 "shareImage": null,
                 "canonicalPath": "/vi/thuc-don",
                 "noIndex": false
@@ -918,8 +918,8 @@
               "isActive": true,
               "displayOrder": 1,
               "seo": {
-                "metaTitle": "Buffet Churrascaria",
-                "metaDescription": "More than twelve cuts over charcoal, carved continuously at your table. Beef and lamb imported from New Zealand, served with salads, sides and Brazilian sauces.",
+                "metaTitle": "Churrascaria Buffet: Brazilian Grill Buffet",
+                "metaDescription": "The churrascaria buffet at Salanca, Hanoi: Brazilian skewers over charcoal, New Zealand beef and lamb, with salads, sides and Brazilian sauces.",
                 "shareImage": null,
                 "canonicalPath": "/en/menu",
                 "noIndex": false
@@ -4893,8 +4893,8 @@
             }
           },
           "seo": {
-            "metaTitle": "Tinh hoa Churrascaria Brazil",
-            "metaDescription": "Salanca — trải nghiệm hơn 12 loại thịt nướng phục vụ tại bàn theo phong cách Brazil truyền thống tại Hà Nội.",
+            "metaTitle": "Buffet nướng Brazil Churrascaria tại Hà Nội",
+            "metaDescription": "Salanca – nhà hàng Churrascaria Brazil tại 49 Phan Bội Châu, Hà Nội. Hơn 12 loại thịt nướng than hồng phục vụ tại bàn, bò và cừu nhập khẩu New Zealand.",
             "shareImage": null,
             "canonicalPath": "/vi",
             "noIndex": false
@@ -5148,8 +5148,8 @@
             }
           },
           "seo": {
-            "metaTitle": "The essence of Brazilian Churrascaria",
-            "metaDescription": "Salanca — experience more than 12 grilled meats carved tableside in the traditional Brazilian style in Hanoi.",
+            "metaTitle": "Brazilian Churrascaria Grill Buffet in Hanoi",
+            "metaDescription": "Salanca is a Brazilian churrascaria at 49 Phan Boi Chau, Hanoi. Over 12 charcoal-grilled meats carved at your table, with New Zealand beef and lamb.",
             "shareImage": null,
             "canonicalPath": "/en",
             "noIndex": false
@@ -5266,8 +5266,8 @@
             "image": null
           },
           "seo": {
-            "metaTitle": "Thực đơn",
-            "metaDescription": "Khám phá thực đơn Salanca — buffet churrascaria, rodizio, a la carte và các món nướng đặc trưng.",
+            "metaTitle": "Thực đơn buffet nướng Brazil, Rodizio, gọi món",
+            "metaDescription": "Thực đơn Salanca: buffet Churrascaria, Rodizio hơn 12 loại thịt nướng tại bàn, món gọi, salad, sốt, tráng miệng và thực đơn mang về tại Hà Nội.",
             "shareImage": null,
             "canonicalPath": "/vi/thuc-don",
             "noIndex": false
@@ -5383,8 +5383,8 @@
             "image": null
           },
           "seo": {
-            "metaTitle": "Menu",
-            "metaDescription": "Explore the Salanca menu — churrascaria buffet, rodizio, a la carte, and signature grilled cuts.",
+            "metaTitle": "Menu: Brazilian Grill Buffet, Rodizio, À la Carte",
+            "metaDescription": "The Salanca menu: churrascaria buffet, rodizio with over 12 meats carved tableside, à la carte mains, salads, sauces, desserts and takeaway in Hanoi.",
             "shareImage": null,
             "canonicalPath": "/en/menu",
             "noIndex": false
@@ -5633,8 +5633,8 @@
             "image": null
           },
           "seo": {
-            "metaTitle": "Câu chuyện",
-            "metaDescription": "Câu chuyện và giá trị của Salanca — hành trình từ tinh thần Brazil đến bàn tiệc tại Việt Nam.",
+            "metaTitle": "Câu chuyện Salanca – Churrascaria Brazil từ 2003",
+            "metaDescription": "Từ Au Lac do Brazil năm 2003 đến Salanca tại 49 Phan Bội Châu, Hà Nội: hơn 20 năm gìn giữ và nâng tầm di sản Churrasco Brazil tại Việt Nam.",
             "shareImage": null,
             "canonicalPath": "/vi/cau-chuyen",
             "noIndex": false
@@ -5880,8 +5880,8 @@
             "image": null
           },
           "seo": {
-            "metaTitle": "Our story",
-            "metaDescription": "The story and values behind Salanca — from the Brazilian spirit to the table in Vietnam.",
+            "metaTitle": "Our Story: Brazilian Churrascaria Since 2003",
+            "metaDescription": "From Au Lac do Brazil in 2003 to Salanca at 49 Phan Boi Chau, Hanoi: over two decades preserving the Brazilian churrasco tradition in Vietnam.",
             "shareImage": null,
             "canonicalPath": "/en/our-story",
             "noIndex": false
@@ -6085,8 +6085,8 @@
             }
           },
           "seo": {
-            "metaTitle": "Trải nghiệm",
-            "metaDescription": "Trải nghiệm churrascaria tại Salanca — nghi thức rodizio, phục vụ tại bàn và nghệ thuật thịt nướng Brazil.",
+            "metaTitle": "Trải nghiệm Rodizio – thịt nướng phục vụ tại bàn",
+            "metaDescription": "Nghi thức Rodizio tại Salanca: hơn 12 loại thịt nướng than hồng được cắt trực tiếp tại bàn theo phong cách Churrascaria Brazil truyền thống ở Hà Nội.",
             "canonicalPath": "/vi/trai-nghiem",
             "noIndex": false
           }
@@ -6287,8 +6287,8 @@
             }
           },
           "seo": {
-            "metaTitle": "Experience",
-            "metaDescription": "The Salanca churrascaria experience — rodizio ritual, tableside service, and Brazilian grilled meats.",
+            "metaTitle": "The Rodizio Experience: Meats Carved Tableside",
+            "metaDescription": "The rodizio ritual at Salanca: over 12 charcoal-grilled meats carved straight from the skewer at your table, in traditional Brazilian churrascaria style.",
             "canonicalPath": "/en/experience",
             "noIndex": false
           }
@@ -6554,8 +6554,8 @@
             "openInNewTab": false
           },
           "seo": {
-            "metaTitle": "Không gian",
-            "metaDescription": "Câu chuyện về ngôi nhà mới của Salanca tại 49 Phan Bội Châu, Hà Nội.",
+            "metaTitle": "Không gian nhà hàng tại 49 Phan Bội Châu, Hà Nội",
+            "metaDescription": "Ngôi nhà mới của Salanca tại 49 Phan Bội Châu, Hà Nội: không gian ấm cúng cho bữa tối gia đình, hẹn hò, sinh nhật và tiệc riêng bên thịt nướng Brazil.",
             "canonicalPath": "/vi/khong-gian",
             "noIndex": false
           }
@@ -6819,8 +6819,8 @@
             "openInNewTab": false
           },
           "seo": {
-            "metaTitle": "Space",
-            "metaDescription": "The story of Salanca’s new home at 49 Phan Boi Chau, Hanoi.",
+            "metaTitle": "Our Restaurant Space at 49 Phan Boi Chau, Hanoi",
+            "metaDescription": "Salanca's new home at 49 Phan Boi Chau, Hanoi: a warm room for family dinners, date nights, birthdays and private parties around Brazilian grilled meats.",
             "canonicalPath": "/en/space",
             "noIndex": false
           }
@@ -6902,8 +6902,8 @@
             }
           },
           "seo": {
-            "metaTitle": "Ưu đãi",
-            "metaDescription": "Liên hệ Salanca để hỏi thông tin ưu đãi.",
+            "metaTitle": "Ưu đãi và sự kiện tại nhà hàng Brazil Hà Nội",
+            "metaDescription": "Ưu đãi và sự kiện tại Salanca: đêm Brazil cuối tuần, tiệc sinh nhật, tiệc riêng, bữa trưa gặp gỡ và hẹn hò bên bếp nướng Churrascaria ở Hà Nội.",
             "canonicalPath": "/vi/uu-dai",
             "noIndex": false
           }
@@ -6983,8 +6983,8 @@
             }
           },
           "seo": {
-            "metaTitle": "Offers",
-            "metaDescription": "Contact Salanca for offer information.",
+            "metaTitle": "Offers and Events at a Brazilian Grill in Hanoi",
+            "metaDescription": "Offers and events at Salanca: Brazil weekend nights, birthday celebrations, private parties, midday lunches and date nights by the churrascaria grill.",
             "canonicalPath": "/en/offers",
             "noIndex": false
           }
@@ -7136,8 +7136,8 @@
             }
           },
           "seo": {
-            "metaTitle": "Liên hệ",
-            "metaDescription": "Liên hệ Salanca — địa chỉ Hà Nội, hotline, form gửi tin nhắn và hướng dẫn đến nhà hàng.",
+            "metaTitle": "Liên hệ nhà hàng – 49 Phan Bội Châu, Hà Nội",
+            "metaDescription": "Liên hệ Salanca tại 49 Phan Bội Châu, phường Cửa Nam, Hà Nội. Hotline, email, giờ mở cửa, bản đồ chỉ đường và form gửi tin nhắn cho nhà hàng.",
             "canonicalPath": "/vi/lien-he",
             "noIndex": false
           }
@@ -7287,8 +7287,8 @@
             }
           },
           "seo": {
-            "metaTitle": "Contact",
-            "metaDescription": "Contact Salanca — Hanoi address, hotline, message form, and directions to the restaurant.",
+            "metaTitle": "Contact Us – 49 Phan Boi Chau, Hanoi",
+            "metaDescription": "Contact Salanca at 49 Phan Boi Chau, Cua Nam Ward, Hanoi. Hotline, email, opening hours, map directions and a message form to reach the restaurant.",
             "canonicalPath": "/en/contact",
             "noIndex": false
           }
@@ -7327,244 +7327,79 @@
           "formHeading": "Thông tin đặt bàn",
           "arrivalTimes": [
             {
-              "label": "00:00",
-              "value": "00:00",
-              "displayOrder": 0
-            },
-            {
-              "label": "00:30",
-              "value": "00:30",
-              "displayOrder": 1
-            },
-            {
-              "label": "01:00",
-              "value": "01:00",
-              "displayOrder": 2
-            },
-            {
-              "label": "01:30",
-              "value": "01:30",
-              "displayOrder": 3
-            },
-            {
-              "label": "02:00",
-              "value": "02:00",
-              "displayOrder": 4
-            },
-            {
-              "label": "02:30",
-              "value": "02:30",
-              "displayOrder": 5
-            },
-            {
-              "label": "03:00",
-              "value": "03:00",
-              "displayOrder": 6
-            },
-            {
-              "label": "03:30",
-              "value": "03:30",
-              "displayOrder": 7
-            },
-            {
-              "label": "04:00",
-              "value": "04:00",
-              "displayOrder": 8
-            },
-            {
-              "label": "04:30",
-              "value": "04:30",
-              "displayOrder": 9
-            },
-            {
-              "label": "05:00",
-              "value": "05:00",
-              "displayOrder": 10
-            },
-            {
-              "label": "05:30",
-              "value": "05:30",
-              "displayOrder": 11
-            },
-            {
-              "label": "06:00",
-              "value": "06:00",
-              "displayOrder": 12
-            },
-            {
-              "label": "06:30",
-              "value": "06:30",
-              "displayOrder": 13
-            },
-            {
-              "label": "07:00",
-              "value": "07:00",
-              "displayOrder": 14
-            },
-            {
-              "label": "07:30",
-              "value": "07:30",
-              "displayOrder": 15
-            },
-            {
-              "label": "08:00",
-              "value": "08:00",
-              "displayOrder": 16
-            },
-            {
-              "label": "08:30",
-              "value": "08:30",
-              "displayOrder": 17
-            },
-            {
-              "label": "09:00",
-              "value": "09:00",
-              "displayOrder": 18
-            },
-            {
-              "label": "09:30",
-              "value": "09:30",
-              "displayOrder": 19
-            },
-            {
-              "label": "10:00",
-              "value": "10:00",
-              "displayOrder": 20
-            },
-            {
-              "label": "10:30",
-              "value": "10:30",
-              "displayOrder": 21
-            },
-            {
               "label": "11:00",
               "value": "11:00",
-              "displayOrder": 22
+              "displayOrder": 0
             },
             {
               "label": "11:30",
               "value": "11:30",
-              "displayOrder": 23
+              "displayOrder": 1
             },
             {
               "label": "12:00",
               "value": "12:00",
-              "displayOrder": 24
+              "displayOrder": 2
             },
             {
               "label": "12:30",
               "value": "12:30",
-              "displayOrder": 25
+              "displayOrder": 3
             },
             {
               "label": "13:00",
               "value": "13:00",
-              "displayOrder": 26
+              "displayOrder": 4
             },
             {
               "label": "13:30",
               "value": "13:30",
-              "displayOrder": 27
-            },
-            {
-              "label": "14:00",
-              "value": "14:00",
-              "displayOrder": 28
-            },
-            {
-              "label": "14:30",
-              "value": "14:30",
-              "displayOrder": 29
-            },
-            {
-              "label": "15:00",
-              "value": "15:00",
-              "displayOrder": 30
-            },
-            {
-              "label": "15:30",
-              "value": "15:30",
-              "displayOrder": 31
-            },
-            {
-              "label": "16:00",
-              "value": "16:00",
-              "displayOrder": 32
-            },
-            {
-              "label": "16:30",
-              "value": "16:30",
-              "displayOrder": 33
-            },
-            {
-              "label": "17:00",
-              "value": "17:00",
-              "displayOrder": 34
+              "displayOrder": 5
             },
             {
               "label": "17:30",
               "value": "17:30",
-              "displayOrder": 35
+              "displayOrder": 6
             },
             {
               "label": "18:00",
               "value": "18:00",
-              "displayOrder": 36
+              "displayOrder": 7
             },
             {
               "label": "18:30",
               "value": "18:30",
-              "displayOrder": 37
+              "displayOrder": 8
             },
             {
               "label": "19:00",
               "value": "19:00",
-              "displayOrder": 38
+              "displayOrder": 9
             },
             {
               "label": "19:30",
               "value": "19:30",
-              "displayOrder": 39
+              "displayOrder": 10
             },
             {
               "label": "20:00",
               "value": "20:00",
-              "displayOrder": 40
+              "displayOrder": 11
             },
             {
               "label": "20:30",
               "value": "20:30",
-              "displayOrder": 41
+              "displayOrder": 12
             },
             {
               "label": "21:00",
               "value": "21:00",
-              "displayOrder": 42
+              "displayOrder": 13
             },
             {
               "label": "21:30",
               "value": "21:30",
-              "displayOrder": 43
-            },
-            {
-              "label": "22:00",
-              "value": "22:00",
-              "displayOrder": 44
-            },
-            {
-              "label": "22:30",
-              "value": "22:30",
-              "displayOrder": 45
-            },
-            {
-              "label": "23:00",
-              "value": "23:00",
-              "displayOrder": 46
-            },
-            {
-              "label": "23:30",
-              "value": "23:30",
-              "displayOrder": 47
+              "displayOrder": 14
             }
           ],
           "guestOptions": [
@@ -7717,8 +7552,8 @@
             "focalPointY": 50
           },
           "seo": {
-            "metaTitle": "Đặt bàn",
-            "metaDescription": "Gửi yêu cầu đặt bàn tại Salanca và chờ nhà hàng xác nhận.",
+            "metaTitle": "Đặt bàn buffet nướng Brazil tại Hà Nội",
+            "metaDescription": "Đặt bàn trực tuyến tại Salanca, 49 Phan Bội Châu, Hà Nội. Chọn ngày, giờ, số khách và gửi yêu cầu; nhà hàng sẽ liên hệ xác nhận đặt bàn của bạn.",
             "shareImage": null,
             "canonicalPath": "/vi/dat-ban",
             "noIndex": false
@@ -7783,249 +7618,84 @@
           "formHeading": "Reservation details",
           "arrivalTimes": [
             {
-              "label": "00:00",
-              "value": "00:00",
-              "displayOrder": 0
-            },
-            {
-              "label": "00:30",
-              "value": "00:30",
-              "displayOrder": 1
-            },
-            {
-              "label": "01:00",
-              "value": "01:00",
-              "displayOrder": 2
-            },
-            {
-              "label": "01:30",
-              "value": "01:30",
-              "displayOrder": 3
-            },
-            {
-              "label": "02:00",
-              "value": "02:00",
-              "displayOrder": 4
-            },
-            {
-              "label": "02:30",
-              "value": "02:30",
-              "displayOrder": 5
-            },
-            {
-              "label": "03:00",
-              "value": "03:00",
-              "displayOrder": 6
-            },
-            {
-              "label": "03:30",
-              "value": "03:30",
-              "displayOrder": 7
-            },
-            {
-              "label": "04:00",
-              "value": "04:00",
-              "displayOrder": 8
-            },
-            {
-              "label": "04:30",
-              "value": "04:30",
-              "displayOrder": 9
-            },
-            {
-              "label": "05:00",
-              "value": "05:00",
-              "displayOrder": 10
-            },
-            {
-              "label": "05:30",
-              "value": "05:30",
-              "displayOrder": 11
-            },
-            {
-              "label": "06:00",
-              "value": "06:00",
-              "displayOrder": 12
-            },
-            {
-              "label": "06:30",
-              "value": "06:30",
-              "displayOrder": 13
-            },
-            {
-              "label": "07:00",
-              "value": "07:00",
-              "displayOrder": 14
-            },
-            {
-              "label": "07:30",
-              "value": "07:30",
-              "displayOrder": 15
-            },
-            {
-              "label": "08:00",
-              "value": "08:00",
-              "displayOrder": 16
-            },
-            {
-              "label": "08:30",
-              "value": "08:30",
-              "displayOrder": 17
-            },
-            {
-              "label": "09:00",
-              "value": "09:00",
-              "displayOrder": 18
-            },
-            {
-              "label": "09:30",
-              "value": "09:30",
-              "displayOrder": 19
-            },
-            {
-              "label": "10:00",
-              "value": "10:00",
-              "displayOrder": 20
-            },
-            {
-              "label": "10:30",
-              "value": "10:30",
-              "displayOrder": 21
-            },
-            {
               "label": "11:00",
               "value": "11:00",
-              "displayOrder": 22
+              "displayOrder": 0
             },
             {
               "label": "11:30",
               "value": "11:30",
-              "displayOrder": 23
+              "displayOrder": 1
             },
             {
               "label": "12:00",
               "value": "12:00",
-              "displayOrder": 24
+              "displayOrder": 2
             },
             {
               "label": "12:30",
               "value": "12:30",
-              "displayOrder": 25
+              "displayOrder": 3
             },
             {
               "label": "13:00",
               "value": "13:00",
-              "displayOrder": 26
+              "displayOrder": 4
             },
             {
               "label": "13:30",
               "value": "13:30",
-              "displayOrder": 27
-            },
-            {
-              "label": "14:00",
-              "value": "14:00",
-              "displayOrder": 28
-            },
-            {
-              "label": "14:30",
-              "value": "14:30",
-              "displayOrder": 29
-            },
-            {
-              "label": "15:00",
-              "value": "15:00",
-              "displayOrder": 30
-            },
-            {
-              "label": "15:30",
-              "value": "15:30",
-              "displayOrder": 31
-            },
-            {
-              "label": "16:00",
-              "value": "16:00",
-              "displayOrder": 32
-            },
-            {
-              "label": "16:30",
-              "value": "16:30",
-              "displayOrder": 33
-            },
-            {
-              "label": "17:00",
-              "value": "17:00",
-              "displayOrder": 34
+              "displayOrder": 5
             },
             {
               "label": "17:30",
               "value": "17:30",
-              "displayOrder": 35
+              "displayOrder": 6
             },
             {
               "label": "18:00",
               "value": "18:00",
-              "displayOrder": 36
+              "displayOrder": 7
             },
             {
               "label": "18:30",
               "value": "18:30",
-              "displayOrder": 37
+              "displayOrder": 8
             },
             {
               "label": "19:00",
               "value": "19:00",
-              "displayOrder": 38
+              "displayOrder": 9
             },
             {
               "label": "19:30",
               "value": "19:30",
-              "displayOrder": 39
+              "displayOrder": 10
             },
             {
               "label": "20:00",
               "value": "20:00",
-              "displayOrder": 40
+              "displayOrder": 11
             },
             {
               "label": "20:30",
               "value": "20:30",
-              "displayOrder": 41
+              "displayOrder": 12
             },
             {
               "label": "21:00",
               "value": "21:00",
-              "displayOrder": 42
+              "displayOrder": 13
             },
             {
               "label": "21:30",
               "value": "21:30",
-              "displayOrder": 43
-            },
-            {
-              "label": "22:00",
-              "value": "22:00",
-              "displayOrder": 44
-            },
-            {
-              "label": "22:30",
-              "value": "22:30",
-              "displayOrder": 45
-            },
-            {
-              "label": "23:00",
-              "value": "23:00",
-              "displayOrder": 46
-            },
-            {
-              "label": "23:30",
-              "value": "23:30",
-              "displayOrder": 47
+              "displayOrder": 14
             }
           ],
           "guestOptions": [
             {
-              "label": "1 guests",
+              "label": "1 guest",
               "value": "1",
               "displayOrder": 0
             },
@@ -8173,8 +7843,8 @@
             "focalPointY": 50
           },
           "seo": {
-            "metaTitle": "Reservations",
-            "metaDescription": "Send a reservation request to Salanca and wait for restaurant confirmation.",
+            "metaTitle": "Book a Table at a Brazilian Grill in Hanoi",
+            "metaDescription": "Book a table online at Salanca, 49 Phan Boi Chau, Hanoi. Choose your date, time and party size, send the request and the restaurant will confirm.",
             "shareImage": null,
             "canonicalPath": "/en/reservations",
             "noIndex": false
@@ -8254,8 +7924,8 @@
           }
         },
         "defaultSeo": {
-          "metaTitle": "Tinh hoa Churrascaria Brazil",
-          "metaDescription": "Salanca — trải nghiệm hơn 12 loại thịt nướng phục vụ tại bàn theo phong cách Brazil truyền thống tại Hà Nội.",
+          "metaTitle": "Buffet nướng Brazil Churrascaria tại Hà Nội",
+          "metaDescription": "Salanca – nhà hàng Churrascaria Brazil tại 49 Phan Bội Châu, Hà Nội. Hơn 12 loại thịt nướng than hồng phục vụ tại bàn, bò và cừu nhập khẩu New Zealand.",
           "shareImage": null,
           "canonicalPath": "/vi",
           "noIndex": false
@@ -8305,8 +7975,8 @@
           }
         },
         "defaultSeo": {
-          "metaTitle": "The essence of Brazilian Churrascaria",
-          "metaDescription": "Salanca — experience more than 12 grilled meats carved tableside in the traditional Brazilian style in Hanoi.",
+          "metaTitle": "Brazilian Churrascaria Grill Buffet in Hanoi",
+          "metaDescription": "Salanca is a Brazilian churrascaria at 49 Phan Boi Chau, Hanoi. Over 12 charcoal-grilled meats carved at your table, with New Zealand beef and lamb.",
           "shareImage": null,
           "canonicalPath": "/en",
           "noIndex": false

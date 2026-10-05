@@ -1,23 +1,25 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { applyRequested, backendRoot, withStrapi } from './lib/scoped-seed.mjs';
 import { populateFor } from './lib/content-release.helper.mjs';
 
 /**
- * Applies scripts/locale-cleanup-2026-10-05.json: VI pages show Vietnamese only,
- * EN pages show English only.
+ * Applies the targeted content fixes in scripts/content-fixes/*.json, in file
+ * name order, without a full production reseed.
  *
  * Compare-and-set per field: a field is written only while it still holds the
- * expected old value. A field that already holds the new value is skipped, and
- * a field an editor changed to anything else is kept and reported.
- * Every touched document is checked for unpublished edits before any write.
- * Preview unless --apply.
+ * expected old value. A field that already holds the new value is skipped, so
+ * re-running is safe, and a field an editor changed to anything else is kept
+ * and reported. Every touched document is checked for unpublished edits before
+ * any write. Preview unless --apply.
  */
 
 const apply = applyRequested();
-const { edits } = JSON.parse(
-  readFileSync(resolve(backendRoot, 'scripts/locale-cleanup-2026-10-05.json'), 'utf8'),
-);
+const fixesDir = resolve(backendRoot, 'scripts/content-fixes');
+const edits = readdirSync(fixesDir)
+  .filter((name) => name.endsWith('.json'))
+  .sort()
+  .flatMap((name) => JSON.parse(readFileSync(resolve(fixesDir, name), 'utf8')).edits);
 
 const READ_ONLY = new Set(['id', 'documentId', 'locale', 'publishedAt', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy', 'localizations']);
 
@@ -51,7 +53,15 @@ function writePath(value, path, next) {
   parent[path.at(-1)] = next;
 }
 
-const same = (a, b) => (a ?? null) === (b ?? null);
+/** Key-order-insensitive comparison; null and absent keys are equal. */
+function canonical(value) {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.keys(value).sort().filter((key) => value[key] !== null && value[key] !== undefined).map((key) => [key, canonical(value[key])]));
+  }
+  return value ?? null;
+}
+const same = (a, b) => JSON.stringify(canonical(a)) === JSON.stringify(canonical(b));
 const show = (value) => JSON.stringify(value)?.slice(0, 70);
 
 /** The published row for one edit target, refusing when a newer draft exists. */
@@ -75,7 +85,7 @@ await withStrapi(async (app) => {
     const key = `${edit.uid}|${edit.locale}|${JSON.stringify(edit.match ?? null)}`;
     if (!plans.has(key)) {
       const row = await publishedTarget(app, edit.uid, edit.locale, edit.match);
-      plans.set(key, row && { ...edit, documentId: row.documentId, row, data: {} });
+      plans.set(key, row && { ...edit, documentId: row.documentId, current: writable(app, edit.uid, row), data: {} });
     }
     const plan = plans.get(key);
     const label = `${edit.uid}/${edit.locale}${edit.match ? ` ${show(edit.match)}` : ''} ${edit.path.join('.')}`;
@@ -83,7 +93,7 @@ await withStrapi(async (app) => {
       console.log(`KEPT  ${label}: no published document`); kept++;
       continue;
     }
-    const current = readPath(plan.row, edit.path);
+    const current = readPath(plan.current, edit.path);
     if (same(current, edit.to)) {
       console.log(`DONE  ${label}`); done++;
       continue;
@@ -93,7 +103,7 @@ await withStrapi(async (app) => {
       continue;
     }
     const field = edit.path[0];
-    if (!(field in plan.data)) plan.data[field] = writable(app, edit.uid, { [field]: plan.row[field] })[field];
+    if (!(field in plan.data)) plan.data[field] = structuredClone(plan.current[field]);
     if (edit.path.length === 1) plan.data[field] = edit.to;
     else writePath(plan.data[field], edit.path.slice(1), edit.to);
     console.log(`WRITE ${label}: ${show(current)} -> ${show(edit.to)}`); changed++;
