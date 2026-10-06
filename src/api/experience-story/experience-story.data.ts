@@ -9,6 +9,11 @@ export interface ExperienceHeritageStory {
   background: {
     src: string;
     color: string;
+    /** Set when the artwork resolves from the media library. */
+    width?: number;
+    height?: number;
+    /** Strapi `formats` of the media-library file, as the REST API returns it. */
+    formats?: Readonly<Record<string, unknown>>;
   };
 }
 

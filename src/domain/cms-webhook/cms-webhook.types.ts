@@ -21,13 +21,18 @@ export enum CmsWebhookContentUid {
 export enum CmsWebhookEvent {
   Publish = 'entry.publish',
   Unpublish = 'entry.unpublish',
+  /** A media file was stored under a fresh hash; the web revalidates every page. */
+  MediaReplace = 'media.replace',
 }
+
+/** Media library file — only ever sent with `media.replace`. */
+export const CMS_WEBHOOK_MEDIA_UID = 'plugin::upload.file';
 
 export type CmsWebhookPayload = Readonly<{
   documentId: string;
   event: CmsWebhookEvent;
   locale: string;
-  uid: CmsWebhookContentUid;
+  uid: CmsWebhookContentUid | typeof CMS_WEBHOOK_MEDIA_UID;
 }>;
 
 export const CMS_WEBHOOK_ALLOWED_UIDS = new Set<string>(Object.values(CmsWebhookContentUid));

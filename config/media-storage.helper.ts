@@ -11,6 +11,24 @@ const rootPathPattern = /^[a-z0-9][a-z0-9-]*(?:\/[a-z0-9][a-z0-9-]*)*$/;
 
 const loopbackHostnames = ['localhost', '127.0.0.1', '[::1]'];
 
+/**
+ * Cache-Control written on every stored object. Safe as `immutable` because
+ * each upload (and each derivative) gets a fresh random hash in its key —
+ * including admin "Replace media", which src/extensions/upload/fresh-hash-replace.ts
+ * routes to a new hash instead of Strapi's key-reusing replace.
+ */
+export const MEDIA_CACHE_CONTROL = 'public, max-age=31536000, immutable';
+
+/**
+ * Per-call S3 params for writes. `@strapi/provider-upload-aws-s3` 5.51.1 reads
+ * only `Bucket` and `ACL` from `s3Options.params`; any other PutObject field is
+ * honoured only when passed as the call's `customParams`, which the upload
+ * plugin fills from `actionOptions[methodName]`.
+ */
+interface MediaStorageWriteParams {
+  CacheControl: typeof MEDIA_CACHE_CONTROL;
+}
+
 interface MediaStorageCredentials {
   accessKeyId: string;
   secretAccessKey: string;
@@ -42,8 +60,10 @@ export interface MediaStorageConfig {
     s3Options: MediaStorageS3Options;
   };
   actionOptions: {
-    upload: Record<string, never>;
-    uploadStream: Record<string, never>;
+    upload: MediaStorageWriteParams;
+    uploadStream: MediaStorageWriteParams;
+    replace: MediaStorageWriteParams;
+    replaceStream: MediaStorageWriteParams;
     delete: Record<string, never>;
   };
 }
@@ -198,8 +218,10 @@ export const resolveMediaStorageConfig = (env: Environment): MediaStorageConfig 
       },
     },
     actionOptions: {
-      upload: {},
-      uploadStream: {},
+      upload: { CacheControl: MEDIA_CACHE_CONTROL },
+      uploadStream: { CacheControl: MEDIA_CACHE_CONTROL },
+      replace: { CacheControl: MEDIA_CACHE_CONTROL },
+      replaceStream: { CacheControl: MEDIA_CACHE_CONTROL },
       delete: {},
     },
   };

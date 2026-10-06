@@ -1,17 +1,41 @@
 /**
- * Read-only media reconciliation against S3/R2 when CDN + S3 env is configured.
- * Usage: npm run media:reconcile
+ * Media reconciliation against S3/R2 when CDN + S3 env is configured.
+ *
+ * Usage:
+ *   pnpm media:reconcile                                   read-only report
+ *   pnpm media:reconcile -- --delete-orphans               list deletable orphans
+ *   pnpm media:reconcile -- --delete-orphans --apply       delete them
+ *   ... --min-age-days 14                                  grace period (default 7)
+ *
+ * `--delete-orphans` records when each orphan was first seen (Strapi core
+ * store `media-reconcile`); a key is deleted only after it has stayed an
+ * orphan for the grace period, and never when listed in protected-keys.txt.
+ * Run it regularly (the dry run is enough) so the clock starts early.
  */
+import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
 import { loadStrapiApp } from '../lib/strapi-load.mjs';
 import {
   buildMediaReconciliationReport,
   formatMediaReconciliationReport,
+  formatOrphanDeletionPlan,
+  parseProtectedKeys,
+  parseReconcileArgs,
+  selectOrphansForDeletion,
   stripTrailingSlashes,
+  updateOrphanLedger,
 } from './reconcile-media.helper.mjs';
 
-const require = createRequire(import.meta.url);
+// pnpm does not hoist @aws-sdk/client-s3; resolve it from the provider's tree.
+const projectRequire = createRequire(import.meta.url);
+const providerRequire = createRequire(
+  projectRequire.resolve('@strapi/provider-upload-aws-s3/package.json'),
+);
+const { S3Client, ListObjectsV2Command, DeleteObjectCommand } =
+  providerRequire('@aws-sdk/client-s3');
+const DELETE_CONCURRENCY = 3;
+const ORPHAN_LEDGER = { type: 'core', name: 'media-reconcile', key: 'orphans-first-seen' };
 const FILE_MODEL_UID = 'plugin::upload.file';
 const PAGE_SIZE = 200;
 
@@ -31,19 +55,9 @@ function readProviderOptions(strapi) {
   return { baseUrl, rootPath, s3Options, bucket };
 }
 
-async function listBucketKeys(s3Options, bucket, rootPath) {
-  let S3Client;
-  let ListObjectsV2Command;
-  try {
-    ({ S3Client, ListObjectsV2Command } = require('@aws-sdk/client-s3'));
-  } catch {
-    throw new Error(
-      'Missing @aws-sdk/client-s3. Install it to run media:reconcile against a live bucket.',
-    );
-  }
-
+async function listBucketObjects(s3Options, bucket, rootPath) {
   const client = new S3Client(s3Options);
-  const keys = [];
+  const objects = [];
   let continuationToken;
 
   try {
@@ -56,7 +70,7 @@ async function listBucketKeys(s3Options, bucket, rootPath) {
         }),
       );
       for (const object of response.Contents ?? []) {
-        if (object.Key) keys.push(object.Key);
+        if (object.Key) objects.push({ key: object.Key, lastModified: object.LastModified });
       }
       continuationToken = response.NextContinuationToken;
     } while (continuationToken);
@@ -64,7 +78,35 @@ async function listBucketKeys(s3Options, bucket, rootPath) {
     client.destroy();
   }
 
-  return keys;
+  return objects;
+}
+
+async function deleteObjects(s3Options, bucket, keys) {
+  const client = new S3Client(s3Options);
+  const failed = [];
+  try {
+    const queue = [...keys];
+    const worker = async () => {
+      for (let key = queue.shift(); key !== undefined; key = queue.shift()) {
+        try {
+          await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+          console.log(`  đã xoá ${key}`);
+        } catch (error) {
+          failed.push(key);
+          console.error(`  lỗi khi xoá ${key}: ${error?.message ?? error}`);
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: DELETE_CONCURRENCY }, worker));
+  } finally {
+    client.destroy();
+  }
+  return failed;
+}
+
+function readProtectedKeys() {
+  const text = readFileSync(new URL('./protected-keys.txt', import.meta.url), 'utf8');
+  return parseProtectedKeys(text);
 }
 
 async function listMediaRows(strapi) {
@@ -84,21 +126,49 @@ async function listMediaRows(strapi) {
   return rows;
 }
 
+const args = parseReconcileArgs(process.argv.slice(2));
 const app = await loadStrapiApp();
 
 try {
   const { baseUrl, rootPath, s3Options, bucket } = readProviderOptions(app);
-  const [files, bucketKeys] = await Promise.all([
+  const [files, bucketObjects] = await Promise.all([
     listMediaRows(app),
-    listBucketKeys(s3Options, bucket, rootPath),
+    listBucketObjects(s3Options, bucket, rootPath),
   ]);
-  const report = buildMediaReconciliationReport(files, bucketKeys, baseUrl);
-  console.log(formatMediaReconciliationReport(report));
+  const report = buildMediaReconciliationReport(
+    files,
+    bucketObjects.map((object) => object.key),
+    baseUrl,
+  );
+  console.log(formatMediaReconciliationReport(report, args));
   const hasFindings =
     report.missingObjects.length > 0 ||
     report.orphanCandidates.length > 0 ||
     report.unmanagedUrls.length > 0;
   process.exitCode = hasFindings ? 2 : 0;
+
+  if (args.deleteOrphans) {
+    const now = new Date();
+    const store = app.store(ORPHAN_LEDGER);
+    const ledger = updateOrphanLedger(await store.get({}), report.orphanCandidates, now);
+    await store.set({ value: ledger });
+    const plan = selectOrphansForDeletion(
+      report.orphanCandidates,
+      ledger,
+      readProtectedKeys(),
+      now,
+      args.minAgeDays,
+    );
+    console.log(formatOrphanDeletionPlan(plan, args));
+    if (args.apply && plan.deletable.length > 0) {
+      const failed = await deleteObjects(s3Options, bucket, plan.deletable);
+      const deleted = new Set(plan.deletable.filter((key) => !failed.includes(key)));
+      await store.set({
+        value: Object.fromEntries(Object.entries(ledger).filter(([key]) => !deleted.has(key))),
+      });
+      process.exitCode = failed.length > 0 ? 1 : process.exitCode;
+    }
+  }
 } catch (error) {
   console.error('media:reconcile failed');
   console.error(error?.message ?? error);

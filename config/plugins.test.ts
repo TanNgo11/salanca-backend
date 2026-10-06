@@ -1,7 +1,7 @@
 import type { Core } from '@strapi/strapi';
 import { describe, expect, it } from 'vitest';
 
-import config, { resolveAuthCookieConfig } from './plugins';
+import config, { resolveAuthCookieConfig, uploadBreakpoints } from './plugins';
 
 type EnvironmentValues = Readonly<Record<string, string | boolean | undefined>>;
 
@@ -101,6 +101,33 @@ describe('upload plugin configuration', () => {
     });
   });
 
+  it('writes Cache-Control through the S3 provider action options', () => {
+    const { upload } = config(createParams(s3Environment));
+    const cacheControl = { CacheControl: 'public, max-age=31536000, immutable' };
+
+    expect(upload?.config).toEqual(
+      expect.objectContaining({
+        actionOptions: expect.objectContaining({
+          upload: cacheControl,
+          uploadStream: cacheControl,
+        }),
+      }),
+    );
+  });
+
+  it('sets explicit responsive breakpoints with non-default names', () => {
+    const expected = { w640: 640, w960: 960, w1280: 1280, w1920: 1920 };
+
+    expect(uploadBreakpoints).toEqual(expected);
+    expect(config(createParams(s3Environment)).upload?.config).toEqual(
+      expect.objectContaining({ breakpoints: expected }),
+    );
+    // Strapi's defaults; reusing one would overwrite cached derivative keys.
+    for (const name of ['thumbnail', 'small', 'medium', 'large', 'xlarge']) {
+      expect(Object.keys(expected)).not.toContain(name);
+    }
+  });
+
   it('keeps local-disk upload when S3 is unset outside production', () => {
     const { upload } = config(
       createParams({
@@ -111,6 +138,7 @@ describe('upload plugin configuration', () => {
 
     expect(upload).toEqual({
       config: {
+        breakpoints: { w640: 640, w960: 960, w1280: 1280, w1920: 1920 },
         security: expect.objectContaining({
           allowedTypes: expect.any(Array),
           deniedTypes: expect.any(Array),

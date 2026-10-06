@@ -5,6 +5,12 @@ import {
   createMediaProcessingOptimize,
   type OptimizeFn,
 } from '../../domain/media-processing/upload-optimize';
+import { emitMediaReplacedWebhook } from '../../domain/cms-webhook/emit-cms-webhook';
+import {
+  createFreshHashReplace,
+  type FreshHashReplaceDeps,
+  type UploadFileData,
+} from './fresh-hash-replace';
 import { createReferenceSafeRemove, type MediaRemove } from './media-reference-guard';
 import {
   createAuditedFolderUpdate,
@@ -14,6 +20,10 @@ import {
 
 type UploadService = Readonly<{
   remove: MediaRemove;
+  findOne: FreshHashReplaceDeps['findOne'];
+  formatFileInfo: FreshHashReplaceDeps['formatFileInfo'];
+  _uploadImage: FreshHashReplaceDeps['uploadImage'];
+  updateFileInfo: FreshHashReplaceDeps['updateFileInfo'];
 }> &
   Record<string, unknown>;
 
@@ -85,6 +95,41 @@ const decorateFolder = (
   });
 };
 
+type ImageChecks = Readonly<{
+  isImage: FreshHashReplaceDeps['isImage'];
+  isFaultyImage: FreshHashReplaceDeps['isFaultyImage'];
+  isOptimizableImage: FreshHashReplaceDeps['isOptimizableImage'];
+  optimize: FreshHashReplaceDeps['optimize'];
+}>;
+
+type ProviderService = Readonly<{
+  checkFileSize: FreshHashReplaceDeps['checkFileSize'];
+  upload: FreshHashReplaceDeps['uploadFile'];
+}>;
+
+/** Sibling services are resolved per call: they may not exist yet when this factory runs. */
+const createReplaceDeps = (strapi: Core.Strapi, service: UploadService): FreshHashReplaceDeps => {
+  const images = (): ImageChecks =>
+    strapi.plugin('upload').service('image-manipulation') as unknown as ImageChecks;
+  const provider = (): ProviderService =>
+    strapi.plugin('upload').service('provider') as unknown as ProviderService;
+
+  return {
+    findOne: service.findOne,
+    formatFileInfo: service.formatFileInfo,
+    isImage: (file: UploadFileData) => images().isImage(file),
+    isFaultyImage: (file: UploadFileData) => images().isFaultyImage(file),
+    isOptimizableImage: (file: UploadFileData) => images().isOptimizableImage(file),
+    optimize: (file: UploadFileData) => images().optimize(file),
+    checkFileSize: (file: UploadFileData) => provider().checkFileSize(file),
+    uploadImage: service._uploadImage,
+    uploadFile: (file: UploadFileData) => provider().upload(file),
+    providerName: () => String(strapi.config.get('plugin::upload.provider')),
+    updateFileInfo: service.updateFileInfo,
+    onReplaced: (fileId) => emitMediaReplacedWebhook(strapi, fileId),
+  };
+};
+
 export default (plugin: UploadPlugin): UploadPlugin => {
   const createUploadService = plugin.services.upload;
   const originalFolder = plugin.services.folder;
@@ -98,6 +143,7 @@ export default (plugin: UploadPlugin): UploadPlugin => {
         context.strapi,
         createReferenceSafeRemove(context.strapi, service.remove),
       ),
+      replace: createFreshHashReplace(context.strapi, createReplaceDeps(context.strapi, service)),
     };
   };
 

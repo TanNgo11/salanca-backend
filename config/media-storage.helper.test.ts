@@ -2,6 +2,7 @@ import type { Core } from '@strapi/strapi';
 import { describe, expect, it } from 'vitest';
 
 import {
+  MEDIA_CACHE_CONTROL,
   assertProductionMediaStorage,
   isObjectStorageEnabled,
   resolveMediaCdnOrigin,
@@ -65,10 +66,35 @@ describe('resolveMediaStorageConfig', () => {
         },
       },
       actionOptions: {
-        upload: {},
-        uploadStream: {},
+        upload: { CacheControl: 'public, max-age=31536000, immutable' },
+        uploadStream: { CacheControl: 'public, max-age=31536000, immutable' },
+        replace: { CacheControl: 'public, max-age=31536000, immutable' },
+        replaceStream: { CacheControl: 'public, max-age=31536000, immutable' },
         delete: {},
       },
+    });
+  });
+
+  it('writes a long-lived immutable Cache-Control on every write action', () => {
+    const { actionOptions } = resolveMediaStorageConfig(createEnv(awsEnvironment));
+
+    expect(MEDIA_CACHE_CONTROL).toBe('public, max-age=31536000, immutable');
+    // The aws-s3 provider ignores everything in s3Options.params except Bucket
+    // and ACL; per-call customParams (actionOptions) are what reach PutObject.
+    for (const action of ['upload', 'uploadStream', 'replace', 'replaceStream'] as const) {
+      expect(actionOptions[action]).toEqual({ CacheControl: MEDIA_CACHE_CONTROL });
+    }
+    expect(actionOptions.delete).toEqual({});
+  });
+
+  it('keeps Cache-Control out of the client-level params', () => {
+    const { providerOptions } = resolveMediaStorageConfig(
+      createEnv({ ...awsEnvironment, S3_ACL: 'public-read' }),
+    );
+
+    expect(providerOptions.s3Options.params).toEqual({
+      Bucket: 'salanca-media',
+      ACL: 'public-read',
     });
   });
 

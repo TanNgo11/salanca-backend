@@ -5,6 +5,7 @@ import {
   CMS_WEBHOOK_ALLOWED_LOCALES,
   CMS_WEBHOOK_ALLOWED_UIDS,
   CMS_WEBHOOK_MAX_BODY_BYTES,
+  CMS_WEBHOOK_MEDIA_UID,
   CmsWebhookEvent,
   type CmsWebhookPayload,
 } from './cms-webhook.types';
@@ -69,7 +70,9 @@ export const parseCmsWebhookPayload = (value: unknown): CmsWebhookPayload => {
 
   const { uid, locale, documentId, event } = value;
 
-  if (typeof uid !== 'string' || !CMS_WEBHOOK_ALLOWED_UIDS.has(uid)) {
+  const isMedia = uid === CMS_WEBHOOK_MEDIA_UID;
+
+  if (typeof uid !== 'string' || (!isMedia && !CMS_WEBHOOK_ALLOWED_UIDS.has(uid))) {
     throw new CmsWebhookValidationError(
       CmsWebhookValidationErrorCode.UnsupportedUid,
       'Webhook UID is not allowlisted.',
@@ -90,10 +93,16 @@ export const parseCmsWebhookPayload = (value: unknown): CmsWebhookPayload => {
     );
   }
 
-  if (event !== CmsWebhookEvent.Publish && event !== CmsWebhookEvent.Unpublish) {
+  const validEvent = isMedia
+    ? event === CmsWebhookEvent.MediaReplace
+    : event === CmsWebhookEvent.Publish || event === CmsWebhookEvent.Unpublish;
+
+  if (!validEvent) {
     throw new CmsWebhookValidationError(
       CmsWebhookValidationErrorCode.InvalidPayload,
-      'Webhook event must be entry.publish or entry.unpublish.',
+      isMedia
+        ? 'Media webhook event must be media.replace.'
+        : 'Webhook event must be entry.publish or entry.unpublish.',
     );
   }
 
@@ -101,7 +110,7 @@ export const parseCmsWebhookPayload = (value: unknown): CmsWebhookPayload => {
     uid: uid as CmsWebhookPayload['uid'],
     locale,
     documentId: documentId.trim(),
-    event,
+    event: event as CmsWebhookEvent,
   };
 };
 

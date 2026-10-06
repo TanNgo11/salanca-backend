@@ -1,0 +1,8 @@
+# Bucket keys media:reconcile must never delete, one per line (relative to the
+# bucket root, e.g. uploads/name_hash.webp). Add any object referenced by a URL
+# hardcoded outside the CMS file table.
+
+# Experience heritage backgrounds: hardcoded in
+# src/api/experience-story/experience-story.data.ts.
+uploads/pdf_heritage_vi_bg_31b47c68a5.webp
+uploads/pdf_heritage_en_bg_9586bf937b.webp

@@ -5,6 +5,7 @@ import { buildCmsWebhookPayload, signCmsWebhookPayload } from './cms-webhook.hel
 import {
   CMS_WEBHOOK_ALLOWED_LOCALES,
   CMS_WEBHOOK_ALLOWED_UIDS,
+  CMS_WEBHOOK_MEDIA_UID,
   CmsWebhookEvent,
 } from './cms-webhook.types';
 
@@ -20,7 +21,7 @@ const resolveEvent = (action: string): CmsWebhookEvent | null => {
   return null;
 };
 
-const deliverWebhook = async (
+export const deliverCmsWebhook = async (
   strapi: Core.Strapi,
   payload: ReturnType<typeof buildCmsWebhookPayload>,
 ): Promise<void> => {
@@ -97,5 +98,21 @@ export const emitCmsWebhook = async (
   }
 
   const payload = buildCmsWebhookPayload(ctx.uid, locale, documentId, event);
-  void deliverWebhook(strapi, payload);
+  void deliverCmsWebhook(strapi, payload);
+};
+
+/**
+ * After a media file is stored under a fresh hash (see
+ * src/extensions/upload/fresh-hash-replace.ts) the web must drop pages that
+ * still embed the old URL. Media is not localized; the web revalidates both
+ * locales for this event.
+ */
+export const emitMediaReplacedWebhook = (strapi: Core.Strapi, fileId: number | string): void => {
+  const payload = buildCmsWebhookPayload(
+    CMS_WEBHOOK_MEDIA_UID,
+    'vi',
+    String(fileId),
+    CmsWebhookEvent.MediaReplace,
+  );
+  void deliverCmsWebhook(strapi, payload);
 };

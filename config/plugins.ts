@@ -33,6 +33,20 @@ const deniedExecutableTypes = [
   'application/x-mach-binary',
 ];
 
+/**
+ * Responsive derivative widths (Strapi generates `formats[name]` only when the
+ * original is larger than the breakpoint on either edge). Names deliberately
+ * differ from Strapi's defaults (small/medium/large): derivative keys are
+ * `${name}_${hash}${ext}`, so reusing a default name would overwrite an
+ * existing, immutably cached object with different-size content.
+ */
+export const uploadBreakpoints = {
+  w640: 640,
+  w960: 960,
+  w1280: 1280,
+  w1920: 1920,
+} as const;
+
 enum AuthCookieSameSite {
   Lax = 'lax',
   None = 'none',
@@ -75,7 +89,8 @@ export const resolveAuthCookieConfig = (env: Core.Config.Shared.ConfigParams['en
 const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Plugin => {
   assertProductionMediaStorage(env);
 
-  const uploadSecurity = {
+  const uploadCommon = {
+    breakpoints: { ...uploadBreakpoints },
     security: {
       allowedTypes: allowedMediaTypes,
       deniedTypes: deniedExecutableTypes,
@@ -85,9 +100,9 @@ const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Plugin =>
   const uploadConfig = isObjectStorageEnabled(env)
     ? {
         ...resolveMediaStorageConfig(env),
-        ...uploadSecurity,
+        ...uploadCommon,
       }
-    : uploadSecurity;
+    : uploadCommon;
 
   return {
     'users-permissions': {

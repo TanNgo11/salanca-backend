@@ -77,7 +77,8 @@ Seed / ops (BDS-style):
 
 ```powershell
 npm run seed:production    # shipped approved content and S3 images
-npm run media:reconcile    # read-only S3 vs DB (requires S3 env); not part of check:phase6
+npm run media:reconcile    # S3 vs DB report (requires S3 env); --delete-orphans [--apply] removes old orphans; not part of check:phase6
+npm run media:backfill     # dry-run formats + Cache-Control backfill; --apply writes (see media-storage-operations.md)
 npm run data:export
 npm run data:import
 ```

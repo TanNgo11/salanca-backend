@@ -9,7 +9,12 @@ import {
   CmsWebhookValidationError,
   CmsWebhookValidationErrorCode,
 } from './cms-webhook.helper';
-import { CMS_WEBHOOK_ALLOWED_UIDS, CmsWebhookContentUid, CmsWebhookEvent } from './cms-webhook.types';
+import {
+  CMS_WEBHOOK_ALLOWED_UIDS,
+  CMS_WEBHOOK_MEDIA_UID,
+  CmsWebhookContentUid,
+  CmsWebhookEvent,
+} from './cms-webhook.types';
 
 describe('cms webhook signing', () => {
   it('round-trips a signature', () => {
@@ -57,6 +62,32 @@ describe('parseCmsWebhookPayload', () => {
         locale: 'vi',
         documentId: 'x',
         event: CmsWebhookEvent.Publish,
+      }),
+    ).toThrow(CmsWebhookValidationError);
+  });
+  it('accepts media.replace only for media files', () => {
+    expect(
+      parseCmsWebhookPayload({
+        uid: CMS_WEBHOOK_MEDIA_UID,
+        locale: 'vi',
+        documentId: '42',
+        event: CmsWebhookEvent.MediaReplace,
+      }),
+    ).toEqual({ uid: CMS_WEBHOOK_MEDIA_UID, locale: 'vi', documentId: '42', event: 'media.replace' });
+    expect(() =>
+      parseCmsWebhookPayload({
+        uid: CMS_WEBHOOK_MEDIA_UID,
+        locale: 'vi',
+        documentId: '42',
+        event: CmsWebhookEvent.Publish,
+      }),
+    ).toThrow(CmsWebhookValidationError);
+    expect(() =>
+      parseCmsWebhookPayload({
+        uid: CmsWebhookContentUid.HomePage,
+        locale: 'vi',
+        documentId: 'x',
+        event: CmsWebhookEvent.MediaReplace,
       }),
     ).toThrow(CmsWebhookValidationError);
   });
