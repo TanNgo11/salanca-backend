@@ -8,6 +8,7 @@
  * Never changes an original's url/hash/name; new formats are merged into
  * `formats` next to the existing keys. Runbook: docs/media-storage-operations.md.
  */
+import { createHmac } from 'node:crypto';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { createRequire } from 'node:module';
@@ -19,6 +20,7 @@ import { loadStrapiApp } from '../lib/strapi-load.mjs';
 import {
   DEFAULT_CONCURRENCY,
   buildCopyObjectInput,
+  buildRevalidateWebhookBody,
   fileObjects,
   formatBackfillReport,
   mapWithConcurrency,
@@ -193,6 +195,32 @@ async function runPhase(name, groups, worker, failures) {
   console.log(`[${name}] ${done}/${groups.length} files done`);
 }
 
+/**
+ * Pages render from CMS data cached before the backfill (no formats yet) until
+ * their TTL runs out. Same signed webhook a media Replace sends; skipped when
+ * CMS_WEBHOOK_URL / CMS_WEBHOOK_SECRET are unset.
+ */
+async function requestWebRevalidation() {
+  const url = process.env.CMS_WEBHOOK_URL?.trim();
+  const secret = process.env.CMS_WEBHOOK_SECRET?.trim();
+  if (!url || !secret) {
+    console.log('\nWeb revalidation skipped: CMS_WEBHOOK_URL / CMS_WEBHOOK_SECRET not set.');
+    return;
+  }
+  const body = buildRevalidateWebhookBody();
+  const signature = createHmac('sha256', secret).update(body).digest('hex');
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-cms-signature': `sha256=${signature}` },
+      body,
+    });
+    console.log(`\nWeb revalidation: HTTP ${response.status}`);
+  } catch (error) {
+    console.error(`\nWeb revalidation failed: ${error?.message ?? error}`);
+  }
+}
+
 const options = parseBackfillArgs(process.argv.slice(2));
 const app = await loadStrapiApp();
 let client;
@@ -239,6 +267,7 @@ try {
 
     const after = await scan(app, client, storage, 'after');
     console.log(`\n${formatBackfillReport(after.report)}`);
+    await requestWebRevalidation();
     if (failures.length > 0) {
       console.error(`\n${failures.length} file(s) failed:`);
       for (const failure of failures) {

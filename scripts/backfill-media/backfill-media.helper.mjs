@@ -254,3 +254,17 @@ export function takeFiles(entries, limit) {
   }
   return [...byFile.entries()].map(([fileId, items]) => ({ fileId, items }));
 }
+
+/**
+ * Signed `media.replace` webhook body. The web treats it as "any page may show
+ * a changed file" and revalidates every CMS tag, so pages cached before the
+ * backfill pick up the new formats instead of waiting for their TTL.
+ */
+export function buildRevalidateWebhookBody() {
+  return JSON.stringify({
+    uid: 'plugin::upload.file',
+    locale: 'vi',
+    documentId: 'media-backfill',
+    event: 'media.replace',
+  });
+}

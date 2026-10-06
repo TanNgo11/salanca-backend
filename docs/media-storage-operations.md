@@ -96,6 +96,11 @@ regularly (e.g. weekly) so the clock starts early.
 
 ## Backfill existing media (`media:backfill`)
 
+After an `--apply` run the script sends the signed `media.replace` webhook (when
+`CMS_WEBHOOK_URL` / `CMS_WEBHOOK_SECRET` are set), so web pages cached before the
+backfill pick up the new formats immediately. Re-running `--apply` with nothing
+pending only sends that webhook.
+
 Breakpoints and Cache-Control only affect new uploads. `pnpm run media:backfill`
 brings existing files in line:
 

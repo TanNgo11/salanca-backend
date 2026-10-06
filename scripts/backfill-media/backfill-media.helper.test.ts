@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildRevalidateWebhookBody,
   buildCopyObjectInput,
   encodeCopySource,
   fileObjects,
@@ -312,5 +313,16 @@ describe('mapWithConcurrency', () => {
 
   it('handles an empty list', async () => {
     expect(await mapWithConcurrency([], 3, async () => 1)).toEqual([]);
+  });
+});
+
+describe('buildRevalidateWebhookBody', () => {
+  it('is the media.replace payload the web revalidate route accepts', () => {
+    expect(JSON.parse(buildRevalidateWebhookBody())).toEqual({
+      uid: 'plugin::upload.file',
+      locale: 'vi',
+      documentId: 'media-backfill',
+      event: 'media.replace',
+    });
   });
 });
