@@ -1,0 +1,17 @@
+{
+  "purpose": "Dessert heading: the PDF sets two short lines (DESSERT / MENU); \"THỰC ĐƠN / TRÁNG MIỆNG\" overran the price column, so VI reads \"TRÁNG / MIỆNG\" (2026-10-06).",
+  "edits": [
+    {
+      "uid": "api::menu-category.menu-category",
+      "locale": "vi",
+      "match": {
+        "slug": "trang-mieng"
+      },
+      "path": [
+        "description"
+      ],
+      "from": "THỰC ĐƠN\nTRÁNG MIỆNG",
+      "to": "TRÁNG\nMIỆNG"
+    }
+  ]
+}
