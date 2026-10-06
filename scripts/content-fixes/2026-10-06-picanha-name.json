@@ -1,0 +1,41 @@
+{
+  "purpose": "Picanha listed by its name only: drop \"Phần ngon nhất của mông bò\" / \"The Best part of Rump Steak\" and the EN tagline line (2026-10-06).",
+  "edits": [
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "vi",
+      "match": {
+        "slug": "picanha"
+      },
+      "path": [
+        "name"
+      ],
+      "from": "Picanha - Phần ngon nhất của mông bò",
+      "to": "Picanha"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "en",
+      "match": {
+        "slug": "picanha"
+      },
+      "path": [
+        "name"
+      ],
+      "from": "Beef Picanha - The Best part of Rump Steak",
+      "to": "Beef Picanha"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "en",
+      "match": {
+        "slug": "picanha"
+      },
+      "path": [
+        "shortDescription"
+      ],
+      "from": "The most prized cut of rump steak",
+      "to": ""
+    }
+  ]
+}

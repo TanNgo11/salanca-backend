@@ -2511,7 +2511,7 @@
           "key": "picanha",
           "vi": {
             "slug": "picanha",
-            "name": "Picanha - Phần ngon nhất của mông bò",
+            "name": "Picanha",
             "shortDescription": "",
             "portion": null,
             "description": [
@@ -2546,8 +2546,8 @@
           },
           "en": {
             "slug": "picanha",
-            "name": "Beef Picanha - The Best part of Rump Steak",
-            "shortDescription": "The most prized cut of rump steak",
+            "name": "Beef Picanha",
+            "shortDescription": "",
             "portion": null,
             "description": [
               {
