@@ -477,6 +477,12 @@
             "focalPointX": 50,
             "focalPointY": 50
           }
+        },
+        "cateringSeo": {
+          "metaTitle": "Catering tiệc nướng Brazil tại nhà",
+          "metaDescription": "Catering Salanca mang tiệc nướng Brazil đến tận nơi: thịt nướng trên than hồng, salad, món ăn kèm và sốt Brazil cho bữa tiệc tại gia và sự kiện ở Hà Nội.",
+          "canonicalPath": "/vi/thuc-don/catering",
+          "noIndex": false
         }
       },
       "en": {
@@ -578,6 +584,12 @@
             "focalPointX": 50,
             "focalPointY": 50
           }
+        },
+        "cateringSeo": {
+          "metaTitle": "Brazilian Grill Catering at Home",
+          "metaDescription": "Salanca catering brings Brazilian churrasco to you: charcoal-grilled meats, salads, sides and Brazilian sauces for home gatherings and events in Hanoi.",
+          "canonicalPath": "/en/menu/catering",
+          "noIndex": false
         }
       }
     },

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "createdAt": "2026-10-03T03:23:42.417Z",
-  "schemaHash": "c419d778adfa1e19439b7887f02fadd89f62fa90f227a0dbabd15d47c62b5f35",
+  "schemaHash": "e85df06e4bdb5de160ac8a84da58a3b977bc1b22bf815a8b422900eaa3e587f5",
   "files": [
     {
       "name": "ea999245bede5a2d247e7da3560014f721d2e80b7cbc2d624a634b80dc8b4502.webp",
@@ -3802,7 +3802,7 @@
               "displayOrder": 2,
               "seo": {
                 "metaTitle": "Brazil weekend night",
-                "metaDescription": "A soaring weekend of dance, music, and exceptional skewers.",
+                "metaDescription": "Brazil weekend nights at Salanca, Hanoi: Brazilian music, continuous rodizio and a lively dining room. Book ahead for seats near the churrascaria grill.",
                 "canonicalPath": "/en/offers/brazil-weekend",
                 "noIndex": false
               }
@@ -4020,7 +4020,7 @@
               "displayOrder": 4,
               "seo": {
                 "metaTitle": "Midday meetup lunch",
-                "metaDescription": "A relaxed midday pause with bold flavours and a calm room.",
+                "metaDescription": "Midday meetup lunch at Salanca, Hanoi: rodizio and the salad bar for colleagues, partners or a short date, efficient without skipping Brazilian flavour.",
                 "canonicalPath": "/en/offers/lunch-meetup",
                 "noIndex": false
               }
@@ -4238,7 +4238,7 @@
               "displayOrder": 6,
               "seo": {
                 "metaTitle": "Family moments",
-                "metaDescription": "Gather close, share great food in a warm and welcoming room.",
+                "metaDescription": "Family moments at Salanca, Hanoi: a buffet friendly to every age, skewers to share and room for the whole table at our Brazilian churrascaria.",
                 "canonicalPath": "/en/offers/family-moments",
                 "noIndex": false
               }
@@ -5255,6 +5255,13 @@
               "focalPointY": 50
             }
           },
+          "cateringSeo": {
+            "metaTitle": "Catering tiệc nướng Brazil tại nhà",
+            "metaDescription": "Catering Salanca mang tiệc nướng Brazil đến tận nơi: thịt nướng trên than hồng, salad, món ăn kèm và sốt Brazil cho bữa tiệc tại gia và sự kiện ở Hà Nội.",
+            "shareImage": null,
+            "canonicalPath": "/vi/thuc-don/catering",
+            "noIndex": false
+          },
           "bookingCta": {
             "heading": "Sẵn sàng cho một bữa tiệc đậm chất Brazil?",
             "body": "Đặt bàn ngay để giữ chỗ và tận hưởng trải nghiệm Churrascaria trọn vẹn.",
@@ -5371,6 +5378,13 @@
               "focalPointX": 50,
               "focalPointY": 50
             }
+          },
+          "cateringSeo": {
+            "metaTitle": "Brazilian Grill Catering at Home",
+            "metaDescription": "Salanca catering brings Brazilian churrasco to you: charcoal-grilled meats, salads, sides and Brazilian sauces for home gatherings and events in Hanoi.",
+            "shareImage": null,
+            "canonicalPath": "/en/menu/catering",
+            "noIndex": false
           },
           "bookingCta": {
             "heading": "Ready for a night of Brazilian flavour?",

@@ -28,6 +28,7 @@ export const CONTENT_MANAGER_FIELD_LABELS_VI: Readonly<Record<string, string>> =
   closingCta: 'Khối kêu gọi cuối trang',
   closingSecondaryLink: 'Nút phụ cuối trang',
   catering: 'Khối Catering',
+  cateringSeo: 'SEO trang Catering',
   videoUrl: 'Link video (https)',
   videoThumbs: 'Ảnh thumbnail video',
   newsletterHeading: 'Tiêu đề đăng ký nhận tin',

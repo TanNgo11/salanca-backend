@@ -1,0 +1,44 @@
+{
+  "purpose": "SEO audit 2026-10-05: three EN offer meta descriptions were under 70 characters; rewrite to 120-160 from each offer page's own copy (2026-10-06).",
+  "edits": [
+    {
+      "uid": "api::campaign.campaign",
+      "locale": "en",
+      "match": {
+        "slug": "brazil-weekend"
+      },
+      "path": [
+        "seo",
+        "metaDescription"
+      ],
+      "from": "A soaring weekend of dance, music, and exceptional skewers.",
+      "to": "Brazil weekend nights at Salanca, Hanoi: Brazilian music, continuous rodizio and a lively dining room. Book ahead for seats near the churrascaria grill."
+    },
+    {
+      "uid": "api::campaign.campaign",
+      "locale": "en",
+      "match": {
+        "slug": "lunch-meetup"
+      },
+      "path": [
+        "seo",
+        "metaDescription"
+      ],
+      "from": "A relaxed midday pause with bold flavours and a calm room.",
+      "to": "Midday meetup lunch at Salanca, Hanoi: rodizio and the salad bar for colleagues, partners or a short date, efficient without skipping Brazilian flavour."
+    },
+    {
+      "uid": "api::campaign.campaign",
+      "locale": "en",
+      "match": {
+        "slug": "family-moments"
+      },
+      "path": [
+        "seo",
+        "metaDescription"
+      ],
+      "from": "Gather close, share great food in a warm and welcoming room.",
+      "to": "Family moments at Salanca, Hanoi: a buffet friendly to every age, skewers to share and room for the whole table at our Brazilian churrascaria."
+    }
+  ]
+}

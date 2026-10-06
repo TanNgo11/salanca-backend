@@ -2211,6 +2211,12 @@ export interface ApiMenuPageMenuPage extends Struct.SingleTypeSchema {
           localized: true;
         };
       }>;
+    cateringSeo: Schema.Attribute.Component<'shared.seo', false> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

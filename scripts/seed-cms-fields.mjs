@@ -5,7 +5,8 @@ import { ensureContentMedia } from './lib/content-import/media.mjs';
 
 /**
  * Fills the CMS fields that replaced frontend hardcoding, for vi and en:
- * global-setting logo, opening hours, landline and WhatsApp; menu-page catering;
+ * global-setting logo, opening hours, landline and WhatsApp; menu-page catering
+ * and its SEO;
  * space-page video thumbs, closing secondary link and amenity icons;
  * campaign-page newsletter copy.
  *
@@ -33,8 +34,8 @@ const TARGETS = [
   {
     uid: 'api::menu-page.menu-page',
     source: (locale) => content.pages['api::menu-page.menu-page'][locale],
-    fields: ['catering'],
-    populate: { catering: { populate: { image: IMAGE, link: LINK } } },
+    fields: ['catering', 'cateringSeo'],
+    populate: { catering: { populate: { image: IMAGE, link: LINK } }, cateringSeo: true },
   },
   {
     uid: 'api::space-page.space-page',
