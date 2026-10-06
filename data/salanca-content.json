@@ -2950,7 +2950,7 @@
           "vi": {
             "slug": "a-la-carte",
             "name": "Steak Salanca",
-            "shortDescription": "Steak Salanca dùng kèm sốt nấm hoặc sốt tiêu.",
+            "shortDescription": "Thăn Nội Bò Nướng Được Dùng Với Xốt Nấm hoặc Xốt Tiêu",
             "description": [
               {
                 "type": "paragraph",
@@ -2983,7 +2983,7 @@
           "en": {
             "slug": "a-la-carte",
             "name": "Steak Salanca",
-            "shortDescription": "Steak Salanca served with mushroom or pepper sauce.",
+            "shortDescription": "Rib eye steak – Served with Mushroom or Pepper Sauce",
             "description": [
               {
                 "type": "paragraph",
@@ -4233,7 +4233,7 @@
           "key": "fruit-small",
           "vi": {
             "slug": "fruit-small",
-            "name": "Trái cây theo mùa — Đĩa nhỏ",
+            "name": "Trái cây đĩa nhỏ theo mùa",
             "shortDescription": "",
             "description": [],
             "portion": null,
@@ -4251,7 +4251,7 @@
           },
           "en": {
             "slug": "fruit-small",
-            "name": "Seasonal fruit — Small plate",
+            "name": "Mix fruit plate small",
             "shortDescription": "",
             "description": [],
             "portion": null,
@@ -4272,7 +4272,7 @@
           "key": "fruit-big",
           "vi": {
             "slug": "fruit-big",
-            "name": "Trái cây theo mùa — Đĩa lớn",
+            "name": "Trái cây đĩa lớn theo mùa",
             "shortDescription": "",
             "description": [],
             "portion": null,
@@ -4290,7 +4290,7 @@
           },
           "en": {
             "slug": "fruit-big",
-            "name": "Seasonal fruit — Large plate",
+            "name": "Mix fruit plate big",
             "shortDescription": "",
             "description": [],
             "portion": null,
@@ -4311,7 +4311,7 @@
           "key": "pomelo-small",
           "vi": {
             "slug": "pomelo-small",
-            "name": "Bưởi — Đĩa nhỏ",
+            "name": "Bưởi (đĩa nhỏ)",
             "shortDescription": "",
             "description": [],
             "portion": null,
@@ -4329,7 +4329,7 @@
           },
           "en": {
             "slug": "pomelo-small",
-            "name": "Pomelo — Small plate",
+            "name": "Pomelo plate small",
             "shortDescription": "",
             "description": [],
             "portion": null,
@@ -4350,7 +4350,7 @@
           "key": "pomelo-big",
           "vi": {
             "slug": "pomelo-big",
-            "name": "Bưởi — Đĩa lớn",
+            "name": "Bưởi (đĩa lớn)",
             "shortDescription": "",
             "description": [],
             "portion": null,
@@ -4368,7 +4368,7 @@
           },
           "en": {
             "slug": "pomelo-big",
-            "name": "Pomelo — Large plate",
+            "name": "Pomelo plate big",
             "shortDescription": "",
             "description": [],
             "portion": null,

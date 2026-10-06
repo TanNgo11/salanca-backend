@@ -1398,14 +1398,14 @@
             "vi": {
               "name": "Steak Salanca",
               "slug": "a-la-carte",
-              "shortDescription": "Steak Salanca dùng kèm sốt nấm hoặc sốt tiêu.",
+              "shortDescription": "Thăn Nội Bò Nướng Được Dùng Với Xốt Nấm hoặc Xốt Tiêu",
               "portion": null,
               "description": [
                 {
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "(Rib eye steak – Served with Mushroom or Pepper Sauce) Thăn Ngoại Bò Nướng Được Dùng Với Sốt Nấm hoặc Sốt Tiêu",
+                      "text": "Thăn Nội Bò Nướng Được Dùng Với Xốt Nấm hoặc Xốt Tiêu",
                       "type": "text"
                     }
                   ]
@@ -1436,14 +1436,14 @@
             "en": {
               "name": "Steak Salanca",
               "slug": "a-la-carte",
-              "shortDescription": "Steak Salanca served with mushroom or pepper sauce.",
+              "shortDescription": "Rib eye steak – Served with Mushroom or Pepper Sauce",
               "portion": null,
               "description": [
                 {
                   "type": "paragraph",
                   "children": [
                     {
-                      "text": "(Rib eye steak – Served with Mushroom or Pepper Sauce)",
+                      "text": "Rib eye steak – Served with Mushroom or Pepper Sauce",
                       "type": "text"
                     }
                   ]
@@ -2750,7 +2750,7 @@
           {
             "key": "fruit-small",
             "vi": {
-              "name": "Trái cây theo mùa — Đĩa nhỏ",
+              "name": "Trái cây đĩa nhỏ theo mùa",
               "slug": "fruit-small",
               "shortDescription": "",
               "portion": null,
@@ -2769,7 +2769,7 @@
               "displayOrder": 129
             },
             "en": {
-              "name": "Seasonal fruit — Small plate",
+              "name": "Mix fruit plate small",
               "slug": "fruit-small",
               "shortDescription": "",
               "portion": null,
@@ -2791,7 +2791,7 @@
           {
             "key": "fruit-big",
             "vi": {
-              "name": "Trái cây theo mùa — Đĩa lớn",
+              "name": "Trái cây đĩa lớn theo mùa",
               "slug": "fruit-big",
               "shortDescription": "",
               "portion": null,
@@ -2810,7 +2810,7 @@
               "displayOrder": 130
             },
             "en": {
-              "name": "Seasonal fruit — Large plate",
+              "name": "Mix fruit plate big",
               "slug": "fruit-big",
               "shortDescription": "",
               "portion": null,
@@ -2832,7 +2832,7 @@
           {
             "key": "pomelo-small",
             "vi": {
-              "name": "Bưởi — Đĩa nhỏ",
+              "name": "Bưởi (đĩa nhỏ)",
               "slug": "pomelo-small",
               "shortDescription": "",
               "portion": null,
@@ -2851,7 +2851,7 @@
               "displayOrder": 131
             },
             "en": {
-              "name": "Pomelo — Small plate",
+              "name": "Pomelo plate small",
               "slug": "pomelo-small",
               "shortDescription": "",
               "portion": null,
@@ -2873,7 +2873,7 @@
           {
             "key": "pomelo-big",
             "vi": {
-              "name": "Bưởi — Đĩa lớn",
+              "name": "Bưởi (đĩa lớn)",
               "slug": "pomelo-big",
               "shortDescription": "",
               "portion": null,
@@ -2892,7 +2892,7 @@
               "displayOrder": 132
             },
             "en": {
-              "name": "Pomelo — Large plate",
+              "name": "Pomelo plate big",
               "slug": "pomelo-big",
               "shortDescription": "",
               "portion": null,
@@ -5204,7 +5204,7 @@
           "aLaCarte": {
             "eyebrow": "THỰC ĐƠN\nGỌI MÓN",
             "title": "Steak Salanca",
-            "body": "(Rib eye steak – Served with Mushroom or Pepper Sauce) Thăn Ngoại Bò Nướng Được Dùng Với Sốt Nấm hoặc Sốt Tiêu",
+            "body": "Thăn Nội Bò Nướng Được Dùng Với Xốt Nấm hoặc Xốt Tiêu",
             "price": 850000,
             "image": {
               "media": {
@@ -5321,7 +5321,7 @@
           "aLaCarte": {
             "eyebrow": "A LA CARTE\nMENU",
             "title": "Steak Salanca",
-            "body": "(Rib eye steak – Served with Mushroom or Pepper Sauce)",
+            "body": "Rib eye steak – Served with Mushroom or Pepper Sauce",
             "price": 850000,
             "image": {
               "media": {

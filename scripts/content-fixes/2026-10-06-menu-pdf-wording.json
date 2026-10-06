@@ -1,0 +1,177 @@
+{
+  "purpose": "Steak description and dessert names worded as in the printed PDF menu (2026-10-06).",
+  "edits": [
+    {
+      "uid": "api::menu-page.menu-page",
+      "locale": "vi",
+      "path": [
+        "aLaCarte",
+        "body"
+      ],
+      "from": "(Rib eye steak – Served with Mushroom or Pepper Sauce) Thăn Ngoại Bò Nướng Được Dùng Với Sốt Nấm hoặc Sốt Tiêu",
+      "to": "Thăn Nội Bò Nướng Được Dùng Với Xốt Nấm hoặc Xốt Tiêu"
+    },
+    {
+      "uid": "api::menu-page.menu-page",
+      "locale": "en",
+      "path": [
+        "aLaCarte",
+        "body"
+      ],
+      "from": "(Rib eye steak – Served with Mushroom or Pepper Sauce)",
+      "to": "Rib eye steak – Served with Mushroom or Pepper Sauce"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "vi",
+      "match": {
+        "slug": "a-la-carte"
+      },
+      "path": [
+        "shortDescription"
+      ],
+      "from": "Steak Salanca dùng kèm sốt nấm hoặc sốt tiêu.",
+      "to": "Thăn Nội Bò Nướng Được Dùng Với Xốt Nấm hoặc Xốt Tiêu"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "vi",
+      "match": {
+        "slug": "a-la-carte"
+      },
+      "path": [
+        "description",
+        0,
+        "children",
+        0,
+        "text"
+      ],
+      "from": "(Rib eye steak – Served with Mushroom or Pepper Sauce) Thăn Ngoại Bò Nướng Được Dùng Với Sốt Nấm hoặc Sốt Tiêu",
+      "to": "Thăn Nội Bò Nướng Được Dùng Với Xốt Nấm hoặc Xốt Tiêu"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "en",
+      "match": {
+        "slug": "a-la-carte"
+      },
+      "path": [
+        "shortDescription"
+      ],
+      "from": "Steak Salanca served with mushroom or pepper sauce.",
+      "to": "Rib eye steak – Served with Mushroom or Pepper Sauce"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "en",
+      "match": {
+        "slug": "a-la-carte"
+      },
+      "path": [
+        "description",
+        0,
+        "children",
+        0,
+        "text"
+      ],
+      "from": "(Rib eye steak – Served with Mushroom or Pepper Sauce)",
+      "to": "Rib eye steak – Served with Mushroom or Pepper Sauce"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "vi",
+      "match": {
+        "slug": "fruit-small"
+      },
+      "path": [
+        "name"
+      ],
+      "from": "Trái cây theo mùa — Đĩa nhỏ",
+      "to": "Trái cây đĩa nhỏ theo mùa"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "en",
+      "match": {
+        "slug": "fruit-small"
+      },
+      "path": [
+        "name"
+      ],
+      "from": "Seasonal fruit — Small plate",
+      "to": "Mix fruit plate small"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "vi",
+      "match": {
+        "slug": "fruit-big"
+      },
+      "path": [
+        "name"
+      ],
+      "from": "Trái cây theo mùa — Đĩa lớn",
+      "to": "Trái cây đĩa lớn theo mùa"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "en",
+      "match": {
+        "slug": "fruit-big"
+      },
+      "path": [
+        "name"
+      ],
+      "from": "Seasonal fruit — Large plate",
+      "to": "Mix fruit plate big"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "vi",
+      "match": {
+        "slug": "pomelo-small"
+      },
+      "path": [
+        "name"
+      ],
+      "from": "Bưởi — Đĩa nhỏ",
+      "to": "Bưởi (đĩa nhỏ)"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "en",
+      "match": {
+        "slug": "pomelo-small"
+      },
+      "path": [
+        "name"
+      ],
+      "from": "Pomelo — Small plate",
+      "to": "Pomelo plate small"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "vi",
+      "match": {
+        "slug": "pomelo-big"
+      },
+      "path": [
+        "name"
+      ],
+      "from": "Bưởi — Đĩa lớn",
+      "to": "Bưởi (đĩa lớn)"
+    },
+    {
+      "uid": "api::menu-item.menu-item",
+      "locale": "en",
+      "match": {
+        "slug": "pomelo-big"
+      },
+      "path": [
+        "name"
+      ],
+      "from": "Pomelo — Large plate",
+      "to": "Pomelo plate big"
+    }
+  ]
+}
