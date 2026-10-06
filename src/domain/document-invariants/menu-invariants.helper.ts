@@ -28,3 +28,27 @@ export function hasCategoryRelation(value: unknown): boolean {
       || (Array.isArray(relation.set) && relation.set.length > 0),
   );
 }
+
+/**
+ * Returns true when an update payload would leave the item without a category.
+ * The Admin sends `{ connect: [], disconnect: [] }` for an untouched relation,
+ * which must not count as clearing it.
+ */
+export function clearsCategoryRelation(value: unknown): boolean {
+  if (value === null || value === '') {
+    return true;
+  }
+
+  if (typeof value !== 'object' || value === undefined) {
+    return false;
+  }
+
+  if (hasCategoryRelation(value)) {
+    return false;
+  }
+
+  const relation = value as { set?: unknown[]; disconnect?: unknown[] };
+
+  return Array.isArray(relation.set)
+    || (Array.isArray(relation.disconnect) && relation.disconnect.length > 0);
+}

@@ -3,6 +3,7 @@ import { errors } from '@strapi/utils';
 
 import type { DocumentMiddlewareContext } from '../document-middleware/types';
 import {
+  clearsCategoryRelation,
   hasCategoryRelation,
   MENU_CATEGORY_UID,
   MENU_ITEM_UID,
@@ -26,7 +27,7 @@ export const enforceMenuInvariants = async (
 
   if (ctx.uid === MENU_ITEM_UID && ctx.action === 'update') {
     const data = ctx.params.data;
-    if (data && 'category' in data && !hasCategoryRelation(data.category)) {
+    if (data && 'category' in data && clearsCategoryRelation(data.category)) {
       throw new ApplicationError(
         'A menu item cannot be saved without a menu category.',
       );

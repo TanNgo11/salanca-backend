@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { hasCategoryRelation } from './menu-invariants.helper';
+import { clearsCategoryRelation, hasCategoryRelation } from './menu-invariants.helper';
 
 describe('hasCategoryRelation', () => {
   it('accepts documentId', () => {
@@ -30,5 +30,29 @@ describe('hasCategoryRelation', () => {
     expect(hasCategoryRelation({ connect: [] })).toBe(false);
     expect(hasCategoryRelation({ set: [] })).toBe(false);
     expect(hasCategoryRelation('')).toBe(false);
+  });
+});
+
+describe('clearsCategoryRelation', () => {
+  it('treats the admin "unchanged relation" payload as not clearing', () => {
+    expect(clearsCategoryRelation({ connect: [], disconnect: [] })).toBe(false);
+    expect(clearsCategoryRelation({})).toBe(false);
+  });
+
+  it('treats a replacement as not clearing', () => {
+    expect(
+      clearsCategoryRelation({ connect: [{ documentId: 'new' }], disconnect: [{ documentId: 'old' }] }),
+    ).toBe(false);
+    expect(clearsCategoryRelation({ set: [{ id: 1 }] })).toBe(false);
+    expect(clearsCategoryRelation('abc')).toBe(false);
+    expect(clearsCategoryRelation({ documentId: 'abc' })).toBe(false);
+  });
+
+  it('detects payloads that remove the category', () => {
+    expect(clearsCategoryRelation(null)).toBe(true);
+    expect(clearsCategoryRelation('')).toBe(true);
+    expect(clearsCategoryRelation({ set: [] })).toBe(true);
+    expect(clearsCategoryRelation({ connect: [], disconnect: [{ documentId: 'old' }] })).toBe(true);
+    expect(clearsCategoryRelation({ disconnect: [{ id: 3 }] })).toBe(true);
   });
 });
