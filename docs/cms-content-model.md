@@ -103,7 +103,7 @@ Collection lead nhận form liên hệ từ website. **Không** i18n plugin, **k
 | `topic` | String tự do; FE map từ `contact-page.formTopics` |
 | `message` | Bắt buộc, max 4000 |
 | `sourceLocale` | `vi` \| `en` (ngôn ngữ trang gửi form; **không** phải i18n plugin) |
-| `status` | `new` \| `read` \| `archived`; public create luôn `new` |
+| `leadStatus` | `new` \| `read` \| `archived`; public create luôn `new`. Tên cũ `status` đụng tham số draft/publish của Content Manager Strapi 5 (edit view trống, lưu báo "Invalid status"); migration `2026.10.06T140000` đổi cột `status` → `lead_status`, giữ nguyên dữ liệu |
 | `sourcePath` | Optional, ví dụ `/vi/lien-he` |
 
 Honeypot `website` chỉ có trên request body, **không** có cột schema. Public chỉ `create`; không `find`/`findOne`/`update`/`delete`.
@@ -124,7 +124,7 @@ Collection lead nhận form đặt bàn từ website. **Không** i18n plugin, **
 | `menuSelectionMode` | `later` (chọn món sau) \| `now` (chọn gói/món ngay) |
 | `menuPackages` / `menuItems` | M2M tới `menu-package` / `menu-item`; chỉ khi `now`; tối đa 5 gói / 20 món |
 | `sourceLocale` | `vi` \| `en` |
-| `status` | `new` \| `read` \| `archived`; public create luôn `new` |
+| `leadStatus` | `new` \| `read` \| `archived`; public create luôn `new`. Tên cũ `status` đụng tham số draft/publish của Content Manager Strapi 5 (edit view trống, lưu báo "Invalid status"); migration `2026.10.06T140000` đổi cột `status` → `lead_status`, giữ nguyên dữ liệu |
 | `overlapCount` | Soft detect: số lead peers cùng date+time (status `new`\|`read`) lúc create; không reject. API derive `hasOverlap = overlapCount > 0` |
 
 Honeypot `website` request-only. Public chỉ `create`. Rate limit in-process theo IP **sau** validate thành công (env `RESERVATION_RATE_LIMIT_*`). Shared form primitives: `src/domain/form-intake/`.

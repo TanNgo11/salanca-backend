@@ -36,7 +36,7 @@ export type ContactMessageCreateData = {
   message: string;
   sourceLocale: ContactMessageSourceLocale;
   sourcePath?: string;
-  status: 'new';
+  leadStatus: 'new';
 };
 
 export enum ContactMessageValidationErrorCode {
@@ -67,7 +67,7 @@ const fail = createFormFail();
 /**
  * Parses and validates public contact form payload.
  * Honeypot `website` must be empty/absent; never persisted.
- * Client `status` is ignored; create data always forces status `new`.
+ * Client `status` is ignored; create data always forces leadStatus `new`.
  * Accepts legacy body key `locale` as alias for `sourceLocale`.
  */
 export function parseContactMessageInput(raw: unknown): ContactMessageCreateData {
@@ -166,6 +166,6 @@ export function parseContactMessageInput(raw: unknown): ContactMessageCreateData
     message,
     sourceLocale,
     ...(sourcePath ? { sourcePath } : {}),
-    status: 'new',
+    leadStatus: 'new',
   };
 }

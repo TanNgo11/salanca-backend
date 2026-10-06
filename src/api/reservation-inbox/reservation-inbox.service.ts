@@ -25,7 +25,7 @@ const ITEM_FIELDS = [
   'createdAt',
 ] as const;
 
-const LIST_FIELDS = [...ITEM_FIELDS, 'status'] as const;
+const LIST_FIELDS = [...ITEM_FIELDS, 'leadStatus'] as const;
 
 export interface ReservationInboxListQuery {
   /** Omitted = every status. */
@@ -95,7 +95,7 @@ const DETAIL_FIELDS = [
   'menuSelectionMode',
   'sourceLocale',
   'sourcePath',
-  'status',
+  'leadStatus',
 ] as const;
 
 interface ReservationDetailRow extends ReservationInboxRow {
@@ -105,7 +105,7 @@ interface ReservationDetailRow extends ReservationInboxRow {
   menuSelectionMode?: unknown;
   sourceLocale?: unknown;
   sourcePath?: unknown;
-  status?: unknown;
+  leadStatus?: unknown;
   menuPackages?: unknown;
   menuItems?: unknown;
 }
@@ -129,10 +129,10 @@ const notFound = (documentId: string): ReservationInboxError =>
 
 // Rows saved before the status column existed hold NULL. They are unhandled
 // requests, so every "new" query matches them too (as toStatus already does).
-const NEW_STATUS_FILTER = { $or: [{ status: 'new' as const }, { status: { $null: true } }] };
+const NEW_STATUS_FILTER = { $or: [{ leadStatus: 'new' as const }, { leadStatus: { $null: true } }] };
 
 const statusFilter = (status: ReservationStatus): Record<string, unknown> =>
-  status === 'new' ? NEW_STATUS_FILTER : { status };
+  status === 'new' ? NEW_STATUS_FILTER : { leadStatus: status };
 
 export const createReservationInboxService = (strapi: Core.Strapi) => ({
   async summary(query: ReservationInboxSummaryQuery): Promise<{
@@ -192,8 +192,8 @@ export const createReservationInboxService = (strapi: Core.Strapi) => ({
 
     const totalCount = toCount(total);
     return {
-      items: (rows as unknown as Array<ReservationInboxRow & { status?: unknown }>).map(
-        (row) => ({ ...toInboxItem(row), status: toStatus(row.status) }),
+      items: (rows as unknown as Array<ReservationInboxRow & { leadStatus?: unknown }>).map(
+        (row) => ({ ...toInboxItem(row), status: toStatus(row.leadStatus) }),
       ),
       total: totalCount,
       page: query.page,
@@ -231,7 +231,7 @@ export const createReservationInboxService = (strapi: Core.Strapi) => ({
       menuItemNames: toNames(row.menuItems),
       sourceLocale: toOptionalText(row.sourceLocale),
       sourcePath: toOptionalText(row.sourcePath),
-      status: toStatus(row.status),
+      status: toStatus(row.leadStatus),
     };
   },
 
@@ -241,7 +241,7 @@ export const createReservationInboxService = (strapi: Core.Strapi) => ({
   ): Promise<{ documentId: string; status: string }> {
     const existing = await strapi.documents(UID).findOne({
       documentId,
-      fields: ['documentId', 'status'],
+      fields: ['documentId', 'leadStatus'],
     });
     if (!existing) {
       throw notFound(documentId);
@@ -249,13 +249,13 @@ export const createReservationInboxService = (strapi: Core.Strapi) => ({
 
     const updated = (await strapi.documents(UID).update({
       documentId,
-      data: { status },
-      fields: ['documentId', 'status'],
-    })) as unknown as { documentId?: unknown; status?: unknown } | null;
+      data: { leadStatus: status },
+      fields: ['documentId', 'leadStatus'],
+    })) as unknown as { documentId?: unknown; leadStatus?: unknown } | null;
 
     return {
       documentId: String(updated?.documentId ?? documentId),
-      status: String(updated?.status ?? status),
+      status: String(updated?.leadStatus ?? status),
     };
   },
 

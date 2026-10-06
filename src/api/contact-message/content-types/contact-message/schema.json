@@ -40,7 +40,7 @@
       ],
       "required": true
     },
-    "status": {
+    "leadStatus": {
       "type": "enumeration",
       "enum": [
         "new",
@@ -62,7 +62,7 @@
         "phone",
         "email",
         "topic",
-        "status",
+        "leadStatus",
         "createdAt"
       ],
       "defaultSortBy": "createdAt",

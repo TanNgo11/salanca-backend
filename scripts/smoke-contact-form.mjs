@@ -42,6 +42,7 @@ try {
         sourcePath: '/vi/lien-he',
         website: '',
         status: 'archived',
+        leadStatus: 'archived',
       },
     }),
   });

@@ -26,7 +26,7 @@ interface ReservationRow {
   preferredDate: string;
   preferredTime: string;
   guestCount: number;
-  status: LeadStatus;
+  leadStatus: LeadStatus;
   overlapCount?: number;
 }
 
@@ -84,8 +84,8 @@ export const UpcomingReservationsWidget = () => {
             </Typography>
           </Flex>
           <InformationStatusChip
-            color={informationStatusChipColor(leadStatusTone(row.status))}
-            label={leadStatusLabel[row.status] ?? row.status}
+            color={informationStatusChipColor(leadStatusTone(row.leadStatus))}
+            label={leadStatusLabel[row.leadStatus] ?? row.leadStatus}
           />
         </Box>
       ))}

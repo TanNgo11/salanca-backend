@@ -171,7 +171,7 @@ Content-Type: application/json
 | Honeypot | `website` must be empty/absent; non-empty → `400` |
 | Turnstile | When `TURNSTILE_SECRET_KEY` is set: require `turnstileToken` or `cf-turnstile-response`; invalid/missing → `400` `CONTACT_TURNSTILE`. When unset, skipped (dev/smoke). Token is request-only (never stored). |
 | Rate limit | After successful validation + Turnstile; in-process per client IP; default 5 / 10 min; env `CONTACT_RATE_LIMIT_*`; over → `429` + `Retry-After`, Strapi-shaped `{ error: { name: ApplicationError, details.code: CONTACT_RATE_LIMITED } }`. Client IP = `x-salanca-visitor-ip` when `x-salanca-intake-secret` matches `FORM_INTAKE_SHARED_SECRET`, else the socket IP (`TRUST_PROXY` for reverse proxies) |
-| Client `status` | Ignored; server forces `new` |
+| Client `status` / `leadStatus` | Ignored; server forces `leadStatus = new`. The response key stays `status` for compatibility |
 | `GET /contact-messages` | Public denied (`401`/`403`) |
 | Email notify | **Opt-in:** Resend SMTP + `FORM_NOTIFY_TO` staff alert after create; delivery failure does not change `201` |
 | Redis rate limit | **Deferred** |
@@ -212,7 +212,7 @@ Content-Type: application/json
 | Rate limit | After successful validation + Turnstile; in-process per client IP; default 5 / 10 min; env `RESERVATION_RATE_LIMIT_*`; over → `429` Strapi-shaped `{ error: { name: ApplicationError, details.code: RESERVATION_RATE_LIMITED } }`. Client IP = `x-salanca-visitor-ip` when `x-salanca-intake-secret` matches `FORM_INTAKE_SHARED_SECRET`, else the socket IP (`TRUST_PROXY` for reverse proxies) |
 | Honeypot | `website` empty/absent; non-empty → `400` (does not consume rate limit) |
 | Turnstile | When `TURNSTILE_SECRET_KEY` is set: require token before rate limit; fail → `400` `RESERVATION_TURNSTILE` (does not consume rate limit). When unset, skipped. |
-| Client `status` | Ignored; server forces `new` |
+| Client `status` / `leadStatus` | Ignored; server forces `leadStatus = new`. The response key stays `status` for compatibility |
 | `GET /reservation-requests` | Public denied (`401`/`403`) |
 | Email notify | **Opt-in:** same Resend + `FORM_NOTIFY_TO` as contact; failure does not change `201` |
 | Redis RL | **Deferred** |

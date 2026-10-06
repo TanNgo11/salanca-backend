@@ -77,10 +77,10 @@ export default factories.createCoreController(UID, ({ strapi }: { strapi: Core.S
         ...menuConnect,
         sourceLocale: parsed.sourceLocale,
         ...(parsed.sourcePath ? { sourcePath: parsed.sourcePath } : {}),
-        status: 'new',
+        leadStatus: 'new',
         overlapCount,
       },
-      fields: ['documentId', 'status', 'overlapCount', 'createdAt'],
+      fields: ['documentId', 'leadStatus', 'overlapCount', 'createdAt'],
     });
 
     const storedOverlap =
@@ -90,7 +90,7 @@ export default factories.createCoreController(UID, ({ strapi }: { strapi: Core.S
     ctx.body = {
       data: {
         documentId: document.documentId,
-        status: document.status ?? 'new',
+        status: document.leadStatus ?? 'new',
         overlapCount: storedOverlap,
         hasOverlap: storedOverlap > 0,
       },

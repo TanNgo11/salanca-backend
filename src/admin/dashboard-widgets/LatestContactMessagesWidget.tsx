@@ -25,7 +25,7 @@ interface ContactRow {
   fullName: string;
   topic?: string | null;
   message: string;
-  status: LeadStatus;
+  leadStatus: LeadStatus;
   createdAt: string;
 }
 
@@ -76,8 +76,8 @@ export const LatestContactMessagesWidget = () => {
           </Flex>
           <Flex direction="column" alignItems="flex-end" gap={1}>
             <InformationStatusChip
-              color={informationStatusChipColor(leadStatusTone(row.status))}
-              label={leadStatusLabel[row.status] ?? row.status}
+              color={informationStatusChipColor(leadStatusTone(row.leadStatus))}
+              label={leadStatusLabel[row.leadStatus] ?? row.leadStatus}
             />
             <Typography variant="pi" textColor="neutral500">
               {formatDate(row.createdAt, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}

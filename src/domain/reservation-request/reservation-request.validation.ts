@@ -49,7 +49,7 @@ export type ReservationRequestCreateData = {
   menuItemIds: string[];
   sourceLocale: ReservationSourceLocale;
   sourcePath?: string;
-  status: 'new';
+  leadStatus: 'new';
 };
 
 export enum ReservationRequestValidationErrorCode {
@@ -179,7 +179,7 @@ export type ParseReservationRequestOptions = {
 /**
  * Parses and validates public reservation form payload.
  * Honeypot `website` must be empty/absent; never persisted.
- * Client `status` is ignored; create data always forces status `new`.
+ * Client `status` is ignored; create data always forces leadStatus `new`.
  * Accepts legacy body key `locale` as alias for `sourceLocale`.
  * Menu arrays may be sent as `menuPackages` / `menuItems` (documentId strings).
  */
@@ -352,6 +352,6 @@ export function parseReservationRequestInput(
     menuItemIds,
     sourceLocale,
     ...(sourcePath ? { sourcePath } : {}),
-    status: 'new',
+    leadStatus: 'new',
   };
 }

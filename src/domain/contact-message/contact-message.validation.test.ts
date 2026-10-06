@@ -26,7 +26,7 @@ describe('parseContactMessageInput', () => {
       email: 'a@example.com',
       message: 'Muon dat tiec 30 khach.',
       sourceLocale: 'vi',
-      status: 'new',
+      leadStatus: 'new',
     });
     expect(result).not.toHaveProperty('phone');
     expect(result).not.toHaveProperty('topic');

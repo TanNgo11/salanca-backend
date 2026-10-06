@@ -18,7 +18,7 @@ export const countSlotPeers = async (
     where: {
       preferredDate,
       preferredTime,
-      status: { $in: ['new', 'read'] },
+      leadStatus: { $in: ['new', 'read'] },
     },
   });
   return typeof peerCount === 'number' && Number.isFinite(peerCount) ? peerCount : 0;

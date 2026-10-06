@@ -68,9 +68,9 @@ interface LeadOverviewQueries {
 export const buildLeadOverviewFilters = (now: Date) => {
   const today = localDateKey(now);
   return {
-    newReservations: { status: { $eq: 'new' } },
-    today: { preferredDate: { $eq: today }, status: notArchived },
-    newContacts: { status: { $eq: 'new' } },
+    newReservations: { leadStatus: { $eq: 'new' } },
+    today: { preferredDate: { $eq: today }, leadStatus: notArchived },
+    newContacts: { leadStatus: { $eq: 'new' } },
     lastSevenDays: { createdAt: { $gte: daysAgo(now, 6).toISOString() } },
   } satisfies Record<string, LeadFilter>;
 };
@@ -102,7 +102,7 @@ export const buildUpcomingReservationsUrl = (now: Date, limit: number): string =
   buildLeadListUrl(reservationRequestUid, {
     filters: {
       preferredDate: { $gte: localDateKey(now) },
-      status: notArchived,
+      leadStatus: notArchived,
     },
     sort: 'preferredDate:ASC,preferredTime:ASC',
     pageSize: limit,
@@ -110,7 +110,7 @@ export const buildUpcomingReservationsUrl = (now: Date, limit: number): string =
 
 export const buildLatestContactsUrl = (limit: number): string =>
   buildLeadListUrl(contactMessageUid, {
-    filters: { status: notArchived },
+    filters: { leadStatus: notArchived },
     sort: 'createdAt:DESC',
     pageSize: limit,
   });

@@ -60,7 +60,7 @@ describe('parseReservationRequestInput', () => {
       menuPackageIds: [],
       menuItemIds: [],
       sourceLocale: 'vi',
-      status: 'new',
+      leadStatus: 'new',
     });
   });
 

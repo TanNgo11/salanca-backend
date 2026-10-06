@@ -64,8 +64,8 @@ Strapi lưu một số field kỹ thuật nằm trong component theo từng loca
 Collection **Tin nhắn liên hệ** (`contact-message`) nhận lead từ website.
 
 1. Mở Content Manager → **Tin nhắn liên hệ**.
-2. Bản ghi mới có `status = new`.
-3. Đọc nội dung; đổi `status` thành `read` khi đã xử lý, `archived` khi xong.
+2. Bản ghi mới có **Trạng thái xử lý** (`leadStatus`) = `new`.
+3. Đọc nội dung; đổi **Trạng thái xử lý** thành `read` khi đã xử lý, `archived` khi xong, rồi **Lưu**.
 4. Không xóa lead trừ khi có quy trình PII/retention; ưu tiên archive.
 5. Public không xem được danh sách — chỉ Admin/Authenticated roles.
 
@@ -76,11 +76,11 @@ Email staff notify **opt-in** (Resend + `FORM_NOTIFY_TO`); lead vẫn luôn lưu
 Collection **Yêu cầu đặt bàn** (`reservation-request`) nhận lead đặt bàn từ website.
 
 1. Mở Content Manager → **Yêu cầu đặt bàn**.
-2. Bản ghi mới có `status = new`.
+2. Bản ghi mới có **Trạng thái xử lý** (`leadStatus`) = `new`.
 3. Kiểm tra `preferredDate`, `preferredTime`, `guestCount`, `phone`.
 4. `menuSelectionMode = later` → khách chọn món tại nhà hàng; `now` → xem relation gói buffet / món lẻ.
 5. Lọc `overlapCount > 0` để ưu tiên các khung giờ có nhiều request (cảnh báo mềm — **không** tự chặn chỗ).
-6. Đổi `status` thành `read` khi đã gọi khách, `archived` khi xong.
+6. Đổi **Trạng thái xử lý** thành `read` khi đã gọi khách, `archived` khi xong (hoặc dùng nút trong Hộp thư đặt bàn).
 7. Public không xem được danh sách — chỉ Admin.
 
 Form **không** kiểm tra bàn trống realtime. Email staff notify **opt-in** (cùng Resend + `FORM_NOTIFY_TO` như liên hệ). Copy trang đặt bàn vẫn nằm ở **Trang đặt bàn**.
@@ -102,7 +102,7 @@ thông báo trong khoảng 1 giây — không cần tải lại trang.
   phát được sau khi đã bấm công tắc trong phiên đó — giới hạn của trình
   duyệt). Cả hai mặc định tắt.
 - **Hành động trên từng dòng:** **Mở** = sang trang chỉnh sửa trong Content
-  Manager; **Đã đọc** = đánh dấu đã xử lý (đổi `status` thành `read`, dòng
+  Manager; **Đã đọc** = đánh dấu đã xử lý (đổi `leadStatus` thành `read`, dòng
   biến khỏi hộp thư và số trên chấm tròn giảm đi một).
 - Cột **Trùng khung giờ** hiện nhãn vàng khi `overlapCount > 0` — cảnh báo mềm
   nhiều bàn cùng khung giờ, không tự chặn chỗ.

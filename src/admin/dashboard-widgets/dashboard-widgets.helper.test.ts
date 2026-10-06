@@ -14,13 +14,13 @@ const decode = (url: string) => decodeURIComponent(url);
 describe('dashboard widget helpers', () => {
   it('builds a Content Manager list URL with $and filters', () => {
     const url = buildLeadListUrl('api::contact-message.contact-message', {
-      filters: { status: { $eq: 'new' }, createdAt: { $gte: '2026-10-01' } },
+      filters: { leadStatus: { $eq: 'new' }, createdAt: { $gte: '2026-10-01' } },
       sort: 'createdAt:DESC',
       pageSize: 1,
     });
 
     expect(url.startsWith('/content-manager/collection-types/api::contact-message.contact-message?')).toBe(true);
-    expect(decode(url)).toContain('filters[$and][0][status][$eq]=new');
+    expect(decode(url)).toContain('filters[$and][0][leadStatus][$eq]=new');
     expect(decode(url)).toContain('filters[$and][1][createdAt][$gte]=2026-10-01');
     expect(decode(url)).toContain('pageSize=1');
   });
@@ -29,7 +29,7 @@ describe('dashboard widget helpers', () => {
     const url = decode(buildUpcomingReservationsUrl(new Date(2026, 9, 4, 22, 30), 6));
 
     expect(url).toContain('[preferredDate][$gte]=2026-10-04');
-    expect(url).toContain('[status][$ne]=archived');
+    expect(url).toContain('[leadStatus][$ne]=archived');
     expect(url).toContain('sort=preferredDate:ASC,preferredTime:ASC');
   });
 

@@ -77,7 +77,7 @@
       "type": "string",
       "maxLength": 200
     },
-    "status": {
+    "leadStatus": {
       "type": "enumeration",
       "enum": [
         "new",
@@ -102,7 +102,7 @@
         "guestCount",
         "preferredDate",
         "preferredTime",
-        "status",
+        "leadStatus",
         "overlapCount",
         "createdAt"
       ],

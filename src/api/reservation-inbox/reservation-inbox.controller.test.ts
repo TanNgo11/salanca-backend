@@ -51,7 +51,7 @@ describe('reservation inbox controller summary', () => {
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         filters: {
-          $or: [{ status: 'new' }, { status: { $null: true } }],
+          $or: [{ leadStatus: 'new' }, { leadStatus: { $null: true } }],
           createdAt: { $gt: '2030-06-01T00:00:00.000Z' },
         },
       }),
@@ -193,7 +193,7 @@ describe('reservation inbox controller list', () => {
       expect.objectContaining({
         filters: {
           $and: [
-            { $or: [{ status: 'new' }, { status: { $null: true } }] },
+            { $or: [{ leadStatus: 'new' }, { leadStatus: { $null: true } }] },
             { $or: [{ fullName: { $containsi: '09' } }, { phone: { $containsi: '09' } }] },
           ],
         },

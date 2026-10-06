@@ -1029,7 +1029,7 @@ export interface ApiContactMessageContactMessage
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 200;
       }>;
-    status: Schema.Attribute.Enumeration<['new', 'read', 'archived']> &
+    leadStatus: Schema.Attribute.Enumeration<['new', 'read', 'archived']> &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'new'>;
     topic: Schema.Attribute.String &
@@ -2386,7 +2386,7 @@ export interface ApiReservationRequestReservationRequest
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 200;
       }>;
-    status: Schema.Attribute.Enumeration<['new', 'read', 'archived']> &
+    leadStatus: Schema.Attribute.Enumeration<['new', 'read', 'archived']> &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'new'>;
     updatedAt: Schema.Attribute.DateTime;

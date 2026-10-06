@@ -30,7 +30,7 @@ describe('createReservationInboxService.summary', () => {
 
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        filters: { $or: [{ status: 'new' }, { status: { $null: true } }] },
+        filters: { $or: [{ leadStatus: 'new' }, { leadStatus: { $null: true } }] },
         sort: 'createdAt:desc',
         limit: 20,
       }),
@@ -40,7 +40,7 @@ describe('createReservationInboxService.summary', () => {
     );
     expect(findMany.mock.calls[0][0].fields).not.toContain('note');
     expect(findMany.mock.calls[0][0].fields).not.toContain('email');
-    expect(count).toHaveBeenCalledWith({ filters: { $or: [{ status: 'new' }, { status: { $null: true } }] } });
+    expect(count).toHaveBeenCalledWith({ filters: { $or: [{ leadStatus: 'new' }, { leadStatus: { $null: true } }] } });
     expect(result.unreadCount).toBe(7);
     expect(result.items).toHaveLength(1);
     expect(result.items[0]).toEqual({
@@ -66,12 +66,12 @@ describe('createReservationInboxService.summary', () => {
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         filters: {
-          $or: [{ status: 'new' }, { status: { $null: true } }],
+          $or: [{ leadStatus: 'new' }, { leadStatus: { $null: true } }],
           createdAt: { $gt: '2030-06-01T00:00:00.000Z' },
         },
       }),
     );
-    expect(count).toHaveBeenCalledWith({ filters: { $or: [{ status: 'new' }, { status: { $null: true } }] } });
+    expect(count).toHaveBeenCalledWith({ filters: { $or: [{ leadStatus: 'new' }, { leadStatus: { $null: true } }] } });
     expect(result.unreadCount).toBe(3);
   });
 });
@@ -92,8 +92,8 @@ describe('createReservationInboxService.markRead', () => {
   });
 
   it('updates status to read and returns the documentId and status', async () => {
-    const findOne = vi.fn(async () => ({ documentId: 'abc123def456', status: 'new' }));
-    const update = vi.fn(async () => ({ documentId: 'abc123def456', status: 'read' }));
+    const findOne = vi.fn(async () => ({ documentId: 'abc123def456', leadStatus: 'new' }));
+    const update = vi.fn(async () => ({ documentId: 'abc123def456', leadStatus: 'read' }));
     const strapi = buildStrapi({ findOne, update });
     const service = createReservationInboxService(strapi);
 
@@ -102,7 +102,7 @@ describe('createReservationInboxService.markRead', () => {
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({
         documentId: 'abc123def456',
-        data: { status: 'read' },
+        data: { leadStatus: 'read' },
       }),
     );
     expect(result).toEqual({ documentId: 'abc123def456', status: 'read' });
@@ -119,7 +119,7 @@ describe('createReservationInboxService.list', () => {
     preferredTime: '19:00',
     overlapCount: 0,
     createdAt: '2030-06-10T12:00:00.000Z',
-    status: 'archived',
+    leadStatus: 'archived',
   };
 
   it('applies status and name/phone search, paginates, and returns per-status counts', async () => {
@@ -127,7 +127,7 @@ describe('createReservationInboxService.list', () => {
     const count = vi.fn(async ({ filters }: { filters: Record<string, unknown> }) => {
       if (filters.$and) return 45;
       if (filters.$or) return 3;
-      if (filters.status === 'read') return 10;
+      if (filters.leadStatus === 'read') return 10;
       return 32;
     });
     const service = createReservationInboxService(buildStrapi({ findMany, count }));
@@ -136,7 +136,7 @@ describe('createReservationInboxService.list', () => {
 
     const expectedFilters = {
       $and: [
-        { status: 'archived' },
+        { leadStatus: 'archived' },
         {
           $or: [{ fullName: { $containsi: 'nguyen' } }, { phone: { $containsi: 'nguyen' } }],
         },
@@ -170,13 +170,13 @@ describe('createReservationInboxService.list', () => {
   // Rows saved before the status column existed hold NULL; they are unhandled
   // requests, so the "new" tab and count must include them.
   it('treats legacy rows with a NULL status as new', async () => {
-    const findMany = vi.fn(async () => [{ ...row, status: null }]);
+    const findMany = vi.fn(async () => [{ ...row, leadStatus: null }]);
     const count = vi.fn(async () => 1);
     const service = createReservationInboxService(buildStrapi({ findMany, count }));
 
     const result = await service.list({ status: 'new', page: 1 });
 
-    const newFilter = { $or: [{ status: 'new' }, { status: { $null: true } }] };
+    const newFilter = { $or: [{ leadStatus: 'new' }, { leadStatus: { $null: true } }] };
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({ filters: { $and: [newFilter] } }),
     );
@@ -187,10 +187,10 @@ describe('createReservationInboxService.list', () => {
 
 describe('createReservationInboxService.setStatus', () => {
   it('can move a request back to new or to archived', async () => {
-    const findOne = vi.fn(async () => ({ documentId: 'abc123def456', status: 'read' }));
-    const update = vi.fn(async ({ data }: { data: { status: string } }) => ({
+    const findOne = vi.fn(async () => ({ documentId: 'abc123def456', leadStatus: 'read' }));
+    const update = vi.fn(async ({ data }: { data: { leadStatus: string } }) => ({
       documentId: 'abc123def456',
-      status: data.status,
+      leadStatus: data.leadStatus,
     }));
     const service = createReservationInboxService(buildStrapi({ findOne, update }));
 
@@ -222,7 +222,7 @@ describe('createReservationInboxService.detail', () => {
       menuItems: [{ name: 'Picanha' }],
       sourceLocale: 'vi',
       sourcePath: '/vi/dat-ban',
-      status: null,
+      leadStatus: null,
       overlapCount: 2,
       createdAt: new Date('2030-06-10T12:00:00.000Z'),
     }));

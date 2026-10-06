@@ -55,6 +55,7 @@ try {
         sourcePath: '/vi/dat-ban',
         website: '',
         status: 'archived',
+        leadStatus: 'archived',
       },
     }),
   });

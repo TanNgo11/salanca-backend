@@ -14,7 +14,7 @@ export const contentEnumOptionVietnameseTranslations: Record<string, string> = {
   vi: 'Tiếng Việt',
   en: 'Tiếng Anh',
 
-  // reservation-request / contact-message .status
+  // reservation-request / contact-message .leadStatus
   new: 'Mới',
   read: 'Đã đọc',
   archived: 'Lưu trữ',

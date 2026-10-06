@@ -56,14 +56,14 @@ export default factories.createCoreController(UID, ({ strapi }: { strapi: Core.S
 
     const document = await strapi.documents(UID).create({
       data,
-      fields: ['documentId', 'status'],
+      fields: ['documentId', 'leadStatus'],
     });
 
     ctx.status = 201;
     ctx.body = {
       data: {
         documentId: document.documentId,
-        status: document.status ?? 'new',
+        status: document.leadStatus ?? 'new',
       },
     };
 

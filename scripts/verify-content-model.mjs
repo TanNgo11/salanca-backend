@@ -227,10 +227,10 @@ assert(
 );
 assert(contactMessage?.locale === undefined, 'contact-message must not use locale attribute name');
 assert(
-  JSON.stringify(contactMessage?.status?.enum) === JSON.stringify(['new', 'read', 'archived']),
-  'contact-message.status enum is invalid',
+  JSON.stringify(contactMessage?.leadStatus?.enum) === JSON.stringify(['new', 'read', 'archived']),
+  'contact-message.leadStatus enum is invalid',
 );
-assert(contactMessage?.status?.default === 'new', 'contact-message.status default must be new');
+assert(contactMessage?.leadStatus?.default === 'new', 'contact-message.leadStatus default must be new');
 assert(contactMessage?.website === undefined, 'contact-message must not persist honeypot website field');
 
 const reservationRequest = leadSchemas['reservation-request']?.attributes;
@@ -249,10 +249,10 @@ assert(
 );
 assert(reservationRequest?.locale === undefined, 'reservation-request must not use locale attribute name');
 assert(
-  JSON.stringify(reservationRequest?.status?.enum) === JSON.stringify(['new', 'read', 'archived']),
-  'reservation-request.status enum is invalid',
+  JSON.stringify(reservationRequest?.leadStatus?.enum) === JSON.stringify(['new', 'read', 'archived']),
+  'reservation-request.leadStatus enum is invalid',
 );
-assert(reservationRequest?.status?.default === 'new', 'reservation-request.status default must be new');
+assert(reservationRequest?.leadStatus?.default === 'new', 'reservation-request.leadStatus default must be new');
 assert(reservationRequest?.hasOverlap === undefined, 'reservation-request must not persist derived hasOverlap');
 assert(reservationRequest?.clientIpHash === undefined, 'reservation-request must not persist clientIpHash');
 assert(reservationRequest?.overlapCount?.type === 'integer', 'reservation-request.overlapCount must be integer');
