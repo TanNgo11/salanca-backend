@@ -30,6 +30,7 @@
     "verify:seed": "node scripts/verify-seed.mjs",
     "media:reconcile": "node scripts/reconcile-media/index.mjs",
     "media:backfill": "node scripts/backfill-media/index.mjs",
+    "media:webp": "node scripts/webp-media/index.mjs",
     "smoke:crud": "node scripts/smoke-content-crud.mjs",
     "smoke:i18n": "node scripts/smoke-i18n.mjs",
     "smoke:api": "node scripts/smoke-api.mjs",

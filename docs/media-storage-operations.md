@@ -134,6 +134,40 @@ Runbook (per environment, staging first):
 7. If a CDN sits in front of the bucket, purge it so old header-less responses
    are dropped.
 
+## Re-encode legacy JPEG derivatives as WebP (`media:webp`)
+
+Uploads made before `MEDIA_PROCESSING_ENABLED` kept JPEG derivatives, and the
+web renders `formats` straight into `srcset`. `pnpm run media:webp` re-encodes
+them:
+
+- only `image/jpeg` files (legacy PNG uploads are served through next/image,
+  which already sends WebP);
+- every derivative whose `mime` is not `image/webp` is encoded from the
+  original at its stored width/height (WebP quality 75, effort 6) and uploaded
+  through the provider under `${name}_${hash}.webp`, a new key, so no immutably
+  cached object is overwritten; a derivative is kept as JPEG when the WebP is
+  not smaller;
+- the original's `url`/`hash`/`name` never change, and the JPEG objects stay
+  in the bucket (they become orphans for `media:reconcile`).
+
+Before each row is updated, its previous `formats` are appended to
+`media-webp-backup-<timestamp>.jsonl` in the working directory. To roll a file
+back, write that `formats` value onto the row again. The JPEG objects it points
+at must still exist, so run the WebP conversion at least one reconcile grace
+period (7 days) before any `media:reconcile -- --delete-orphans --apply`, or
+keep the backup's keys in `protected-keys.txt` until the rollback window ends.
+
+Runbook (per environment, staging first):
+
+1. Back up PostgreSQL; confirm bucket versioning.
+2. Dry run: `pnpm run media:webp` — record the counts.
+3. Canary: `pnpm run media:webp --apply --limit 2`; check one file's API
+   `formats` (WebP URLs) and that the page still renders its images.
+4. Apply: `pnpm run media:webp --apply`; keep the backup file and the report
+   (it prints the derivative bytes before/after).
+5. The script sends the signed `media.replace` webhook so ISR pages switch to
+   the new URLs; Cloudflare's 60 s HTML edge TTL clears on its own.
+
 ## Safety
 
 - Upload MIME allow/deny lists live in `config/plugins.ts`.
