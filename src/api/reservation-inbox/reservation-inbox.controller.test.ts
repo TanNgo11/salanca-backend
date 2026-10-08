@@ -232,3 +232,59 @@ describe('reservation inbox controller setStatus', () => {
     expect(context.body).toEqual({ data: { documentId: 'abc123def456', status: 'archived' } });
   });
 });
+
+describe('reservation inbox controller workflow', () => {
+  it('accepts the confirmed status', async () => {
+    const findOne = vi.fn(async () => ({ documentId: 'abc123def456' }));
+    const update = vi.fn(async () => ({ documentId: 'abc123def456', leadStatus: 'confirmed' }));
+    const controller = createReservationInboxController(buildStrapi({ findOne, update }));
+    const context = buildContext({
+      params: { documentId: 'abc123def456' },
+      request: { body: { status: 'confirmed' } },
+    });
+
+    await controller.setStatus(context as never);
+
+    expect(context.body).toEqual({ data: { documentId: 'abc123def456', status: 'confirmed' } });
+  });
+
+  it('saves a staff note', async () => {
+    const findOne = vi.fn(async () => ({ documentId: 'abc123def456' }));
+    const update = vi.fn(async () => ({ documentId: 'abc123def456', staffNote: 'ok' }));
+    const controller = createReservationInboxController(buildStrapi({ findOne, update }));
+    const context = buildContext({
+      params: { documentId: 'abc123def456' },
+      request: { body: { note: 'ok' } },
+    });
+
+    await controller.setNote(context as never);
+
+    expect(context.body).toEqual({ data: { documentId: 'abc123def456', staffNote: 'ok' } });
+  });
+
+  it('rejects a note longer than 2000 characters', async () => {
+    const findOne = vi.fn();
+    const controller = createReservationInboxController(buildStrapi({ findOne }));
+    const context = buildContext({
+      params: { documentId: 'abc123def456' },
+      request: { body: { note: 'x'.repeat(2001) } },
+    });
+
+    await controller.setNote(context as never);
+
+    expect(context.badRequest).toHaveBeenCalledWith('Ghi chú tối đa 2000 ký tự.');
+    expect(findOne).not.toHaveBeenCalled();
+  });
+
+  it('rejects a non-string note', async () => {
+    const controller = createReservationInboxController(buildStrapi({ findOne: vi.fn() }));
+    const context = buildContext({
+      params: { documentId: 'abc123def456' },
+      request: { body: { note: 42 } },
+    });
+
+    await controller.setNote(context as never);
+
+    expect(context.badRequest).toHaveBeenCalledWith('Ghi chú không hợp lệ.');
+  });
+});

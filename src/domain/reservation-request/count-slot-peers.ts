@@ -1,5 +1,5 @@
 /**
- * Soft-overlap: count non-archived leads on the same preferred date+time.
+ * Soft-overlap: count open and confirmed leads on the same preferred date+time.
  */
 
 import type { Core } from '@strapi/strapi';
@@ -18,7 +18,7 @@ export const countSlotPeers = async (
     where: {
       preferredDate,
       preferredTime,
-      leadStatus: { $in: ['new', 'read'] },
+      leadStatus: { $in: ['new', 'read', 'confirmed'] },
     },
   });
   return typeof peerCount === 'number' && Number.isFinite(peerCount) ? peerCount : 0;

@@ -1007,6 +1007,9 @@ export interface ApiContactMessageContactMessage
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 120;
       }>;
+    leadStatus: Schema.Attribute.Enumeration<['new', 'read', 'archived']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'new'>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -1029,9 +1032,6 @@ export interface ApiContactMessageContactMessage
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 200;
       }>;
-    leadStatus: Schema.Attribute.Enumeration<['new', 'read', 'archived']> &
-      Schema.Attribute.Required &
-      Schema.Attribute.DefaultTo<'new'>;
     topic: Schema.Attribute.String &
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 80;
@@ -2335,6 +2335,11 @@ export interface ApiReservationRequestReservationRequest
         },
         number
       >;
+    leadStatus: Schema.Attribute.Enumeration<
+      ['new', 'read', 'confirmed', 'cancelled', 'no_show', 'archived']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'new'>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -2386,9 +2391,11 @@ export interface ApiReservationRequestReservationRequest
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 200;
       }>;
-    leadStatus: Schema.Attribute.Enumeration<['new', 'read', 'archived']> &
-      Schema.Attribute.Required &
-      Schema.Attribute.DefaultTo<'new'>;
+    staffNote: Schema.Attribute.Text &
+      Schema.Attribute.Private &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 2000;
+      }>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

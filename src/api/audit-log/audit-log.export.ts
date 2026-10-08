@@ -1,5 +1,6 @@
-const CSV_BOM = '\uFEFF';
-const FORMULA_PREFIX = /^[=+\-@\t\r]/;
+import { buildCsv, escapeCsvCell } from '../../shared/csv/csv';
+
+export { escapeCsvCell };
 
 export const AUDIT_LOG_CSV_HEADERS = [
   'Thời gian',
@@ -11,15 +12,5 @@ export const AUDIT_LOG_CSV_HEADERS = [
   'Kết quả',
 ] as const;
 
-export const escapeCsvCell = (value: string): string => {
-  const formulaSafe = FORMULA_PREFIX.test(value) ? `'${value}` : value;
-  return `"${formulaSafe.split('"').join('""')}"`;
-};
-
-export const buildAuditLogCsv = (rows: readonly (readonly string[])[]): string => {
-  const lines = [
-    AUDIT_LOG_CSV_HEADERS.map((header) => escapeCsvCell(header)).join(','),
-    ...rows.map((row) => row.map((cell) => escapeCsvCell(cell)).join(',')),
-  ];
-  return `${CSV_BOM}${lines.join('\r\n')}\r\n`;
-};
+export const buildAuditLogCsv = (rows: readonly (readonly string[])[]): string =>
+  buildCsv(AUDIT_LOG_CSV_HEADERS, rows);

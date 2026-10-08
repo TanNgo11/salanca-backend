@@ -1,4 +1,5 @@
 import type { ReservationInboxItem } from '../../domain/reservation-request/reservation-inbox-events';
+import type { ReservationLeadStatus as ReservationStatus } from '../../shared/lead-status/lead-status';
 
 export enum ApiReservationInboxPermission {
   Read = 'admin::reservation-inbox.read',
@@ -11,6 +12,7 @@ export enum ApiReservationInboxRoute {
   List = '/reservation-inbox/list',
   SetStatus = '/reservation-inbox/:documentId/status',
   Detail = '/reservation-inbox/:documentId/detail',
+  SetNote = '/reservation-inbox/:documentId/note',
 }
 
 export enum ReservationInboxErrorCode {
@@ -23,8 +25,10 @@ export const RESERVATION_INBOX_SUMMARY_LIMIT = 20;
 export const RESERVATION_INBOX_PAGE_SIZE = 20;
 export const RESERVATION_INBOX_SEARCH_MAX_LENGTH = 100;
 
-export const RESERVATION_STATUSES = ['new', 'read', 'archived'] as const;
-export type ReservationStatus = (typeof RESERVATION_STATUSES)[number];
+export {
+  RESERVATION_LEAD_STATUSES as RESERVATION_STATUSES,
+  type ReservationLeadStatus as ReservationStatus,
+} from '../../shared/lead-status/lead-status';
 
 export interface ApiReservationInboxSummaryResponse {
   data: {
@@ -82,6 +86,7 @@ export interface ReservationInboxDetail {
   sourceLocale: string | null;
   sourcePath: string | null;
   status: ReservationStatus;
+  staffNote: string | null;
   overlapCount: number;
   createdAt: string;
 }
@@ -90,6 +95,7 @@ export interface ApiReservationInboxController {
   detail: (context: ApiReservationInboxRequestContext) => Promise<void>;
   list: (context: ApiReservationInboxRequestContext) => Promise<void>;
   setStatus: (context: ApiReservationInboxRequestContext) => Promise<void>;
+  setNote: (context: ApiReservationInboxRequestContext) => Promise<void>;
   markRead: (context: ApiReservationInboxRequestContext) => Promise<void>;
   stream: (context: ApiReservationInboxRequestContext) => void;
   summary: (context: ApiReservationInboxRequestContext) => Promise<void>;

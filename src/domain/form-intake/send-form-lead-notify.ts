@@ -14,7 +14,7 @@ import {
 } from './form-lead-notify';
 
 /** Nodemailer/Resend send options used by form lead notify. */
-type FormLeadPluginSendOptions = {
+export type FormLeadPluginSendOptions = {
   to: string;
   subject: string;
   text: string;
@@ -30,7 +30,7 @@ type FormLeadEmailPluginService = {
  * Resolve the email plugin send function only when SMTP was intentionally
  * configured (EMAIL_SMTP_HOST). Avoids Strapi's default sendmail provider.
  */
-function resolveIntentionalEmailSend(
+export function resolveIntentionalEmailSend(
   strapi: Core.Strapi,
 ): ((options: FormLeadPluginSendOptions) => Promise<unknown>) | null {
   if (!isFormNotifySmtpConfigured()) {

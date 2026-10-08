@@ -27,10 +27,13 @@ describe('buildReservationListQuery', () => {
 describe('reservationStatusActions', () => {
   it('offers forward then side steps per status', () => {
     expect(reservationStatusActions('new').map((action) => action.target)).toEqual([
+      'confirmed',
+      'cancelled',
       'read',
-      'archived',
     ]);
     expect(reservationStatusActions('read').map((action) => action.target)).toEqual([
+      'confirmed',
+      'cancelled',
       'archived',
       'new',
     ]);

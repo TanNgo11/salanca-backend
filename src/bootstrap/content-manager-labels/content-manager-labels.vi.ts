@@ -104,6 +104,7 @@ export const CONTENT_MANAGER_FIELD_LABELS_VI: Readonly<Record<string, string>> =
   isFeatured: 'Đánh dấu nổi bật',
   showStar: 'Hiện ngôi sao trong thực đơn',
   socialImages: 'Ảnh mạng xã hội',
+  staffNote: 'Ghi chú nội bộ của nhân viên',
   itemSectionHeading: 'Tiêu đề danh sách món',
   items: 'Các món thuộc nhóm',
   kind: 'Loại chương trình',

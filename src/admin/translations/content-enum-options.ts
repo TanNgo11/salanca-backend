@@ -1,3 +1,5 @@
+import { LEAD_STATUS_LABELS_VI } from '../../shared/lead-status/lead-status';
+
 /**
  * Labels for enumeration values in Content Manager forms and list filters.
  * Strapi looks each option up with the raw stored value as the message id
@@ -15,9 +17,7 @@ export const contentEnumOptionVietnameseTranslations: Record<string, string> = {
   en: 'Tiếng Anh',
 
   // reservation-request / contact-message .leadStatus
-  new: 'Mới',
-  read: 'Đã đọc',
-  archived: 'Lưu trữ',
+  ...LEAD_STATUS_LABELS_VI,
 
   // campaign.kind
   promotion: 'Khuyến mãi',

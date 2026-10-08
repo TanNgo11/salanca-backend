@@ -31,12 +31,16 @@ import {
   formatReservationInboxMessage,
   INBOX_SEARCH_DEBOUNCE_MS,
   initialListFilters,
+  RESERVATION_ROW_ACTION_LIMIT,
   reservationInboxPermissions,
   reservationStatusActions,
+  reservationStatusChipKey,
+  reservationStatusTabKey,
   reservationStatusTone,
 } from './reservation-inbox.helper';
 import { playReservationInboxChime } from './reservation-inbox.sound';
 import {
+  RESERVATION_STATUSES,
   ReservationInboxTranslationKey,
   type ReservationStatus,
   type ReservationStatusFilter,
@@ -44,12 +48,6 @@ import {
 import { useReservationList } from './useReservationList';
 
 import './reservation-inbox.css';
-
-const chipLabelKey: Record<ReservationStatus, ReservationInboxTranslationKey> = {
-  new: ReservationInboxTranslationKey.ChipNew,
-  read: ReservationInboxTranslationKey.ChipRead,
-  archived: ReservationInboxTranslationKey.ChipArchived,
-};
 
 const ReservationInboxScreen = () => {
   const intl = useIntl();
@@ -82,14 +80,15 @@ const ReservationInboxScreen = () => {
   }, [searchInput, search]);
 
   // Live arrivals change the unread count; reload so the open list stays current.
-  const { result, loading, failed, setStatus } = useReservationList(
+  const { result, loading, failed, setStatus, setNote } = useReservationList(
     { status: statusFilter, search, page },
     unreadCount,
   );
 
   const items = result?.items ?? [];
   const pageCount = result?.pageCount ?? 1;
-  const counts = result?.counts ?? { new: 0, read: 0, archived: 0 };
+  const counts = result?.counts;
+  const countOf = (status: ReservationStatus): number => counts?.[status] ?? 0;
   const hasFilters = statusFilter !== 'all' || search.trim() !== '';
 
   useEffect(() => {
@@ -122,17 +121,15 @@ const ReservationInboxScreen = () => {
     key: ReservationInboxTranslationKey;
     count: number;
   }> = [
-    { value: 'new', key: ReservationInboxTranslationKey.StatusNew, count: counts.new },
-    { value: 'read', key: ReservationInboxTranslationKey.StatusRead, count: counts.read },
-    {
-      value: 'archived',
-      key: ReservationInboxTranslationKey.StatusArchived,
-      count: counts.archived,
-    },
+    ...RESERVATION_STATUSES.map((status) => ({
+      value: status,
+      key: reservationStatusTabKey[status],
+      count: countOf(status),
+    })),
     {
       value: 'all',
       key: ReservationInboxTranslationKey.FilterAll,
-      count: counts.new + counts.read + counts.archived,
+      count: RESERVATION_STATUSES.reduce((sum, status) => sum + countOf(status), 0),
     },
   ];
 
@@ -316,7 +313,7 @@ const ReservationInboxScreen = () => {
                             color={informationStatusChipColor(
                               reservationStatusTone(item.status),
                             )}
-                            label={translate(chipLabelKey[item.status])}
+                            label={translate(reservationStatusChipKey[item.status])}
                           />
                         </Td>
                         <Td>
@@ -358,7 +355,9 @@ const ReservationInboxScreen = () => {
                             >
                               {translate(ReservationInboxTranslationKey.ActionEdit)}
                             </LinkButton>
-                            {reservationStatusActions(item.status).map((action) => (
+                            {reservationStatusActions(item.status)
+                              .slice(0, RESERVATION_ROW_ACTION_LIMIT)
+                              .map((action) => (
                               <Button
                                 key={action.target}
                                 onClick={() =>
@@ -411,6 +410,14 @@ const ReservationInboxScreen = () => {
         <ReservationDetailModal
           documentId={detailDocumentId}
           onClose={() => setDetailDocumentId(null)}
+          onSaveNote={setNote}
+          onStatusChange={async (documentId, target) => {
+            const ok = await setStatus(documentId, target);
+            if (ok) {
+              void refresh().catch(() => {});
+            }
+            return ok;
+          }}
           translate={translate}
         />
       </Page.Main>

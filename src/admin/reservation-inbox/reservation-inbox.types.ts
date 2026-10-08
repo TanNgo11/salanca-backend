@@ -1,4 +1,5 @@
 import type { ReservationInboxItem } from '../../domain/reservation-request/reservation-inbox-events';
+import type { ReservationLeadStatus as ReservationStatus } from '../../shared/lead-status/lead-status';
 
 export enum ApiReservationInboxPermission {
   Read = 'admin::reservation-inbox.read',
@@ -8,8 +9,10 @@ export interface ReservationInboxPermissions {
   read: { action: ApiReservationInboxPermission; subject: null }[];
 }
 
-export const RESERVATION_STATUSES = ['new', 'read', 'archived'] as const;
-export type ReservationStatus = (typeof RESERVATION_STATUSES)[number];
+export {
+  RESERVATION_LEAD_STATUSES as RESERVATION_STATUSES,
+  type ReservationLeadStatus as ReservationStatus,
+} from '../../shared/lead-status/lead-status';
 
 /** Status filter value; `all` means no status constraint. */
 export type ReservationStatusFilter = ReservationStatus | 'all';
@@ -96,4 +99,20 @@ export enum ReservationInboxTranslationKey {
   DetailStatus = 'detail.status',
   DetailOverlap = 'detail.overlap',
   DetailReceivedAt = 'detail.receivedAt',
+  ChipConfirmed = 'chip.confirmed',
+  ChipCancelled = 'chip.cancelled',
+  ChipNoShow = 'chip.noShow',
+  StatusConfirmed = 'status.confirmed',
+  StatusCancelled = 'status.cancelled',
+  StatusNoShow = 'status.noShow',
+  ActionConfirm = 'actions.confirm',
+  ActionCancel = 'actions.cancel',
+  ActionNoShow = 'actions.noShow',
+  ActionRestoreConfirmed = 'actions.restoreConfirmed',
+  DetailActions = 'detail.actions',
+  DetailStaffNote = 'detail.staffNote',
+  DetailStaffNoteHint = 'detail.staffNoteHint',
+  DetailStaffNoteSave = 'detail.staffNoteSave',
+  DetailStaffNoteSaved = 'detail.staffNoteSaved',
+  DetailStaffNoteFailed = 'detail.staffNoteFailed',
 }

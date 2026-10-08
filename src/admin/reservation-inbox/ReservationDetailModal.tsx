@@ -1,7 +1,16 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
 
-import { Button, Flex, LinkButton, Loader, Modal, Typography } from '@strapi/design-system';
-import { useFetchClient } from '@strapi/strapi/admin';
+import {
+  Button,
+  Field,
+  Flex,
+  LinkButton,
+  Loader,
+  Modal,
+  Textarea,
+  Typography,
+} from '@strapi/design-system';
+import { useFetchClient, useNotification } from '@strapi/strapi/admin';
 import { useIntl } from 'react-intl';
 import { Link as RouterLink } from 'react-router-dom';
 
@@ -15,6 +24,8 @@ import {
   contentManagerEditPath,
   formatInboxReceivedAt,
   formatInboxVisitDateTime,
+  reservationStatusActions,
+  reservationStatusChipKey,
   reservationStatusTone,
 } from './reservation-inbox.helper';
 import { ReservationInboxTranslationKey, type ReservationStatus } from './reservation-inbox.types';
@@ -26,14 +37,10 @@ interface DetailEnvelope {
 interface ReservationDetailModalProps {
   documentId: string | null;
   onClose(): void;
+  onSaveNote(documentId: string, note: string): Promise<boolean>;
+  onStatusChange(documentId: string, status: ReservationStatus): Promise<boolean>;
   translate(key: ReservationInboxTranslationKey, values?: Record<string, unknown>): string;
 }
-
-const chipLabelKey: Record<ReservationStatus, ReservationInboxTranslationKey> = {
-  new: ReservationInboxTranslationKey.ChipNew,
-  read: ReservationInboxTranslationKey.ChipRead,
-  archived: ReservationInboxTranslationKey.ChipArchived,
-};
 
 const DetailRow = ({ label, children }: { label: string; children: ReactNode }) => (
   <div className="reservation-detail__row">
@@ -51,6 +58,8 @@ const DetailRow = ({ label, children }: { label: string; children: ReactNode }) 
 export const ReservationDetailModal = ({
   documentId,
   onClose,
+  onSaveNote,
+  onStatusChange,
   translate,
 }: ReservationDetailModalProps) => {
   const intl = useIntl();
@@ -60,6 +69,45 @@ export const ReservationDetailModal = ({
   getRef.current = get;
   const [detail, setDetail] = useState<ReservationInboxDetail | null>(null);
   const [failed, setFailed] = useState(false);
+  const { toggleNotification } = useNotification();
+  const [noteDraft, setNoteDraft] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    setNoteDraft(detail?.staffNote ?? '');
+  }, [detail]);
+
+  const saveNote = async () => {
+    if (!documentId) return;
+    setSavingNote(true);
+    const ok = await onSaveNote(documentId, noteDraft);
+    setSavingNote(false);
+    toggleNotification({
+      type: ok ? 'success' : 'danger',
+      message: translate(
+        ok
+          ? ReservationInboxTranslationKey.DetailStaffNoteSaved
+          : ReservationInboxTranslationKey.DetailStaffNoteFailed,
+      ),
+    });
+    if (ok) {
+      setReloadKey((key) => key + 1);
+    }
+  };
+
+  const changeStatus = async (target: ReservationStatus) => {
+    if (!documentId) return;
+    const ok = await onStatusChange(documentId, target);
+    if (ok) {
+      setReloadKey((key) => key + 1);
+    } else {
+      toggleNotification({
+        type: 'danger',
+        message: translate(ReservationInboxTranslationKey.ActionFailed),
+      });
+    }
+  };
 
   useEffect(() => {
     if (!documentId) {
@@ -82,7 +130,7 @@ export const ReservationDetailModal = ({
     return () => {
       active = false;
     };
-  }, [documentId]);
+  }, [documentId, reloadKey]);
 
   const enumLabel = (value: string | null): string =>
     value
@@ -133,8 +181,22 @@ export const ReservationDetailModal = ({
         <DetailRow label={translate(ReservationInboxTranslationKey.DetailStatus)}>
           <InformationStatusChip
             color={informationStatusChipColor(reservationStatusTone(detail.status))}
-            label={translate(chipLabelKey[detail.status])}
+            label={translate(reservationStatusChipKey[detail.status])}
           />
+        </DetailRow>
+        <DetailRow label={translate(ReservationInboxTranslationKey.DetailActions)}>
+          <Flex gap={2} wrap="wrap">
+            {reservationStatusActions(detail.status).map((action) => (
+              <Button
+                key={action.target}
+                onClick={() => void changeStatus(action.target)}
+                size="S"
+                variant="secondary"
+              >
+                {translate(action.translationKey)}
+              </Button>
+            ))}
+          </Flex>
         </DetailRow>
         <DetailRow label={translate(ReservationInboxTranslationKey.DetailVisit)}>
           {text(formatInboxVisitDateTime(detail))}
@@ -173,6 +235,32 @@ export const ReservationDetailModal = ({
           <div className="reservation-detail__value reservation-detail__note">
             {text(detail.note)}
           </div>
+        </div>
+        <div className="reservation-detail__row reservation-detail__row--wide">
+          <Field.Root
+            hint={translate(ReservationInboxTranslationKey.DetailStaffNoteHint)}
+            name="staffNote"
+          >
+            <Field.Label>{translate(ReservationInboxTranslationKey.DetailStaffNote)}</Field.Label>
+            <Textarea
+              maxLength={2000}
+              onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
+                setNoteDraft(event.target.value)
+              }
+              value={noteDraft}
+            />
+            <Field.Hint />
+          </Field.Root>
+          <Flex justifyContent="flex-end" paddingTop={2}>
+            <Button
+              disabled={savingNote || noteDraft === (detail.staffNote ?? '')}
+              loading={savingNote}
+              onClick={() => void saveNote()}
+              size="S"
+            >
+              {translate(ReservationInboxTranslationKey.DetailStaffNoteSave)}
+            </Button>
+          </Flex>
         </div>
         <DetailRow label={translate(ReservationInboxTranslationKey.DetailSourceLocale)}>
           {text(enumLabel(detail.sourceLocale))}

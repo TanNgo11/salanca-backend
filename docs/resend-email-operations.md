@@ -60,6 +60,20 @@ EMAIL_SMTP_REQUIRE_TLS=true
 EMAIL_SMTP_SECURE=false
 ```
 
+## Guest reservation receipt
+
+Always on once the SMTP settings above are configured (owner decision 2026-10-08, no
+separate flag). When a guest leaves an email on the reservation form, they get a short
+receipt in the language of the page they booked from (`sourceLocale`).
+
+- The receipt says the request was **received, not confirmed**. Staff still call to confirm.
+- From / Reply-To are `EMAIL_FROM_*` / `EMAIL_REPLY_TO`, so a guest reply reaches the booking inbox.
+- Brand name, hotline and address come from the published `global-setting` in the guest's locale;
+  missing values are left out.
+- Sent after the 201 response; failures are logged with `documentId` and an error code only.
+- Anyone can type another person's address into the form. Turnstile and the per-IP rate limit
+  bound the volume; the email has no links or marketing copy.
+
 ## Ownership (fill before launch)
 
 | Area | Owner |
@@ -77,3 +91,5 @@ EMAIL_SMTP_SECURE=false
 | Plugin wire | `config/plugins.ts` (when host set) |
 | Message + parse recipients | `src/domain/form-intake/form-lead-notify.ts` |
 | Strapi send adapter | `src/domain/form-intake/send-form-lead-notify.ts` |
+| Guest receipt message | `src/domain/form-intake/reservation-confirmation-email.ts` |
+| Guest receipt sender | `src/domain/form-intake/send-reservation-confirmation.ts` |

@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ReservationInboxItem } from '../../domain/reservation-request/reservation-inbox-events';
+import { InformationStatusChipTone } from '../information-status-chip/information-status-chip.types';
 import {
+  RESERVATION_ROW_ACTION_LIMIT,
   adminHref,
   contentManagerEditPath,
   formatInboxToastMessage,
@@ -11,6 +13,8 @@ import {
   mergeNewItems,
   nextBackoffMs,
   parseSseChunk,
+  reservationStatusActions,
+  reservationStatusTone,
 } from './reservation-inbox.helper';
 
 const buildItem = (overrides: Partial<ReservationInboxItem> = {}): ReservationInboxItem => ({
@@ -248,5 +252,42 @@ describe('inboxReducer', () => {
 
     const floored = inboxReducer(read, { type: 'markedRead', documentId: 'other' });
     expect(floored.unreadCount).toBe(0);
+  });
+});
+
+describe('reservation workflow actions', () => {
+  const targets = (status: Parameters<typeof reservationStatusActions>[0]) =>
+    reservationStatusActions(status).map((action) => action.target);
+
+  it('offers confirm first on a new request', () => {
+    expect(targets('new')).toEqual(['confirmed', 'cancelled', 'read']);
+  });
+
+  it('moves a confirmed request to no-show, cancel or archive', () => {
+    expect(targets('confirmed')).toEqual(['no_show', 'cancelled', 'archived']);
+  });
+
+  it('lets staff restore closed requests', () => {
+    expect(targets('cancelled')).toEqual(['archived', 'read']);
+    expect(targets('no_show')).toEqual(['archived', 'confirmed']);
+    expect(targets('archived')).toEqual(['read']);
+  });
+
+  it('never offers the current status', () => {
+    for (const status of ['new', 'read', 'confirmed', 'cancelled', 'no_show', 'archived'] as const) {
+      expect(targets(status)).not.toContain(status);
+    }
+  });
+
+  it('shows two actions per table row', () => {
+    expect(RESERVATION_ROW_ACTION_LIMIT).toBe(2);
+  });
+
+  it('colours statuses by outcome', () => {
+    expect(reservationStatusTone('new')).toBe(InformationStatusChipTone.Info);
+    expect(reservationStatusTone('confirmed')).toBe(InformationStatusChipTone.Published);
+    expect(reservationStatusTone('cancelled')).toBe(InformationStatusChipTone.Warning);
+    expect(reservationStatusTone('no_show')).toBe(InformationStatusChipTone.Warning);
+    expect(reservationStatusTone('archived')).toBe(InformationStatusChipTone.Neutral);
   });
 });

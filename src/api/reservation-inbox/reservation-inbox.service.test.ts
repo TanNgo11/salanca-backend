@@ -153,7 +153,14 @@ describe('createReservationInboxService.list', () => {
     expect(result.items[0]).toMatchObject({ documentId: 'doc1', status: 'archived' });
     expect(result.total).toBe(45);
     expect(result.pageCount).toBe(3);
-    expect(result.counts).toEqual({ new: 3, read: 10, archived: 32 });
+    expect(result.counts).toEqual({
+      new: 3,
+      read: 10,
+      confirmed: 32,
+      cancelled: 32,
+      no_show: 32,
+      archived: 32,
+    });
   });
 
   it('lists every status when no filters are set', async () => {
@@ -255,6 +262,7 @@ describe('createReservationInboxService.detail', () => {
       sourceLocale: 'vi',
       sourcePath: '/vi/dat-ban',
       status: 'new',
+      staffNote: null,
       overlapCount: 2,
       createdAt: '2030-06-10T12:00:00.000Z',
     });
@@ -266,6 +274,76 @@ describe('createReservationInboxService.detail', () => {
     );
 
     await expect(service.detail('missing')).rejects.toMatchObject({
+      code: ReservationInboxErrorCode.NotFound,
+    });
+  });
+});
+
+describe('createReservationInboxService workflow statuses', () => {
+  it('counts every reservation status', async () => {
+    const findMany = vi.fn(async () => []);
+    const count = vi.fn(async () => 2);
+    const service = createReservationInboxService(buildStrapi({ findMany, count }));
+
+    const result = await service.list({ page: 1 });
+
+    expect(result.counts).toEqual({
+      new: 2,
+      read: 2,
+      confirmed: 2,
+      cancelled: 2,
+      no_show: 2,
+      archived: 2,
+    });
+    expect(count).toHaveBeenCalledWith({ filters: { leadStatus: 'no_show' } });
+  });
+
+  it('returns the staff note in detail', async () => {
+    const findOne = vi.fn(async () => ({
+      documentId: 'abc123def456',
+      fullName: 'A',
+      phone: '0901',
+      guestCount: 2,
+      preferredDate: '2030-06-15',
+      preferredTime: '19:00',
+      overlapCount: 0,
+      createdAt: '2030-06-10T12:00:00.000Z',
+      leadStatus: 'confirmed',
+      staffNote: 'Gọi lúc 10h, khách xác nhận',
+    }));
+    const service = createReservationInboxService(buildStrapi({ findOne }));
+
+    const detail = await service.detail('abc123def456');
+
+    expect(detail.status).toBe('confirmed');
+    expect(detail.staffNote).toBe('Gọi lúc 10h, khách xác nhận');
+    expect(findOne.mock.calls[0][0].fields).toContain('staffNote');
+  });
+
+  it('trims the note and stores an empty note as null', async () => {
+    const findOne = vi.fn(async () => ({ documentId: 'abc123def456' }));
+    const update = vi.fn(async ({ data }: { data: { staffNote: string | null } }) => ({
+      documentId: 'abc123def456',
+      staffNote: data.staffNote,
+    }));
+    const service = createReservationInboxService(buildStrapi({ findOne, update }));
+
+    await expect(service.setNote('abc123def456', '  gọi lại 15h  ')).resolves.toEqual({
+      documentId: 'abc123def456',
+      staffNote: 'gọi lại 15h',
+    });
+    await expect(service.setNote('abc123def456', '   ')).resolves.toEqual({
+      documentId: 'abc123def456',
+      staffNote: null,
+    });
+  });
+
+  it('rejects a note for a missing request', async () => {
+    const service = createReservationInboxService(
+      buildStrapi({ findOne: vi.fn(async () => null), update: vi.fn() }),
+    );
+
+    await expect(service.setNote('abc123def456', 'x')).rejects.toMatchObject({
       code: ReservationInboxErrorCode.NotFound,
     });
   });

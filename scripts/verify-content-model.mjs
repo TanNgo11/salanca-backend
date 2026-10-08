@@ -249,9 +249,11 @@ assert(
 );
 assert(reservationRequest?.locale === undefined, 'reservation-request must not use locale attribute name');
 assert(
-  JSON.stringify(reservationRequest?.leadStatus?.enum) === JSON.stringify(['new', 'read', 'archived']),
+  JSON.stringify(reservationRequest?.leadStatus?.enum) ===
+    JSON.stringify(['new', 'read', 'confirmed', 'cancelled', 'no_show', 'archived']),
   'reservation-request.leadStatus enum is invalid',
 );
+assert(reservationRequest?.staffNote?.private === true, 'reservation-request.staffNote must be private');
 assert(reservationRequest?.leadStatus?.default === 'new', 'reservation-request.leadStatus default must be new');
 assert(reservationRequest?.hasOverlap === undefined, 'reservation-request must not persist derived hasOverlap');
 assert(reservationRequest?.clientIpHash === undefined, 'reservation-request must not persist clientIpHash');

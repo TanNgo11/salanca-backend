@@ -4,6 +4,7 @@ import {
   createCanonicalRequestId,
   readCanonicalRequestId,
 } from '../../domain/audit/request-correlation';
+import { RESERVATION_STAFF_NOTE_MAX_LENGTH } from '../../shared/lead-status/lead-status';
 import { subscribeReservationCreated } from '../../domain/reservation-request/reservation-inbox-events';
 import { ReservationInboxError } from './reservation-inbox.error';
 import { createReservationInboxService } from './reservation-inbox.service';
@@ -91,6 +92,22 @@ const parseStatus = (value: unknown): ReservationStatus => {
     );
   }
   return status;
+};
+
+const parseNote = (value: unknown): string | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (typeof value !== 'string') {
+    throw invalidQuery('Invalid staff note type.', 'Ghi chú không hợp lệ.');
+  }
+  if (value.length > RESERVATION_STAFF_NOTE_MAX_LENGTH) {
+    throw invalidQuery(
+      `Staff note too long: ${value.length}.`,
+      `Ghi chú tối đa ${RESERVATION_STAFF_NOTE_MAX_LENGTH} ký tự.`,
+    );
+  }
+  return value;
 };
 
 const parseListQuery = (
@@ -211,6 +228,17 @@ export const createReservationInboxController = (
           context.body = {
             data: await service.setStatus(documentId, parseStatus(body.status)),
           };
+        })
+        .catch((error: Error) => handleControllerError(strapi, context, error, requestId));
+    },
+
+    async setNote(context): Promise<void> {
+      const requestId = readRequestId(context);
+      await Promise.resolve()
+        .then(async () => {
+          const documentId = parseDocumentId(context.params?.documentId);
+          const body = (context.request?.body ?? {}) as Record<string, unknown>;
+          context.body = { data: await service.setNote(documentId, parseNote(body.note)) };
         })
         .catch((error: Error) => handleControllerError(strapi, context, error, requestId));
     },

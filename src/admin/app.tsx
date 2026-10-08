@@ -1,5 +1,5 @@
 import type { StrapiApp } from '@strapi/strapi/admin';
-import { Bell, Calendar, Clock, Mail } from '@strapi/icons';
+import { Bell, Calendar, Clock, Download, Mail } from '@strapi/icons';
 import { Outlet } from 'react-router-dom';
 
 import { hideDeveloperOnlyAdminPermissions } from './admin-navigation-visibility.helper';
@@ -20,6 +20,7 @@ import {
   formatEnumerationColumns,
   INJECT_COLUMN_IN_TABLE_HOOK,
 } from './enum-list-cells/enum-list-cells.helper';
+import { leadExportPermissions } from './lead-export/lead-export.helper';
 import { createLeadListRedirect } from './lead-shortcuts/LeadListRedirect';
 import {
   contactMessageUid,
@@ -153,6 +154,14 @@ export default {
       Component: async () => ({ default: createLeadListRedirect(reservationRequestUid) }),
       permissions: leadReadPermissions(reservationRequestUid),
       position: 0.2,
+    });
+    app.addMenuLink({
+      to: '/plugins/lead-export',
+      icon: Download,
+      intlLabel: { id: 'lead-export.title', defaultMessage: 'Xuất dữ liệu khách' },
+      Component: () => import('./lead-export/LeadExportScreen'),
+      permissions: leadExportPermissions,
+      position: 0.4,
     });
     registerDashboardWidgets(app);
 

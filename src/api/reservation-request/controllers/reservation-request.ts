@@ -6,6 +6,7 @@ import { resolveClientIp } from '../../../domain/form-intake/client-ip';
 import { toReservationLeadNotifyPayload } from '../../../domain/form-intake/form-lead-notify';
 import { FormValidationError } from '../../../domain/form-intake/form-validation-error';
 import { scheduleFormLeadNotify } from '../../../domain/form-intake/send-form-lead-notify';
+import { scheduleReservationConfirmation } from '../../../domain/form-intake/send-reservation-confirmation';
 import { assertEnvTurnstile } from '../../../domain/form-intake/turnstile';
 import { writeApplicationError } from '../../../domain/form-intake/write-application-error';
 import { countSlotPeers } from '../../../domain/reservation-request/count-slot-peers';
@@ -114,6 +115,18 @@ export default factories.createCoreController(UID, ({ strapi }: { strapi: Core.S
         overlapCount: storedOverlap,
       }),
     );
+
+    // Guest receipt (opt-in); also off the critical path and never throws.
+    scheduleReservationConfirmation(strapi, {
+      documentId: document.documentId,
+      ...(parsed.email ? { email: parsed.email } : {}),
+      locale: parsed.sourceLocale,
+      fullName: parsed.fullName,
+      phone: parsed.phone,
+      preferredDate: parsed.preferredDate,
+      preferredTime: parsed.preferredTime,
+      guestCount: parsed.guestCount,
+    });
 
     // Live inbox fan-out is best-effort: a failure must never affect the 201.
     try {

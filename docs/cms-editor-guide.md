@@ -101,14 +101,33 @@ thông báo trong khoảng 1 giây — không cần tải lại trang.
   phép; *Âm thanh* — bật để nghe tiếng chuông ngắn mỗi yêu cầu mới (chuông chỉ
   phát được sau khi đã bấm công tắc trong phiên đó — giới hạn của trình
   duyệt). Cả hai mặc định tắt.
-- **Hành động trên từng dòng:** **Mở** = sang trang chỉnh sửa trong Content
-  Manager; **Đã đọc** = đánh dấu đã xử lý (đổi `leadStatus` thành `read`, dòng
-  biến khỏi hộp thư và số trên chấm tròn giảm đi một).
+- **Hành động trên từng dòng:** **Mở** = xem chi tiết; **Sửa** = sang trang
+  chỉnh sửa trong Content Manager; hai nút còn lại là bước tiếp theo hay dùng
+  nhất (ví dụ yêu cầu mới: **Xác nhận**, **Huỷ**). Đủ các bước nằm trong cửa sổ
+  chi tiết, mục *Chuyển trạng thái*.
+- **Trạng thái (2026-10-08):** *Mới* → *Đã đọc* (đã xem, chưa gọi) →
+  *Đã xác nhận* (đã gọi, khách chốt) → *Khách không đến* nếu khách bỏ hẹn.
+  *Đã huỷ* khi khách huỷ. *Lưu trữ* để dọn danh sách. Chỉ *Mới* được đếm trên
+  chấm tròn. Đơn *Đã huỷ* / *Khách không đến* / *Lưu trữ* không tính vào số
+  khách hôm nay trên trang chủ Admin.
+- **Ghi chú nội bộ:** trong cửa sổ chi tiết, gõ ghi chú (ví dụ "đã gọi 10h,
+  khách đổi sang 6 người") rồi bấm **Lưu ghi chú**. Chỉ nhân viên thấy, không
+  bao giờ lên website.
 - Cột **Trùng khung giờ** hiện nhãn vàng khi `overlapCount > 0` — cảnh báo mềm
   nhiều bàn cùng khung giờ, không tự chặn chỗ.
 - Cần quyền *Xem hộp thư đặt bàn* (`reservation-inbox.read`) trong
   Settings → Roles; mặc định chỉ Super Admin có. Yêu cầu do Admin tạo tay
   trong Content Manager không bật thông báo realtime.
+
+## Xuất dữ liệu khách (CSV, 2026-10-08)
+
+Menu **Xuất dữ liệu khách**: chọn loại (*Yêu cầu đặt bàn*, *Tin nhắn liên
+hệ*, *Đăng ký nhận tin*), chọn khoảng ngày khách gửi (mặc định từ đầu tháng
+đến hôm nay; để trống cả hai = toàn bộ), bấm **Xuất CSV**. File mở thẳng bằng
+Excel, giờ theo giờ Việt Nam. Tối đa 10.000 dòng mỗi lần — quá thì chọn khoảng
+ngày ngắn hơn. Cần quyền *Xuất CSV khách hàng* (`lead-export.export`); mặc
+định chỉ Super Admin có. File chứa thông tin cá nhân của khách: không gửi qua
+kênh công khai.
 
 ## Giao diện Admin (2026-10-04)
 

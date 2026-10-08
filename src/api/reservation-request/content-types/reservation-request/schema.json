@@ -82,6 +82,9 @@
       "enum": [
         "new",
         "read",
+        "confirmed",
+        "cancelled",
+        "no_show",
         "archived"
       ],
       "required": true,
@@ -92,6 +95,11 @@
       "required": true,
       "default": 0,
       "min": 0
+    },
+    "staffNote": {
+      "type": "text",
+      "maxLength": 2000,
+      "private": true
     }
   },
   "config": {

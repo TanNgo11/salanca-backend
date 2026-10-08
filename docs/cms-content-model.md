@@ -124,8 +124,9 @@ Collection lead nhận form đặt bàn từ website. **Không** i18n plugin, **
 | `menuSelectionMode` | `later` (chọn món sau) \| `now` (chọn gói/món ngay) |
 | `menuPackages` / `menuItems` | M2M tới `menu-package` / `menu-item`; chỉ khi `now`; tối đa 5 gói / 20 món |
 | `sourceLocale` | `vi` \| `en` |
-| `leadStatus` | `new` \| `read` \| `archived`; public create luôn `new`. Tên cũ `status` đụng tham số draft/publish của Content Manager Strapi 5 (edit view trống, lưu báo "Invalid status"); migration `2026.10.06T140000` đổi cột `status` → `lead_status`, giữ nguyên dữ liệu |
-| `overlapCount` | Soft detect: số lead peers cùng date+time (status `new`\|`read`) lúc create; không reject. API derive `hasOverlap = overlapCount > 0` |
+| `leadStatus` | `new` \| `read` \| `confirmed` \| `cancelled` \| `no_show` \| `archived` (2026-10-08: thêm xác nhận / huỷ / khách không đến); public create luôn `new`. Tên cũ `status` đụng tham số draft/publish của Content Manager Strapi 5 (edit view trống, lưu báo "Invalid status"); migration `2026.10.06T140000` đổi cột `status` → `lead_status`, giữ nguyên dữ liệu |
+| `overlapCount` | Soft detect: số lead peers cùng date+time (status `new`\|`read`\|`confirmed`) lúc create; không reject. API derive `hasOverlap = overlapCount > 0` |
+| `staffNote` | Text tối đa 2000 ký tự, `private` (không ra content API). Ghi chú nội bộ nhân viên, sửa trong Hộp thư đặt bàn hoặc Content Manager |
 
 Honeypot `website` request-only. Public chỉ `create`. Rate limit in-process theo IP **sau** validate thành công (env `RESERVATION_RATE_LIMIT_*`). Shared form primitives: `src/domain/form-intake/`.
 

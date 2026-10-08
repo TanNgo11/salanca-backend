@@ -259,11 +259,32 @@ export const reservationStatusTone = (
   switch (status) {
     case 'new':
       return InformationStatusChipTone.Info;
-    case 'read':
+    case 'confirmed':
       return InformationStatusChipTone.Published;
+    case 'cancelled':
+    case 'no_show':
+      return InformationStatusChipTone.Warning;
     default:
       return InformationStatusChipTone.Neutral;
   }
+};
+
+export const reservationStatusChipKey: Record<ReservationStatus, ReservationInboxTranslationKey> = {
+  new: ReservationInboxTranslationKey.ChipNew,
+  read: ReservationInboxTranslationKey.ChipRead,
+  confirmed: ReservationInboxTranslationKey.ChipConfirmed,
+  cancelled: ReservationInboxTranslationKey.ChipCancelled,
+  no_show: ReservationInboxTranslationKey.ChipNoShow,
+  archived: ReservationInboxTranslationKey.ChipArchived,
+};
+
+export const reservationStatusTabKey: Record<ReservationStatus, ReservationInboxTranslationKey> = {
+  new: ReservationInboxTranslationKey.StatusNew,
+  read: ReservationInboxTranslationKey.StatusRead,
+  confirmed: ReservationInboxTranslationKey.StatusConfirmed,
+  cancelled: ReservationInboxTranslationKey.StatusCancelled,
+  no_show: ReservationInboxTranslationKey.StatusNoShow,
+  archived: ReservationInboxTranslationKey.StatusArchived,
 };
 
 export interface ReservationStatusAction {
@@ -272,24 +293,47 @@ export interface ReservationStatusAction {
   translationKey: ReservationInboxTranslationKey;
 }
 
-/** Row actions per current status: forward step first, then the side step. */
+/** Table rows show only the first actions; the detail modal shows all. */
+export const RESERVATION_ROW_ACTION_LIMIT = 2;
+
+const action = (
+  target: ReservationStatus,
+  translationKey: ReservationInboxTranslationKey,
+): ReservationStatusAction => ({ target, translationKey });
+
+/** Next steps per current status, most likely step first. */
 export const reservationStatusActions = (
   status: ReservationStatus,
 ): ReservationStatusAction[] => {
+  const K = ReservationInboxTranslationKey;
   switch (status) {
     case 'new':
       return [
-        { target: 'read', translationKey: ReservationInboxTranslationKey.ActionMarkRead },
-        { target: 'archived', translationKey: ReservationInboxTranslationKey.ActionArchive },
+        action('confirmed', K.ActionConfirm),
+        action('cancelled', K.ActionCancel),
+        action('read', K.ActionMarkRead),
       ];
     case 'read':
       return [
-        { target: 'archived', translationKey: ReservationInboxTranslationKey.ActionArchive },
-        { target: 'new', translationKey: ReservationInboxTranslationKey.ActionMarkNew },
+        action('confirmed', K.ActionConfirm),
+        action('cancelled', K.ActionCancel),
+        action('archived', K.ActionArchive),
+        action('new', K.ActionMarkNew),
+      ];
+    case 'confirmed':
+      return [
+        action('no_show', K.ActionNoShow),
+        action('cancelled', K.ActionCancel),
+        action('archived', K.ActionArchive),
+      ];
+    case 'cancelled':
+      return [action('archived', K.ActionArchive), action('read', K.ActionRestore)];
+    case 'no_show':
+      return [
+        action('archived', K.ActionArchive),
+        action('confirmed', K.ActionRestoreConfirmed),
       ];
     default:
-      return [
-        { target: 'read', translationKey: ReservationInboxTranslationKey.ActionRestore },
-      ];
+      return [action('read', K.ActionRestore)];
   }
 };

@@ -1,9 +1,14 @@
-import { InformationStatusChipTone } from '../information-status-chip/information-status-chip.types';
+import {
+  LEAD_STATUS_LABELS_VI,
+  type ReservationLeadStatus,
+} from '../../shared/lead-status/lead-status';
 import { contactMessageUid, reservationRequestUid } from '../lead-shortcuts/lead-shortcuts.helper';
+import { reservationStatusTone } from '../reservation-inbox/reservation-inbox.helper';
 
-export type LeadStatus = 'new' | 'read' | 'archived';
+export type LeadStatus = ReservationLeadStatus;
 
-export type LeadFilter = Record<string, Record<string, string | number>>;
+export type LeadFilterValue = string | number | readonly string[];
+export type LeadFilter = Record<string, Record<string, LeadFilterValue>>;
 
 export interface LeadListQuery {
   filters?: LeadFilter;
@@ -27,7 +32,12 @@ export const buildLeadListUrl = (uid: string, { filters, sort, pageSize }: LeadL
   }
   Object.entries(filters ?? {}).forEach(([field, conditions], index) => {
     Object.entries(conditions).forEach(([operator, value]) => {
-      params.set(`filters[$and][${index}][${field}][${operator}]`, String(value));
+      const key = `filters[$and][${index}][${field}][${operator}]`;
+      if (Array.isArray(value)) {
+        value.forEach((entry, position) => params.set(`${key}[${position}]`, String(entry)));
+      } else {
+        params.set(key, String(value));
+      }
     });
   });
   return `${contentManagerListPath(uid)}?${params.toString()}`;
@@ -56,7 +66,8 @@ export const daysAgo = (now: Date, days: number): Date => {
   return start;
 };
 
-const notArchived = { $ne: 'archived' };
+/** Bookings that will not seat anyone. */
+const notClosed = { $notIn: ['archived', 'cancelled', 'no_show'] };
 
 interface LeadOverviewQueries {
   newReservations: string;
@@ -69,7 +80,7 @@ export const buildLeadOverviewFilters = (now: Date) => {
   const today = localDateKey(now);
   return {
     newReservations: { leadStatus: { $eq: 'new' } },
-    today: { preferredDate: { $eq: today }, leadStatus: notArchived },
+    today: { preferredDate: { $eq: today }, leadStatus: notClosed },
     newContacts: { leadStatus: { $eq: 'new' } },
     lastSevenDays: { createdAt: { $gte: daysAgo(now, 6).toISOString() } },
   } satisfies Record<string, LeadFilter>;
@@ -102,7 +113,7 @@ export const buildUpcomingReservationsUrl = (now: Date, limit: number): string =
   buildLeadListUrl(reservationRequestUid, {
     filters: {
       preferredDate: { $gte: localDateKey(now) },
-      leadStatus: notArchived,
+      leadStatus: notClosed,
     },
     sort: 'preferredDate:ASC,preferredTime:ASC',
     pageSize: limit,
@@ -110,7 +121,7 @@ export const buildUpcomingReservationsUrl = (now: Date, limit: number): string =
 
 export const buildLatestContactsUrl = (limit: number): string =>
   buildLeadListUrl(contactMessageUid, {
-    filters: { leadStatus: notArchived },
+    filters: { leadStatus: { $ne: 'archived' } },
     sort: 'createdAt:DESC',
     pageSize: limit,
   });
@@ -118,23 +129,10 @@ export const buildLatestContactsUrl = (limit: number): string =>
 export const sumGuests = (rows: ReadonlyArray<{ guestCount?: number | null }>): number =>
   rows.reduce((total, row) => total + (row.guestCount ?? 0), 0);
 
-export const leadStatusLabel: Record<LeadStatus, string> = {
-  new: 'Mới',
-  read: 'Đã xem',
-  archived: 'Lưu trữ',
-};
+export const leadStatusLabel: Record<LeadStatus, string> = LEAD_STATUS_LABELS_VI;
 
 /** Same tone mapping as the reservation inbox chip, so status reads alike everywhere. */
-export const leadStatusTone = (status: LeadStatus): InformationStatusChipTone => {
-  switch (status) {
-    case 'new':
-      return InformationStatusChipTone.Info;
-    case 'read':
-      return InformationStatusChipTone.Published;
-    default:
-      return InformationStatusChipTone.Neutral;
-  }
-};
+export const leadStatusTone = reservationStatusTone;
 
 /** Short Vietnamese day label: "Hôm nay", "Ngày mai", or "T7 10/10". */
 export const formatReservationDay = (dateKey: string, now: Date): string => {

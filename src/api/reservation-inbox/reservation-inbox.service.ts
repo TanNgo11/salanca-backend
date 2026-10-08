@@ -96,6 +96,7 @@ const DETAIL_FIELDS = [
   'sourceLocale',
   'sourcePath',
   'leadStatus',
+  'staffNote',
 ] as const;
 
 interface ReservationDetailRow extends ReservationInboxRow {
@@ -106,6 +107,7 @@ interface ReservationDetailRow extends ReservationInboxRow {
   sourceLocale?: unknown;
   sourcePath?: unknown;
   leadStatus?: unknown;
+  staffNote?: unknown;
   menuPackages?: unknown;
   menuItems?: unknown;
 }
@@ -176,7 +178,7 @@ export const createReservationInboxService = (strapi: Core.Strapi) => ({
     }
     const filters = clauses.length > 0 ? { $and: clauses } : {};
 
-    const [rows, total, newCount, readCount, archivedCount] = await Promise.all([
+    const [rows, total, ...statusCounts] = await Promise.all([
       strapi.documents(UID).findMany({
         filters,
         fields: [...LIST_FIELDS],
@@ -191,6 +193,9 @@ export const createReservationInboxService = (strapi: Core.Strapi) => ({
     ]);
 
     const totalCount = toCount(total);
+    const counts = Object.fromEntries(
+      RESERVATION_STATUSES.map((status, index) => [status, toCount(statusCounts[index])]),
+    ) as Record<ReservationStatus, number>;
     return {
       items: (rows as unknown as Array<ReservationInboxRow & { leadStatus?: unknown }>).map(
         (row) => ({ ...toInboxItem(row), status: toStatus(row.leadStatus) }),
@@ -199,11 +204,7 @@ export const createReservationInboxService = (strapi: Core.Strapi) => ({
       page: query.page,
       pageSize: RESERVATION_INBOX_PAGE_SIZE,
       pageCount: Math.max(1, Math.ceil(totalCount / RESERVATION_INBOX_PAGE_SIZE)),
-      counts: {
-        new: toCount(newCount),
-        read: toCount(readCount),
-        archived: toCount(archivedCount),
-      },
+      counts,
     };
   },
 
@@ -232,6 +233,7 @@ export const createReservationInboxService = (strapi: Core.Strapi) => ({
       sourceLocale: toOptionalText(row.sourceLocale),
       sourcePath: toOptionalText(row.sourcePath),
       status: toStatus(row.leadStatus),
+      staffNote: toOptionalText(row.staffNote),
     };
   },
 
@@ -256,6 +258,29 @@ export const createReservationInboxService = (strapi: Core.Strapi) => ({
     return {
       documentId: String(updated?.documentId ?? documentId),
       status: String(updated?.leadStatus ?? status),
+    };
+  },
+
+  async setNote(
+    documentId: string,
+    note: string | null,
+  ): Promise<{ documentId: string; staffNote: string | null }> {
+    const existing = await strapi.documents(UID).findOne({ documentId, fields: ['documentId'] });
+    if (!existing) {
+      throw notFound(documentId);
+    }
+
+    const staffNote = note?.trim() ? note.trim() : null;
+    const updated = (await strapi.documents(UID).update({
+      documentId,
+      // Strapi clears a text field with null; the generated type omits null.
+      data: { staffNote } as { staffNote: string },
+      fields: ['documentId', 'staffNote'],
+    })) as unknown as { documentId?: unknown; staffNote?: unknown } | null;
+
+    return {
+      documentId: String(updated?.documentId ?? documentId),
+      staffNote: toOptionalText(updated?.staffNote),
     };
   },
 

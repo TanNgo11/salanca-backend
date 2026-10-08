@@ -17,6 +17,7 @@ export interface UseReservationList {
   failed: boolean;
   reload(): Promise<void>;
   setStatus(documentId: string, status: ReservationStatus): Promise<boolean>;
+  setNote(documentId: string, note: string): Promise<boolean>;
 }
 
 /**
@@ -79,5 +80,17 @@ export const useReservationList = (
     [load],
   );
 
-  return { result, loading, failed, reload: load, setStatus };
+  const setNote = useCallback(async (documentId: string, note: string): Promise<boolean> => {
+    try {
+      await clientRef.current.post(
+        `/reservation-inbox/${encodeURIComponent(documentId)}/note`,
+        { note },
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  return { result, loading, failed, reload: load, setStatus, setNote };
 };

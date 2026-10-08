@@ -18,6 +18,11 @@ import {
 import { registerHealthRoutes } from './api/health';
 import { registerExperienceStoryRoutes } from './api/experience-story';
 import {
+  bootstrapLeadExportPermissions,
+  registerLeadExportAdminRoutes,
+  registerLeadExportPermissions,
+} from './api/lead-export';
+import {
   bootstrapReservationInboxPermissions,
   registerReservationInboxAdminRoutes,
   registerReservationInboxPermissions,
@@ -43,6 +48,8 @@ export default {
     registerAuditLogAdminRoutes(strapi);
     registerReservationInboxPermissions(strapi);
     registerReservationInboxAdminRoutes(strapi);
+    registerLeadExportPermissions(strapi);
+    registerLeadExportAdminRoutes(strapi);
     registerAdminAuditEventHub(strapi);
     registerAdminUserLanguageDefault(strapi);
   },
@@ -59,6 +66,7 @@ export default {
     await enforceMediaProcessingUploadSettings(strapi);
     await bootstrapAuditLogPermissions(strapi);
     await bootstrapReservationInboxPermissions(strapi);
+    await bootstrapLeadExportPermissions(strapi);
     await backfillAdminUserLanguage(strapi);
   },
 };
