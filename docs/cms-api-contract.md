@@ -244,7 +244,7 @@ When both `CMS_WEBHOOK_URL` and `CMS_WEBHOOK_SECRET` are set, publish/unpublish 
 ```
 
 Header: `x-cms-signature: sha256=<hmac-sha256-hex-of-raw-body>`.  
-Delivery is fire-and-forget (does not block publish); failures are logged and never roll back the CMS write. FE verifies the signature before revalidating.
+Delivery is fire-and-forget (does not block publish) and never rolls back the CMS write. Each attempt times out after 10 s. Network errors, timeouts, `429` and `5xx` are retried after 2 s, 10 s and 30 s (4 attempts in total); any other `4xx` (bad signature or payload) is logged as an error and not retried. A final failure is logged at error level with the uid and locale. The receiver has no replay window, so resending the same signed body is safe. FE verifies the signature before revalidating.
 
 ## Cache expectations (for future FE)
 

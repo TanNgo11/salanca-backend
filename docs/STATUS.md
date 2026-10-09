@@ -2,6 +2,8 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
+2026-10-09: **Revalidation webhook retries.** `deliverCmsWebhook` now times out each attempt at 10 s and retries network errors, timeouts, 429 and 5xx after 2 s / 10 s / 30 s; other 4xx are not retried. A final failure logs at error level. A publish made while the web restarts therefore still refreshes the site. Contract: [`cms-api-contract.md`](cms-api-contract.md).
+
 2026-10-09: **Admin navigation cleanup.** `Email thông báo` moved from the main menu to Settings → Salanca. The `Xuất dữ liệu khách` screen is gone; a "Xuất CSV" button (date-range dialog, contacts list also picks newsletter) sits on the Yêu cầu đặt bàn and Tin nhắn liên hệ lists, injected into Content Manager `listView.actions`. The lead sidebar shortcuts now stay highlighted on their Content Manager list and edit views instead of "Quản lý nội dung". Export API and RBAC unchanged.
 
 2026-10-09: **Staff notification recipients in Admin.** Staff notification recipients are managed per kind in Admin (Email thông báo) — automated verification passed; ready for manual UAT. Plan: [`plans/notification-email-settings.md`](plans/notification-email-settings.md).

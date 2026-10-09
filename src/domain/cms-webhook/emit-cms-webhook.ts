@@ -21,9 +21,32 @@ const resolveEvent = (action: string): CmsWebhookEvent | null => {
   return null;
 };
 
+/** Waits before attempts 2, 3 and 4; covers a web restart during deploy. */
+export const CMS_WEBHOOK_RETRY_DELAYS_MS = [2_000, 10_000, 30_000] as const;
+const CMS_WEBHOOK_TIMEOUT_MS = 10_000;
+
+export interface CmsWebhookDeliveryDeps {
+  fetchImpl?: typeof fetch;
+  sleep?: (ms: number) => Promise<void>;
+}
+
+const defaultSleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
+// Network errors, timeouts, 429 and 5xx are worth another try; any other 4xx
+// (bad signature, bad payload) fails the same way every time.
+const isRetryableStatus = (status: number): boolean => status === 429 || status >= 500;
+
+/**
+ * Signed POST to the web's revalidate route. Retries transient failures so a
+ * publish made while the web is restarting still reaches it. Never throws.
+ */
 export const deliverCmsWebhook = async (
   strapi: Core.Strapi,
   payload: ReturnType<typeof buildCmsWebhookPayload>,
+  { fetchImpl = fetch, sleep = defaultSleep }: CmsWebhookDeliveryDeps = {},
 ): Promise<void> => {
   const webhookUrl = process.env.CMS_WEBHOOK_URL?.trim();
   const webhookSecret = process.env.CMS_WEBHOOK_SECRET?.trim();
@@ -34,29 +57,45 @@ export const deliverCmsWebhook = async (
 
   const rawBody = JSON.stringify(payload);
   const signature = signCmsWebhookPayload(rawBody, webhookSecret);
+  const target = `${payload.uid}/${payload.locale}`;
+  const attempts = CMS_WEBHOOK_RETRY_DELAYS_MS.length + 1;
+  let lastFailure = 'unknown error';
 
-  try {
-    const response = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-cms-signature': `sha256=${signature}`,
-      },
-      body: rawBody,
-    });
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const response = await fetchImpl(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-cms-signature': `sha256=${signature}`,
+        },
+        body: rawBody,
+        signal: AbortSignal.timeout(CMS_WEBHOOK_TIMEOUT_MS),
+      });
 
-    if (!response.ok) {
-      strapi.log.warn(
-        `CMS webhook delivery failed with status ${response.status} for ${payload.uid}/${payload.locale}.`,
-      );
+      if (response.ok) {
+        return;
+      }
+      if (!isRetryableStatus(response.status)) {
+        strapi.log.error(
+          `CMS webhook rejected with status ${response.status} for ${target}; not retrying.`,
+        );
+        return;
+      }
+      lastFailure = `status ${response.status}`;
+    } catch (error) {
+      lastFailure = error instanceof Error ? error.message : 'unknown error';
     }
-  } catch (error) {
-    strapi.log.warn(
-      `CMS webhook delivery error for ${payload.uid}/${payload.locale}: ${
-        error instanceof Error ? error.message : 'unknown error'
-      }`,
-    );
+
+    if (attempt < attempts) {
+      strapi.log.warn(
+        `CMS webhook attempt ${attempt}/${attempts} failed for ${target}: ${lastFailure}. Retrying.`,
+      );
+      await sleep(CMS_WEBHOOK_RETRY_DELAYS_MS[attempt - 1]);
+    }
   }
+
+  strapi.log.error(`CMS webhook gave up after ${attempts} attempts for ${target}: ${lastFailure}.`);
 };
 
 /**
