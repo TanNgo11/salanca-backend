@@ -76,7 +76,7 @@ receipt in the language of the page they booked from (`sourceLocale`).
 
 ## Staff recipients in Admin
 
-Admin → **Email thông báo** (permission `admin::notification-settings.manage`) holds one list per
+Admin → **Cài đặt → Salanca → Email thông báo** (permission `admin::notification-settings.manage`) holds one list per
 form kind: Đặt bàn (`reservation-request`) and Liên hệ (`contact-message`, newsletter included).
 Max 10 addresses per kind. Stored in Strapi's core store (`plugin_salanca_notification-settings`),
 not in content, so it is per environment and not part of the content release.

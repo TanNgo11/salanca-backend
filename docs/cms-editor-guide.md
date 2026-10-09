@@ -121,8 +121,9 @@ thông báo trong khoảng 1 giây — không cần tải lại trang.
 
 ## Xuất dữ liệu khách (CSV, 2026-10-08)
 
-Menu **Xuất dữ liệu khách**: chọn loại (*Yêu cầu đặt bàn*, *Tin nhắn liên
-hệ*, *Đăng ký nhận tin*), chọn khoảng ngày khách gửi (mặc định từ đầu tháng
+Mở danh sách **Yêu cầu đặt bàn** hoặc **Tin nhắn liên hệ**, bấm nút **Xuất CSV**
+ở góc phải trên bảng. Ở Tin nhắn liên hệ chọn thêm loại (*Tin nhắn liên hệ* hoặc
+*Đăng ký nhận tin*). Chọn khoảng ngày khách gửi (mặc định từ đầu tháng
 đến hôm nay; để trống cả hai = toàn bộ), bấm **Xuất CSV**. File mở thẳng bằng
 Excel, giờ theo giờ Việt Nam. Tối đa 10.000 dòng mỗi lần — quá thì chọn khoảng
 ngày ngắn hơn. Cần quyền *Xuất CSV khách hàng* (`lead-export.export`); mặc
@@ -131,7 +132,7 @@ kênh công khai.
 
 ## Email thông báo
 
-Menu **Email thông báo**: nhập email nhận báo khi khách đặt bàn hoặc gửi liên hệ, mỗi dòng một
+**Cài đặt → Salanca → Email thông báo**: nhập email nhận báo khi khách đặt bàn hoặc gửi liên hệ, mỗi dòng một
 email (tối đa 10). Để trống một mục = không gửi email cho mục đó. Bấm **Lưu**, rồi **Gửi thử** để
 kiểm tra hộp thư (xem cả Spam). Chỉ Super Admin và vai trò Quản lý thấy mục này.
 

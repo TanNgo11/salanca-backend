@@ -1,5 +1,5 @@
 import type { StrapiApp } from '@strapi/strapi/admin';
-import { Bell, Calendar, Clock, Cog, Download, Mail } from '@strapi/icons';
+import { Bell, Calendar, Clock, Mail } from '@strapi/icons';
 import { Outlet } from 'react-router-dom';
 
 import { hideDeveloperOnlyAdminPermissions } from './admin-navigation-visibility.helper';
@@ -20,9 +20,10 @@ import {
   formatEnumerationColumns,
   INJECT_COLUMN_IN_TABLE_HOOK,
 } from './enum-list-cells/enum-list-cells.helper';
-import { leadExportPermissions } from './lead-export/lead-export.helper';
+import { LeadExportButton } from './lead-export/LeadExportButton';
 import { notificationSettingsPermissions } from './notification-settings/notification-settings.helper';
 import { createLeadListRedirect } from './lead-shortcuts/LeadListRedirect';
+import { watchLeadNavHighlight } from './lead-shortcuts/lead-nav-highlight.helper';
 import {
   contactMessageUid,
   hideLeadCollectionLinks,
@@ -156,22 +157,17 @@ export default {
       permissions: leadReadPermissions(reservationRequestUid),
       position: 0.2,
     });
-    app.addMenuLink({
-      to: '/plugins/lead-export',
-      icon: Download,
-      intlLabel: { id: 'lead-export.title', defaultMessage: 'Xuất dữ liệu khách' },
-      Component: () => import('./lead-export/LeadExportScreen'),
-      permissions: leadExportPermissions,
-      position: 0.4,
-    });
-    app.addMenuLink({
-      to: '/plugins/notification-settings',
-      icon: Cog,
-      intlLabel: { id: 'notification-settings.title', defaultMessage: 'Email thông báo' },
-      Component: () => import('./notification-settings/NotificationSettingsScreen'),
-      permissions: notificationSettingsPermissions,
-      position: 0.5,
-    });
+    // Set once and left alone, so it lives under Settings instead of the rail.
+    app.addSettingsLink(
+      { id: 'salanca', intlLabel: { id: 'salanca.settings.section', defaultMessage: 'Salanca' } },
+      {
+        id: 'notification-settings',
+        to: 'notification-settings',
+        intlLabel: { id: 'notification-settings.title', defaultMessage: 'Email thông báo' },
+        Component: () => import('./notification-settings/NotificationSettingsScreen'),
+        permissions: notificationSettingsPermissions,
+      },
+    );
     registerDashboardWidgets(app);
 
     if (!isProductionAdminBuild) {
@@ -190,6 +186,12 @@ export default {
       seedDefaultAdminLocale(window.localStorage);
     }
     app.registerHook(LEAD_COLLECTION_LINKS_HOOK, hideLeadCollectionLinks);
+    // "Xuất CSV" sits on the lead lists themselves; the button hides itself
+    // on every other collection and for admins without the export permission.
+    app.getPlugin('content-manager').injectComponent('listView', 'actions', {
+      name: 'salanca-lead-export',
+      Component: LeadExportButton,
+    });
     app.registerHook(
       INJECT_COLUMN_IN_TABLE_HOOK,
       formatEnumerationColumns((value) => <EnumListCell value={value} />),
@@ -210,6 +212,7 @@ export default {
     ]);
     watchContentManagerFieldHintVisibility();
     setupMainNavLabels();
+    watchLeadNavHighlight();
     watchStaleChunkPreloadErrors();
   },
 };

@@ -23,3 +23,16 @@ export const defaultExportRange = (now: Date): { from: string; to: string } => (
   from: localDateKey(new Date(now.getFullYear(), now.getMonth(), 1)),
   to: localDateKey(now),
 });
+
+const RESERVATION_UID = 'api::reservation-request.reservation-request';
+const CONTACT_UID = 'api::contact-message.contact-message';
+
+/**
+ * Export kinds offered on a Content Manager list. Newsletter sign-ups are
+ * contact messages with topic "newsletter", so they export from that list.
+ */
+export const leadExportKindsForUid = (uid: string | undefined): LeadExportKind[] => {
+  if (uid === RESERVATION_UID) return ['reservations'];
+  if (uid === CONTACT_UID) return ['contacts', 'newsletter'];
+  return [];
+};

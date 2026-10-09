@@ -1,22 +1,24 @@
 import { useState, type ChangeEvent } from 'react';
 
 import {
-  Box,
   Button,
   Field,
   Flex,
+  Modal,
   SingleSelect,
   SingleSelectOption,
   TextInput,
   Typography,
 } from '@strapi/design-system';
 import { FileCsv } from '@strapi/icons';
-import { Layouts, Page, useFetchClient, useNotification } from '@strapi/strapi/admin';
+import { useFetchClient, useNotification, useRBAC } from '@strapi/strapi/admin';
+import { useParams } from 'react-router-dom';
 
 import {
   buildLeadExportPath,
   defaultExportRange,
   LEAD_EXPORT_KIND_LABELS,
+  leadExportKindsForUid,
   leadExportPermissions,
   type LeadExportKind,
 } from './lead-export.helper';
@@ -37,11 +39,16 @@ const readBlobError = async (error: unknown): Promise<string | null> => {
   }
 };
 
-const LeadExportScreen = () => {
+type LeadExportDialogProps = {
+  kinds: LeadExportKind[];
+};
+
+const LeadExportDialog = ({ kinds }: LeadExportDialogProps) => {
   const { get } = useFetchClient();
   const { toggleNotification } = useNotification();
   const [initialRange] = useState(() => defaultExportRange(new Date()));
-  const [kind, setKind] = useState<LeadExportKind>('reservations');
+  const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState<LeadExportKind>(kinds[0]);
   const [from, setFrom] = useState(initialRange.from);
   const [to, setTo] = useState(initialRange.to);
   const [exporting, setExporting] = useState(false);
@@ -63,6 +70,7 @@ const LeadExportScreen = () => {
       anchor.download = name;
       anchor.click();
       URL.revokeObjectURL(url);
+      setOpen(false);
     } catch (error: unknown) {
       toggleNotification({
         type: 'danger',
@@ -74,29 +82,34 @@ const LeadExportScreen = () => {
   };
 
   return (
-    <Page.Protect permissions={leadExportPermissions}>
-      <Page.Title>Xuất dữ liệu khách</Page.Title>
-      <Page.Main>
-        <Layouts.Header
-          subtitle="Tải file CSV mở được bằng Excel. Lọc theo ngày khách gửi."
-          title="Xuất dữ liệu khách"
-        />
-        <Layouts.Content>
-          <Box background="neutral0" hasRadius padding={6} shadow="tableShadow">
-            <Flex alignItems="flex-end" gap={4} wrap="wrap">
+    <Modal.Root onOpenChange={setOpen} open={open}>
+      <Modal.Trigger>
+        <Button size="S" startIcon={<FileCsv />} variant="secondary">
+          Xuất CSV
+        </Button>
+      </Modal.Trigger>
+      <Modal.Content>
+        <Modal.Header closeLabel="Đóng">
+          <Modal.Title>Xuất CSV</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Flex alignItems="stretch" direction="column" gap={4}>
+            {kinds.length > 1 ? (
               <Field.Root name="kind">
                 <Field.Label>Loại dữ liệu</Field.Label>
                 <SingleSelect
                   onChange={(value: string | number) => setKind(value as LeadExportKind)}
                   value={kind}
                 >
-                  {(Object.keys(LEAD_EXPORT_KIND_LABELS) as LeadExportKind[]).map((key) => (
+                  {kinds.map((key) => (
                     <SingleSelectOption key={key} value={key}>
                       {LEAD_EXPORT_KIND_LABELS[key]}
                     </SingleSelectOption>
                   ))}
                 </SingleSelect>
               </Field.Root>
+            ) : null}
+            <Flex gap={4} wrap="wrap">
               <Field.Root name="from">
                 <Field.Label>Từ ngày</Field.Label>
                 <TextInput
@@ -113,20 +126,38 @@ const LeadExportScreen = () => {
                   value={to}
                 />
               </Field.Root>
-              <Button loading={exporting} onClick={() => void onExport()} startIcon={<FileCsv />}>
-                Xuất CSV
-              </Button>
             </Flex>
-            <Box paddingTop={4}>
-              <Typography textColor="neutral600" variant="pi">
-                Để trống cả hai ngày để xuất toàn bộ. Tối đa 10.000 dòng mỗi lần.
-              </Typography>
-            </Box>
-          </Box>
-        </Layouts.Content>
-      </Page.Main>
-    </Page.Protect>
+            <Typography textColor="neutral600" variant="pi">
+              Lọc theo ngày khách gửi. Để trống cả hai ngày để xuất toàn bộ. Tối đa 10.000 dòng
+              mỗi lần. File mở được bằng Excel.
+            </Typography>
+          </Flex>
+        </Modal.Body>
+        <Modal.Footer>
+          <Modal.Close>
+            <Button variant="tertiary">Huỷ</Button>
+          </Modal.Close>
+          <Button loading={exporting} onClick={() => void onExport()} startIcon={<FileCsv />}>
+            Xuất CSV
+          </Button>
+        </Modal.Footer>
+      </Modal.Content>
+    </Modal.Root>
   );
 };
 
-export default LeadExportScreen;
+/**
+ * Injected into every Content Manager list header; renders only on the lead
+ * lists and only for admins holding the export permission.
+ */
+export const LeadExportButton = () => {
+  const { slug } = useParams<{ slug: string }>();
+  const kinds = leadExportKindsForUid(slug);
+  const { allowedActions, isLoading } = useRBAC(leadExportPermissions);
+
+  if (kinds.length === 0 || isLoading || allowedActions.canExport !== true) {
+    return null;
+  }
+
+  return <LeadExportDialog key={slug} kinds={kinds} />;
+};
