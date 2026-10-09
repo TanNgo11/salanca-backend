@@ -1,4 +1,5 @@
 import { logProcessWarnings } from '@tanngo11/log';
+import { strapiServerErrors } from '@tanngo11/log/strapi';
 import type { Core } from '@strapi/strapi';
 
 import {
@@ -40,6 +41,8 @@ export default {
   register({ strapi }: { strapi: Core.Strapi }) {
     // Node warnings (deprecations...) as JSON with the call-site stack.
     logProcessWarnings(log);
+    // Koa stream errors (client aborted, parse error) as one JSON line, not raw stderr frames.
+    strapiServerErrors(strapi.server.app, log);
     getOrCreateMediaProcessingRuntime(strapi);
     registerDocumentInvariants(strapi);
     registerHealthRoutes(strapi);

@@ -13,3 +13,8 @@ minimumReleaseAgeExclude:
 # older sharp, and two libvips builds loaded together crash image uploads.
 overrides:
   sharp: 0.35.4
+
+# TEMP until 2026-10-10 07:10 UTC: pnpm 11.7 ignores minimumReleaseAgeExclude when it
+# verifies the lockfile, so @tanngo11/log@0.5.1 (published 2026-10-09) fails every install.
+# Remove this line after that time to restore the default 1-day release age.
+minimumReleaseAge: 0
