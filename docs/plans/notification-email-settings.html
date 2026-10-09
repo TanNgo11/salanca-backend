@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Email thông báo Salanca</title>
+<style>
+  /* Layout: một cột đọc ~70ch, mock màn hình admin ở giữa trang. */
+  :root {
+    --bg: #f7f5f3;
+    --surface: #ffffff;
+    --fg: #23201e;
+    --muted: #6d6560;
+    --line: #e4dfda;
+    --accent: #7a2a22;
+    --accent-soft: #f3e6e3;
+    --ok: #2f6b45;
+    --warn: #8a5a12;
+    --warn-soft: #fbf1df;
+    --font-body: "Segoe UI", system-ui, -apple-system, sans-serif;
+    --font-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1817; --surface: #242120; --fg: #ece7e3; --muted: #a59d97;
+      --line: #3a3532; --accent: #e08a7d; --accent-soft: #3a2724;
+      --ok: #7cc597; --warn: #e2b264; --warn-soft: #3a2f1c;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 15px/1.6 var(--font-body);
+    padding-inline: 16px; padding-block: 40px 64px;
+  }
+  main { max-width: 760px; margin: 0 auto; display: grid; gap: 40px; }
+  h1, h2, h3 { text-wrap: balance; line-height: 1.25; margin: 0; }
+  h1 { font-size: 30px; }
+  h2 { font-size: 20px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  h3 { font-size: 16px; }
+  p { margin: 0; }
+  section { display: grid; gap: 14px; }
+  .lead { color: var(--muted); font-size: 16px; max-width: 62ch; }
+  .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  code { font-family: var(--font-mono); font-size: .9em; background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; }
+  ul, ol { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+
+  /* Mock màn hình */
+  .mock { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
+  .mock-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+  .mock-bar small { color: var(--muted); display: block; }
+  .mock-body { padding: 20px; display: grid; gap: 16px; }
+  .btn { font: inherit; font-size: 14px; border-radius: 6px; padding: 7px 14px; border: 1px solid var(--accent); background: var(--accent); color: var(--surface); cursor: pointer; }
+  .btn.secondary { background: transparent; color: var(--accent); }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .notice { border-radius: 6px; padding: 10px 14px; background: var(--warn-soft); color: var(--warn); font-size: 14px; }
+  .kind { border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: grid; gap: 8px; }
+  .kind label { font-weight: 600; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 44px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); cursor: text; }
+  .chips:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+  .chips.has-error { border-color: var(--accent); }
+  .chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 3px 4px 3px 10px; border-radius: 4px; background: var(--accent-soft); color: var(--fg); font: 13px/1.4 var(--font-mono); }
+  .chip span { overflow-wrap: anywhere; }
+  .chip button { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 14px; line-height: 1; padding: 2px 5px; border-radius: 3px; cursor: pointer; }
+  .chip button:hover, .chip button:focus-visible { color: var(--accent); outline: 1px solid var(--accent); }
+  .chips input { flex: 1 1 160px; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--fg); font: 14px/1.5 var(--font-mono); padding: 4px 2px; }
+  .field-error { color: var(--accent); font-size: 13px; min-height: 0; }
+  .field-error:empty { display: none; }
+  .kind-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .hint { color: var(--muted); font-size: 13px; }
+  .toast { font-size: 13px; color: var(--ok); min-height: 1.2em; }
+
+  /* Luồng */
+  .flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+  .step { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; font-size: 14px; }
+  .step b { display: block; color: var(--accent); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 4px; }
+
+  /* Bảng */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.num { font-variant-numeric: tabular-nums; color: var(--muted); width: 40px; }
+  .pill { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+  footer { color: var(--muted); font-size: 13px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main>
+
+  <header style="display:grid;gap:10px">
+    <span class="eyebrow">Salanca Admin · Đề xuất tính năng</span>
+    <h1>Email thông báo</h1>
+    <p class="lead">Chủ quán tự chọn email nhận báo khi khách đặt bàn hoặc gửi liên hệ trên website. Không cần nhờ kỹ thuật sửa cấu hình máy chủ.</p>
+  </header>
+
+  <section>
+    <h2>Hiện tại và sau khi làm</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th></th><th>Hiện tại</th><th>Sau khi làm</th></tr></thead>
+        <tbody>
+          <tr><td><b>Đổi email nhận</b></td><td>Kỹ thuật sửa biến <code>FORM_NOTIFY_TO</code> trên server, khởi động lại</td><td>Chủ quán hoặc quản lý tự sửa trong Admin, có hiệu lực ngay</td></tr>
+          <tr><td><b>Đặt bàn và liên hệ</b></td><td>Chung một danh sách</td><td>Mỗi loại một danh sách riêng</td></tr>
+          <tr><td><b>Nhập sai email</b></td><td>Bị bỏ qua, không ai biết</td><td>Báo lỗi ngay, chỉ rõ địa chỉ sai</td></tr>
+          <tr><td><b>Kiểm tra hộp thư</b></td><td>Phải đặt bàn giả</td><td>Bấm "Gửi thử"</td></tr>
+          <tr><td><b>Ai đã đổi</b></td><td>Không có dấu vết</td><td>Ghi vào Nhật ký hoạt động</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Màn hình trong Admin</h2>
+    <p class="hint">Bản mô phỏng, bấm thử được. Menu bên trái: <b>Email thông báo</b>.</p>
+    <div class="mock" role="figure" aria-label="Mô phỏng màn hình Email thông báo">
+      <div class="mock-bar">
+        <div><h3>Email thông báo</h3><small>Email nhận thông báo khi khách gửi form trên website.</small></div>
+        <button class="btn" id="save" type="button">Lưu</button>
+      </div>
+      <div class="mock-body">
+        <div class="notice" id="defaultNotice">Đang dùng giá trị mặc định từ máy chủ. Bấm Lưu một lần để quản lý tại đây.</div>
+        <div class="kind">
+          <label for="k-res">Đặt bàn</label>
+          <div class="chips" data-kind="k-res" data-initial="booking@salanca.vn quanly@salanca.vn">
+            <input id="k-res" type="text" autocomplete="off" placeholder="Nhập email rồi bấm Enter">
+          </div>
+          <div class="field-error" id="k-res-error"></div>
+          <div class="kind-foot">
+            <span class="hint">Tối đa 10 email. Không có email nào thì mục này không gửi thông báo.</span>
+            <button class="btn secondary" type="button" data-test="Đặt bàn" data-for="k-res">Gửi thử</button>
+          </div>
+        </div>
+        <div class="kind">
+          <label for="k-con">Liên hệ</label>
+          <div class="chips" data-kind="k-con" data-initial="hello@salanca.vn">
+            <input id="k-con" type="text" autocomplete="off" placeholder="Nhập email rồi bấm Enter">
+          </div>
+          <div class="field-error" id="k-con-error"></div>
+          <div class="kind-foot">
+            <span class="hint">Gồm cả đăng ký nhận tin (newsletter).</span>
+            <button class="btn secondary" type="button" data-test="Liên hệ" data-for="k-con">Gửi thử</button>
+          </div>
+        </div>
+        <p class="hint">Gõ email rồi bấm Enter, dấu phẩy hoặc dấu cách để thành chip. Dán cả danh sách cũng được. Bấm ✕ hoặc Backspace để xoá.</p>
+        <div class="toast" id="toast" role="status"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Email đi thế nào</h2>
+    <div class="flow">
+      <div class="step"><b>Khách</b>Gửi form đặt bàn hoặc liên hệ trên web</div>
+      <div class="step"><b>Server</b>Lưu yêu cầu, trả kết quả cho khách ngay</div>
+      <div class="step"><b>Chọn người nhận</b>Lấy danh sách đã lưu của đúng loại form</div>
+      <div class="step"><b>Gửi</b>Email báo staff qua Resend, lỗi mail không ảnh hưởng khách</div>
+    </div>
+    <ul>
+      <li>Chưa ai bấm Lưu: vẫn gửi tới <code>FORM_NOTIFY_TO</code> như hiện tại, không hỏng gì.</li>
+      <li>Đã lưu: dùng danh sách trong Admin. Mục để trống thì không gửi email cho mục đó.</li>
+      <li>Email xác nhận gửi cho khách giữ nguyên, khách bấm trả lời vẫn về hộp thư booking.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Ai được sửa</h2>
+    <ul>
+      <li><b>Super Admin:</b> có quyền sẵn.</li>
+      <li><b>Quản lý:</b> Strapi chưa có sẵn vai trò này. Tạo một lần trên mỗi môi trường:</li>
+    </ul>
+    <ol>
+      <li>Admin → Settings → Roles → <b>Add new role</b>, đặt tên <b>Quản lý</b>.</li>
+      <li>Tick các quyền nội dung cần dùng, và quyền <b>Cài đặt email nhận thông báo (đặt bàn, liên hệ)</b> trong phần Plugins.</li>
+      <li>Lưu, rồi gán vai trò cho tài khoản của quản lý.</li>
+    </ol>
+    <p class="hint">Vai trò không có quyền này sẽ không thấy menu và bị chặn truy cập.</p>
+  </section>
+
+  <section>
+    <h2>An toàn</h2>
+    <ul>
+      <li>Danh sách email lưu riêng, không lộ ra API công khai của website.</li>
+      <li>"Gửi thử" chỉ gửi tới danh sách <b>đã lưu</b>, mỗi mục cách nhau ít nhất 30 giây.</li>
+      <li>Log máy chủ không ghi địa chỉ email. Nhật ký hoạt động chỉ ghi ai lưu và lúc nào.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Các bước làm</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Việc</th><th>Kết quả kiểm tra được</th></tr></thead>
+        <tbody>
+          <tr><td class="num">1</td><td>Quy tắc danh sách email: kiểm tra địa chỉ, chọn theo loại, email thử</td><td>Unit test</td></tr>
+          <tr><td class="num">2</td><td>Lưu cài đặt, email báo staff đọc theo loại form</td><td>Unit test, môi trường cũ không đổi</td></tr>
+          <tr><td class="num">3</td><td>Thêm sự kiện "Cập nhật email thông báo" vào nhật ký</td><td>Test nhật ký</td></tr>
+          <tr><td class="num">4</td><td>API Admin: xem, lưu, gửi thử, phân quyền</td><td>Test controller, 403 khi không có quyền</td></tr>
+          <tr><td class="num">5</td><td>Màn hình "Email thông báo"</td><td>Build admin, thử tay với Mailpit</td></tr>
+          <tr><td class="num">6</td><td>Tài liệu: vận hành email, phân quyền, hướng dẫn biên tập</td><td>Review</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Không nằm trong đợt này</h2>
+    <ul>
+      <li>Đổi địa chỉ Reply-To cho khách trong Admin (bị ràng buộc tên miền gửi thư).</li>
+      <li>Cấu hình máy chủ gửi mail (SMTP, Resend key) trong Admin.</li>
+      <li>Email báo đơn đặt hàng: chưa làm vì tính năng đặt hàng chưa có. Khi làm đặt hàng, màn hình này có thêm ô "Đặt hàng" với danh sách email riêng, không phải sửa lại phần đang làm.</li>
+    </ul>
+  </section>
+
+  <footer>Plan chi tiết: <code>docs/plans/notification-email-settings.md</code> · Cập nhật 09/10/2026</footer>
+</main>
+
+<script>
+  const toast = document.getElementById('toast');
+  const notice = document.getElementById('defaultNotice');
+  const valid = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i;
+  const say = (text, bad) => { toast.textContent = text; toast.style.color = bad ? 'var(--accent)' : 'var(--ok)'; };
+  const MAX = 10;
+  const state = {};
+  const split = text => text.split(/[\s,;]+/).map(s => s.trim()).filter(Boolean);
+
+  document.querySelectorAll('.chips').forEach(box => {
+    const id = box.dataset.kind;
+    const input = box.querySelector('input');
+    const errorEl = document.getElementById(`${id}-error`);
+    state[id] = split(box.dataset.initial || '');
+
+    const render = () => {
+      box.querySelectorAll('.chip').forEach(c => c.remove());
+      state[id].forEach((address, index) => {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        const text = document.createElement('span');
+        text.textContent = address;
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.textContent = '✕';
+        remove.setAttribute('aria-label', `Xoá ${address}`);
+        remove.addEventListener('click', () => { state[id].splice(index, 1); render(); input.focus(); });
+        chip.append(text, remove);
+        box.insertBefore(chip, input);
+      });
+      const full = state[id].length >= MAX;
+      input.disabled = full;
+      input.placeholder = full ? `Đã đủ ${MAX} email` : 'Nhập email rồi bấm Enter';
+    };
+
+    const setError = message => {
+      errorEl.textContent = message || '';
+      box.classList.toggle('has-error', Boolean(message));
+    };
+
+    const commit = raw => {
+      if (!raw.trim()) return;
+      const invalid = [];
+      let overflow = false;
+      for (const entry of split(raw)) {
+        const address = entry.toLowerCase();
+        if (!valid.test(address)) invalid.push(entry);
+        else if (!state[id].includes(address)) {
+          if (state[id].length < MAX) state[id].push(address); else overflow = true;
+        }
+      }
+      input.value = invalid.join(' ');
+      setError(invalid.length ? `Email không hợp lệ: ${invalid.join(', ')}` : overflow ? `Tối đa ${MAX} email.` : '');
+      render();
+    };
+
+    input.addEventListener('keydown', event => {
+      if (['Enter', ',', ';', ' '].includes(event.key) || (event.key === 'Tab' && input.value.trim())) {
+        event.preventDefault();
+        commit(input.value);
+      } else if (event.key === 'Backspace' && input.value === '' && state[id].length) {
+        state[id].pop();
+        render();
+      }
+    });
+    input.addEventListener('input', () => setError(''));
+    input.addEventListener('paste', event => {
+      event.preventDefault();
+      commit(`${input.value} ${event.clipboardData.getData('text')}`);
+    });
+    input.addEventListener('blur', () => commit(input.value));
+    box.addEventListener('click', event => { if (event.target === box) input.focus(); });
+    render();
+  });
+
+  document.getElementById('save').addEventListener('click', () => {
+    notice.hidden = true;
+    say('Đã lưu email thông báo.');
+  });
+
+  const lastTest = {};
+  document.querySelectorAll('[data-test]').forEach(btn => btn.addEventListener('click', () => {
+    const label = btn.dataset.test;
+    const count = state[btn.dataset.for].length;
+    if (!count) return say(`Mục ${label} chưa có email nào. Lưu danh sách trước khi gửi thử.`, true);
+    if (Date.now() - (lastTest[label] || 0) < 30000) return say('Vừa gửi thử. Vui lòng đợi 30 giây.', true);
+    lastTest[label] = Date.now();
+    say(`(Mô phỏng) Đã gửi email thử tới ${count} địa chỉ. Kiểm tra hộp thư, cả mục Spam.`);
+  }));
+</script>
+</body>
+</html>

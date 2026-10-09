@@ -39,6 +39,7 @@ export enum AuditAction {
   WebhookCreate = 'webhook_create',
   WebhookUpdate = 'webhook_update',
   WebhookDelete = 'webhook_delete',
+  NotificationSettingsUpdate = 'notification_settings_update',
 }
 
 export enum AuditEventSource {
@@ -63,6 +64,7 @@ export enum AuditTargetType {
   ApiToken = 'api_token',
   TransferToken = 'transfer_token',
   Webhook = 'webhook',
+  Setting = 'setting',
 }
 
 export enum AuditHttpMethod {

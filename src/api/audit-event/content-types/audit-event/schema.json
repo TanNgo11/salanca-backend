@@ -76,7 +76,8 @@
         "transfer_token_revoke",
         "webhook_create",
         "webhook_update",
-        "webhook_delete"
+        "webhook_delete",
+        "notification_settings_update"
       ],
       "required": true
     },
@@ -91,7 +92,8 @@
         "admin_role",
         "api_token",
         "transfer_token",
-        "webhook"
+        "webhook",
+        "setting"
       ],
       "required": true
     },

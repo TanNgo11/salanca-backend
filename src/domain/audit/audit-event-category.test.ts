@@ -35,3 +35,11 @@ describe('resolveAuditEventCategory', () => {
     expect(listActionsForCategory(AuditEventCategory.Error)).toEqual([]);
   });
 });
+
+describe('notification settings audit', () => {
+  it('files a notification settings change under security', () => {
+    expect(resolveAuditEventCategory(AuditAction.NotificationSettingsUpdate, true)).toBe(
+      AuditEventCategory.Security,
+    );
+  });
+});

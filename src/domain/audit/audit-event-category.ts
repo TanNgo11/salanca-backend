@@ -20,6 +20,7 @@ const SECURITY_ACTIONS = new Set<AuditAction>([
   AuditAction.ApiTokenRegenerate,
   AuditAction.ApiTokenRevoke,
   AuditAction.ApiTokenUpdate,
+  AuditAction.NotificationSettingsUpdate,
   AuditAction.TransferTokenCreate,
   AuditAction.TransferTokenRegenerate,
   AuditAction.TransferTokenRevoke,

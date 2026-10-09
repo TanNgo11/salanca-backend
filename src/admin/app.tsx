@@ -1,5 +1,5 @@
 import type { StrapiApp } from '@strapi/strapi/admin';
-import { Bell, Calendar, Clock, Download, Mail } from '@strapi/icons';
+import { Bell, Calendar, Clock, Cog, Download, Mail } from '@strapi/icons';
 import { Outlet } from 'react-router-dom';
 
 import { hideDeveloperOnlyAdminPermissions } from './admin-navigation-visibility.helper';
@@ -21,6 +21,7 @@ import {
   INJECT_COLUMN_IN_TABLE_HOOK,
 } from './enum-list-cells/enum-list-cells.helper';
 import { leadExportPermissions } from './lead-export/lead-export.helper';
+import { notificationSettingsPermissions } from './notification-settings/notification-settings.helper';
 import { createLeadListRedirect } from './lead-shortcuts/LeadListRedirect';
 import {
   contactMessageUid,
@@ -162,6 +163,14 @@ export default {
       Component: () => import('./lead-export/LeadExportScreen'),
       permissions: leadExportPermissions,
       position: 0.4,
+    });
+    app.addMenuLink({
+      to: '/plugins/notification-settings',
+      icon: Cog,
+      intlLabel: { id: 'notification-settings.title', defaultMessage: 'Email thông báo' },
+      Component: () => import('./notification-settings/NotificationSettingsScreen'),
+      permissions: notificationSettingsPermissions,
+      position: 0.5,
     });
     registerDashboardWidgets(app);
 

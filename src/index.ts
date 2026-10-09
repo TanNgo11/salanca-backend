@@ -24,6 +24,11 @@ import {
   registerLeadExportPermissions,
 } from './api/lead-export';
 import {
+  bootstrapNotificationSettingsPermissions,
+  registerNotificationSettingsAdminRoutes,
+  registerNotificationSettingsPermissions,
+} from './api/notification-settings';
+import {
   bootstrapReservationInboxPermissions,
   registerReservationInboxAdminRoutes,
   registerReservationInboxPermissions,
@@ -53,6 +58,8 @@ export default {
     registerReservationInboxAdminRoutes(strapi);
     registerLeadExportPermissions(strapi);
     registerLeadExportAdminRoutes(strapi);
+    registerNotificationSettingsPermissions(strapi);
+    registerNotificationSettingsAdminRoutes(strapi);
     registerAdminAuditEventHub(strapi);
     registerAdminUserLanguageDefault(strapi);
   },
@@ -70,6 +77,7 @@ export default {
     await bootstrapAuditLogPermissions(strapi);
     await bootstrapReservationInboxPermissions(strapi);
     await bootstrapLeadExportPermissions(strapi);
+    await bootstrapNotificationSettingsPermissions(strapi);
     await backfillAdminUserLanguage(strapi);
   },
 };

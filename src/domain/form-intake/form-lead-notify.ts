@@ -1,7 +1,8 @@
 /**
  * Staff notification emails for public form leads (contact + reservation).
  *
- * Opt-in: requires EMAIL_SMTP_HOST (email plugin) and FORM_NOTIFY_TO.
+ * Opt-in: requires EMAIL_SMTP_HOST (email plugin). Recipients per kind come from
+ * Admin → Email thông báo, or FORM_NOTIFY_TO until that screen is saved.
  * Delivery failures are absorbed after the lead is stored — never fail the
  * public create response because mail is down (BDS password-reset pattern).
  */
@@ -124,13 +125,6 @@ export function resolveFormNotifyRecipients(
     log?.warn?.('FORM_NOTIFY_TO is set but contains no valid email addresses');
   }
   return recipients;
-}
-
-export function resolveFormNotifyRecipientsFromEnv(
-  env: NodeJS.ProcessEnv = process.env,
-  log?: Pick<FormLeadNotifyLog, 'warn'>,
-): string[] {
-  return resolveFormNotifyRecipients(env.FORM_NOTIFY_TO, log);
 }
 
 /** Strip CR/LF/NUL and collapse whitespace for safe email subject fragments. */

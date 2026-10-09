@@ -499,6 +499,7 @@ export interface ApiAuditEventAuditEvent extends Struct.CollectionTypeSchema {
         'webhook_create',
         'webhook_update',
         'webhook_delete',
+        'notification_settings_update',
       ]
     > &
       Schema.Attribute.Required;
@@ -588,6 +589,7 @@ export interface ApiAuditEventAuditEvent extends Struct.CollectionTypeSchema {
         'api_token',
         'transfer_token',
         'webhook',
+        'setting',
       ]
     > &
       Schema.Attribute.Required;

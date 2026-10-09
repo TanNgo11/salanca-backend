@@ -1,5 +1,6 @@
 /**
- * Strapi-bound adapter: intentional SMTP + FORM_NOTIFY_TO.
+ * Strapi-bound adapter: intentional SMTP + per-kind recipients
+ * (Admin-saved settings, FORM_NOTIFY_TO fallback).
  * Controllers schedule this after a successful lead create (off the response path).
  */
 
@@ -9,9 +10,10 @@ import {
   formatNotifyErrorCode,
   isFormNotifySmtpConfigured,
   notifyFormLead,
-  resolveFormNotifyRecipientsFromEnv,
   type FormLeadNotifyPayload,
 } from './form-lead-notify';
+import { resolveKindRecipients } from '../notification-settings/notification-settings';
+import { readNotificationSettings } from '../notification-settings/notification-settings.store';
 
 /** Nodemailer/Resend send options used by form lead notify. */
 export type FormLeadPluginSendOptions = {
@@ -61,7 +63,9 @@ export function resolveIntentionalEmailSend(
 
 /**
  * Best-effort staff email after public form create.
- * No-ops unless EMAIL_SMTP_HOST and FORM_NOTIFY_TO are both set.
+ * Recipients: the Admin-saved list for the lead's kind, or FORM_NOTIFY_TO when
+ * the screen was never saved, predates this kind, or cannot be read.
+ * No-ops without EMAIL_SMTP_HOST.
  * Never throws.
  */
 export async function sendFormLeadNotify(
@@ -88,7 +92,18 @@ export async function sendFormLeadNotify(
       return;
     }
 
-    const recipients = resolveFormNotifyRecipientsFromEnv(process.env, log);
+    // A failed settings read must not cost the staff email: fall back to env.
+    let stored: Awaited<ReturnType<typeof readNotificationSettings>> = null;
+    try {
+      stored = await readNotificationSettings(strapi);
+    } catch (error: unknown) {
+      strapi.log.warn('form lead notify: settings read failed, using FORM_NOTIFY_TO', {
+        kind: payload.kind,
+        documentId: payload.documentId,
+        code: formatNotifyErrorCode(error),
+      });
+    }
+    const recipients = resolveKindRecipients(stored, payload.kind, process.env, log);
     if (recipients.length === 0) {
       return;
     }

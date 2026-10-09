@@ -129,6 +129,12 @@ ngày ngắn hơn. Cần quyền *Xuất CSV khách hàng* (`lead-export.export`
 định chỉ Super Admin có. File chứa thông tin cá nhân của khách: không gửi qua
 kênh công khai.
 
+## Email thông báo
+
+Menu **Email thông báo**: nhập email nhận báo khi khách đặt bàn hoặc gửi liên hệ, mỗi dòng một
+email (tối đa 10). Để trống một mục = không gửi email cho mục đó. Bấm **Lưu**, rồi **Gửi thử** để
+kiểm tra hộp thư (xem cả Spam). Chỉ Super Admin và vai trò Quản lý thấy mục này.
+
 ## Giao diện Admin (2026-10-04)
 
 - **Ngôn ngữ:** Admin mở bằng tiếng Việt ngay từ màn đăng nhập. Tài khoản

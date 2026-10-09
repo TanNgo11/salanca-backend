@@ -126,6 +126,7 @@ const ACTION_LABELS: Readonly<Record<AuditAction, string>> = {
   [AuditAction.WebhookCreate]: 'Tạo webhook',
   [AuditAction.WebhookUpdate]: 'Cập nhật webhook',
   [AuditAction.WebhookDelete]: 'Xóa webhook',
+  [AuditAction.NotificationSettingsUpdate]: 'Cập nhật email thông báo',
 };
 
 const CATEGORY_VALUES = new Set<string>(Object.values(AuditEventCategory));
@@ -153,6 +154,7 @@ const TARGET_TYPE_LABELS: Readonly<Record<AuditTargetType, string>> = {
   [AuditTargetType.ApiToken]: 'API token',
   [AuditTargetType.TransferToken]: 'Transfer token',
   [AuditTargetType.Webhook]: 'Webhook',
+  [AuditTargetType.Setting]: 'Cài đặt hệ thống',
 };
 
 /**
