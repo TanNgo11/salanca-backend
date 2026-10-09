@@ -20,6 +20,16 @@ const resolveEvent = (action: string): CmsWebhookEvent | null => {
   return null;
 };
 
+/**
+ * Bulk-locale actions (the admin's multi-locale unpublish dialog) pass
+ * `locale` as an array, or `'*'` for every locale; one webhook per locale.
+ */
+const resolveLocales = (locale: string | string[] | undefined): string[] => {
+  if (locale === undefined) return ['vi'];
+  if (locale === '*') return [...CMS_WEBHOOK_ALLOWED_LOCALES];
+  return Array.isArray(locale) ? locale : [locale];
+};
+
 const deliverWebhook = async (
   strapi: Core.Strapi,
   payload: ReturnType<typeof buildCmsWebhookPayload>,
@@ -74,12 +84,12 @@ export const emitCmsWebhook = async (
     return;
   }
 
-  const locale = ctx.params.locale ?? 'vi';
-  if (!CMS_WEBHOOK_ALLOWED_LOCALES.has(locale)) {
+  const locales = resolveLocales(ctx.params.locale);
+  const unsupported = locales.filter((locale) => !CMS_WEBHOOK_ALLOWED_LOCALES.has(locale));
+  if (unsupported.length > 0) {
     strapi.log.warn(
-      `CMS webhook skipped: unsupported locale "${locale}" for ${ctx.uid}.`,
+      `CMS webhook skipped unsupported locale(s) "${unsupported.join(', ')}" for ${ctx.uid}.`,
     );
-    return;
   }
 
   const documentId =
@@ -96,6 +106,8 @@ export const emitCmsWebhook = async (
     return;
   }
 
-  const payload = buildCmsWebhookPayload(ctx.uid, locale, documentId, event);
-  void deliverWebhook(strapi, payload);
+  for (const locale of locales) {
+    if (!CMS_WEBHOOK_ALLOWED_LOCALES.has(locale)) continue;
+    void deliverWebhook(strapi, buildCmsWebhookPayload(ctx.uid, locale, documentId, event));
+  }
 };

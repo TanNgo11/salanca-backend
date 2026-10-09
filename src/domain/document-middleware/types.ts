@@ -10,7 +10,8 @@ export type DocumentMiddlewareContext = {
   params: {
     data?: Record<string, unknown>;
     documentId?: string;
-    locale?: string;
+    /** Bulk-locale actions (e.g. multi-locale unpublish) pass an array or `'*'`. */
+    locale?: string | string[];
   };
 };
 
