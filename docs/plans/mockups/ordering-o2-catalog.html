@@ -167,6 +167,62 @@
 </section>
 
 <section class="screen">
+  <h2>4b. Màn hình "Danh mục" (menu Bán hàng): thêm, sửa, xóa, sắp xếp</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/categories</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a>Đơn hàng</a><a class="active">Danh mục</a><a>Tạm hết món</a><a>Chi nhánh</a></nav>
+        <div class="content">
+          <div class="page-head"><div><h3>Danh mục</h3><small>Kéo để đổi thứ tự hoặc đổi danh mục cha</small></div><span class="btn">+ Thêm danh mục</span></div>
+          <div class="split">
+            <div class="panel">
+              <div class="small" style="display:grid;gap:4px">
+                <div class="spread"><span>⠿ ▾ <strong>Món chính</strong></span><span class="row"><span class="muted">12 món</span><span class="btn ghost">+ Con</span><span class="btn ghost">Sửa</span><span class="btn ghost">Xóa</span></span></div>
+                <div class="spread" style="padding-left:22px;background:var(--primary-soft);border-radius:4px"><span>⠿ <strong>Món Huế</strong></span><span class="row"><span class="muted">4 món</span><span class="btn ghost">Sửa</span><span class="btn ghost">Xóa</span></span></div>
+                <div class="spread" style="padding-left:22px"><span>⠿ Cơm</span><span class="row"><span class="muted">5 món</span><span class="btn ghost">Sửa</span><span class="btn ghost">Xóa</span></span></div>
+                <div class="spread"><span>⠿ ▸ Đồ uống</span><span class="row"><span class="muted">8 món</span><span class="btn ghost">+ Con</span><span class="btn ghost">Sửa</span><span class="btn ghost">Xóa</span></span></div>
+                <div class="spread"><span>⠿ ▸ Combo</span><span class="row"><span class="muted">3 món</span><span class="btn ghost">+ Con</span><span class="btn ghost">Sửa</span><span class="btn ghost">Xóa</span></span></div>
+                <div class="spread"><span class="muted">⠿ Món test</span><span class="row"><span class="badge gray">nội bộ</span><span class="badge gray">tắt</span><span class="btn ghost">Sửa</span></span></div>
+              </div>
+            </div>
+            <div class="panel">
+              <h3>Sửa: Món Huế</h3>
+              <div class="field"><label>Tên *</label><div class="grid2"><span class="input">Món Huế</span><span class="input">Hue dishes</span></div></div>
+              <div class="field"><label>Slug</label><div class="grid2"><span class="input">mon-hue</span><span class="input">hue-dishes</span></div></div>
+              <div class="field"><label>Danh mục cha</label><span class="select">Món chính</span></div>
+              <div class="field"><label>Mô tả</label><span class="input empty">VI / EN…</span></div>
+              <div class="field"><label>Ảnh</label><span class="input empty">Chọn từ thư viện…</span></div>
+              <div class="row"><span class="check on">Hiện cho khách</span><span class="check">Nội bộ</span></div>
+              <div class="field"><label>Khung giờ bán</label><span class="select">Cả ngày</span></div>
+              <div class="row"><span class="btn secondary">Hủy</span><span class="btn">Lưu</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Thêm danh mục gốc hoặc "+ Con" ngay dưới một danh mục; sửa ở khung bên phải, không rời cây.</span></li>
+      <li><span class="n">2</span><span>Kéo thả để đổi thứ tự trong cùng cấp hoặc đổi danh mục cha. Không cho kéo một danh mục vào chính con của nó.</span></li>
+      <li><span class="n">3</span><span>Xóa: còn danh mục con → chặn, phải chuyển hoặc xóa con trước. Còn sản phẩm → hỏi xác nhận, chỉ gỡ liên kết, sản phẩm không bị xóa; cảnh báo sản phẩm nào không còn danh mục.</span></li>
+      <li><span class="n">4</span><span>Đơn cũ không bị ảnh hưởng vì đã lưu tên danh mục lúc đặt. Muốn tạm ẩn thì bỏ "Hiện cho khách" thay vì xóa.</span></li>
+      <li><span class="n">5</span><span>Content Manager vẫn sửa được danh mục như bảng thường; màn này thêm cây và kéo thả mà Content Manager không có.</span></li>
+    </ol>
+  </div>
+  <div class="frame" style="max-width:560px">
+    <div class="frame-bar"><span class="url">Hộp thoại · Xóa danh mục "Đồ uống"</span></div>
+    <div class="modal-backdrop"><div class="modal">
+      <header><strong>Xóa danh mục "Đồ uống"?</strong><span class="muted">✕</span></header>
+      <div class="body">
+        <div class="alert-box amber">8 sản phẩm đang thuộc danh mục này. Sản phẩm không bị xóa, chỉ gỡ khỏi danh mục. 2 sản phẩm sẽ không còn danh mục nào: Trà đào cam sả, Nước sâm.</div>
+        <div class="alert-box info">Muốn tạm ẩn thì tắt "Hiện cho khách" thay vì xóa.</div>
+      </div>
+      <footer><span class="btn secondary">Hủy</span><span class="btn danger">Xóa danh mục</span></footer>
+    </div></div>
+  </div>
+</section>
+
+<section class="screen">
   <h2>5. Màn hình "Tạm hết món" (menu Bán hàng)</h2>
   <div class="with-notes">
     <div class="frame">

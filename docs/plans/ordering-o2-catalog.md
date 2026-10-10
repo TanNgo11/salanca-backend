@@ -86,6 +86,16 @@ từ adapter `ordering-catalog`.
      danh sách field cho phép.
    - Verification: `curl` trả đúng; product `draft` hoặc `sellOnline=false` không xuất hiện; không có field
      nội bộ.
+7b. **Màn hình "Danh mục"** (thêm 2026-10-10 theo chủ dự án)
+   - Files: `admin/src/pages/Categories/` (cây, form sửa, hộp thoại xóa), `routes/admin.ts`,
+     `controllers/categories.ts`, `services/catalog-category.ts`, `domain/catalog/category-tree.ts`.
+   - Làm: API Admin lấy cây (kèm số sản phẩm), tạo, sửa, xóa, `move` (đổi cha + thứ tự trong một transaction,
+     đánh lại `rank` của cùng cấp). Chặn vòng lặp (không cho làm con của chính cháu mình). Xóa: còn con → lỗi
+     `CATEGORY_HAS_CHILDREN`; còn sản phẩm → cần `confirm=true`, gỡ liên kết, trả danh sách sản phẩm không còn
+     danh mục. Ghi `admin-change-log`. Kéo thả bằng thư viện đã có trong Admin của Strapi nếu có; không thêm
+     dependency mới khi chưa hỏi (dự phòng: nút lên/xuống và chọn danh mục cha).
+   - Verification: Vitest cho `category-tree` (dựng cây, chặn vòng lặp, đánh lại rank); script tích hợp cho
+     move, xóa còn con, xóa còn sản phẩm; UAT theo mockup màn 4b.
 8. **Màn hình "Tạm hết món" và quyền**
    - Files: `admin/src/pages/Availability/`, `routes/admin.ts`, `controllers/availability.ts`,
      đăng ký action `catalog.manage`, `catalog.toggle-availability`.

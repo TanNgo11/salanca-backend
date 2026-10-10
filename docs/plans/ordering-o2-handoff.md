@@ -11,8 +11,8 @@ plugin `ordering`. Spec, kế hoạch và mockup đã được chủ dự án du
 
 1. `AGENTS.md`, `PLANS.md`.
 2. `docs/phases/phase-ordering-2-catalog.md` (spec O2, gồm "Bổ sung sau review").
-3. `docs/plans/ordering-o2-catalog.md` (kế hoạch 11 bước).
-4. `docs/plans/mockups/ordering-o2-catalog.html` (6 màn hình + mẫu API; dùng làm ca test và UAT).
+3. `docs/plans/ordering-o2-catalog.md` (kế hoạch 11 bước + bước 7b).
+4. `docs/plans/mockups/ordering-o2-catalog.html` (7 màn hình + mẫu API; dùng làm ca test và UAT).
 5. `docs/plans/ordering-core-contracts.md` mục 4, 20 (catalog), 21 (bổ sung), 14 (quyền, bảo mật).
 6. `docs/plans/ordering-reference.md` C18, C19, C20 (vì sao không i18n, không Draft & Publish, không component).
 7. `src/plugins/ordering/README.md` và "Completion record" trong `docs/plans/ordering-o1-core.md`
@@ -60,6 +60,8 @@ plugin `ordering`. Spec, kế hoạch và mockup đã được chủ dự án du
   99.000 với "Tô đặc biệt +20.000" và "Trà đào +15.000"; Trà đào tạm hết → chỉ ẩn lựa chọn đó; nhóm bắt buộc hết
   sạch → combo hết; khung "Đêm khuya 22:00–02:00" qua nửa đêm; slug trùng cùng ngôn ngữ bị từ chối, khác ngôn
   ngữ thì được; API chỉ trả product `active` + `sellOnline`.
+- Kế hoạch có bước **7b: màn hình "Danh mục"** (cây, thêm/sửa/xóa, kéo thả đổi thứ tự và đổi cha, quy tắc xóa)
+  do chủ dự án thêm sau khi duyệt; làm theo mockup màn 4b.
 - Nếu editor React cho `modifierGroups`/`bundleSlots` tốn quá nhiều công: dùng editor JSON có schema như kế hoạch
   cho phép, ghi lại trong Completion record.
 - Quyền: action `plugin::ordering.catalog.manage`, `plugin::ordering.catalog.toggle-availability`; màn "Tạm hết

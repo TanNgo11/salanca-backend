@@ -32,6 +32,10 @@ thêm và combo trong Content Manager; website đọc được catalog qua API c
 - **API storefront chỉ đọc** (mục 20.2): `GET /ordering/catalog/categories`,
   `GET /ordering/catalog/products`, `GET /ordering/catalog/products/:slug`; chỉ product `active` và
   `sellOnline`; cache ngắn; không lộ field nội bộ.
+- **Màn hình "Danh mục"** trong menu Bán hàng (thêm 2026-10-10 theo chủ dự án): cây danh mục; thêm danh mục
+  gốc/con, sửa ngay trên màn hình, xóa, kéo thả đổi thứ tự và đổi danh mục cha. Xóa bị chặn khi còn danh mục con;
+  còn sản phẩm thì hỏi xác nhận và chỉ gỡ liên kết. Lý do làm màn riêng (theo `AGENTS.md`): Content Manager chỉ
+  hiện bảng phẳng, không có cây hay kéo thả. Quyền `catalog.manage`. Mockup màn 4b.
 - **Màn hình "Tạm hết món"** theo chi nhánh trong Admin; quyền `catalog.manage` và
   `catalog.toggle-availability` (nhân viên chi nhánh chỉ bật/tắt trong scope).
 - **Extension:** tài liệu và ví dụ thêm field cho product bằng `src/extensions/ordering/strapi-server.ts`.
@@ -67,6 +71,8 @@ Test bắt buộc:
 
 ### Manual Admin UAT
 
+- [ ] Màn "Danh mục": thêm gốc và con, sửa, kéo đổi thứ tự và đổi cha, xóa danh mục còn con bị chặn, xóa danh mục
+  còn sản phẩm chỉ gỡ liên kết.
 - [ ] Tạo danh mục cha/con, product có 2 biến thể, gắn nhóm "Topping" và ghi đè giá một topping.
 - [ ] Tạo combo "1 món chính + 1 nước", tắt một món chính bắt buộc → combo hiện hết.
 - [ ] Nhập tên VI/EN trong cùng một trang; Content Manager của content Salanca vẫn như cũ.
