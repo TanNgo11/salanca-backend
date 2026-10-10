@@ -36,6 +36,7 @@ import { registerAdminAuditEventHub } from './domain/audit/admin-audit-eventhub.
 import { registerDocumentInvariants } from './domain/document-invariants/register-document-invariants';
 import { getOrCreateMediaProcessingRuntime } from './domain/media-processing/runtime';
 import { enforceMediaProcessingUploadSettings } from './domain/media-processing/upload-optimize';
+import { recordOrderingAppBootstrap, registerOrderingAdapters } from './ordering/register-ordering-adapters';
 import { log } from './shared/log';
 
 export default {
@@ -50,6 +51,7 @@ export default {
     getOrCreateMediaProcessingRuntime(strapi);
     registerDocumentInvariants(strapi);
     registerHealthRoutes(strapi);
+    registerOrderingAdapters(strapi);
     registerAuditLogPermissions(strapi);
     registerAuditLogAdminRoutes(strapi);
     registerReservationInboxPermissions(strapi);
@@ -77,5 +79,6 @@ export default {
     await bootstrapLeadExportPermissions(strapi);
     await bootstrapNotificationSettingsPermissions(strapi);
     await backfillAdminUserLanguage(strapi);
+    recordOrderingAppBootstrap(strapi);
   },
 };
