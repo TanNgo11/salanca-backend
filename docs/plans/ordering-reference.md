@@ -39,7 +39,9 @@ Chỉ dùng để học thiết kế; không chép code từ nguồn GPL.
 | [Bagisto](https://github.com/bagisto/bagisto/tree/3fb8300b6343baefcf57bec5b6a9c188a2177d57) | `3fb8300` | MIT | simple, configurable, bundle, virtual, downloadable, booking |
 | [Sylius](https://github.com/Sylius/Sylius/tree/39313695548c709756ee9073bf309fa4ae89365a) | `3931369` | MIT | state machine abstraction và các trục trạng thái |
 | [Saleor](https://github.com/saleor/saleor/tree/782a751f622c4a047798ce7084b7c66c0877ec6f) | `782a751` | BSD-3-Clause | gift card, transaction item/event, webhook |
-| [Action Scheduler](https://github.com/woocommerce/action-scheduler/tree/3a8178faa44f5b6dc2c7e56eb4a0195f80f86c64) | `3a8178f` | GPLv3 | claim, batch, retry, queue runner |
+| [Action Scheduler](https://github.com/woocommerce/action-scheduler/tree/3a8178faa44f5b6dc2c7e56eb4a0195f80f86c64) | `3a8178f` | GPLv3 | claim, batch, retry, queue runner, cảnh báo việc quá hạn |
+| [TastyIgniter user](https://github.com/tastyigniter/ti-ext-user/tree/3077e34fc9b6ee7a2df3beed79bf5d6171df9fbc) 4.x | `3077e34` | MIT | staff, location được gán, phạm vi đơn |
+| [Odoo](https://github.com/odoo/odoo/tree/8749886bd765b1bf03af9cf423f92c9beaf52a0a/addons/point_of_sale) 18.0 POS | `8749886` | LGPLv3 | ca bán hàng (session), ngày kinh doanh |
 
 Không đọc: Orderable (phần nghiệp vụ F&B đã có TastyIgniter thay).
 
@@ -730,10 +732,22 @@ mọi phản hồi khác bị coi là lỗi và SePay gửi lại. Payload có `
 không phải tiền khách trả. Provider phải có đường query/list transaction để đối soát, vì webhook
 không phải nguồn duy nhất.
 
+SePay hỗ trợ API Key, HMAC-SHA256 và OAuth 2.0; tài liệu khuyến nghị HMAC với raw body và
+`X-SePay-Timestamp`, từ chối timestamp lệch quá 5 phút, dùng HTTPS và whitelist IP. Webhook có thể
+mất nếu endpoint sập quá lâu, nên đối soát định kỳ; tài liệu nêu khoảng retry Fibonacci đến lần thứ 8
+(tổng khoảng 33 phút) khi bật tự gửi lại. ([xác thực](https://developer.sepay.vn/vi/sepay-webhooks/xac-thuc),
+[bảo mật](https://developer.sepay.vn/vi/sepay-webhooks/bao-mat),
+[xử lý lỗi](https://developer.sepay.vn/vi/sepay-webhooks/xu-ly-loi),
+[đối soát giao dịch](https://developer.sepay.vn/vi/sepay-webhooks/doi-soat-giao-dich))
+
+**Best practice:** xác minh chữ ký trước khi parse nghiệp vụ, lưu raw payload và `id` unique trước
+khi enqueue, trả đúng body ACK theo provider, bỏ qua `transferType=out`, rồi chạy reconciliation
+theo khoảng thời gian. Lịch retry cụ thể và quyền gọi API live vẫn cần kiểm bằng tài khoản thật.
+
 - [SePay tích hợp webhook](https://developer.sepay.vn/vi/sepay-webhooks/tich-hop-webhook)
 - [SePay xác thực](https://developer.sepay.vn/vi/sepay-webhooks/xac-thuc)
 - [SePay xử lý lỗi](https://developer.sepay.vn/vi/sepay-webhooks/xu-ly-loi)
-- [SePay danh sách giao dịch](https://developer.sepay.vn/vi/api-giao-dich)
+- [SePay đối soát và danh sách giao dịch](https://developer.sepay.vn/vi/sepay-webhooks/doi-soat-giao-dich)
 - [SePay tạo QR động](https://docs.sepay.vn/tao-qr-code-vietqr-dong.html) (`acc`, `bank`, `amount`, `des`)
 
 Nghị định 70/2025/NĐ-CP sửa Nghị định 123/2020/NĐ-CP và có hiệu lực 01/06/2025. Dữ liệu hóa đơn
@@ -742,6 +756,335 @@ thuế suất, tiền thuế và tổng tiền. Việc Salanca có thuộc diệ
 tiền hay thời điểm ghi nhận voucher là vấn đề cần kế toán/chủ dự án quyết định.
 
 - [Nghị định 70/2025/NĐ-CP](https://vanban.chinhphu.vn/?docid=213179&lang=vi&pageid=27160)
+
+## C11. Kết quả đọc source Strapi 5.51.1
+
+**Các file đã đọc và điều xác nhận**
+
+- `@strapi/database/dist/index.js` (`Database.transaction`, `getConnection`) và
+  `transaction-context.d.ts`: `strapi.db.transaction(cb)` mở
+  transaction khi chưa có transaction lồng, truyền `trx`, `commit`, `rollback`, `onCommit` và
+  `onRollback` vào callback, rồi tự commit hoặc rollback. `strapi.db.getConnection()` trả Knex;
+  query builder có `.transacting(trx)` và `.forUpdate()`. Context hiện tại được dùng tự động khi
+  query builder chạy trong callback. Đây là source package local, đối chiếu version tại
+  [Strapi v5.51.1](https://github.com/strapi/strapi/tree/v5.51.1/packages/core/database).
+- `@strapi/core/dist/services/document-service/index.js` (`createDocumentService`) và
+  `.../middlewares/middleware-manager.js`: `strapi.documents.use()` chỉ bọc các method của
+  Document Service; context có `uid`, `action`, `params`, và middleware phải gọi `next()`. Gọi
+  thẳng `strapi.db.query()` không đi qua wrapper này. Vì vậy middleware không phải hàng rào duy nhất
+  cho bảng order; invariant phải nằm trong service/route của plugin và transaction DB. Đối chiếu
+  [Document Service middleware](https://docs.strapi.io/cms/api/document-service/middlewares).
+- `@strapi/content-manager/dist/server/services/data-mapper.js` (`isVisible`, `toContentManagerModel`)
+  và `content-types.js` (`findDisplayedContentTypes`): Content Manager đọc
+  `pluginOptions.content-manager.visible`, mặc định `true`, rồi lọc `isDisplayed`. Đặt `visible: false` sẽ ẩn model khỏi danh sách Content Manager; đây chỉ
+  là ẩn giao diện, không phải permission hay bảo vệ database. Đối chiếu
+  [Content Manager API](https://github.com/strapi/strapi/tree/v5.51.1/packages/core/content-manager).
+- `@strapi/admin/dist/server/server/src/domain/{action,condition}/provider.js` (`register`,
+  `registerMany`) và `@strapi/permissions/dist/engine/index.js` (`evaluate`, `generateAbility`):
+  action/condition phải đăng ký trước khi Strapi loaded; condition được resolve và evaluate thành
+  `true`/`false` hoặc query điều kiện. Đây là cơ chế xây
+  permission, không tự tạo bộ lọc chi nhánh cho route custom. Đối chiếu
+  [Strapi server API](https://docs.strapi.io/cms/plugins-development/server-api).
+- `@strapi/core/dist/providers/cron.js` (`init`, `bootstrap`, `destroy`) và `services/cron.js`
+  (`add`, `start`, `stop`): Strapi đọc `server.cron.enabled` và `server.cron.tasks`, tạo
+  `node-schedule` job rồi start trên từng process.
+  Source không có claim/lease dùng chung giữa nhiều instance. Cron chỉ lập lịch; job phải tự claim
+  row hoặc dùng lock PostgreSQL. Đối chiếu [CRON jobs](https://docs.strapi.io/cms/configurations/cron).
+- Trong `node_modules` của project không có `@strapi/sdk-plugin`. Cách build TypeScript của SDK vì
+  vậy **Chưa kiểm** bằng fixture; không suy ra rằng SDK không hỗ trợ.
+
+**Kiểm thêm khi review vòng 4** (cùng bản source local 5.51.1):
+
+- `@strapi/core/dist/loaders/plugins/index.js` (`applyUserConfig`): config plugin có `default` (object
+  hoặc hàm nhận `env`) và `validator`. Strapi gộp `fp.defaultsDeep(defaultConfig, userPluginConfig)`,
+  giá trị của app thắng, rồi gọi `plugin.config.validator(config)`; giá trị trả về bị bỏ qua, lỗi được
+  bọc thành `Error regarding <plugin> config`. `defaultsDeep` gộp mảng theo vị trí, nên danh sách
+  trong config nên là object theo key.
+- `@strapi/core/dist/Strapi.js` (`register`, `bootstrap`): register của plugin chạy trước register của
+  app; bootstrap của plugin chạy trước bootstrap của app. App đăng ký adapter ở `register()`, plugin
+  kiểm registry ở `bootstrap()`.
+- `@strapi/admin/dist/server/server/src/config/admin-conditions.js`: condition `admin::is-creator` có
+  `handler: (user) => ({ 'createdBy.id': user.id })`. Condition trả query object để lọc theo người
+  dùng; đây là mẫu cho condition lọc theo chi nhánh.
+- `@strapi/core/dist/middlewares/body.js` dùng `koa-body` 6.0.1 (`lib/unparsed.js`): bật
+  `includeUnparsed` thì body gốc nằm ở `ctx.request.body[Symbol.for('unparsedBody')]`. Middleware này
+  chạy toàn cục trước route của plugin.
+- `@strapi/core/dist/middlewares/cors.js`: header mặc định được phép là `Content-Type`,
+  `Authorization`, `Origin`, `Accept`. `config/middlewares.ts` của Salanca giữ đúng bốn header này,
+  nên header riêng như `X-Order-Token`, `Idempotency-Key` cần app thêm vào.
+
+**Kiểm thêm tài liệu SePay** ([xác thực](https://developer.sepay.vn/vi/sepay-webhooks/xac-thuc),
+[đối soát](https://developer.sepay.vn/vi/sepay-webhooks/doi-soat-giao-dich)):
+
+- HMAC-SHA256 ký chuỗi `{timestamp}.{raw_body}`; header `X-SePay-Signature: sha256=<hex>` và
+  `X-SePay-Timestamp` (Unix giây). Tài liệu nói SePay ký bytes gốc, serialize lại JSON sẽ sai chữ ký.
+  Code mẫu từ chối timestamp lệch quá 300 giây.
+- Đối soát: `GET https://userapi.sepay.vn/v2/transactions`, lọc `transaction_date_from/to`,
+  `bank_account_id`, `per_page` tối đa 100, `since_id` để lấy tiếp; tối đa 3 request/giây, vượt trả 429;
+  ví dụ chạy cron mỗi giờ.
+
+**Best practice**
+
+Document Service middleware phù hợp cho cross-cutting behavior của Document Service. Invariant tiền,
+branch scope, transition, webhook và outbox phải được kiểm ở application service, với DB transaction
+và permission riêng. Content Manager visibility chỉ là lớp giảm nhầm thao tác. Cron phải kết hợp
+claim/lease idempotent khi có từ hai process.
+
+## C12. Mô hình sản phẩm đa ngành
+
+**Các hệ thống làm thế nào**
+
+- **Medusa:** product module tách `Product`, `ProductVariant`, `ProductOption`, `ProductOptionValue`
+  và `ProductType`; link `product-variant-inventory-item` có `required_quantity`, nên một variant
+  có thể tiêu hao nhiều inventory item cho combo/kit. ([product models](https://github.com/medusajs/medusa/tree/146c46b0ad1146b40595c8ef586c4d5890982603/packages/modules/product/src/models),
+  [inventory link](https://github.com/medusajs/medusa/blob/146c46b0ad1146b40595c8ef586c4d5890982603/packages/modules/link-modules/src/definitions/product-variant-inventory-item.ts))
+- **Vendure:** `ProductOptionGroup`/`ProductOption` biểu diễn lựa chọn của variant; `Facet`/`FacetValue`
+  phục vụ phân loại và tìm kiếm; custom fields mở rộng entity. Giá cơ bản của variant và giá theo
+  cấu hình dòng đi qua hai strategy khác nhau. ([ProductOptionGroup](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/core/src/entity/product-option-group/product-option-group.entity.ts),
+  [Facet](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/core/src/entity/facet/facet.entity.ts),
+  [OrderItemPriceCalculationStrategy](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/core/src/config/order/order-item-price-calculation-strategy.ts))
+- **WooCommerce:** product class tách variable, grouped, virtual và downloadable; variation là
+  identity/giá riêng, còn `cart_item_data` giữ cấu hình của dòng. ([product factory](https://github.com/woocommerce/woocommerce/blob/5fb08bdc3cd394aa3748f1e74e46bf0681e85183/plugins/woocommerce/includes/class-wc-product-factory.php),
+  [cart id](https://github.com/woocommerce/woocommerce/blob/5fb08bdc3cd394aa3748f1e74e46bf0681e85183/plugins/woocommerce/includes/class-wc-cart.php))
+- **Bagisto:** các type `Simple`, `Configurable`, `Grouped`, `Bundle`, `Virtual`, `Downloadable` và
+  `Booking` là class type riêng; booking còn có default, appointment, event, rental và table slot.
+  ([product types](https://github.com/bagisto/bagisto/tree/3fb8300b6343baefcf57bec5b6a9c188a2177d57/packages/Webkul/Product/src/Type),
+  [booking helpers](https://github.com/bagisto/bagisto/tree/3fb8300b6343baefcf57bec5b6a9c188a2177d57/packages/Webkul/BookingProduct/src/Helpers))
+
+**Best practice**
+
+Variant/SKU là danh tính tồn kho và giá cơ bản. Option là cấu hình được chọn và có thể cộng giá.
+Combo/kit là quan hệ component có số lượng, không phải title ghép. Physical, virtual, downloadable,
+gift card và appointment là capability của product type; registry chọn behavior theo từng line. Một
+adapter phải trả i18n, Draft & Publish, option rule và availability đã chuẩn hóa mà không làm core biết
+content type của app.
+
+## C13. Sổ cái thanh toán Saleor và trạng thái nhiều trục của Sylius
+
+**Các hệ thống làm thế nào**
+
+- **Saleor:** `TransactionItem` giữ các tổng authorized, charged, refunded, canceled và các khoản
+  pending; `TransactionEvent` là các biến động có `amount`, `type`, `include_in_calculations`,
+  `psp_reference`, `idempotency_key` và metadata.
+  Các helper cộng dồn event thành số đã authorize/charge/refund, không gán một cờ paid duy nhất.
+  ([payment models](https://github.com/saleor/saleor/blob/782a751f622c4a047798ce7084b7c66c0877ec6f/saleor/payment/models.py),
+  [transaction calculations](https://github.com/saleor/saleor/blob/782a751f622c4a047798ce7084b7c66c0877ec6f/saleor/payment/transaction_item_calculations.py))
+- **Medusa:** payment collection giữ số cần thu và các payment/capture/refund; transaction là các
+  biến động tiền gắn với order. ([payment collection](https://github.com/medusajs/medusa/blob/146c46b0ad1146b40595c8ef586c4d5890982603/packages/modules/payment/src/models/payment-collection.ts),
+  [order transaction](https://github.com/medusajs/medusa/blob/146c46b0ad1146b40595c8ef586c4d5890982603/packages/modules/order/src/models/transaction.ts))
+- **Sylius:** order có state machine riêng; checkout, payment và shipping có graph/trục riêng. Payment
+  có `partially_paid`/`paid`/`partially_refunded`, shipping có `partially_shipped`/`shipped`, trong
+  khi order chỉ giữ cart/new/cancelled/fulfilled. ([order workflow](https://github.com/Sylius/Sylius/blob/39313695548c709756ee9073bf309fa4ae89365a/src/Sylius/Bundle/CoreBundle/Resources/config/app/workflow/sylius_order.yaml),
+  [payment states](https://github.com/Sylius/Sylius/blob/39313695548c709756ee9073bf309fa4ae89365a/src/Sylius/Component/Core/OrderPaymentStates.php),
+  [shipping states](https://github.com/Sylius/Sylius/blob/39313695548c709756ee9073bf309fa4ae89365a/src/Sylius/Component/Core/OrderShippingStates.php))
+
+**Best practice**
+
+Payment cần ledger bất biến và projection; order không nhận cờ paid từ webhook. Có thể lưu một status
+order nhỏ, còn payment/fulfillment tính từ entity con và fulfillment group. Partial capture, refund,
+cancel phải có event và số tiền độc lập.
+
+## C14. Outbox, workflow và job nhiều server
+
+**Các hệ thống làm thế nào**
+
+- **Medusa event bus:** local/Redis tách publish khỏi module; workflow engine lưu execution và bước
+  để retry/compensate. Provider `locking-postgres` dùng PostgreSQL advisory lock cho vùng cần singleton.
+  ([event bus local](https://github.com/medusajs/medusa/blob/146c46b0ad1146b40595c8ef586c4d5890982603/packages/modules/event-bus-local/src/services/event-bus-local.ts),
+  [workflow execution](https://github.com/medusajs/medusa/blob/146c46b0ad1146b40595c8ef586c4d5890982603/packages/modules/workflow-engine-inmemory/src/models/workflow-execution.ts),
+  [locking-postgres](https://github.com/medusajs/medusa/blob/146c46b0ad1146b40595c8ef586c4d5890982603/packages/modules/providers/locking-postgres/src/services/advisory-lock.ts))
+- **Action Scheduler (GPL, chỉ học thiết kế):** queue runner lấy batch, claim action, retry action
+  lỗi, dọn action cũ và ghi log trong DB. ([queue runner](https://github.com/woocommerce/action-scheduler/blob/3a8178faa44f5b6dc2c7e56eb4a0195f80f86c64/classes/ActionScheduler_QueueRunner.php),
+  [DB store](https://github.com/woocommerce/action-scheduler/blob/3a8178faa44f5b6dc2c7e56eb4a0195f80f86c64/classes/data-stores/ActionScheduler_DBStore.php),
+  [logger](https://github.com/woocommerce/action-scheduler/blob/3a8178faa44f5b6dc2c7e56eb4a0195f80f86c64/classes/data-stores/ActionScheduler_DBLogger.php))
+
+**Best practice**
+
+Ghi outbox cùng transaction với aggregate; dispatcher claim theo batch bằng `FOR UPDATE SKIP LOCKED`,
+lease và retry backoff. Với job hết hạn hold, đối soát và cảnh báo, mỗi row cần trạng thái claim,
+`availableAt`, `attempts`, `lastError`; có thể dùng advisory lock cho singleton. Cron Strapi chỉ gọi
+dispatcher, không thay thế claim/lock.
+
+## C15. Sửa đơn, thuế và khách vãng lai
+
+**Các hệ thống làm thế nào**
+
+- **Vendure:** `OrderModifier` chỉ sửa order ở state `Modifying`; `OrderItemPriceCalculationStrategy`
+  tính lại giá dòng; `TaxCategory`/`TaxRate` và tax zone tách chính sách thuế khỏi product. ([OrderModifier](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/core/src/service/helpers/order-modifier/order-modifier.ts),
+  [tax category](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/core/src/entity/tax-category/tax-category.entity.ts),
+  [tax rate](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/core/src/entity/tax-rate/tax-rate.entity.ts))
+- **Medusa:** order change có dòng thêm/bớt và adjustment riêng; tax provider là module nên không
+  khóa core vào một cách tính thuế. ([order change](https://github.com/medusajs/medusa/tree/146c46b0ad1146b40595c8ef586c4d5890982603/packages/modules/order/src/models/order-change.ts),
+  [tax provider](https://github.com/medusajs/medusa/blob/146c46b0ad1146b40595c8ef586c4d5890982603/packages/modules/tax/src/services/tax-provider.ts))
+- **Vendure guest checkout:** `GuestCheckoutStrategy` là strategy quyết định có tạo hoặc dùng
+  customer hay không, thay vì bắt mọi order có account. ([strategy](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/core/src/config/order/guest-checkout-strategy.ts))
+
+**Best practice**
+
+Lưu các cột quantity đã fulfill/return/cancel trên line để giữ đường lui cho partial change. Snapshot
+tax category/rate trên line; `InvoiceProvider` chịu issue/cancel. Guest v1 có thể chỉ snapshot contact
+và customerRef tùy chọn; không ép bảng account vào core.
+
+## C16. Branch scope, múi giờ, làm tròn, vận hành và cảnh báo
+
+**Các hệ thống làm thế nào**
+
+- Strapi Admin permission condition có thể trả điều kiện query, nhưng Content Manager `visible` chỉ
+  quyết định model có hiện trong UI. Source local đã đọc ở C11; lọc branch cho route custom **Chưa kiểm**
+  bằng fixture end-to-end.
+- TastyIgniter `WorkingSchedule`/`WorkingTimeslot` gắn giờ mở, slot và timezone theo local; Bagisto
+  booking giữ slot theo resource và duration. ([WorkingSchedule](https://github.com/tastyigniter/ti-ext-local/blob/b8e31850c6168e4195c15f3049944bad354b7e92/src/Classes/WorkingSchedule.php),
+  [WorkingTimeslot](https://github.com/tastyigniter/ti-ext-local/blob/b8e31850c6168e4195c15f3049944bad354b7e92/src/Classes/WorkingTimeslot.php))
+- Vendure có `OrderLineDiscountDistributionStrategy` để trả weight cho từng line; helper `prorate`
+  phân bổ discount order theo weight và xử lý line đã hủy. ([strategy](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/core/src/config/order/order-line-discount-distribution-strategy.ts),
+  [default strategy](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/core/src/config/order/default-order-line-discount-distribution-strategy.ts))
+
+**Best practice**
+
+Service luôn áp branch predicate sau authentication; UI ẩn không phải authorization. Lưu timestamp UTC
+và `timezone`/business date theo branch; phải chốt policy quán mở qua nửa đêm. Phân bổ discount/fee
+order xuống line bằng weight, làm tròn từng line theo VND và phân phần dư lớn nhất; snapshot
+`discountAmount`/`feeAmount`/`roundingDelta` để refund một line không lệch tổng. Alert nên đi qua
+NotificationProvider nhưng log chỉ có mã order/provider, trạng thái, attempts và requestId đã che PII.
+
+## C17. Bổ sung sau review vòng 4: phân quyền chi nhánh, ngày kinh doanh, cảnh báo vận hành
+
+Vòng 4 mới đọc phía Strapi cho phân quyền chi nhánh, chỉ dẫn link cho múi giờ và gần như chưa có
+nguồn cho cảnh báo. Mục này đọc thêm source ở commit cố định. Odoo 18.0 là LGPLv3, WooCommerce và
+Action Scheduler là GPLv3: chỉ học thiết kế, không chép code.
+
+### C17.1. Giới hạn nhân viên theo chi nhánh
+
+**Các hệ thống làm thế nào**
+
+- **Vendure:** `Role` có quan hệ nhiều-nhiều `channels`
+  ([role.entity.ts#L30](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/core/src/entity/role/role.entity.ts#L30)).
+  `getChannelPermissions` gộp quyền của mọi role theo từng channel
+  ([get-user-channels-permissions.ts#L26-L47](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/core/src/service/helpers/utils/get-user-channels-permissions.ts#L26-L47)).
+  `RequestContext.userHasPermissions` kiểm quyền trên channel đang chọn của request
+  ([request-context.ts#L274-L280](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/core/src/api/common/request-context.ts#L274-L280)),
+  và `ListQueryBuilder` join bảng channel để lọc dữ liệu theo channel đó
+  ([list-query-builder.ts#L344-L346](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/core/src/service/helpers/list-query-builder/list-query-builder.ts#L344-L346)).
+  Quyền gắn với cặp (role, channel), không gắn với từng user.
+- **Saleor:** nhóm quyền `Group` có cờ `restricted_access_to_channels` và danh sách `channels`
+  ([account/models.py#L443-L469](https://github.com/saleor/saleor/blob/782a751f622c4a047798ce7084b7c66c0877ec6f/saleor/account/models.py#L443-L469)).
+  Cờ `false` nghĩa là thấy mọi channel; giá trị này được lưu rõ ràng, không suy ra từ danh sách
+  rỗng ([dataloaders.py#L180-L200](https://github.com/saleor/saleor/blob/782a751f622c4a047798ce7084b7c66c0877ec6f/saleor/graphql/account/dataloaders.py#L180-L200)).
+  Truy vấn đơn lọc `channel_id__in` theo channel user được phép
+  ([order/resolvers.py#L34-L42](https://github.com/saleor/saleor/blob/782a751f622c4a047798ce7084b7c66c0877ec6f/saleor/graphql/order/resolvers.py#L34-L42));
+  mutation kiểm channel của chính object bị sửa bằng `check_channel_permissions`
+  ([core/mutations.py#L585-L598](https://github.com/saleor/saleor/blob/782a751f622c4a047798ce7084b7c66c0877ec6f/saleor/graphql/core/mutations.py#L585-L598)).
+- **TastyIgniter:** staff có quan hệ `locations`; `Location::currentOrAssigned()` trả location đang
+  chọn, hoặc danh sách location được gán, hoặc mảng rỗng cho super user
+  ([Location.php#L117-L128](https://github.com/tastyigniter/ti-ext-local/blob/b8e31850c6168e4195c15f3049944bad354b7e92/src/Classes/Location.php#L117-L128)).
+  `locationApplyScope` **bỏ qua lọc khi mảng rỗng**, và mặc định còn cho thấy bản ghi không gắn
+  location (`whereHasOrDoesntHaveLocation`)
+  ([LocationAwareController.php#L57-L70](https://github.com/tastyigniter/ti-ext-local/blob/b8e31850c6168e4195c15f3049944bad354b7e92/src/Http/Actions/LocationAwareController.php#L57-L70)).
+  Theo đoạn code này, staff thường chưa được gán location sẽ thấy như super user: thiếu dữ liệu thì
+  mở toàn bộ. Lọc được gắn vào sự kiện list/form của Admin, không nằm ở tầng service. Ngoài ra staff có
+  `sale_permission` 1/2/3 (mọi đơn, đơn của nhóm, chỉ đơn giao cho mình)
+  ([ti-ext-user User.php#L283-L296](https://github.com/tastyigniter/ti-ext-user/blob/3077e34fc9b6ee7a2df3beed79bf5d6171df9fbc/src/Models/User.php#L283-L296)),
+  là chiều thứ hai: phạm vi theo người được giao đơn.
+- **Medusa:** module RBAC có `rbac_role`, `rbac_policy` (`resource` + `operation`) và kế thừa role
+  ([rbac-policy.ts](https://github.com/medusajs/medusa/blob/146c46b0ad1146b40595c8ef586c4d5890982603/packages/modules/rbac/src/models/rbac-policy.ts),
+  [rbac-role.ts](https://github.com/medusajs/medusa/blob/146c46b0ad1146b40595c8ef586c4d5890982603/packages/modules/rbac/src/models/rbac-role.ts)).
+  Model không có chiều sales channel hay stock location, nên quyền chỉ ở mức loại tài nguyên.
+- **Strapi 5.51.1:** engine permission `await condition.handler(...)`, nên handler async được hỗ trợ.
+  Kết quả không phải boolean hoặc object (ví dụ `undefined`, `null`) bị loại; nếu mọi condition bị loại
+  thì quyền được cấp **không điều kiện**; nếu một condition trả `true` cũng cấp không điều kiện; các
+  object được gộp bằng `$or` (`@strapi/permissions/dist/engine/index.js`, hàm tạo ability, dòng 53–95
+  của bản local).
+
+**Best practice**
+
+- Phạm vi chi nhánh là dữ liệu riêng, kiểm ở service cho cả đọc lẫn ghi. Ghi phải kiểm chi nhánh của
+  chính đơn bị sửa (Saleor), không chỉ lọc danh sách (TastyIgniter chỉ lọc màn hình Admin).
+- "Thấy mọi chi nhánh" phải là cờ lưu rõ ràng (Saleor `restricted_access_to_channels`), không suy ra
+  từ danh sách rỗng. Thiếu dữ liệu thì từ chối.
+- Condition Strapi phải trả `false` khi user không có scope, không bao giờ trả `undefined`/`null`, vì
+  engine coi kết quả không hợp lệ là không có điều kiện.
+- Gắn scope theo role (Vendure, Saleor) hợp với tổ chức ổn định; gắn theo user (TastyIgniter) hợp với
+  chuỗi quán có nhân viên luân chuyển. Plugin không sửa được schema role/user của Strapi, nên bảng
+  riêng là đường duy nhất cho cả hai cách.
+- "Chỉ đơn giao cho mình" là chiều khác, thuộc module phân đơn về sau.
+
+### C17.2. Múi giờ và ngày kinh doanh
+
+**Các hệ thống làm thế nào**
+
+- **TastyIgniter:** `WorkingRange::endsNextDay()` là `end < start`; `containsTime` xử lý khoảng qua nửa
+  đêm như 22:00–02:00
+  ([WorkingRange.php#L65-L88](https://github.com/tastyigniter/ti-ext-local/blob/b8e31850c6168e4195c15f3049944bad354b7e92/src/Classes/WorkingRange.php#L65-L88)).
+  `WorkingSchedule` nhận timezone
+  ([WorkingSchedule.php#L40-L42](https://github.com/tastyigniter/ti-ext-local/blob/b8e31850c6168e4195c15f3049944bad354b7e92/src/Classes/WorkingSchedule.php#L40-L42)),
+  nhưng `HasWorkingHours` tạo schedule không truyền timezone theo location
+  ([HasWorkingHours.php#L83-L85](https://github.com/tastyigniter/ti-ext-local/blob/b8e31850c6168e4195c15f3049944bad354b7e92/src/Models/Concerns/HasWorkingHours.php#L83-L85)),
+  tức cả hệ thống dùng một timezone. Đơn lưu `order_date` và `order_time` dạng giờ địa phương của lúc
+  nhận hàng ([OrderManager.php#L374-L382](https://github.com/tastyigniter/ti-ext-cart/blob/99fcb6208031bf20f9df4cda69f861080339ac62/src/Classes/OrderManager.php#L374-L382)).
+- **Odoo POS 18.0 (LGPLv3):** đơn POS bắt buộc thuộc một `pos.session` đang mở
+  ([pos_order.py#L345-L347](https://github.com/odoo/odoo/blob/8749886bd765b1bf03af9cf423f92c9beaf52a0a/addons/point_of_sale/models/pos_order.py#L345-L347)).
+  Session có `start_at`/`stop_at` và trạng thái mở → đang bán → kiểm đóng ca → đã đóng
+  ([pos_session.py#L22-L46](https://github.com/odoo/odoo/blob/8749886bd765b1bf03af9cf423f92c9beaf52a0a/addons/point_of_sale/models/pos_session.py#L22-L46));
+  mỗi điểm bán chỉ có một session chưa đóng
+  ([pos_session.py#L293-L301](https://github.com/odoo/odoo/blob/8749886bd765b1bf03af9cf423f92c9beaf52a0a/addons/point_of_sale/models/pos_session.py#L293-L301)).
+  Ngày kinh doanh vì vậy là ca, không phải ngày lịch: đơn lúc 01:00 vẫn thuộc ca mở từ chiều hôm trước.
+  Ngày đóng ca hiển thị theo timezone của user đang xem, không theo điểm bán
+  ([pos_config.py#L346-L347](https://github.com/odoo/odoo/blob/8749886bd765b1bf03af9cf423f92c9beaf52a0a/addons/point_of_sale/models/pos_config.py#L346-L347)).
+- **Medusa, Vendure, Saleor:** không thấy field timezone trong model store/channel/stock location đã
+  kiểm (Medusa `store`, `stock-location`; Vendure `channel`, `stock-location`; Saleor `channel`).
+  Các lõi thương mại điện tử lưu UTC và để báo cáo tự xử lý.
+
+**Best practice**
+
+- Lưu mọi mốc thời gian bằng UTC, kèm IANA timezone trên từng chi nhánh.
+- Tính và lưu `businessDate` một lần lúc đặt đơn, theo timezone và giờ chốt ngày của chi nhánh. Báo
+  cáo nhóm theo cột đã lưu, nên đổi giờ chốt về sau không viết lại lịch sử. TastyIgniter lưu ngày/giờ
+  địa phương thành cột riêng; Odoo gắn đơn vào ca.
+- Giờ mở cửa cho phép `end < start` nghĩa là đóng sau nửa đêm (TastyIgniter).
+- Hiển thị và tính slot theo timezone chi nhánh, không theo timezone của server hay người xem (lỗi
+  Odoo tránh được nếu lưu timezone ở điểm bán).
+- Ca bán hàng/đóng ca kiểu Odoo hữu ích cho đối soát tiền mặt; là module về sau, không bắt buộc ở lõi.
+
+### C17.3. Theo dõi vận hành và cảnh báo
+
+**Các hệ thống làm thế nào**
+
+- **WooCommerce webhook (GPL):** mỗi lần gửi lỗi tăng `failure_count`; vượt
+  `woocommerce_max_webhook_delivery_failures` (mặc định 5) thì tự chuyển webhook sang `disabled`;
+  gửi thành công thì đặt lại về 0
+  ([class-wc-webhook.php#L577-L602](https://github.com/woocommerce/woocommerce/blob/5fb08bdc3cd394aa3748f1e74e46bf0681e85183/plugins/woocommerce/includes/class-wc-webhook.php#L577-L602)).
+- **Action Scheduler (GPL):** màn hình Admin cảnh báo khi có action quá hạn lâu hơn ngưỡng (mặc định
+  1 ngày, tối thiểu 1 action), kết quả kiểm được cache theo chu kỳ bằng 1/4 ngưỡng
+  ([ActionScheduler_AdminView.php#L176-L212](https://github.com/woocommerce/action-scheduler/blob/3a8178faa44f5b6dc2c7e56eb4a0195f80f86c64/classes/ActionScheduler_AdminView.php#L176-L212)).
+  `QueueCleaner` trả lại action đã claim mà không chạy sau 300 giây, đánh dấu lỗi action chạy quá 300
+  giây, giữ action xong 1 tháng và action lỗi 3 tháng
+  ([ActionScheduler_QueueCleaner.php#L112-L121](https://github.com/woocommerce/action-scheduler/blob/3a8178faa44f5b6dc2c7e56eb4a0195f80f86c64/classes/ActionScheduler_QueueCleaner.php#L112-L121),
+  [#L320-L355](https://github.com/woocommerce/action-scheduler/blob/3a8178faa44f5b6dc2c7e56eb4a0195f80f86c64/classes/ActionScheduler_QueueCleaner.php#L320-L355)).
+- **Saleor:** `AppProblem` có `key`, `count`, `is_critical`, `dismissed`, người dismiss và giới hạn 100
+  bản ghi mỗi app ([app/models.py#L199-L213](https://github.com/saleor/saleor/blob/782a751f622c4a047798ce7084b7c66c0877ec6f/saleor/app/models.py#L199-L213)).
+  Báo lại cùng `key` trong `aggregation_period` (mặc định 60 phút) chỉ tăng `count`; đạt
+  `critical_threshold` thì thành critical; ngoài cửa sổ thì tạo bản ghi mới; vượt giới hạn thì xóa bản
+  cũ nhất ([app_problem_create.py#L76-L90](https://github.com/saleor/saleor/blob/782a751f622c4a047798ce7084b7c66c0877ec6f/saleor/graphql/app/mutations/app_problem_create.py#L76-L90),
+  [#L136-L170](https://github.com/saleor/saleor/blob/782a751f622c4a047798ce7084b7c66c0877ec6f/saleor/graphql/app/mutations/app_problem_create.py#L136-L170)).
+  Webhook gửi ra có `EventDelivery` và từng `EventDeliveryAttempt` kèm status
+  ([core/models.py#L212-L240](https://github.com/saleor/saleor/blob/782a751f622c4a047798ce7084b7c66c0877ec6f/saleor/core/models.py#L212-L240)).
+- **Vendure:** job có `retries`, `attempts` và trạng thái `RETRYING`/`FAILED`
+  ([job.ts](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/core/src/job-queue/job.ts));
+  endpoint health check gom các strategy đã đăng ký
+  ([health-check.controller.ts](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/core/src/health-check/health-check.controller.ts)).
+- **Strapi 5.51.1:** chỉ có `/_health` (`@strapi/core/dist/services/server/index.js`), cho biết process
+  còn sống, không biết outbox hay webhook có kẹt không.
+
+**Best practice**
+
+- Cảnh báo là bản ghi có `key`, cửa sổ gộp, `count`, ngưỡng critical, trạng thái đã xem và giới hạn số
+  bản ghi (Saleor). Cùng lỗi lặp lại chỉ tăng đếm, không gửi thêm.
+- Ngưỡng là cấu hình có giá trị mặc định (WooCommerce 5 lần, Action Scheduler 1 ngày/300 giây), không
+  hard-code. Đặt lại bộ đếm khi thành công.
+- Phát hiện "kẹt" bằng tuổi của việc chờ lâu nhất và lease quá hạn, không chỉ bằng số lần lỗi.
+- Có trang trạng thái vận hành riêng (backlog outbox, việc chờ lâu nhất, lần webhook thành công gần
+  nhất theo provider, cảnh báo đang mở), vì health check của Strapi không thấy các thứ này.
+- Có thời hạn lưu khác nhau cho việc thành công và việc lỗi (Action Scheduler).
 
 ---
 
@@ -772,6 +1115,76 @@ Các file source đã đọc được dẫn trực tiếp trong Phần A và Ph�
   [DB store](https://github.com/woocommerce/action-scheduler/blob/3a8178faa44f5b6dc2c7e56eb4a0195f80f86c64/classes/data-stores/ActionScheduler_DBStore.php),
   [GPLv3 license](https://github.com/woocommerce/action-scheduler/blob/3a8178faa44f5b6dc2c7e56eb4a0195f80f86c64/license.txt); chỉ học thiết kế.
 
+### Vòng 4
+
+- Strapi database local `@strapi/database/dist/index.js`, `transaction-context.d.ts`,
+  `query/query-builder.js`: callback transaction, Knex `getConnection`, `forUpdate` và transaction
+  context; đối chiếu [Strapi v5.51.1 database](https://github.com/strapi/strapi/tree/v5.51.1/packages/core/database).
+- Strapi core local `services/document-service/index.js` và
+  `services/document-service/middlewares/middleware-manager.js`: middleware chỉ bọc Document Service;
+  direct `strapi.db.query` bypass wrapper; đối chiếu [Document Service middleware](https://docs.strapi.io/cms/api/document-service/middlewares).
+- Strapi content-manager local `services/data-mapper.js` và `services/content-types.js`:
+  `pluginOptions.content-manager.visible` mặc định true và tạo `isDisplayed`; đối chiếu
+  [content-manager source](https://github.com/strapi/strapi/tree/v5.51.1/packages/core/content-manager).
+- Strapi admin/permissions local `domain/action/provider.js`, `domain/condition/provider.js`,
+  `permissions/dist/engine/index.js`: đăng ký action/condition trước bootstrap và evaluate condition
+  thành ability/query; đối chiếu [Strapi admin source](https://github.com/strapi/strapi/tree/v5.51.1/packages/core/admin).
+- Strapi core local `providers/cron.js`, `services/cron.js`: `server.cron.tasks` tạo
+  `node-schedule` job trên từng process, không có claim dùng chung; đối chiếu [cron docs](https://docs.strapi.io/cms/configurations/cron).
+- Medusa: [`product-option.ts`](https://github.com/medusajs/medusa/blob/146c46b0ad1146b40595c8ef586c4d5890982603/packages/modules/product/src/models/product-option.ts),
+  [`product-variant.ts`](https://github.com/medusajs/medusa/blob/146c46b0ad1146b40595c8ef586c4d5890982603/packages/modules/product/src/models/product-variant.ts),
+  [`product-type.ts`](https://github.com/medusajs/medusa/blob/146c46b0ad1146b40595c8ef586c4d5890982603/packages/modules/product/src/models/product-type.ts),
+  [`product-variant-inventory-item.ts`](https://github.com/medusajs/medusa/blob/146c46b0ad1146b40595c8ef586c4d5890982603/packages/modules/link-modules/src/definitions/product-variant-inventory-item.ts): option, variant, product type và required quantity cho kit.
+- Vendure: [`product-option-group.entity.ts`](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/core/src/entity/product-option-group/product-option-group.entity.ts),
+  [`facet.entity.ts`](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/core/src/entity/facet/facet.entity.ts),
+  [`order-item-price-calculation-strategy.ts`](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/core/src/config/order/order-item-price-calculation-strategy.ts),
+  [`order-line-discount-distribution-strategy.ts`](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/core/src/config/order/order-line-discount-distribution-strategy.ts): option/facet/custom field, giá dòng và weight phân bổ discount.
+- WooCommerce: `WC_Product_Factory` và `WC_Cart::generate_cart_id`: class product và cart identity
+  tách variation khỏi cart data; [source](https://github.com/woocommerce/woocommerce/tree/5fb08bdc3cd394aa3748f1e74e46bf0681e85183/plugins/woocommerce/includes).
+- Bagisto: `packages/Webkul/Product/src/Type/{Simple,Configurable,Grouped,Bundle,Virtual,Downloadable,Booking}.php`
+  và booking helpers: product type và slot; [source](https://github.com/bagisto/bagisto/tree/3fb8300b6343baefcf57bec5b6a9c188a2177d57/packages/Webkul/Product/src/Type).
+- Saleor: `saleor/payment/models.py`, `transaction_item_calculations.py`: các amount đã charge,
+  authorize, refund, cancel và event cộng dồn; [source](https://github.com/saleor/saleor/tree/782a751f622c4a047798ce7084b7c66c0877ec6f/saleor/payment).
+- Sylius: `sylius_order.yaml`, `OrderPaymentStates.php`, `OrderShippingStates.php`: state machine
+  order/checkout/payment/shipping tách trục; [source](https://github.com/Sylius/Sylius/tree/39313695548c709756ee9073bf309fa4ae89365a/src/Sylius/Bundle/CoreBundle/Resources/config/app/workflow).
+- Medusa: event-bus local, workflow execution, `locking-postgres/src/services/advisory-lock.ts`,
+  `order-change.ts`, `tax-provider.ts`, `payment-collection.ts`; các file xác nhận event/retry/lock,
+  order change, tax provider và collection; [source](https://github.com/medusajs/medusa/tree/146c46b0ad1146b40595c8ef586c4d5890982603/packages).
+- Action Scheduler: `ActionScheduler_QueueRunner.php`, `ActionScheduler_DBStore.php`,
+  `ActionScheduler_DBLogger.php`: claim batch, retry và log; [source](https://github.com/woocommerce/action-scheduler/tree/3a8178faa44f5b6dc2c7e56eb4a0195f80f86c64/classes).
+- TastyIgniter local: `WorkingSchedule.php`, `WorkingTimeslot.php`: giờ mở, timeslot và policy theo
+  local; [source](https://github.com/tastyigniter/ti-ext-local/tree/b8e31850c6168e4195c15f3049944bad354b7e92/src/Classes).
+- SePay: các trang [tích hợp webhook](https://developer.sepay.vn/vi/sepay-webhooks/tich-hop-webhook),
+  [xác thực](https://developer.sepay.vn/vi/sepay-webhooks/xac-thuc),
+  [bảo mật](https://developer.sepay.vn/vi/sepay-webhooks/bao-mat),
+  [xử lý lỗi](https://developer.sepay.vn/vi/sepay-webhooks/xu-ly-loi),
+  [đối soát](https://developer.sepay.vn/vi/sepay-webhooks/doi-soat-giao-dich): payload, ACK exact,
+  HMAC/API Key, replay, retry, API `GET /v2/transactions` và đối soát định kỳ.
+
+### Sau review vòng 4 (C17)
+
+- Vendure `role.entity.ts`, `get-user-channels-permissions.ts`, `request-context.ts`,
+  `list-query-builder.ts`: quyền theo cặp role–channel, lọc list theo channel của request.
+- Saleor `account/models.py`, `graphql/account/dataloaders.py`, `graphql/order/resolvers.py`,
+  `graphql/core/mutations.py`: cờ hạn chế channel lưu rõ ràng, lọc truy vấn và kiểm object khi sửa.
+- TastyIgniter `ti-ext-local` `Location.php`, `LocationAwareController.php`; `ti-ext-user`
+  [`User.php`](https://github.com/tastyigniter/ti-ext-user/blob/3077e34fc9b6ee7a2df3beed79bf5d6171df9fbc/src/Models/User.php):
+  lọc theo location chỉ ở màn hình Admin, danh sách rỗng thì không lọc; `sale_permission` 1/2/3.
+- Medusa `rbac-policy.ts`, `rbac-role.ts`: RBAC theo resource/operation, không có chiều chi nhánh.
+- Strapi local `@strapi/permissions/dist/engine/index.js`: handler async được await; kết quả không hợp
+  lệ bị loại và có thể dẫn tới cấp quyền không điều kiện.
+- TastyIgniter `WorkingRange.php`, `WorkingSchedule.php`, `HasWorkingHours.php`, `ti-ext-cart`
+  `OrderManager.php`: giờ qua nửa đêm, một timezone toàn hệ thống, lưu ngày/giờ địa phương trên đơn.
+- Odoo 18.0 (LGPLv3) `pos_session.py`, `pos_order.py`, `pos_config.py`: đơn thuộc ca, một ca mở mỗi
+  điểm bán, ngày đóng ca hiển thị theo timezone người xem.
+- WooCommerce `class-wc-webhook.php`: tự tắt webhook sau 5 lần lỗi liên tiếp, thành công thì đặt lại.
+- Action Scheduler `ActionScheduler_AdminView.php`, `ActionScheduler_QueueCleaner.php`: cảnh báo việc
+  quá hạn, timeout claim/chạy 300 giây, thời hạn lưu 1 tháng/3 tháng.
+- Saleor `app/models.py`, `graphql/app/mutations/app_problem_create.py`, `core/models.py`: cảnh báo
+  gộp theo key và cửa sổ thời gian, ngưỡng critical, giới hạn số bản ghi.
+- Vendure `job.ts`, `health-check.controller.ts`; Strapi local `services/server/index.js`: retry/trạng
+  thái job, health check theo strategy; `/_health` của Strapi chỉ báo process còn sống.
+
 ### Chưa kiểm được
 
 - Chưa chạy plugin fixture với PostgreSQL để xác nhận lock transaction, Document Service middleware
@@ -779,3 +1192,7 @@ Các file source đã đọc được dẫn trực tiếp trong Phần A và Ph�
 - Chưa có tài khoản SePay live để xác nhận delivery/retry và dữ liệu thực tế; các field/response trên
   là contract tài liệu chính thức.
 - Chưa có quyết định kế toán/pháp lý cho hóa đơn, VAT, retention cụ thể, phát hành voucher và deposit.
+- Chưa chạy fixture để xác nhận permission condition lọc theo branch, behavior khi gọi trực tiếp
+  `strapi.db.query`, claim/lease giữa hai Strapi process, và build TypeScript bằng `@strapi/sdk-plugin`.
+- Chưa có tài khoản SePay live để xác nhận API reconciliation, replay thực tế, whitelist IP và hành vi
+  khi response timeout; tài liệu chính thức mới xác nhận contract và lịch retry đã ghi ở C10.
