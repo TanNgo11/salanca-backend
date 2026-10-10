@@ -83,7 +83,7 @@ Chia thành các lát, mỗi lát demo được:
 4. **Tạo và tra cứu đơn:** `POST /ordering/orders` với captcha Turnstile, rate limit, `Idempotency-Key`;
    tra cứu bằng `X-Order-Token`, link `#t=`; khách hủy khi còn cho phép.
 5. **Admin xử lý đơn:** hộp đơn mới có báo realtime (dùng lại cách làm của hộp thư đặt bàn), chi tiết
-   đơn, chuyển bước, "Thu tiền và giao", lọc theo chi nhánh, 12 permission, màn gán nhân viên vào chi
+   đơn, chuyển bước, "Thu tiền và giao", lọc theo chi nhánh, 14 permission + 2 quyền catalog, màn gán nhân viên vào chi
    nhánh.
 6. **SePay:** QR VietQR + memo, webhook (HMAC trên body gốc, chống trùng), tự khớp, màn "Duyệt chuyển
    khoản", ghi nhận chuyển khoản thủ công, job đối soát `GET /v2/transactions`.

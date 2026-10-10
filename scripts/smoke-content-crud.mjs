@@ -1,13 +1,9 @@
 import assert from 'node:assert/strict';
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
-const { compileStrapi, createStrapi } = require('@strapi/core');
+import { loadStrapiApp } from './lib/strapi-load.mjs';
 
 const suffix = `${Date.now()}-${process.pid}`;
 const created = [];
-const appContext = await compileStrapi();
-const app = await createStrapi(appContext).load();
+const app = await loadStrapiApp();
 
 async function create(uid, data) {
   const document = await app.documents(uid).create({ data });

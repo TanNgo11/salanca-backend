@@ -50,7 +50,10 @@ const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Middlewar
       config: {
         origin: frontendOrigins,
         credentials: true,
-        headers: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
+        headers: [
+          'Content-Type', 'Authorization', 'Origin', 'Accept',
+          ...(env.bool('ORDERING_ENABLED', false) ? ['X-Order-Token', 'Idempotency-Key'] : []),
+        ],
         methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'],
         keepHeaderOnError: true,
       },
@@ -65,6 +68,7 @@ const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Middlewar
         jsonLimit: '256kb',
         formLimit: '256kb',
         textLimit: '256kb',
+        ...(env.bool('ORDERING_ENABLED', false) ? { includeUnparsed: true } : {}),
       },
     },
     // Admin audit trail: login outcomes, role-permission saves, token and

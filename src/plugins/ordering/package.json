@@ -1,0 +1,30 @@
+{
+  "name": "strapi-plugin-ordering",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Generic catalog, ordering and payment plugin for Strapi 5.",
+  "license": "UNLICENSED",
+  "strapi": {
+    "kind": "plugin",
+    "name": "ordering",
+    "displayName": "Ordering",
+    "description": "Generic catalog, ordering and payment plugin."
+  },
+  "exports": {
+    "./strapi-server": {
+      "require": "./dist/server/index.js"
+    },
+    "./strapi-admin": {
+      "import": "./admin/src/index.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsc -p server/tsconfig.json",
+    "watch": "tsc -p server/tsconfig.json --watch --preserveWatchOutput"
+  },
+  "peerDependencies": {
+    "@strapi/strapi": "^5.51.1",
+    "@strapi/utils": "^5.51.1"
+  }
+}

@@ -1,7 +1,7 @@
 # Phase O0 — Spike plugin `ordering` trống
 
-Trạng thái: spec chờ duyệt (2026-10-10). Quy tắc của chủ dự án: viết spec mọi phase, duyệt xong mới
-code. Roadmap: [`plans/ordering-roadmap.md`](../plans/ordering-roadmap.md). Kế hoạch thực hiện
+Trạng thái: automated verification passed; chờ manual UAT/staging. Chủ dự án duyệt spec và cho bắt đầu O0 (2026-10-10). Roadmap:
+[`plans/ordering-roadmap.md`](../plans/ordering-roadmap.md). Kế hoạch thực hiện
 chi tiết: [`plans/ordering-spike.md`](../plans/ordering-spike.md). Thiết kế:
 [`plans/ordering-core-contracts.md`](../plans/ordering-core-contracts.md).
 

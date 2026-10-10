@@ -1,7 +1,12 @@
 import type { Core } from '@strapi/strapi';
 import { describe, expect, it } from 'vitest';
 
-import config, { resolveAuthCookieConfig, uploadBreakpoints } from './plugins';
+import config, {
+  orderingPluginPath,
+  resolveAuthCookieConfig,
+  resolveOrderingPluginConfig,
+  uploadBreakpoints,
+} from './plugins';
 
 type EnvironmentValues = Readonly<Record<string, string | boolean | undefined>>;
 
@@ -221,5 +226,29 @@ describe('email plugin configuration', () => {
         },
       }),
     });
+  });
+});
+
+describe('ordering plugin configuration', () => {
+  it('declares the local plugin but keeps it disabled by default', () => {
+    expect(config(createParams(s3Environment)).ordering).toEqual({
+      enabled: false,
+      resolve: orderingPluginPath,
+      config: {},
+    });
+  });
+
+  it('enables the plugin when ORDERING_ENABLED is true and the server build exists', () => {
+    const env = createEnv({ ORDERING_ENABLED: 'true' });
+    expect(resolveOrderingPluginConfig(env, () => true)).toEqual({
+      enabled: true,
+      resolve: orderingPluginPath,
+      config: {},
+    });
+  });
+
+  it('fails startup when the plugin is enabled without a server build', () => {
+    const env = createEnv({ ORDERING_ENABLED: 'true' });
+    expect(() => resolveOrderingPluginConfig(env, () => false)).toThrow(/build:ordering/);
   });
 });

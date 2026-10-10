@@ -1,7 +1,7 @@
 # Spike plugin `ordering` trống (Mốc 0)
 
-Status: Draft
-Owner: tan_ngo (duyệt), Claude (thực hiện)
+Status: Ready for manual UAT
+Owner: tan_ngo (duyệt), Codex (tiếp tục thực hiện từ stash bước 1)
 Last updated: 2026-10-10
 Related phase: [`phases/phase-ordering-0-spike.md`](../phases/phase-ordering-0-spike.md) (O0,
 `docs/plans/ordering-roadmap.md`).
@@ -43,8 +43,8 @@ quyết định cách đóng gói plugin.
 - Decision: chạy spike trên database riêng `salanca_ordering_spike`, không dùng DB dev hay production.
 - Decision: plugin bật bằng `ORDERING_ENABLED` (mặc định `false`), để nhánh spike dù có merge cũng
   không đổi hành vi production.
-- Assumption: cần `@strapi/sdk-plugin` để build plugin TypeScript có admin. Kiểm ở bước 1 bằng cách so
-  hai cách (build riêng bằng SDK, hoặc để build của app biên dịch); chọn cách chạy được trên Nixpacks.
+- Confirmed: build server plugin riêng bằng `tsc`; Admin nạp source qua package exports. Chưa cần
+  `@strapi/sdk-plugin`. Script `build` của app build plugin trước để dùng cùng lệnh trên Nixpacks.
 - Assumption: Strapi 5 không có cơ chế migration riêng cho plugin. Kiểm ở bước 8; nếu đúng, chọn giữa
   migration của app (`database/migrations`) do plugin cung cấp file mẫu, hoặc DDL idempotent trong
   bootstrap có khóa advisory.
@@ -170,6 +170,13 @@ quyết định cách đóng gói plugin.
 - Bước 11 cần quyền Dokploy.
 
 ## Completion record
+
+- 2026-10-10: chủ dự án duyệt spec, cho tiếp tục O0. Khôi phục stash bằng `apply` trên nhánh
+  `spike/ordering-plugin`, giữ nguyên stash dự phòng. Kết quả hiện tại ở `ordering-spike-report.md`.
+- 2026-10-10: automated verification passed cho các probe lifecycle, schema, transaction/lock,
+  Document Service bypass, branch condition, SKIP LOCKED lease, raw-body HMAC, migration,
+  catalog JSONB/custom field, business date, type generation, lint, typecheck, test và build.
+- Còn mở: Admin UAT và staging Dokploy; phase chưa được ghi là closed.
 
 - Bước 1 đã làm một phần trước khi spec được duyệt (2026-10-10), rồi dừng theo yêu cầu chủ dự án. Code
   nằm trong `git stash` "ordering O0 spike step 1 (plugin skeleton, config, load script)"; lấy lại bằng

@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
 import type { Core } from '@strapi/strapi';
 
 import { resolveRestApiPrefix } from './api-prefix.helper';
@@ -86,6 +89,31 @@ export const resolveAuthCookieConfig = (env: Core.Config.Shared.ConfigParams['en
   };
 };
 
+/** Local generic ordering plugin (docs/plans/ordering-roadmap.md). Off unless ORDERING_ENABLED=true. */
+export const orderingPluginPath = './src/plugins/ordering';
+const orderingServerEntry = 'dist/server/index.js';
+
+export const resolveOrderingPluginConfig = (
+  env: Core.Config.Shared.ConfigParams['env'],
+  serverEntryExists: (relativePath: string) => boolean = (relativePath) =>
+    fs.existsSync(path.resolve(process.cwd(), relativePath)),
+) => {
+  const enabled = env.bool('ORDERING_ENABLED', false);
+  // Strapi silently skips a plugin whose server entry is missing; fail loudly instead.
+  if (enabled && !serverEntryExists(path.join(orderingPluginPath, orderingServerEntry))) {
+    throw new Error(
+      `ORDERING_ENABLED=true but ${orderingPluginPath}/${orderingServerEntry} is missing; run pnpm run build:ordering.`,
+    );
+  }
+  return {
+    enabled,
+    resolve: orderingPluginPath,
+    config: env.bool('ORDERING_SPIKE_ENABLED', false)
+      ? { spike: { enabled: true, webhookSecret: env('ORDERING_SPIKE_SECRET', '') } }
+      : {},
+  };
+};
+
 const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Plugin => {
   assertProductionMediaStorage(env);
 
@@ -125,6 +153,7 @@ const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Plugin =>
     upload: {
       config: uploadConfig,
     },
+    ordering: resolveOrderingPluginConfig(env),
   };
 };
 

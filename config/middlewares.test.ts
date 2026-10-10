@@ -163,6 +163,14 @@ describe('cors middleware', () => {
       'https://www.salanca.example',
     ]);
   });
+
+  it('opens ordering headers and keeps the raw body only when ordering is enabled', () => {
+    const enabled = config({ env: createEnv({ ...s3Environment, ORDERING_ENABLED: 'true' }) } as Core.Config.Shared.ConfigParams);
+    const cors = enabled.find(isCorsEntry);
+    const body = enabled.find((entry) => typeof entry === 'object' && entry !== null && 'name' in entry && (entry as { name?: string }).name === 'strapi::body') as { config?: Record<string, unknown> } | undefined;
+    expect(cors?.config?.headers).toEqual(expect.arrayContaining(['X-Order-Token', 'Idempotency-Key']));
+    expect(body?.config?.includeUnparsed).toBe(true);
+  });
 });
 
 describe('structured request logging', () => {
