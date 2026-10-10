@@ -1,6 +1,6 @@
 # Phase O2 — Module catalog
 
-Trạng thái: automated verification passed (2026-10-10) — xem Completion record trong
+Trạng thái: automated verification passed sau review fix (2026-10-10) — xem Completion record trong
 [`plans/ordering-o2-catalog.md`](../plans/ordering-o2-catalog.md); UAT thủ công và quyết
 định merge của chủ dự án còn mở. Roadmap: [`plans/ordering-roadmap.md`](../plans/ordering-roadmap.md).
 Mockup: [`plans/mockups/ordering-o2-catalog.html`](../plans/mockups/ordering-o2-catalog.html).

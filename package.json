@@ -6,7 +6,7 @@
   "packageManager": "pnpm@11.7.0",
   "scripts": {
     "build": "pnpm run build:ordering && strapi build",
-    "build:ordering": "tsc -p src/plugins/ordering/server/tsconfig.json",
+    "build:ordering": "node scripts/ordering/build-server.mjs",
     "console": "strapi console",
     "data:export": "strapi export",
     "data:import": "strapi import",

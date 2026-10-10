@@ -1,6 +1,6 @@
 import { forwardRef } from 'react';
 
-import { validateBundleSlots } from '../../../../server/src/domain/catalog/bundle-slots';
+import { validateBundleSlots } from '../../../../shared/catalog/bundle-slots';
 import SchemaJsonInput, { type JsonValidation } from '../SchemaJsonInput';
 
 const validate = (raw: unknown): JsonValidation => {

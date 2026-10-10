@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
+import { validateModifierGroupRefs } from './modifier-groups';
 import {
   type ModifierLibrary,
-  validateModifierGroupRefs,
   validateModifierGroups,
-} from './modifier-groups';
+} from '../../../../shared/catalog/modifier-groups';
 
 const validGroup = (overrides = {}) => ({
   groupRef: 'grp1',

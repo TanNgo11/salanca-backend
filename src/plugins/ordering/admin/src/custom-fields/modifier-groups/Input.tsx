@@ -1,6 +1,6 @@
 import { forwardRef } from 'react';
 
-import { validateModifierGroups } from '../../../../server/src/domain/catalog/modifier-groups';
+import { validateModifierGroups } from '../../../../shared/catalog/modifier-groups';
 import SchemaJsonInput, { type JsonValidation } from '../SchemaJsonInput';
 
 const validate = (raw: unknown): JsonValidation => {

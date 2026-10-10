@@ -11,10 +11,10 @@
     "resolveJsonModule": true,
     "noEmitOnError": true,
     "declaration": false,
-    "rootDir": "src",
-    "outDir": "../dist/server",
+    "rootDir": "..",
+    "outDir": "../dist/server-tmp",
     "types": ["node"]
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "../shared/**/*.ts"],
   "exclude": ["src/**/*.test.ts"]
 }

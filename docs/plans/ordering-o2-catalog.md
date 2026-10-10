@@ -140,8 +140,8 @@ từ adapter `ordering-catalog`.
 
 ## Completion record
 
-Automated verification passed on `feat/ordering-o2` (14 commits trên `feat/ordering-o1`,
-chưa merge/push theo quyết định của chủ dự án). Thực hiện 2026-10-10.
+Automated verification passed after the O2 review fix on `feat/ordering-o2` (new commits
+remain unmerged/unpushed by owner decision). Thực hiện 2026-10-10.
 
 - **Bước 1–11 hoàn tất** (commit trên `feat/ordering-o2`): 9 content type catalog +
   migration 0002; validator `localized-text` + ô nhập theo locale; slug theo locale qua
@@ -155,14 +155,21 @@ chưa merge/push theo quyết định của chủ dự án). Thực hiện 2026-
   (`isFeatured` còn sau 2 lần boot — `catalog-extension.mjs`); hướng dẫn nhân viên
   `docs/ordering-catalog-guide.md`; middleware ghi `admin-change-log` cho mọi write
   Document Service lên catalog CT; `security-baseline.md` ghi mặt tấn công public API.
+- **O2 review fix:** validator cấu trúc `modifierGroups`/`bundleSlots` chuyển sang module
+  thuần TypeScript dùng chung ở `src/plugins/ordering/shared/catalog/`; server chỉ giữ
+  ref-check DB. Admin không còn import `server/` hay `@strapi/utils`; guard import và
+  `ORDERING_ENABLED=true strapi build` được đưa vào `check:ordering`.
 - **Gates:** `lint` ✓, `typecheck` ✓, `test` 137 file / 978 ✓, `build` (server + admin
-  Vite) ✓, `check:ordering` 18/18 script trên `salanca_ordering_test` ✓ (gồm
-  `disable-survives` — boot với plugin tắt giữ nguyên bảng).
-- **`check:phase3` bị chặn ở `smoke:i18n`:** guard của script từ chối chạy vì dev DB
-  `salanca_cms` đang có 4 bản ghi `global-setting` thật (bảo vệ nội dung biên tập, không
-  liên quan thay đổi O2). `verify:schema` ✓ và `smoke:crud` ✓ đã chạy; phần còn lại của
-  phase3 chạy riêng lẻ ✓. Cần chủ dự án quyết định chạy smoke:i18n trên DB trống.
-- **UAT thủ công còn mở** (theo spec): màn Danh mục (kéo-thả, xóa có sản phẩm), màn Tạm
-  hết món (scope nhân viên thật), nhập catalog theo `ordering-catalog-guide.md`, đổi
-  ngôn ngữ Admin sang English kiểm tra chuỗi, `curl` 3 public route.
-- Quyết định merge/push thuộc chủ dự án; chưa có code O2 trên `main`.
+  Vite) ✓, `check:ordering` 20/20 script trên `salanca_ordering_test` ✓ (gồm import
+  guard, Admin build, và `disable-survives`).
+- **`check:phase3` trên `salanca_ordering_test`:** `ORDERING_ENABLED=false` EXIT=0 ✓;
+  `ORDERING_ENABLED=true` EXIT=0 ✓. Cả hai chạy đủ verify:schema, smoke:crud,
+  smoke:i18n, typecheck, test (137/978), và build (Admin bật plugin). Các webhook
+  `fetch failed` chỉ là endpoint ngoài không chạy; smoke vẫn pass, không làm gate fail.
+- **Rate limit — Việc mở cho OW:** `catalog.ts` hiện dùng `ctx.request.ip`; sau
+  Cloudflare hoặc khi Next.js gọi server-to-server, nhiều khách có thể dùng chung bucket.
+  Trước OW cần chốt nguồn IP tin cậy: header IP khách có shared secret như form intake,
+  hoặc `CF-Connecting-IP` chỉ khi request đến thẳng từ Cloudflare. Không sửa trong O2.
+- **UAT Admin:** chưa thực hiện được (không có phiên Admin đã xác thực trong môi trường
+  này); không tạo/sửa dữ liệu và không claim hai custom field đã được kiểm chứng bằng tay.
+- Quyết định merge/push thuộc chủ dự án; chưa push.

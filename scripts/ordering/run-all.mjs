@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 
 const scripts = [
+  'check-admin-imports.mjs',
+  'admin-build.mjs',
   'schema.mjs',
   'disable-survives.mjs',
   'registry-boot.mjs',

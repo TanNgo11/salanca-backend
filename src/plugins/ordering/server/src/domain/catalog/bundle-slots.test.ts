@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { validateBundleSlotRefs, validateBundleSlots } from './bundle-slots';
+import { validateBundleSlotRefs } from './bundle-slots';
+import { validateBundleSlots } from '../../../../shared/catalog/bundle-slots';
 
 const slot = (overrides = {}) => ({
   key: 'main',
