@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O3 Tự lấy, tiền mặt</title>
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body>
+<main class="doc">
+
+<header class="doc-head">
+  <p class="eyebrow">Mockup · Phase O3 · Đặt hàng tự lấy, trả tiền mặt</p>
+  <h1>Nhân viên nhận và xử lý đơn trong Admin</h1>
+  <p class="lead">Luồng chạy trọn đầu tiên: khách đặt (qua API, web làm ở OW), nhân viên thấy đơn mới ngay, xử lý theo
+    từng bước, thu tiền mặt khi giao. Có tạo đơn hộ khách gọi điện và hủy một phần món.</p>
+  <div class="links">
+    <a href="../../phases/phase-ordering-3-pickup-cash.md">Spec O3</a>
+    <a href="../ordering-o3-pickup-cash.md">Kế hoạch O3 (14 bước)</a>
+    <a href="../ordering-core-contracts.md">Contracts mục 19, 21</a>
+  </div>
+</header>
+
+<section class="screen">
+  <h2>1. Hộp đơn: báo đơn mới tức thì</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/orders</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a>Trang chủ</a><a>Quản lý nội dung</a><a class="active">Bán hàng <span class="count">3</span></a><a>Hộp thư đặt bàn</a><a>Cài đặt</a></nav>
+        <div class="content">
+          <div class="spread">
+            <div class="page-head"><div><h3>Đơn hàng</h3><small>Ngày kinh doanh 10/10 · Salanca Q1</small></div></div>
+            <div class="toast"><strong>Đơn mới SLC-000124</strong><span>Tự lấy 12:30 · 2 món · 175.000đ · trả khi nhận</span><span class="small muted">vừa xong · có âm báo</span></div>
+          </div>
+          <div class="row"><span class="select">Chi nhánh: Q1</span><span class="select">Ngày: 10/10</span><span class="input empty">Tìm mã đơn, SĐT…</span><span class="btn secondary">+ Tạo đơn hộ</span></div>
+          <div class="tabs"><span class="on">Chờ nhận (3)</span><span>Đang chuẩn bị (4)</span><span>Sẵn sàng (2)</span><span>Xong</span><span>Hủy</span><span>Tất cả</span></div>
+          <div class="panel" style="padding:0"><div class="table-wrap"><table class="t">
+            <thead><tr><th>Mã</th><th>Giờ lấy</th><th>Khách</th><th class="num">Tổng</th><th>Thanh toán</th><th>Chờ</th><th>Nguồn</th></tr></thead>
+            <tbody>
+              <tr class="hl"><td><strong>SLC-000124</strong></td><td>12:30</td><td>Ngọc · 090•••4567</td><td class="num">175.000</td><td><span class="badge gray">Trả khi nhận</span></td><td>1 phút</td><td>Web</td></tr>
+              <tr><td>SLC-000123</td><td>12:15</td><td>Huy · 091•••1122</td><td class="num">195.000</td><td><span class="badge ok">Đã trả</span></td><td>4 phút</td><td>Web</td></tr>
+              <tr><td>SLC-000121</td><td>12:00</td><td>Chị Mai · 098•••3300</td><td class="num">320.000</td><td><span class="badge gray">Trả khi nhận</span></td><td><span class="badge warn">12 phút</span></td><td>Gọi điện</td></tr>
+            </tbody></table></div></div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Báo realtime qua SSE như hộp thư đặt bàn; polling 20 giây làm dự phòng. Chỉ nhận đơn của chi nhánh trong scope.</span></li>
+      <li><span class="n">2</span><span>Số điện thoại che bớt trong danh sách; xem đủ trong chi tiết.</span></li>
+      <li><span class="n">3</span><span>Chờ quá 10 phút (<code>slaMinutes</code>) → tô đỏ và gửi cảnh báo cho nhân viên/quản lý chi nhánh.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>2. Chi tiết đơn và các nút theo bước</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/orders/SLC-000124</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a>Trang chủ</a><a class="active">Bán hàng</a></nav>
+        <div class="content">
+          <div class="page-head"><div><h3>SLC-000124 <span class="badge amber">Chờ quán nhận</span></h3><small>Đặt 12:01 · lấy lúc 12:30 · Salanca Q1</small></div>
+            <div class="row"><span class="btn danger">Từ chối</span><span class="btn">Nhận đơn</span></div></div>
+          <div class="split">
+            <div class="panel">
+              <div class="table-wrap"><table class="t" style="min-width:0">
+                <thead><tr><th>Món</th><th class="num">SL</th><th class="num">Thành tiền</th><th></th></tr></thead>
+                <tbody>
+                  <tr><td><strong>Bún bò Huế</strong> · tô đặc biệt<br><span class="small muted">+ Chả cua · cay vừa · "ít hành"</span></td><td class="num">1</td><td class="num">100.000</td><td><span class="btn ghost">Hủy món</span></td></tr>
+                  <tr><td><strong>Combo trưa 1 người</strong><br><span class="small muted">Cơm gà xối mỡ · Trà đá</span></td><td class="num">1</td><td class="num">99.000</td><td><span class="btn ghost">Hủy món</span></td></tr>
+                </tbody></table></div>
+              <div class="spread"><span>Tạm tính</span><span>199.000</span></div>
+              <div class="spread"><span>Giảm giá</span><span>−24.000</span></div>
+              <div class="spread strong"><span>Tổng</span><span>175.000đ</span></div>
+              <div class="alert-box info">Ghi chú cả đơn: "Lấy giúp 2 bộ đũa".</div>
+            </div>
+            <div class="panel">
+              <h3>Khách</h3><p>Ngọc · 0901 234 567<br><span class="muted small">Không để email · đồng ý xử lý dữ liệu lúc 12:01 (web, chính sách v1)</span></p>
+              <h3>Lịch sử</h3>
+              <div class="timeline">
+                <div class="ev"><span></span><span>Đơn được đặt <small>12:01 · khách thấy</small></span></div>
+                <div class="ev internal"><span></span><span>Gửi email nhân viên <small>12:01 · nội bộ</small></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Nút đổi theo bước của workflow: Nhận / Từ chối → Bắt đầu chuẩn bị → Sẵn sàng → Thu tiền và giao.</span></li>
+      <li><span class="n">2</span><span>Từ chối và hủy bắt buộc nhập lý do; khách nhận email nếu có email.</span></li>
+      <li><span class="n">3</span><span>Lịch sử chấm tím = khách thấy, chấm xám = nội bộ.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>3. "Thu tiền và giao" và "Hủy món"</h2>
+  <div class="grid2">
+    <div class="frame">
+      <div class="frame-bar"><span class="url">Hộp thoại · SLC-000124 đang "Sẵn sàng"</span></div>
+      <div class="modal-backdrop"><div class="modal">
+        <header><strong>Thu tiền và giao</strong><span class="muted">✕</span></header>
+        <div class="body">
+          <div class="spread strong"><span>Cần thu</span><span>175.000đ</span></div>
+          <div class="field"><label>Hình thức</label><span class="toggle"><span class="on">Tiền mặt</span><span>Chuyển khoản tại quầy</span></span></div>
+          <div class="alert-box info">Ghi nhận tiền và chuyển đơn sang "Đã giao" cùng một lúc. Lỗi thì không đổi gì.</div>
+        </div>
+        <footer><span class="btn secondary">Hủy</span><span class="btn success">Đã thu 175.000đ và giao</span></footer>
+      </div></div>
+    </div>
+    <div class="frame">
+      <div class="frame-bar"><span class="url">Hộp thoại · Hủy món (quyền order.edit-lines)</span></div>
+      <div class="modal-backdrop"><div class="modal">
+        <header><strong>Hủy món: Bún bò Huế</strong><span class="muted">✕</span></header>
+        <div class="body">
+          <div class="field"><label>Số lượng hủy</label><span class="input">1 / 1</span></div>
+          <div class="field"><label>Lý do *</label><span class="input">Hết giò heo, khách không đổi món</span></div>
+          <div class="spread"><span>Hoàn lại (theo số đã chia giảm giá lúc đặt)</span><strong>87.940đ</strong></div>
+          <div class="alert-box amber">Đơn đã thu tiền mặt → ghi phiếu hoàn tiền mặt, người hoàn là bạn.</div>
+        </div>
+        <footer><span class="btn secondary">Đóng</span><span class="btn danger">Hủy món</span></footer>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>4. Tạo đơn hộ (khách gọi điện)</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/orders/new</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a class="active">Bán hàng</a></nav>
+        <div class="content">
+          <div class="page-head"><h3>Tạo đơn hộ</h3><span class="row"><span class="btn secondary">Lưu nháp</span><span class="btn">Xác nhận đơn</span></span></div>
+          <div class="split">
+            <div class="panel">
+              <div class="field"><label>Thêm món</label><span class="input empty">Gõ tên món… (lấy từ catalog, giá không sửa được)</span></div>
+              <table class="t" style="min-width:0"><tbody>
+                <tr><td>Lẩu Thái (2–3 người)</td><td class="num">1</td><td class="num">320.000</td></tr>
+              </tbody></table>
+              <div class="spread strong"><span>Tổng</span><span>320.000đ</span></div>
+            </div>
+            <div class="panel">
+              <div class="field"><label>Chi nhánh</label><span class="select">Salanca Q1</span></div>
+              <div class="field"><label>Khách *</label><span class="input">Chị Mai</span><span class="input">0983 333 300</span><span class="input empty">Email (không bắt buộc)</span></div>
+              <div class="field"><label>Nhận hàng</label><span class="select">Tự lấy · 12:00 hôm nay</span></div>
+              <div class="field"><label>Thanh toán</label><span class="select">Trả khi nhận (tiền mặt)</span></div>
+              <span class="check on">Khách đã đồng ý xử lý dữ liệu qua điện thoại *</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Quyền <code>order.create</code>; chỉ chọn chi nhánh trong scope.</span></li>
+      <li><span class="n">2</span><span>"Lưu nháp" = <code>draft</code>; "Xác nhận đơn" đưa đơn vào hộp đơn như đơn web.</span></li>
+      <li><span class="n">3</span><span>O4 thêm "Sao chép link thanh toán" để gửi khách qua Zalo.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>5. Cài đặt chi nhánh</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/branches/Q1</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a class="active">Bán hàng</a><a>Cài đặt</a></nav>
+        <div class="content">
+          <div class="page-head"><div><h3>Salanca Q1</h3><small>Mã chi nhánh: <code>Q1</code> (không đổi được)</small></div><span class="btn">Lưu</span></div>
+          <div class="tabs"><span>Thông tin</span><span class="on">Tự lấy</span><span>Giao tận nơi (O5)</span><span>Thuế</span></div>
+          <div class="grid2">
+            <div class="panel">
+              <div class="field"><label>Bán online</label><span class="toggle"><span>Tắt</span><span class="on">Bật</span></span></div>
+              <div class="field"><label>Giờ mở</label><span class="input">T2–T5 10:00–22:00 · T6–CN 10:00–02:00</span><span class="hint">Giờ đóng nhỏ hơn giờ mở nghĩa là qua nửa đêm</span></div>
+              <div class="field"><label>Chuẩn bị tối thiểu</label><span class="input">180 phút</span><span class="hint">"Tối thiểu 3 giờ"</span></div>
+              <div class="field"><label>Khung slot / sức chứa</label><span class="input">15 phút / 8 đơn mỗi slot</span></div>
+            </div>
+            <div class="panel">
+              <div class="field"><label>Thời điểm trả tiền</label><span class="select">Trả khi nhận</span><span class="hint">Trả trước · Quán nhận rồi trả · Trả khi nhận</span></div>
+              <div class="field"><label>Cách trả</label><span class="row"><span class="check on">Tiền mặt</span><span class="check">SePay (O4)</span></span></div>
+              <div class="field"><label>Giờ chốt ngày kinh doanh</label><span class="input">04:00</span></div>
+              <div class="field"><label>Múi giờ</label><span class="input">Asia/Ho_Chi_Minh</span></div>
+            </div>
+          </div>
+          <div class="alert-box amber">Đổi cài đặt chỉ áp cho đơn mới; đơn cũ giữ quy trình đã chọn lúc đặt.</div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Quyền <code>settings.manage</code>; mỗi lần lưu ghi nhật ký thay đổi.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>6. Gán nhân viên vào chi nhánh</h2>
+  <div class="panel">
+    <div class="spread"><h3>Nhân viên và chi nhánh</h3><span class="small muted">Quyền scope.manage · Quản trị chuỗi</span></div>
+    <div class="table-wrap"><table class="t">
+      <thead><tr><th>Nhân viên</th><th>Vai trò Strapi</th><th>Chi nhánh</th><th></th></tr></thead>
+      <tbody>
+        <tr><td>Lan</td><td>Nhân viên chi nhánh</td><td><span class="badge primary">Q1</span></td><td><span class="btn ghost">Sửa</span></td></tr>
+        <tr><td>Minh</td><td>Quản lý chi nhánh</td><td><span class="badge primary">Q1</span> <span class="badge primary">Q3</span></td><td><span class="btn ghost">Sửa</span></td></tr>
+        <tr><td>Hà</td><td>Kế toán</td><td><span class="badge info">Tất cả chi nhánh</span></td><td><span class="btn ghost">Sửa</span></td></tr>
+        <tr class="hl"><td>Tuấn (mới)</td><td>Nhân viên chi nhánh</td><td><span class="badge warn">Chưa gán: không thấy đơn nào</span></td><td><span class="btn ghost">Gán</span></td></tr>
+      </tbody></table></div>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>7. Phía khách: email và tra cứu không cần email</h2>
+  <div class="phones">
+    <div class="phone web"><div class="site-head">Salanca <small>Email gửi khách</small></div>
+      <div class="wrap"><strong>Quán đã nhận đơn SLC-000124</strong><p class="small">Đơn của bạn đang được chuẩn bị, lấy lúc 12:30 tại Salanca Q1.</p><span class="btn">Xem đơn</span><p class="small muted">Link dạng …/don-hang#t=… (token sau dấu #, không lên server log)</p></div></div>
+    <div class="phone web"><div class="site-head">Salanca <small>Tra cứu đơn</small></div>
+      <div class="wrap"><div class="field"><label>Mã đơn</label><span class="input">SLC-000124</span></div><div class="field"><label>Số điện thoại</label><span class="input">0901 234 567</span></div><span class="small muted">[Turnstile]</span><span class="btn">Tra cứu</span>
+        <div class="card"><strong>Đang chuẩn bị</strong><span class="small">Lấy lúc 12:30 · Salanca Q1 · 175.000đ · trả khi nhận</span><span class="small muted">Không hiện tên, SĐT, địa chỉ. Muốn hủy cần link trong email/trang đặt.</span></div></div></div>
+  </div>
+</section>
+
+<footer class="doc-foot">File trên máy, không publish. Tên, số điện thoại và số tiền chỉ là ví dụ.</footer>
+</main>
+</body>
+</html>

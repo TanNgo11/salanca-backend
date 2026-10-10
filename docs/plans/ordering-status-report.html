@@ -119,8 +119,8 @@
 
 <section aria-label="Tóm tắt">
   <div class="summary">
-    <div class="card"><span class="label">Phase hiện tại</span><span class="value">O0 · Spike</span><span class="note">trên nhánh <code>spike/ordering-plugin</code></span></div>
-    <div class="card"><span class="label">Mục kiểm O0 (19 mục + 3 bổ sung)</span><span class="value">19 đạt</span><span class="note">3 chuyển sang O1/O4; UAT đạt; còn staging</span></div>
+    <div class="card"><span class="label">Phase hiện tại</span><span class="value">O1 · Lõi</span><span class="note">O0 đã đóng; O1 chưa bắt đầu</span></div>
+    <div class="card"><span class="label">Mục kiểm O0 (19 mục + 3 bổ sung)</span><span class="value">19 đạt</span><span class="note">3 chuyển sang O1/O4; UAT đạt; bỏ staging</span></div>
     <div class="card"><span class="label">Test tự động</span><span class="value">677 / 677</span><span class="note"><code>check:phase3</code> đạt, plugin bật lẫn tắt</span></div>
     <div class="card"><span class="label">Còn lại theo roadmap</span><span class="value">≈ 8–11 tuần</span><span class="note">ước lượng thô O1–O6, chưa tính web</span></div>
   </div>
@@ -137,7 +137,7 @@
     <div class="phase current">
       <span class="id">O0</span>
       <span class="what"><strong>Spike plugin trống</strong><small>Chứng minh Strapi 5.51.1 làm được các việc lõi trước khi viết nghiệp vụ.</small></span>
-      <span class="est"><span class="chip partial">Đang làm</span><br>3–5 ngày</span>
+      <span class="est"><span class="chip done">Đóng</span><br>3–5 ngày</span>
     </div>
     <div class="phase">
       <span class="id">O1</span>
@@ -213,7 +213,7 @@
         <tr><td class="num">+</td><td><code>verify:schema</code>, <code>check:phase3</code> khi plugin bật/tắt</td><td><span class="chip done">Đạt</span></td><td>Chạy lại trên DB spike: cả hai lần đạt, 112 file / 677 test. Lỗi <code>smoke:i18n</code> trong báo cáo cũ do DB dev có nội dung thật (script cố ý đòi DB trống), không phải lỗi plugin.</td></tr>
         <tr><td class="num">+</td><td>Plugin phát event tới app (<code>eventHub</code>)</td><td><span class="chip done">Đạt</span></td><td>App nhận được event của plugin.</td></tr>
         <tr><td class="num">—</td><td>UAT trong Admin</td><td><span class="chip done">Đạt</span></td><td>Content Manager, Content-Type Builder, ô nhập đa ngôn ngữ, content Salanca vẫn sửa được, menu plugin.</td></tr>
-        <tr><td class="num">—</td><td>Deploy staging Dokploy</td><td><span class="chip you">Cần bạn</span></td><td>Bạn deploy hoặc cấp quyền.</td></tr>
+        <tr><td class="num">—</td><td>Deploy staging Dokploy</td><td><span class="chip moved">Bỏ</span></td><td>Chủ dự án bỏ gate này cho O0; kiểm khi deploy thật ở O6.</td></tr>
       </tbody>
     </table>
   </div>
@@ -256,8 +256,8 @@
   <ol class="steps">
     <li><strong>Bổ sung các mục còn thiếu</strong> — <span class="chip done">Xong</span>. Báo cáo theo đúng 19 mục và quyết định D1–D7 ở <code>ordering-spike-report.md</code>.</li>
     <li><strong>UAT trong Admin</strong> — <span class="chip done">Xong</span> (local, 5/5 mục đạt).</li>
-    <li><strong>Deploy staging Dokploy</strong> với <code>ORDERING_ENABLED=true</code>.</li>
-    <li><strong>Đóng O0</strong>: giữ khung plugin làm nền cho O1; bỏ phần code chỉ để thử ở bước 1 của O1; xóa <code>stash@{0}</code>.</li>
+    <li><strong>Staging</strong> — <span class="chip moved">Bỏ</span> theo quyết định chủ dự án.</li>
+    <li><strong>Đóng O0</strong> — <span class="chip done">Xong</span>. Mockup cho mọi phase: <a href="mockups/index.html">mockups/index.html</a>.</li>
     <li><strong>Bắt đầu O1</strong> theo <code>docs/plans/ordering-o1-core.md</code>.</li>
   </ol>
 </section>

@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O1 Lõi đơn hàng</title>
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body>
+<main class="doc">
+
+<header class="doc-head">
+  <p class="eyebrow">Mockup · Phase O1 · Lõi đơn hàng</p>
+  <h1>O1 không có màn hình: đây là luồng và ví dụ có số</h1>
+  <p class="lead">O1 chỉ có service và test. File này vẽ những gì lõi phải làm đúng, để đối chiếu khi review code và
+    khi viết test. Giao diện bắt đầu từ O2.</p>
+  <div class="links">
+    <a href="../../phases/phase-ordering-1-core.md">Spec O1</a>
+    <a href="../ordering-o1-core.md">Kế hoạch O1 (15 bước)</a>
+    <a href="../ordering-core-contracts.md">Contracts mục 5–8, 12, 21</a>
+  </div>
+</header>
+
+<section class="screen">
+  <h2>1. Tạo đơn trong một transaction</h2>
+  <div class="with-notes">
+    <div class="panel">
+      <div class="flow">
+        <span class="node">Kiểm Idempotency-Key</span><span class="arrow">→</span>
+        <span class="node">Tính lại giá (pipeline 9 bước)</span><span class="arrow">→</span>
+        <span class="node">Chọn workflow theo loại hàng</span><span class="arrow">→</span>
+        <span class="node">Tạo group + line (snapshot)</span><span class="arrow">→</span>
+        <span class="node">Adjustment + phân bổ</span><span class="arrow">→</span>
+        <span class="node">Hold slot</span><span class="arrow">→</span>
+        <span class="node">Mã đơn <code>SLC-000123</code></span><span class="arrow">→</span>
+        <span class="node">Token (trả 1 lần, lưu hash)</span><span class="arrow">→</span>
+        <span class="node">businessDate</span><span class="arrow">→</span>
+        <span class="node">Timeline + outbox <code>order.created</code></span>
+      </div>
+      <div class="alert-box info">Lỗi ở bất kỳ bước nào → rollback toàn bộ, không còn dòng nào trong DB. Email, thông báo chỉ chạy
+        sau commit, từ outbox.</div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Client không gửi số tiền; server luôn tính lại. Giá đổi giữa báo giá và đặt → <code>PRICE_CHANGED</code>.</span></li>
+      <li><span class="n">2</span><span>Mã đơn lấy từ sequence PostgreSQL; test 200 đơn song song không trùng.</span></li>
+      <li><span class="n">3</span><span>Thiếu đồng ý xử lý dữ liệu → <code>CONSENT_REQUIRED</code> (contracts 21.4).</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>2. Ví dụ tính tiền: giảm 25.000đ cho cả đơn, chia xuống từng món</h2>
+  <div class="with-notes">
+    <div class="panel">
+      <div class="table-wrap">
+        <table class="t">
+          <thead><tr><th>Món</th><th class="num">SL × giá</th><th class="num">Thành tiền</th><th class="num">Tỷ lệ chia (chưa làm tròn)</th><th class="num">Giảm sau làm tròn</th><th class="num">Còn lại</th><th class="num">VAT 8% (gồm trong giá)</th></tr></thead>
+          <tbody>
+            <tr><td>Bún bò</td><td class="num">2 × 65.000</td><td class="num">130.000</td><td class="num">14.772,73</td><td class="num">14.773 <span class="pin">a</span></td><td class="num">115.227</td><td class="num">8.535</td></tr>
+            <tr><td>Trà đào</td><td class="num">1 × 45.000</td><td class="num">45.000</td><td class="num">5.113,64</td><td class="num">5.114 <span class="pin">b</span></td><td class="num">39.886</td><td class="num">2.955</td></tr>
+            <tr><td>Gỏi cuốn</td><td class="num">3 × 15.000</td><td class="num">45.000</td><td class="num">5.113,64</td><td class="num">5.113</td><td class="num">39.887</td><td class="num">2.955</td></tr>
+            <tr class="hl"><td class="strong">Tổng</td><td></td><td class="num strong">220.000</td><td class="num">25.000</td><td class="num strong">25.000</td><td class="num strong">195.000</td><td class="num">14.445</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small muted">Làm tròn xuống được 24.998đ; còn dư 2 đồng, chia cho phần lẻ lớn nhất trước: Bún bò (0,73) rồi Trà đào (0,64; bằng Gỏi cuốn nhưng đứng trước theo thứ tự line).</p>
+    </div>
+    <ol class="notes">
+      <li><span class="n">a</span><span>Phương pháp phần dư lớn nhất: tổng các dòng luôn khớp tổng giảm, không lệch 1 đồng.</span></li>
+      <li><span class="n">b</span><span>Hòa nhau thì theo thứ tự line, để kết quả ổn định giữa các lần tính.</span></li>
+      <li><span class="n">!</span><span>Khách trả lại Trà đào → hoàn đúng 39.886đ đã lưu lúc đặt, không chia lại giảm giá.</span></li>
+      <li><span class="n">!</span><span>Thuế ở v1 tắt; ví dụ cột VAT để thấy thuế tính sau khi đã chia giảm giá.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>3. Trạng thái đơn tính từ nhóm giao nhận và thanh toán</h2>
+  <div class="with-notes">
+    <div class="panel">
+      <h3>Workflow của nhóm (ví dụ "tự lấy, trả khi nhận")</h3>
+      <div class="flow">
+        <span class="node pub">Chờ quán nhận</span><span class="arrow">→</span>
+        <span class="node pub">Đang chuẩn bị</span><span class="arrow">→</span>
+        <span class="node pub">Sẵn sàng</span><span class="arrow">→</span>
+        <span class="node term pub">Đã giao</span>
+        <span class="arrow">·</span><span class="node cancel pub">Quán từ chối</span><span class="node cancel pub">Đã hủy</span>
+      </div>
+      <p class="small muted">Gạch tím dưới = bước <code>isPublic</code>, khách thấy trên trang trạng thái.</p>
+      <div class="table-wrap">
+        <table class="t">
+          <thead><tr><th>Các nhóm</th><th>Thanh toán</th><th>order.status</th></tr></thead>
+          <tbody>
+            <tr><td>Một nhóm "Đang chuẩn bị"</td><td>chưa trả</td><td><span class="badge primary">open</span></td></tr>
+            <tr><td>Mọi nhóm đã giao</td><td>đủ tiền</td><td><span class="badge ok">completed</span></td></tr>
+            <tr><td>Mọi nhóm đã giao</td><td>còn thiếu</td><td><span class="badge primary">open</span></td></tr>
+            <tr><td>Mọi nhóm đã hủy</td><td>bất kỳ</td><td><span class="badge warn">canceled</span></td></tr>
+            <tr><td>Nhân viên tạo, chưa xác nhận</td><td>—</td><td><span class="badge gray">draft</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Không ai set tay <code>order.status</code>; chỉ chuyển bước của nhóm, lõi tính lại trong cùng transaction.</span></li>
+      <li><span class="n">2</span><span>Hai nhân viên bấm cùng lúc trên cùng nhóm → một thành công, một bị từ chối (khóa dòng).</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>4. Outbox chạy nhiều server</h2>
+  <div class="with-notes">
+    <div class="panel">
+      <div class="flow">
+        <span class="node">Transaction ghi đơn + dòng outbox</span><span class="arrow">→</span>
+        <span class="node">Cron mỗi server: claim lô 50 bằng <code>FOR UPDATE SKIP LOCKED</code>, lease 5 phút</span><span class="arrow">→</span>
+        <span class="node">Gọi consumer (email, cảnh báo…)</span><span class="arrow">→</span>
+        <span class="node term">Đánh dấu đã giao</span>
+      </div>
+      <div class="alert-box amber">Server chết giữa chừng → lease hết hạn → server khác nhận lại. Consumer idempotent theo event id nên không gửi trùng. Đã chứng minh ở O0 với 2 process.</div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Lỗi thì retry backoff mũ có trần; quá số lần → cảnh báo <code>outbox-stuck</code> (O6).</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>5. Giới hạn theo chi nhánh</h2>
+  <div class="with-notes">
+    <div class="panel">
+      <div class="table-wrap">
+        <table class="t">
+          <thead><tr><th>Nhân viên</th><th>Scope</th><th>Đơn chi nhánh Q1</th><th>Đơn chi nhánh Q3</th></tr></thead>
+          <tbody>
+            <tr><td>Lan (nhân viên Q1)</td><td><code>[Q1]</code></td><td>xem, xử lý</td><td class="muted">"Không tìm thấy đơn"</td></tr>
+            <tr><td>Minh (quản lý Q1, Q3)</td><td><code>[Q1, Q3]</code></td><td>xem, xử lý, hoàn tiền</td><td>xem, xử lý, hoàn tiền</td></tr>
+            <tr><td>Kế toán</td><td><code>allLocations</code></td><td>xem, duyệt tiền</td><td>xem, duyệt tiền</td></tr>
+            <tr><td>Nhân viên mới chưa gán</td><td>không có</td><td class="muted">không thấy</td><td class="muted">không thấy</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Ngoài scope trả "không tìm thấy" (không phải 403) để không dò được mã đơn.</span></li>
+      <li><span class="n">2</span><span>Ghi (chuyển bước, hoàn tiền) kiểm chi nhánh của chính đơn đó, không chỉ lọc danh sách.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>6. Ngày kinh doanh qua nửa đêm</h2>
+  <div class="panel">
+    <div class="table-wrap">
+      <table class="t">
+        <thead><tr><th>Giờ đặt (giờ VN)</th><th>Giờ chốt ngày</th><th>businessDate</th></tr></thead>
+        <tbody>
+          <tr><td>Thứ Sáu 23:40</td><td>04:00</td><td>Thứ Sáu</td></tr>
+          <tr class="hl"><td>Thứ Bảy 01:30</td><td>04:00</td><td>Thứ Sáu</td></tr>
+          <tr><td>Thứ Bảy 04:00</td><td>04:00</td><td>Thứ Bảy</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer class="doc-foot">File trên máy, không publish. Số trong ví dụ tính theo đúng quy tắc ở contracts mục 6.</footer>
+</main>
+</body>
+</html>

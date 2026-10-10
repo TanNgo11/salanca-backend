@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O4 Chuyển khoản SePay</title>
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body>
+<main class="doc">
+
+<header class="doc-head">
+  <p class="eyebrow">Mockup · Phase O4 · Chuyển khoản qua SePay</p>
+  <h1>Khách quét QR, tiền khớp thì tự ghi nhận, lệch thì nhân viên duyệt</h1>
+  <div class="links">
+    <a href="../../phases/phase-ordering-4-sepay.md">Spec O4</a>
+    <a href="../ordering-o4-sepay.md">Kế hoạch O4 (13 bước)</a>
+    <a href="../ordering-core-contracts.md">Contracts mục 8, 19.1</a>
+  </div>
+</header>
+
+<section class="screen">
+  <h2>1. Phía khách: QR và chờ thanh toán</h2>
+  <div class="phones">
+    <div class="phone web"><div class="site-head">Salanca <small>Thanh toán đơn SLC-000130</small></div>
+      <div class="wrap">
+        <div class="qr"></div>
+        <div class="card small">
+          <div class="spread"><span>Số tiền</span><strong class="price">195.000đ</strong></div>
+          <div class="spread"><span>Nội dung</span><strong>SLC000130</strong></div>
+          <div class="spread"><span>Ngân hàng</span><span>MB · 0123 456 789 · SALANCA</span></div>
+          <div class="spread"><span>Hết hạn sau</span><strong>14:52</strong></div>
+        </div>
+        <p class="small muted">Đang chờ chuyển khoản… trang tự cập nhật.</p>
+      </div></div>
+    <div class="phone web"><div class="site-head">Salanca <small>Sau vài giây</small></div>
+      <div class="wrap"><div class="card"><span class="badge ok" style="justify-self:start">Đã nhận tiền</span><strong>Chờ quán nhận đơn</strong><span class="small">Lấy lúc 13:00 · Salanca Q1</span></div></div></div>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>2. Luồng tự khớp</h2>
+  <div class="with-notes">
+    <div class="panel">
+      <div class="flow">
+        <span class="node">SePay gọi webhook</span><span class="arrow">→</span>
+        <span class="node">Kiểm chữ ký trên body gốc + giờ lệch ≤ 5 phút</span><span class="arrow">→</span>
+        <span class="node">Lưu giao dịch (id SePay duy nhất)</span><span class="arrow">→</span>
+        <span class="node">Trả <code>{"success": true}</code></span><span class="arrow">→</span>
+        <span class="node">Đủ 5 điều kiện?</span>
+      </div>
+      <div class="grid2">
+        <div class="alert-box ok"><strong>Có:</strong> ghi tiền, đơn chuyển bước ngay (trả trước → chờ quán nhận; quán nhận rồi trả → chuẩn bị).</div>
+        <div class="alert-box amber"><strong>Không:</strong> vào "Duyệt chuyển khoản" kèm lý do; đơn không đổi.</div>
+      </div>
+      <p class="small">5 điều kiện: chữ ký đúng · tách được mã đơn trong nội dung · đơn còn chờ tiền · đúng số tiền · đúng tài khoản của chi nhánh.</p>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Sai chữ ký mới trả lỗi; lỗi nghiệp vụ vẫn trả thành công để SePay không gửi lại vô ích.</span></li>
+      <li><span class="n">2</span><span>Webhook trùng (cùng id) không ghi tiền lần hai.</span></li>
+      <li><span class="n">3</span><span>Job đối soát mỗi giờ đọc lại giao dịch từ SePay để bù webhook bị mất.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>3. Duyệt chuyển khoản</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/payment-review</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a>Bán hàng</a><a class="active">Duyệt chuyển khoản <span class="count">4</span></a></nav>
+        <div class="content">
+          <div class="page-head"><div><h3>Duyệt chuyển khoản</h3><small>Tiền vào chưa khớp đơn · Q1, Q3</small></div><span class="btn secondary">Ghi nhận chuyển khoản thủ công</span></div>
+          <div class="panel" style="padding:0"><div class="table-wrap"><table class="t">
+            <thead><tr><th>Thời gian</th><th class="num">Số tiền</th><th>Nội dung</th><th>Lý do</th><th>Gợi ý</th><th></th></tr></thead>
+            <tbody>
+              <tr><td>12:41</td><td class="num">180.000</td><td>chuyen tien an trua</td><td><span class="badge amber">Không có mã</span></td><td>—</td><td><span class="btn ghost">Xử lý</span></td></tr>
+              <tr class="hl"><td>12:44</td><td class="num">150.000</td><td>SLC000131</td><td><span class="badge amber">Chuyển thiếu</span></td><td>Đơn SLC-000131 cần 195.000</td><td><span class="btn ghost">Xử lý</span></td></tr>
+              <tr><td>12:50</td><td class="num">250.000</td><td>SLC000132</td><td><span class="badge amber">Chuyển dư</span></td><td>Đơn cần 230.000</td><td><span class="btn ghost">Xử lý</span></td></tr>
+              <tr><td>13:05</td><td class="num">195.000</td><td>SLC000118</td><td><span class="badge warn">Đơn đã hủy</span></td><td>Hết hạn 12:30</td><td><span class="btn ghost">Xử lý</span></td></tr>
+            </tbody></table></div></div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>7 lý do: không mã, sai mã, thiếu, dư, đơn đã hủy, đã trả rồi, sai tài khoản.</span></li>
+      <li><span class="n">2</span><span>Tiền không rõ chi nhánh chỉ người có "tất cả chi nhánh" thấy.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>4. Xử lý một giao dịch</h2>
+  <div class="grid2">
+    <div class="frame"><div class="frame-bar"><span class="url">Hộp thoại · chuyển thiếu</span></div>
+      <div class="modal-backdrop"><div class="modal">
+        <header><strong>150.000đ · SLC000131</strong><span class="muted">✕</span></header>
+        <div class="body">
+          <div class="tabs"><span class="on">Gán vào đơn</span><span>Cần hoàn tiền</span><span>Mở lại đơn</span><span>Bỏ qua</span></div>
+          <div class="field"><label>Đơn</label><span class="input">SLC-000131 · cần 195.000đ</span></div>
+          <div class="alert-box amber">Ghi nhận 150.000đ, đơn vẫn chờ 45.000đ. Khách chuyển bù có mã đúng số còn thiếu sẽ tự khớp.</div>
+          <div class="field"><label>Lý do *</label><span class="input">Khách gọi xác nhận chuyển thiếu</span></div>
+        </div>
+        <footer><span class="btn secondary">Đóng</span><span class="btn">Gán vào đơn</span></footer>
+      </div></div></div>
+    <div class="frame"><div class="frame-bar"><span class="url">Hộp thoại · ghi nhận thủ công</span></div>
+      <div class="modal-backdrop"><div class="modal">
+        <header><strong>Ghi nhận chuyển khoản thủ công</strong><span class="muted">✕</span></header>
+        <div class="body">
+          <div class="field"><label>Đơn</label><span class="input">SLC-000133</span></div>
+          <div class="field"><label>Mã giao dịch ngân hàng *</label><span class="input">FT25283123456</span></div>
+          <div class="field"><label>Số tiền</label><span class="input">195.000</span></div>
+          <div class="alert-box info">Khi webhook hoặc đối soát tới với cùng mã giao dịch, hệ thống gắn vào bản ghi này, không ghi tiền lần hai. Quá 24 giờ không thấy ở SePay → cảnh báo.</div>
+        </div>
+        <footer><span class="btn secondary">Đóng</span><span class="btn">Ghi nhận</span></footer>
+      </div></div></div>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>5. Đơn nhân viên tạo: gửi link thanh toán</h2>
+  <div class="panel">
+    <div class="spread"><div><strong>SLC-000135</strong> <span class="badge amber">Chờ thanh toán</span> <span class="small muted">· tạo hộ qua điện thoại · 320.000đ</span></div>
+      <span class="btn secondary">Sao chép link thanh toán</span></div>
+    <p class="small muted">Nhân viên dán link vào Zalo/SMS cho khách. Link mở trang QR bằng token, có hạn thanh toán, không cho sửa đơn.</p>
+  </div>
+</section>
+
+<footer class="doc-foot">File trên máy, không publish. Số tài khoản, mã giao dịch chỉ là ví dụ.</footer>
+</main>
+</body>
+</html>

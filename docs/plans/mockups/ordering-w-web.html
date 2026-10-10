@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OW Web đặt món</title>
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body>
+<main class="doc">
+
+<header class="doc-head">
+  <p class="eyebrow">Mockup · Phase OW · Web đặt món (repo web)</p>
+  <h1>Khách đặt món trên điện thoại</h1>
+  <p class="lead">Làm ở repo web, cần duyệt phase frontend riêng. Mockup để thống nhất luồng và dữ liệu web cần từ API
+    của plugin; giao diện thật theo thiết kế của site Salanca.</p>
+  <div class="links">
+    <a href="../../phases/phase-ordering-w-web.md">Spec OW</a>
+    <a href="../ordering-core-contracts.md">Contracts mục 11, 20.2, 21</a>
+  </div>
+</header>
+
+<section class="screen">
+  <h2>1. Chọn chi nhánh, xem món, chọn tùy chọn</h2>
+  <div class="phones">
+    <div class="phone web"><div class="site-head">Salanca <small>Đặt món</small></div>
+      <div class="wrap">
+        <span class="input">Salanca Q1 · Tự lấy · hôm nay 12:30 ▾</span>
+        <div class="chips"><span class="on">Món chính</span><span>Đồ uống</span><span>Combo</span></div>
+        <div class="card"><div class="thumb"></div><strong>Bún bò Huế</strong><span class="price">từ 65.000đ</span></div>
+        <div class="card" style="opacity:.55"><div class="thumb"></div><strong>Trà đào cam sả</strong><span class="small">Tạm hết hôm nay</span></div>
+      </div></div>
+    <div class="phone web"><div class="site-head">Salanca <small>Bún bò Huế</small></div>
+      <div class="wrap">
+        <strong>Kích cỡ</strong><div class="chips"><span>Tô thường 65.000</span><span class="on">Tô đặc biệt 85.000</span></div>
+        <strong>Topping <span class="small muted">(tối đa 3)</span></strong><div class="chips"><span class="on">Chả cua +15.000</span><span style="opacity:.5">Giò heo · hết</span></div>
+        <strong>Mức cay *</strong><div class="chips"><span>Không</span><span class="on">Vừa</span><span>Cay</span></div>
+        <span class="input empty">Ghi chú cho món…</span>
+        <span class="btn">Thêm vào giỏ · 100.000đ</span>
+      </div></div>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>2. Giỏ hàng, checkout, đặt đơn</h2>
+  <div class="phones">
+    <div class="phone web"><div class="site-head">Salanca <small>Thanh toán</small></div>
+      <div class="wrap">
+        <div class="card small"><div class="spread"><span>Bún bò Huế ×1</span><span>100.000</span></div><div class="spread"><span>Combo trưa ×1</span><span>99.000</span></div><div class="spread strong"><span>Tổng (server báo giá)</span><span class="price">199.000đ</span></div></div>
+        <div class="field"><label>Họ tên *</label><span class="input">Ngọc</span></div>
+        <div class="field"><label>Số điện thoại *</label><span class="input">0901 234 567</span></div>
+        <div class="field"><label>Email (không bắt buộc)</label><span class="input empty">để nhận cập nhật</span></div>
+        <span class="input empty">Ghi chú cho cả đơn…</span>
+        <div class="chips"><span class="on">Trả khi nhận</span><span>Chuyển khoản QR</span></div>
+        <span class="check on small">Tôi đồng ý cho Salanca xử lý dữ liệu để thực hiện đơn (chính sách) *</span>
+        <span class="check small">Nhận tin ưu đãi</span>
+        <span class="small muted">[Turnstile]</span>
+        <span class="btn">Đặt đơn</span>
+      </div></div>
+    <div class="phone web"><div class="site-head">Salanca <small>Đặt thành công</small></div>
+      <div class="wrap">
+        <div class="card"><strong>SLC-000124</strong><span class="small">Lấy lúc 12:30 · Salanca Q1 · 199.000đ</span></div>
+        <div class="alert-box amber small">Lưu link này để theo dõi đơn. Bạn không để email nên sẽ không nhận được link qua email.</div>
+        <div class="row"><span class="btn secondary">Sao chép link</span><span class="btn secondary">Lưu link</span></div>
+        <span class="small muted">Giá đổi giữa lúc báo giá và đặt → hiện "Giá vừa thay đổi" và giá mới, không đặt sai giá. Bấm đặt hai lần không tạo hai đơn.</span>
+      </div></div>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>3. Theo dõi đơn</h2>
+  <div class="phones">
+    <div class="phone web"><div class="site-head">Salanca <small>Đơn SLC-000124</small></div>
+      <div class="wrap">
+        <div class="timeline">
+          <div class="ev"><span></span><span>Đã đặt <small>12:01</small></span></div>
+          <div class="ev"><span></span><span>Quán đã nhận <small>12:03</small></span></div>
+          <div class="ev"><span></span><span><strong>Đang chuẩn bị</strong></span></div>
+          <div class="ev internal"><span></span><span class="muted">Sẵn sàng lấy</span></div>
+        </div>
+        <span class="btn secondary">Hủy đơn</span><span class="small muted">Chỉ hiện khi quán chưa nhận đơn.</span>
+      </div></div>
+    <div class="phone web"><div class="site-head">Salanca <small>Tra cứu đơn</small></div>
+      <div class="wrap"><span class="input">SLC-000124</span><span class="input">0901 234 567</span><span class="btn">Tra cứu</span><span class="small muted">Chỉ xem trạng thái; không hiện thông tin cá nhân.</span></div></div>
+  </div>
+</section>
+
+<footer class="doc-foot">File trên máy, không publish. Thiết kế thật theo site Salanca ở repo web.</footer>
+</main>
+</body>
+</html>

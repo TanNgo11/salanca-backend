@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O2 Module catalog</title>
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body>
+<main class="doc">
+
+<header class="doc-head">
+  <p class="eyebrow">Mockup · Phase O2 · Module catalog</p>
+  <h1>Nhân viên nhập catalog trong Admin</h1>
+  <p class="lead">Danh mục, sản phẩm, biến thể, giá, tùy chọn cộng thêm và combo đều sửa trong Content Manager có sẵn của
+    Strapi. Plugin chỉ thêm 3 ô nhập riêng (chữ đa ngôn ngữ, nhóm tùy chọn, combo) và một màn hình "Tạm hết món".
+    Content của Salanca ("Món", "Nhóm món") không đổi.</p>
+  <div class="links">
+    <a href="../../phases/phase-ordering-2-catalog.md">Spec O2</a>
+    <a href="../ordering-o2-catalog.md">Kế hoạch O2 (11 bước)</a>
+    <a href="../ordering-core-contracts.md">Contracts mục 20</a>
+  </div>
+</header>
+
+<section class="screen">
+  <h2>1. Danh sách sản phẩm</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/content-manager/collection-types/plugin::ordering.catalog-product</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a>Trang chủ</a><a class="active">Quản lý nội dung</a><a>Bán hàng</a><a>Cài đặt</a></nav>
+        <div class="content">
+          <div class="page-head"><div><h3>Sản phẩm bán online</h3><small>24 bản ghi</small></div><span class="btn">+ Tạo sản phẩm</span></div>
+          <div class="row"><span class="input empty">Tìm theo tên…</span><span class="select">Danh mục: Tất cả</span><span class="select">Trạng thái: Đang bán</span></div>
+          <div class="panel" style="padding:0">
+            <div class="table-wrap"><table class="t">
+              <thead><tr><th>Tên (VI)</th><th>Danh mục</th><th>Loại</th><th class="num">Giá từ</th><th>Trạng thái</th><th>Bán online</th></tr></thead>
+              <tbody>
+                <tr><td>Bún bò Huế</td><td>Món chính</td><td>Món</td><td class="num">65.000</td><td><span class="badge ok">Đang bán</span></td><td>Có</td></tr>
+                <tr><td>Trà đào cam sả</td><td>Đồ uống</td><td>Món</td><td class="num">45.000</td><td><span class="badge ok">Đang bán</span></td><td>Có</td></tr>
+                <tr><td>Combo trưa 1 người</td><td>Combo</td><td>Combo</td><td class="num">99.000</td><td><span class="badge ok">Đang bán</span></td><td>Có</td></tr>
+                <tr><td>Lẩu Thái (2–3 người)</td><td>Món chính</td><td>Món</td><td class="num">320.000</td><td><span class="badge gray">Nháp</span></td><td>Không</td></tr>
+              </tbody>
+            </table></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Không dùng Draft &amp; Publish của Strapi; trạng thái là field <code>status</code>: Nháp / Đang bán / Lưu trữ.</span></li>
+      <li><span class="n">2</span><span>"Giá từ" = giá thấp nhất trong các biến thể.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>2. Sửa sản phẩm: chữ đa ngôn ngữ, biến thể, nhóm tùy chọn</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">…/plugin::ordering.catalog-product/bun-bo-hue</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a>Trang chủ</a><a class="active">Quản lý nội dung</a><a>Bán hàng</a></nav>
+        <div class="content">
+          <div class="page-head"><div><h3>Bún bò Huế</h3><small>Sửa lần cuối 10/10 bởi Lan</small></div><div class="row"><span class="btn secondary">Lưu trữ</span><span class="btn">Lưu</span></div></div>
+          <div class="split">
+            <div class="panel">
+              <div class="field"><label>Tên <span class="pin">1</span></label>
+                <div class="grid2"><div class="field"><span class="hint">Tiếng Việt</span><span class="input">Bún bò Huế</span></div><div class="field"><span class="hint">English</span><span class="input">Hue beef noodle soup</span></div></div></div>
+              <div class="field"><label>Đường dẫn (slug)</label>
+                <div class="grid2"><span class="input">bun-bo-hue</span><span class="input">hue-beef-noodle-soup</span></div></div>
+              <div class="field"><label>Biến thể <span class="pin">2</span></label>
+                <div class="table-wrap"><table class="t">
+                  <thead><tr><th>Tên</th><th>SKU</th><th class="num">Giá</th><th>Mặc định</th></tr></thead>
+                  <tbody><tr><td>Tô thường</td><td>BB-STD</td><td class="num">65.000</td><td>✓</td></tr><tr><td>Tô đặc biệt</td><td>BB-XL</td><td class="num">85.000</td><td></td></tr></tbody>
+                </table></div></div>
+              <div class="field"><label>Nhóm tùy chọn cộng thêm <span class="pin">3</span></label>
+                <div class="panel" style="background:#fafafd">
+                  <div class="spread"><strong>Topping</strong><span class="small muted">thư viện dùng chung · chọn 0–3 · miễn phí 0</span></div>
+                  <div class="table-wrap"><table class="t">
+                    <thead><tr><th>Lựa chọn</th><th class="num">Giá thư viện</th><th class="num">Giá cho món này</th><th>Mặc định</th><th>Ẩn</th></tr></thead>
+                    <tbody>
+                      <tr><td>Chả cua</td><td class="num">15.000</td><td class="num">15.000</td><td></td><td></td></tr>
+                      <tr class="hl"><td>Giò heo</td><td class="num">20.000</td><td class="num"><strong>25.000</strong></td><td></td><td></td></tr>
+                      <tr><td>Trứng gà</td><td class="num">8.000</td><td class="num">8.000</td><td></td><td>✓</td></tr>
+                    </tbody></table></div>
+                  <div class="spread"><strong>Mức cay</strong><span class="small muted">bắt buộc chọn 1</span></div>
+                  <div class="row small"><span class="badge gray">Không cay</span><span class="badge primary">Vừa (mặc định)</span><span class="badge gray">Cay</span></div>
+                </div>
+                <span class="btn ghost" style="justify-self:start">+ Gắn nhóm từ thư viện</span></div>
+            </div>
+            <div class="panel">
+              <div class="field"><label>Trạng thái</label><span class="select">Đang bán</span></div>
+              <div class="field"><label>Bán online</label><span class="toggle"><span>Không</span><span class="on">Có</span></span></div>
+              <div class="field"><label>Danh mục</label><span class="input">Món chính, Món Huế</span></div>
+              <div class="field"><label>Cách nhận được phép</label><span class="row"><span class="check on">Tự lấy</span><span class="check on">Giao tận nơi</span></span></div>
+              <div class="field"><label>Số lượng tối thiểu</label><span class="input">1</span></div>
+              <div class="field"><label>Khung giờ bán</label><span class="input">Cả ngày</span></div>
+              <div class="field"><label>Món nổi bật <span class="small muted">(field app thêm)</span></label><span class="toggle"><span class="on">Không</span><span>Có</span></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Custom field <code>localized-text</code>: một ô cho mỗi ngôn ngữ đang bật. Một bản ghi duy nhất, nên giá và quan hệ không bị nhân theo ngôn ngữ.</span></li>
+      <li><span class="n">2</span><span>Biến thể có SKU và giá riêng. Món không có biến thể vẫn có một biến thể mặc định.</span></li>
+      <li><span class="n">3</span><span>Nhóm "Topping" khai một lần trong thư viện; ở đây chỉ ghi đè giá/mặc định/ẩn cho món này (dòng tô vàng).</span></li>
+      <li><span class="n">4</span><span>"Món nổi bật" là field app tự thêm qua extension; plugin không biết field này.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>3. Combo có nhóm chọn</h2>
+  <div class="with-notes">
+    <div class="panel">
+      <div class="spread"><h3>Combo trưa 1 người · 99.000đ</h3><span class="badge ok">Đang bán</span></div>
+      <div class="grid2">
+        <div class="panel" style="background:#fafafd">
+          <div class="spread"><strong>Món chính</strong><span class="small muted">bắt buộc · chọn 1</span></div>
+          <table class="t" style="min-width:0"><tbody>
+            <tr><td>Bún bò Huế (tô thường)</td><td class="num">mặc định</td></tr>
+            <tr><td>Cơm gà xối mỡ</td><td class="num">+0</td></tr>
+            <tr><td>Bún bò Huế (tô đặc biệt)</td><td class="num">+20.000</td></tr>
+          </tbody></table>
+        </div>
+        <div class="panel" style="background:#fafafd">
+          <div class="spread"><strong>Đồ uống</strong><span class="small muted">bắt buộc · chọn 1</span></div>
+          <table class="t" style="min-width:0"><tbody>
+            <tr><td>Trà đá</td><td class="num">mặc định</td></tr>
+            <tr class="hl"><td>Trà đào cam sả <span class="badge warn">tạm hết</span></td><td class="num">+15.000</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+      <span class="btn ghost" style="justify-self:start">+ Thêm nhóm chọn</span>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Một lựa chọn tạm hết thì chỉ ẩn lựa chọn đó. Nhóm bắt buộc không còn lựa chọn nào thì cả combo hiện "tạm hết".</span></li>
+      <li><span class="n">2</span><span>Đơn lưu lại món đã chọn trong combo, để bếp thấy đúng món.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>4. Danh mục dạng cây và khung giờ bán</h2>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Danh mục</h3>
+      <div class="small" style="display:grid;gap:6px">
+        <div class="spread"><span>▾ Món chính</span><span class="muted">12 món</span></div>
+        <div class="spread" style="padding-left:18px"><span>Món Huế</span><span class="muted">4 món</span></div>
+        <div class="spread" style="padding-left:18px"><span>Cơm</span><span class="muted">5 món</span></div>
+        <div class="spread"><span>▸ Đồ uống</span><span class="muted">8 món</span></div>
+        <div class="spread"><span>▸ Combo</span><span class="muted">3 món</span></div>
+        <div class="spread"><span class="muted">Nội bộ: Món test</span><span class="badge gray">ẩn với khách</span></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Khung giờ bán</h3>
+      <div class="table-wrap"><table class="t" style="min-width:0">
+        <thead><tr><th>Tên</th><th>Giờ</th><th>Ngày</th></tr></thead>
+        <tbody><tr><td>Bữa sáng</td><td>06:00–10:30</td><td>T2–CN</td></tr><tr><td>Combo trưa</td><td>10:30–14:00</td><td>T2–T6</td></tr><tr><td>Đêm khuya</td><td>22:00–02:00</td><td>T6–T7</td></tr></tbody>
+      </table></div>
+      <p class="small muted">Giờ theo múi giờ chi nhánh; khung "22:00–02:00" là qua nửa đêm.</p>
+    </div>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>5. Màn hình "Tạm hết món" (menu Bán hàng)</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/availability</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a>Trang chủ</a><a>Quản lý nội dung</a><a class="active">Bán hàng</a></nav>
+        <div class="content">
+          <div class="page-head"><div><h3>Tạm hết món</h3><small>Chi nhánh trong phạm vi của bạn</small></div><span class="select">Chi nhánh: Salanca Q1</span></div>
+          <div class="row"><span class="input empty">Tìm món, topping…</span><span class="tabs"><span class="on">Tất cả</span><span>Đang tạm hết (2)</span></span></div>
+          <div class="panel" style="padding:0"><div class="table-wrap"><table class="t">
+            <thead><tr><th>Món / lựa chọn</th><th>Loại</th><th>Trạng thái</th><th>Đến khi</th><th>Người bật</th></tr></thead>
+            <tbody>
+              <tr><td>Bún bò Huế</td><td>Món</td><td><span class="toggle"><span class="on">Còn</span><span>Hết</span></span></td><td>—</td><td>—</td></tr>
+              <tr class="hl"><td>Trà đào cam sả</td><td>Món</td><td><span class="toggle"><span>Còn</span><span class="on">Hết</span></span></td><td>Hết ngày kinh doanh</td><td>Lan · 11:05</td></tr>
+              <tr class="hl"><td>Giò heo (topping)</td><td>Tùy chọn</td><td><span class="toggle"><span>Còn</span><span class="on">Hết</span></span></td><td>14:00 hôm nay</td><td>Lan · 10:40</td></tr>
+            </tbody></table></div></div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Nhân viên chi nhánh chỉ thấy chi nhánh của mình (quyền <code>catalog.toggle-availability</code>).</span></li>
+      <li><span class="n">2</span><span>"Hết ngày kinh doanh" tự mở lại ở giờ chốt ngày (mặc định 04:00).</span></li>
+      <li><span class="n">3</span><span>Mỗi lần bật/tắt ghi vào nhật ký thay đổi.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>6. API cho web đọc catalog</h2>
+  <div class="with-notes">
+<pre class="code">GET /api/v1/ordering/catalog/products?locale=vi&amp;category=mon-chinh&amp;location=Q1
+
+{ "items": [{
+    "slug": "bun-bo-hue", "name": "Bún bò Huế", "categories": ["Món chính", "Món Huế"],
+    "variants": [{ "id": "v1", "name": "Tô thường", "price": 65000, "default": true },
+                 { "id": "v2", "name": "Tô đặc biệt", "price": 85000 }],
+    "options": [{ "group": "Topping", "min": 0, "max": 3,
+                  "choices": [{ "id": "m1", "name": "Chả cua", "price": 15000 },
+                              { "id": "m2", "name": "Giò heo", "price": 25000, "available": false }] }],
+    "available": true, "fulfillment": ["pickup", "delivery"]
+  }],
+  "nextCursor": "…" }</pre>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Chỉ trả sản phẩm "Đang bán" + "Bán online"; không có field nội bộ.</span></li>
+      <li><span class="n">2</span><span>Giá ở đây để hiển thị; tiền cuối cùng do báo giá ở O3 quyết định.</span></li>
+    </ol>
+  </div>
+</section>
+
+<footer class="doc-foot">File trên máy, không publish. Tên món và giá chỉ là ví dụ.</footer>
+</main>
+</body>
+</html>

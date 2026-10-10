@@ -1,6 +1,7 @@
 # Phase OW — Web đặt món (repo web)
 
 Trạng thái: spec chờ duyệt (2026-10-10). Roadmap: [`plans/ordering-roadmap.md`](../plans/ordering-roadmap.md).
+Mockup: [`plans/mockups/ordering-w-web.html`](../plans/mockups/ordering-w-web.html).
 Phase này làm ở repo web, không ở backend; theo `AGENTS.md`, tích hợp frontend cần phase được duyệt
 riêng. File này chỉ ghi phạm vi và hợp đồng API mà web dùng.
 

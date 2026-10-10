@@ -1,6 +1,6 @@
 # Phase O0 — Spike plugin `ordering` trống
 
-Trạng thái: automated verification passed; UAT Admin đạt (local, 2026-10-10); chờ staging. Chủ dự án duyệt spec và cho bắt đầu O0 (2026-10-10). Roadmap:
+Trạng thái: **đóng** (2026-10-10): automated verification passed, UAT Admin đạt (local). Chủ dự án bỏ gate staging cho O0. Chủ dự án duyệt spec và cho bắt đầu O0 (2026-10-10). Roadmap:
 [`plans/ordering-roadmap.md`](../plans/ordering-roadmap.md). Kế hoạch thực hiện
 chi tiết: [`plans/ordering-spike.md`](../plans/ordering-spike.md). Thiết kế:
 [`plans/ordering-core-contracts.md`](../plans/ordering-core-contracts.md).

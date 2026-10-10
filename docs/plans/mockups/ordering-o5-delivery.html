@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O5 Giao tận nơi</title>
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body>
+<main class="doc">
+
+<header class="doc-head">
+  <p class="eyebrow">Mockup · Phase O5 · Giao tận nơi (quán tự giao)</p>
+  <h1>Vùng giao theo xã/phường, phí theo giá trị đơn, người giao thu tiền</h1>
+  <div class="links">
+    <a href="../../phases/phase-ordering-5-delivery.md">Spec O5</a>
+    <a href="../ordering-o5-delivery.md">Kế hoạch O5</a>
+    <a href="../ordering-core-contracts.md">Contracts mục 19.8</a>
+  </div>
+</header>
+
+<section class="screen">
+  <h2>1. Cấu hình vùng giao của chi nhánh</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/branches/Q1 · Giao tận nơi</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a class="active">Bán hàng</a></nav>
+        <div class="content">
+          <div class="tabs"><span>Thông tin</span><span>Tự lấy</span><span class="on">Giao tận nơi</span><span>Thuế</span></div>
+          <div class="grid2">
+            <div class="panel">
+              <div class="spread"><strong>Vùng 1 · Gần</strong><span class="badge primary">ưu tiên 1</span></div>
+              <div class="field"><label>Xã/phường</label><span class="input">TP.HCM: Bến Thành, Sài Gòn, Tân Định, Bàn Cờ</span></div>
+              <div class="table-wrap"><table class="t" style="min-width:0">
+                <thead><tr><th>Khi đơn</th><th class="num">Phí</th></tr></thead>
+                <tbody><tr><td>dưới 100.000</td><td class="num">Không giao</td></tr><tr><td>dưới 300.000</td><td class="num">15.000</td></tr><tr><td>từ 300.000</td><td class="num">Miễn phí</td></tr></tbody>
+              </table></div>
+              <div class="field"><label>Cộng thêm thời gian</label><span class="input">30 phút</span></div>
+            </div>
+            <div class="panel">
+              <div class="spread"><strong>Vùng 2 · Xa</strong><span class="badge gray">ưu tiên 2</span></div>
+              <div class="field"><label>Xã/phường</label><span class="input">TP.HCM: Thảo Điền, An Khánh, Bình Thạnh</span></div>
+              <div class="table-wrap"><table class="t" style="min-width:0">
+                <thead><tr><th>Khi đơn</th><th class="num">Phí</th></tr></thead>
+                <tbody><tr><td>dưới 200.000</td><td class="num">Không giao</td></tr><tr><td>mọi đơn khác</td><td class="num">30.000</td></tr></tbody>
+              </table></div>
+              <div class="field"><label>Cộng thêm thời gian</label><span class="input">45 phút</span></div>
+            </div>
+          </div>
+          <span class="btn secondary" style="justify-self:start">+ Thêm vùng</span>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Danh mục 2 cấp (tỉnh/thành, xã/phường) từ 01/07/2025; không cần API bản đồ.</span></li>
+      <li><span class="n">2</span><span>Xét rule theo thứ tự, rule đầu tiên khớp thắng. Ngoài mọi vùng → "Không giao được tới địa chỉ này".</span></li>
+      <li><span class="n">3</span><span>Danh sách xã/phường và bảng phí thật chờ chủ dự án cung cấp.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>2. Phía khách: nhập địa chỉ và thấy phí</h2>
+  <div class="phones">
+    <div class="phone web"><div class="site-head">Salanca <small>Giao tận nơi</small></div>
+      <div class="wrap">
+        <div class="field"><label>Tỉnh/thành</label><span class="input">TP. Hồ Chí Minh</span></div>
+        <div class="field"><label>Xã/phường</label><span class="input">Phường Bến Thành</span></div>
+        <div class="field"><label>Số nhà, đường</label><span class="input">12 Lê Lợi</span></div>
+        <div class="card small"><div class="spread"><span>Tạm tính</span><span>220.000đ</span></div><div class="spread"><span>Phí giao</span><span>15.000đ</span></div><div class="spread strong"><span>Tổng</span><span class="price">235.000đ</span></div><span class="muted">Mua thêm 80.000đ để được miễn phí giao.</span></div>
+      </div></div>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>3. Đơn đang giao theo người giao</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/deliveries</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a>Đơn hàng</a><a class="active">Giao hàng</a></nav>
+        <div class="content">
+          <div class="tabs"><span>Sẵn sàng (2)</span><span class="on">Đang giao (3)</span><span>Giao thất bại (1)</span></div>
+          <div class="panel" style="padding:0"><div class="table-wrap"><table class="t">
+            <thead><tr><th>Mã</th><th>Người giao</th><th>Địa chỉ</th><th>Thu</th><th>Xuất phát</th><th></th></tr></thead>
+            <tbody>
+              <tr><td>SLC-000140</td><td>Tâm</td><td>12 Lê Lợi, Bến Thành</td><td><span class="badge gray">235.000 tiền mặt</span></td><td>12:10</td><td><span class="btn success">Thu tiền và giao</span></td></tr>
+              <tr><td>SLC-000141</td><td>Tâm</td><td>5 Pasteur, Sài Gòn</td><td><span class="badge ok">Đã trả</span></td><td>12:10</td><td><span class="btn">Đã giao</span></td></tr>
+              <tr><td>SLC-000143</td><td>Grab (quán tự gọi)</td><td>8 Xuân Thủy, Thảo Điền</td><td><span class="badge ok">Đã trả</span></td><td>12:20 · mã chuyến GRB-88</td><td><span class="btn">Đã giao</span></td></tr>
+            </tbody></table></div></div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Quán gọi xe ngoài thì nhập mã chuyến/link theo dõi bằng tay. Tích hợp hãng giao để sau.</span></li>
+      <li><span class="n">2</span><span>"Giao thất bại" bắt buộc lý do; chọn giao lại hoặc hủy và hoàn tiền.</span></li>
+      <li><span class="n">3</span><span>Tiền mặt người giao thu được cộng vào chốt tiền cuối ngày theo người giao (O6).</span></li>
+    </ol>
+  </div>
+</section>
+
+<footer class="doc-foot">File trên máy, không publish. Vùng, phí và địa chỉ chỉ là ví dụ.</footer>
+</main>
+</body>
+</html>

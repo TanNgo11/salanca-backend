@@ -1,6 +1,7 @@
 # Phase O1 — Lõi đơn hàng
 
 Trạng thái: spec chờ duyệt (2026-10-10). Roadmap: [`plans/ordering-roadmap.md`](../plans/ordering-roadmap.md).
+Mockup: [`plans/mockups/ordering-o1-core.html`](../plans/mockups/ordering-o1-core.html).
 Kế hoạch thực hiện: [`plans/ordering-o1-core.md`](../plans/ordering-o1-core.md).
 Thiết kế: [`plans/ordering-core-contracts.md`](../plans/ordering-core-contracts.md) (mục 1–8, 12, 15, 19).
 

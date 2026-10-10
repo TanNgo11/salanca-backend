@@ -1,6 +1,7 @@
 # Phase O2 — Module catalog
 
 Trạng thái: spec chờ duyệt (2026-10-10). Roadmap: [`plans/ordering-roadmap.md`](../plans/ordering-roadmap.md).
+Mockup: [`plans/mockups/ordering-o2-catalog.html`](../plans/mockups/ordering-o2-catalog.html).
 Kế hoạch thực hiện: [`plans/ordering-o2-catalog.md`](../plans/ordering-o2-catalog.md).
 Thiết kế: [`plans/ordering-core-contracts.md`](../plans/ordering-core-contracts.md) (mục 4, 20);
 nghiên cứu: reference C12, C18, C19, C20.

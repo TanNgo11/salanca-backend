@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O6 Vận hành và go-live</title>
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body>
+<main class="doc">
+
+<header class="doc-head">
+  <p class="eyebrow">Mockup · Phase O6 · Vận hành và go-live</p>
+  <h1>Biết khi nào có lỗi, chốt tiền mỗi ngày, báo cáo theo ngày kinh doanh</h1>
+  <div class="links">
+    <a href="../../phases/phase-ordering-6-ops-golive.md">Spec O6</a>
+    <a href="../ordering-o6-ops-golive.md">Kế hoạch O6</a>
+    <a href="../ordering-core-contracts.md">Contracts mục 12, 19.3</a>
+  </div>
+</header>
+
+<section class="screen">
+  <h2>1. Tình trạng vận hành</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/ops</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a>Đơn hàng</a><a class="active">Vận hành</a><a>Cảnh báo <span class="count">2</span></a></nav>
+        <div class="content">
+          <div class="grid3">
+            <div class="panel"><span class="small muted">Outbox đang chờ</span><strong style="font-size:22px">3</strong><span class="small">cũ nhất 8 giây</span></div>
+            <div class="panel"><span class="small muted">Webhook SePay thành công gần nhất</span><strong style="font-size:22px">2 phút trước</strong><span class="badge ok" style="justify-self:start">Bình thường</span></div>
+            <div class="panel"><span class="small muted">Đối soát SePay</span><strong style="font-size:22px">12:00</strong><span class="small">lần tới 13:00</span></div>
+          </div>
+          <div class="panel" style="padding:0"><div class="table-wrap"><table class="t">
+            <thead><tr><th>Job</th><th>Chạy gần nhất</th><th>Kết quả</th></tr></thead>
+            <tbody><tr><td>Gửi outbox</td><td>12:41:05</td><td><span class="badge ok">OK</span></td></tr><tr><td>Nhả slot hết hạn</td><td>12:41:00</td><td><span class="badge ok">OK</span></td></tr><tr><td>Hết hạn thanh toán</td><td>12:40:30</td><td><span class="badge ok">OK</span></td></tr><tr class="hl"><td>Xóa dữ liệu theo hạn</td><td>04:00</td><td><span class="badge amber">Đã xóa 12 payload</span></td></tr></tbody>
+          </table></div></div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes"><li><span class="n">1</span><span><code>/_health</code> của Strapi chỉ biết server còn sống; trang này cho thấy job và webhook có kẹt không.</span></li></ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>2. Cảnh báo</h2>
+  <div class="with-notes">
+    <div class="panel" style="padding:0"><div class="table-wrap"><table class="t">
+      <thead><tr><th>Mức</th><th>Cảnh báo</th><th>Số lần</th><th>Lần đầu / gần nhất</th><th>Gửi tới</th><th></th></tr></thead>
+      <tbody>
+        <tr class="hl"><td><span class="badge warn">Nghiêm trọng</span></td><td>Webhook SePay lỗi liên tục</td><td>21</td><td>10:02 / 10:31</td><td>Kỹ thuật</td><td><span class="btn ghost">Đã biết</span></td></tr>
+        <tr><td><span class="badge amber">Cảnh báo</span></td><td>Đơn chờ nhận quá 10 phút · SLC-000121</td><td>1</td><td>12:12</td><td>NV + QL Q1</td><td><span class="btn ghost">Đã biết</span></td></tr>
+        <tr><td><span class="badge amber">Cảnh báo</span></td><td>Chốt tiền mặt lệch −20.000 · Q1 · 09/10</td><td>1</td><td>23:10</td><td>QL Q1 + Kế toán</td><td><span class="badge gray">Đã biết · Hà</span></td></tr>
+      </tbody></table></div></div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Cùng một lỗi lặp lại chỉ tăng "Số lần", không gửi thêm email; vượt ngưỡng thì lên "Nghiêm trọng".</span></li>
+      <li><span class="n">2</span><span>Ngưỡng chỉnh được; mặc định: webhook lỗi 5 lần, đơn chờ 10 phút, outbox kẹt 10 phút.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>3. Chốt tiền mặt cuối ngày</h2>
+  <div class="frame"><div class="frame-bar"><span class="url">Chốt tiền mặt · Q1 · ngày kinh doanh 10/10</span></div>
+    <div class="admin"><nav><span class="logo"></span><a class="active">Chốt tiền</a></nav>
+      <div class="content">
+        <div class="panel" style="padding:0"><div class="table-wrap"><table class="t">
+          <thead><tr><th>Người thu</th><th class="num">Số đơn</th><th class="num">Hệ thống tính</th><th class="num">Hoàn tiền mặt</th><th class="num">Phải có</th></tr></thead>
+          <tbody><tr><td>Lan (quầy)</td><td class="num">18</td><td class="num">3.240.000</td><td class="num">−87.940</td><td class="num">3.152.060</td></tr><tr><td>Tâm (giao hàng)</td><td class="num">6</td><td class="num">1.410.000</td><td class="num">0</td><td class="num">1.410.000</td></tr><tr class="hl"><td class="strong">Tổng</td><td class="num">24</td><td></td><td></td><td class="num strong">4.562.060</td></tr></tbody>
+        </table></div></div>
+        <div class="row"><div class="field"><label>Số tiền đếm được *</label><span class="input">4.562.060</span></div><div class="field"><label>Ghi chú</label><span class="input empty">…</span></div><span class="btn">Chốt</span></div>
+        <div class="alert-box ok">Khớp. Lệch khác 0 → cảnh báo gửi quản lý chi nhánh và kế toán.</div>
+      </div></div></div>
+</section>
+
+<section class="screen">
+  <h2>4. Báo cáo và xuất CSV</h2>
+  <div class="grid2">
+    <div class="panel">
+      <div class="spread"><h3>Doanh thu 01–10/10 · Q1</h3><span class="select">Theo danh mục</span></div>
+      <table class="t" style="min-width:0"><tbody>
+        <tr><td>Món chính</td><td class="num">28.400.000</td></tr><tr><td>Đồ uống</td><td class="num">6.150.000</td></tr><tr><td>Combo</td><td class="num">9.900.000</td></tr>
+        <tr><td class="muted">Theo cách trả: tiền mặt 58% · chuyển khoản 42%</td><td></td></tr>
+      </tbody></table>
+      <p class="small muted">Tính theo ngày kinh doanh (đơn 01:30 thuộc ngày hôm trước) và theo tên/danh mục lúc đặt.</p>
+    </div>
+    <div class="frame"><div class="frame-bar"><span class="url">Hộp thoại · Xuất CSV (quyền export)</span></div>
+      <div class="modal-backdrop"><div class="modal">
+        <header><strong>Xuất CSV đơn hàng</strong><span class="muted">✕</span></header>
+        <div class="body"><div class="grid2"><div class="field"><label>Từ ngày</label><span class="input">01/10</span></div><div class="field"><label>Đến ngày</label><span class="input">10/10</span></div></div>
+          <div class="alert-box amber">File có tên và số điện thoại khách. Tối đa 10.000 dòng.</div></div>
+        <footer><span class="btn secondary">Hủy</span><span class="btn">Tải CSV</span></footer>
+      </div></div></div>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>5. Cổng go-live (không phải màn hình)</h2>
+  <div class="panel">
+    <ul>
+      <li><span class="check">Tài khoản SePay thật đã thử giao dịch nhỏ</span></li>
+      <li><span class="check">Kế toán: hóa đơn điện tử, giá đã gồm VAT chưa</span></li>
+      <li><span class="check">Pháp lý: thời hạn lưu dữ liệu, nội dung đồng ý, <code>policyVersion</code> đã bật</span></li>
+      <li><span class="check">Nội dung email gửi khách đã duyệt</span></li>
+      <li><span class="check">UAT O3–O6 ghi đủ trong STATUS.md; quyết định số instance</span></li>
+    </ul>
+  </div>
+</section>
+
+<footer class="doc-foot">File trên máy, không publish. Số liệu chỉ là ví dụ.</footer>
+</main>
+</body>
+</html>

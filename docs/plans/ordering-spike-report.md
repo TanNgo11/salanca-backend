@@ -4,7 +4,7 @@ Ngày: 2026-10-10. Nhánh: `spike/ordering-plugin`. Spec: [`phases/phase-orderin
 Kế hoạch: [`ordering-spike.md`](ordering-spike.md).
 
 Trạng thái: **automated verification passed** cho mọi mục kiểm thuộc O0; **UAT trong Admin đạt**
-(local). Còn 1 gate: deploy staging Dokploy. Dữ liệu thử chỉ ở PostgreSQL local `salanca_ordering_spike`
+(local). Gate staging Dokploy được chủ dự án bỏ (2026-10-10): **O0 đóng**. Dữ liệu thử chỉ ở PostgreSQL local `salanca_ordering_spike`
 (`scripts/spike-ordering/runtime.mjs` và `bootstrap()` của plugin đều từ chối DB khác).
 
 ## Quyết định rút ra
@@ -74,10 +74,10 @@ node scripts/spike-ordering/{load,tx,middleware,scope,scope-engine,dispatch,disp
 - [x] Content Salanca: form tạo "Món" đủ field, nhãn tiếng Việt, gợi ý "Giá trị này riêng cho ngôn ngữ
   đang chọn", Draft & Publish như cũ.
 
-## Gate còn mở
+## Gate không làm
 
-- **Staging Dokploy:** build Nixpacks có plugin, `ORDERING_ENABLED=true`, Admin hiện plugin, `/_health`
-  trả 204, preflight qua Cloudflare.
+- **Staging Dokploy:** chủ dự án bỏ cho O0 (2026-10-10). Preflight qua Cloudflare và build Nixpacks có
+  plugin sẽ kiểm khi deploy thật ở O6.
 
 Tham khảo: [Strapi Server API](https://docs.strapi.io/cms/plugins-development/server-api). Kết luận dựa
 trên source local 5.51.1 và script chạy thật.
