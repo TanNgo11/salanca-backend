@@ -164,5 +164,22 @@ withApp(async (app) => {
     (error) => error?.code === 'VALIDATION_ERROR',
   );
 
-  console.log('[ordering-test] catalog-json: modifierGroups/bundleSlots structure + refs verified');
+  // Step 11: Document Service writes append admin-change-log rows (system actor here;
+  // admin actors come from the request context in real CM edits). Rejected writes don't log.
+  await docs(PRODUCT).update({ documentId: ok.documentId, data: { rank: 3 } });
+  const logs = await app.db
+    .query('plugin::ordering.admin-change-log')
+    .findMany({ where: { entityType: 'catalog-product', entityId: ok.documentId } });
+  const actions = logs.map((row) => row.action);
+  assert.deepEqual(
+    actions.sort(),
+    ['catalog-product.create', 'catalog-product.update'],
+    'create + update are change-logged, the rejected update is not',
+  );
+  assert.ok(
+    logs.every((row) => row.actorRef === 'system'),
+    'service-context writes log with the system actor',
+  );
+
+  console.log('[ordering-test] catalog-json: modifierGroups/bundleSlots structure + refs + change-log verified');
 });

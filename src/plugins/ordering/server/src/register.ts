@@ -32,6 +32,22 @@ const SLUGGED_UIDS = {
   'plugin::ordering.catalog-product': 'catalog-product',
 } as const;
 
+/**
+ * Editor-facing catalog CTs whose Document Service writes append `admin-change-log`
+ * rows (plan step 11). `catalog-slug` is excluded — it is an internal sync side effect
+ * of the CTs above.
+ */
+const CATALOG_AUDITED_UIDS = new Set([
+  'plugin::ordering.catalog-category',
+  'plugin::ordering.catalog-product',
+  'plugin::ordering.catalog-variant',
+  'plugin::ordering.catalog-price',
+  'plugin::ordering.catalog-modifier-group',
+  'plugin::ordering.catalog-modifier',
+  'plugin::ordering.catalog-availability-window',
+  'plugin::ordering.catalog-location-state',
+]);
+
 /** Admin actions of contracts §19.2, registered under the plugin section. */
 const adminActions = [
   { uid: 'order.read', displayName: 'Xem đơn hàng' },
@@ -277,6 +293,68 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
     return next();
   };
   strapi.documents.use(catalogIntegrity);
+
+  // Plan step 11: every Document Service write to a catalog CT appends an
+  // `admin-change-log` row (Content Manager edits included). The admin user comes from
+  // the in-flight request context; service/seed writes log as `system`. The audit row
+  // is best-effort — a failing insert warns instead of blocking the catalog write.
+  const catalogChangeLog: DocumentsMiddleware = async (context, next) => {
+    const isWrite =
+      context.action === 'create' ||
+      context.action === 'update' ||
+      context.action === 'delete';
+    if (!CATALOG_AUDITED_UIDS.has(context.uid) || !isWrite) return next();
+    const params = context.params as { documentId?: string } | undefined;
+    const before =
+      context.action !== 'create' && params?.documentId
+        ? ((await strapi.db.query(context.uid).findOne({
+            where: { documentId: params.documentId },
+          })) as Record<string, unknown> | null)
+        : null;
+    const result = await next();
+    const entityType = context.uid.slice('plugin::ordering.'.length);
+    const documentId =
+      (result as { documentId?: string } | null | undefined)?.documentId ??
+      (result as { entries?: { documentId?: string }[] } | null | undefined)?.entries?.[0]
+        ?.documentId ??
+      params?.documentId ??
+      'unknown';
+    const adminUser = (
+      strapi.requestContext.get() as { state?: { user?: { id?: number } } } | undefined
+    )?.state?.user;
+    try {
+      await strapi.plugin('ordering').service('change-log').record(
+        {
+          action: `${entityType}.${context.action}`,
+          entityType,
+          entityId: documentId,
+          before,
+          after:
+            context.action === 'delete'
+              ? null
+              : ((result ?? {}) as Record<string, unknown>),
+        },
+        {
+          actor: adminUser?.id
+            ? {
+                kind: 'staff',
+                adminUserId: adminUser.id,
+                isSuperAdmin: false,
+                actorRef: `admin:${adminUser.id}`,
+              }
+            : { kind: 'system' },
+        },
+      );
+    } catch (error) {
+      strapi.log.warn(
+        `[ordering] catalog change-log failed for ${entityType}.${context.action}: ${
+          (error as Error)?.message ?? error
+        }`,
+      );
+    }
+    return result;
+  };
+  strapi.documents.use(catalogChangeLog);
 
   strapi.admin.services.permission.actionProvider.registerMany(
     adminActions.map((action) => ({

@@ -34,6 +34,24 @@ No `npm audit fix --force` was run. Forcing dependency rewrites would trade a vi
 - Public API permissions remain deny-by-default.
 - Production CORS and media storage remain blocked decisions before staging.
 
+## Ordering public catalog API (O2)
+
+The `ordering` plugin exposes three public read-only routes (`auth:false`) for storefront
+consumption: `GET /api/v1/ordering/catalog/categories`, `/catalog/products`,
+`/catalog/products/:slug`.
+
+- Read-only: only GET routes; serializer returns whitelisted fields (names, slugs,
+  prices, availability) — internal ids, ranks, `isInternal` categories and inactive /
+  non-`sellOnline` products are filtered out before serialization.
+- Rate limit: in-process per client IP (`X-Forwarded-For` honored only with
+  `TRUST_PROXY=true`, same model as form intake); 429 beyond the configured window.
+- Response size: short `Cache-Control` TTL; product list is paginated — no unbounded
+  dump endpoint.
+- Admin routes (`/ordering/categories*`, `/ordering/availability*`) require
+  `admin::isAuthenticatedAdmin` plus `plugin::ordering.catalog.manage` /
+  `catalog.toggle-availability`, and staff scope is enforced per `locationRef` —
+  unauthenticated requests return 401 before the handler runs.
+
 ## Form intake rate limiting
 
 Contact and reservation intake are rate limited in-process per client IP (default 5 per 10 minutes).
