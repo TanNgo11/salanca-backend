@@ -1,6 +1,8 @@
 import type { Core } from '@strapi/strapi';
 
 import type { OrderingConfig } from './config';
+import { orderingMigrations } from './migrations';
+import { runOrderingMigrations } from './migrations/runner';
 import type { OrderingRegistry } from './services/registry';
 
 const bootstrap = async ({ strapi }: { strapi: Core.Strapi }) => {
@@ -15,6 +17,7 @@ const bootstrap = async ({ strapi }: { strapi: Core.Strapi }) => {
     );
   }
 
+  await runOrderingMigrations(strapi, orderingMigrations);
   registry.recordLifecycle('plugin.bootstrap');
   if (config.spike.enabled) {
     const database = strapi.config.get('database.connection.connection.database');

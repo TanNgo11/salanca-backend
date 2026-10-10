@@ -94,8 +94,8 @@ quyết định cách đóng gói plugin.
      `scripts/spike-ordering/scope.mjs`.
    - Làm: hai admin user thuộc hai chi nhánh qua `staff-location-scope`; handler async trả query object;
      thử handler trả `false` và trả `null`.
-   - Verification: user A chỉ thấy đơn chi nhánh A; không có scope thì bị từ chối; handler trả `null` thì
-     engine cấp quyền không điều kiện (xác nhận rủi ro đã ghi ở C17.1).
+   - Verification: user A chỉ thấy đơn chi nhánh A; không có scope thì bị từ chối; ghi lại hành vi khi
+     handler trả `null` (kết quả: bị từ chối, ngược với C17.1 bản đầu; đã sửa C17.1).
 6. **Cron và claim khi chạy 2 process** (mục kiểm 4)
    - Files: `server/src/services/spike-dispatcher.ts`, cron trong config plugin hoặc
      `strapi.cron.add`, `scripts/spike-ordering/dispatch.mjs`.
@@ -195,3 +195,8 @@ quyết định cách đóng gói plugin.
   - Không thêm dependency: zod lấy từ `@strapi/utils` (`export { z }`, zod v4). Chưa cần `@strapi/sdk-plugin`.
   - `pnpm run build` có plugin: 52 giây (không plugin: 49 giây); bundle admin có trang của plugin.
   - Test: validator config (4), khai báo plugin trong config app (3), typecheck sạch.
+- 2026-10-10, bổ sung để đóng O0: thêm `dispatch-two-process.mjs` (2 process thật, tắt một process giữa
+  chừng), `scope-engine.mjs` (qua engine phân quyền Strapi), `migrate-runner.mjs` (runner migration của
+  plugin), `http.mjs` (không tự mở REST, preflight CORS, thiếu body gốc), `extension-upgrade.mjs` (nâng
+  cấp plugin); sửa handler condition (nhận thẳng object user); chạy lại mọi gate. Kết quả và quyết định
+  D1–D7 ở [`ordering-spike-report.md`](ordering-spike-report.md). Còn UAT trong Admin và staging.

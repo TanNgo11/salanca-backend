@@ -56,5 +56,7 @@ export default {
     slug: { type: 'json' },
     modifierGroups: { type: 'json' },
     isActive: { type: 'boolean', default: true },
+    // O0 probe: simulates a later plugin version adding an attribute (ORDERING_SPIKE_SCHEMA_V2=true).
+    ...(process.env.ORDERING_SPIKE_SCHEMA_V2 === 'true' ? { upgradeMarker: { type: 'string' } } : {}),
   }, true),
 };

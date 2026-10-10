@@ -1063,8 +1063,9 @@ type StaffLocationScope = {
   trong transaction rồi kiểm `order.locationRef` thuộc scope trước khi làm, như
   `check_channel_permissions` của Saleor. Đơn ngoài scope trả `ORDER_NOT_FOUND`, không trả 403, để
   nhân viên không dò được mã đơn của chi nhánh khác.
-- Condition Strapi trả `false` khi không có scope, không bao giờ trả `undefined`/`null`: engine
-  Strapi 5.51.1 loại kết quả không hợp lệ, và nếu mọi condition bị loại thì cấp quyền không điều kiện.
+- Condition Strapi trả `false` khi không có scope. **Sửa sau spike O0 (2026-10-10):** bản trước ghi trả `null` sẽ cấp quyền không
+  điều kiện; spike chứng minh ngược lại: engine 5.51.1 từ chối khi mọi kết quả bị loại. Handler nhận
+  thẳng object user, không phải `{ user }` (reference C17.1).
 - Scope gắn theo user (giống TastyIgniter) vì nhân viên quán hay luân chuyển; quyền làm gì vẫn do role
   Strapi quyết định. Nếu khách sau muốn gắn theo role (giống Vendure/Saleor), thêm bảng
   `role-location-scope` và lấy hợp của hai bảng; không đổi service.
@@ -1185,7 +1186,7 @@ workflow dành riêng cho chúng vào phase hiện tại.
 12. `strapi::cors` cho phép `X-Order-Token` và `Idempotency-Key`; preflight qua Cloudflare chạy đúng.
 13. Condition `plugin::ordering.same-location` với handler async đọc `staff-location-scope`. Source
     đã xác nhận engine `await` handler; fixture cần chứng minh user không có scope bị từ chối (handler
-    trả `false`) và handler trả `null` thì bị bắt trong test, vì engine sẽ cấp quyền không điều kiện.
+    trả `false`) và hành vi khi handler trả `null` (kết quả spike: bị từ chối).
 14. Fixture `businessDate` với giờ chốt 04:00 và giờ mở 22:00–02:00 theo `Asia/Ho_Chi_Minh`, server
     chạy UTC.
 15. Local plugin đăng ký custom field `localized-text` và hai custom field JSON (`modifierGroups`,
@@ -1259,7 +1260,8 @@ Bổ sung sau nghiên cứu C17:
 
 - Scope chi nhánh có cờ `allLocations` rõ ràng; không có scope thì từ chối; ghi phải kiểm chi nhánh của
   đơn đích và trả `ORDER_NOT_FOUND`. Lý do: TastyIgniter bỏ lọc khi danh sách rỗng, Saleor kiểm object
-  khi sửa, và engine Strapi cấp quyền không điều kiện khi condition trả giá trị không hợp lệ.
+  khi sửa. (Lý do thứ ba ghi trước đây, "engine cấp quyền không điều kiện khi condition trả giá trị không
+  hợp lệ", đã được spike O0 chứng minh là sai.)
 - Thêm `order.businessDate` và `placedAt`, tính một lần theo timezone và giờ chốt của chi nhánh. Lý do:
   báo cáo và "hết món đến cuối ngày" không được đổi khi đổi cấu hình; quán mở qua nửa đêm.
 - Thêm `OpsAlertRule` với ngưỡng mặc định, cửa sổ gộp, ngưỡng critical, `slaMinutes` trên bước workflow

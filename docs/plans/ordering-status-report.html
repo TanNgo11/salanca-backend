@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tiến độ module bán hàng</title>
+<style>
+  :root {
+    --bg: #f7f5f3;
+    --surface: #ffffff;
+    --fg: #23201e;
+    --muted: #6d6560;
+    --line: #e4dfda;
+    --accent: #7a2a22;
+    --accent-soft: #f3e6e3;
+    --ok: #2f6b45;
+    --ok-soft: #e3f1e8;
+    --warn: #8a5a12;
+    --warn-soft: #fbf1df;
+    --todo: #6d6560;
+    --todo-soft: #efebe7;
+    --you: #2b4f8a;
+    --you-soft: #e4ecf8;
+    --font-body: "Segoe UI", system-ui, -apple-system, sans-serif;
+    --font-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1a1817; --surface: #242120; --fg: #ece7e3; --muted: #a59d97;
+      --line: #3a3532; --accent: #e08a7d; --accent-soft: #3a2724;
+      --ok: #7cc597; --ok-soft: #1f3327; --warn: #e2b264; --warn-soft: #3a2f1c;
+      --todo: #a59d97; --todo-soft: #2e2a28; --you: #8fb3ee; --you-soft: #1f2a3d;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1a1817; --surface: #242120; --fg: #ece7e3; --muted: #a59d97;
+    --line: #3a3532; --accent: #e08a7d; --accent-soft: #3a2724;
+    --ok: #7cc597; --ok-soft: #1f3327; --warn: #e2b264; --warn-soft: #3a2f1c;
+    --todo: #a59d97; --todo-soft: #2e2a28; --you: #8fb3ee; --you-soft: #1f2a3d;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 15px/1.6 var(--font-body);
+    padding-inline: 16px; padding-block: 40px 64px;
+  }
+  main { max-width: 880px; margin: 0 auto; display: grid; gap: 44px; }
+  h1, h2, h3 { text-wrap: balance; line-height: 1.25; margin: 0; }
+  h1 { font-size: 30px; }
+  h2 { font-size: 20px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  h3 { font-size: 16px; }
+  p { margin: 0; }
+  section { display: grid; gap: 16px; }
+  .lead { color: var(--muted); font-size: 16px; max-width: 64ch; }
+  .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  code { font-family: var(--font-mono); font-size: .88em; background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+  ul, ol { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+  a { color: var(--accent); }
+
+  /* Ô tóm tắt */
+  .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 4px; }
+  .card .label { font-size: 13px; color: var(--muted); }
+  .card .value { font-size: 20px; font-weight: 600; }
+  .card .note { font-size: 13px; color: var(--muted); }
+
+  /* Chip trạng thái */
+  .chip { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+  .chip.done { background: var(--ok-soft); color: var(--ok); }
+  .chip.partial { background: var(--warn-soft); color: var(--warn); }
+  .chip.todo { background: var(--todo-soft); color: var(--todo); }
+  .chip.you { background: var(--you-soft); color: var(--you); }
+  .chip.moved { background: var(--accent-soft); color: var(--accent); }
+
+  /* Dòng thời gian phase */
+  .timeline { display: grid; gap: 10px; }
+  .phase { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--line); border-radius: 8px; padding: 12px 16px; display: grid; grid-template-columns: 64px 1fr auto; gap: 4px 14px; align-items: start; }
+  .phase.done { border-left-color: var(--ok); }
+  .phase.current { border-left-color: var(--warn); box-shadow: 0 0 0 1px var(--warn-soft); }
+  .phase .id { font-weight: 700; font-size: 16px; }
+  .phase .what { display: grid; gap: 2px; }
+  .phase .what small { color: var(--muted); }
+  .phase .est { color: var(--muted); font-size: 13px; text-align: right; }
+  @media (max-width: 560px) {
+    .phase { grid-template-columns: 1fr; }
+    .phase .est { text-align: left; }
+  }
+
+  /* Bảng */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.num { color: var(--muted); width: 36px; }
+
+  .callout { border-radius: 8px; padding: 12px 16px; background: var(--warn-soft); color: var(--fg); display: grid; gap: 6px; }
+  .callout strong { color: var(--warn); }
+  .steps { counter-reset: s; list-style: none; padding: 0; gap: 10px; }
+  .steps li { counter-increment: s; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px 12px 52px; position: relative; }
+  .steps li::before { content: counter(s); position: absolute; left: 14px; top: 11px; width: 26px; height: 26px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 700; display: grid; place-items: center; font-size: 13px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
+  footer { color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+
+<header style="display:grid;gap:10px">
+  <p class="eyebrow">Plugin ordering · báo cáo tiến độ · 2026-10-10</p>
+  <h1>Module bán hàng đang ở đâu</h1>
+  <p class="lead">Đã xong toàn bộ nghiên cứu, thiết kế, roadmap, spec và kế hoạch thực hiện cho mọi phase.
+    Đang ở phase đầu tiên có code, O0 (spike plugin trống): mọi mục kiểm tự động đã đạt, chỉ còn 2 việc
+    cần bạn làm tay (UAT trong Admin, deploy staging). Chưa có code nghiệp vụ nào.</p>
+</header>
+
+<section aria-label="Tóm tắt">
+  <div class="summary">
+    <div class="card"><span class="label">Phase hiện tại</span><span class="value">O0 · Spike</span><span class="note">trên nhánh <code>spike/ordering-plugin</code></span></div>
+    <div class="card"><span class="label">Mục kiểm O0 (19 mục + 3 bổ sung)</span><span class="value">19 đạt</span><span class="note">3 chuyển sang O1/O4; còn UAT tay và staging</span></div>
+    <div class="card"><span class="label">Test tự động</span><span class="value">677 / 677</span><span class="note"><code>check:phase3</code> đạt, plugin bật lẫn tắt</span></div>
+    <div class="card"><span class="label">Còn lại theo roadmap</span><span class="value">≈ 8–11 tuần</span><span class="note">ước lượng thô O1–O6, chưa tính web</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>Roadmap</h2>
+  <div class="timeline">
+    <div class="phase done">
+      <span class="id">—</span>
+      <span class="what"><strong>Nghiên cứu và thiết kế</strong><small>Reference, contracts (21 mục), roadmap, 8 spec, 7 kế hoạch. Đã ở <code>main</code>.</small></span>
+      <span class="est"><span class="chip done">Xong</span></span>
+    </div>
+    <div class="phase current">
+      <span class="id">O0</span>
+      <span class="what"><strong>Spike plugin trống</strong><small>Chứng minh Strapi 5.51.1 làm được các việc lõi trước khi viết nghiệp vụ.</small></span>
+      <span class="est"><span class="chip partial">Đang làm</span><br>3–5 ngày</span>
+    </div>
+    <div class="phase">
+      <span class="id">O1</span>
+      <span class="what"><strong>Lõi đơn hàng</strong><small>Dữ liệu, tiền, tính giá, workflow, sổ thanh toán, outbox, scope chi nhánh. Chưa có giao diện.</small></span>
+      <span class="est"><span class="chip todo">Chưa</span><br>1,5–2 tuần</span>
+    </div>
+    <div class="phase">
+      <span class="id">O2</span>
+      <span class="what"><strong>Module catalog</strong><small>Danh mục, sản phẩm, biến thể, tùy chọn, combo, "tạm hết", API đọc catalog.</small></span>
+      <span class="est"><span class="chip todo">Chưa</span><br>1–1,5 tuần</span>
+    </div>
+    <div class="phase">
+      <span class="id">O3</span>
+      <span class="what"><strong>Đặt hàng tự lấy, tiền mặt</strong><small>Luồng chạy trọn đầu tiên: chi nhánh, báo giá, đặt đơn, Admin xử lý đơn, tạo đơn hộ, email.</small></span>
+      <span class="est"><span class="chip todo">Chưa</span><br>1,5–2 tuần</span>
+    </div>
+    <div class="phase">
+      <span class="id">O4</span>
+      <span class="what"><strong>Chuyển khoản SePay</strong><small>QR, webhook, tự khớp, duyệt chuyển khoản, đối soát.</small></span>
+      <span class="est"><span class="chip todo">Chưa</span><br>1 tuần</span>
+    </div>
+    <div class="phase">
+      <span class="id">O5</span>
+      <span class="what"><strong>Giao tận nơi</strong><small>Quán tự giao, vùng giao theo xã/phường, phí giao.</small></span>
+      <span class="est"><span class="chip todo">Chưa</span><br>1–2 tuần</span>
+    </div>
+    <div class="phase">
+      <span class="id">O6</span>
+      <span class="what"><strong>Vận hành và go-live</strong><small>Cảnh báo, chốt tiền mặt, báo cáo, CSV, xóa dữ liệu đúng hạn, cổng go-live.</small></span>
+      <span class="est"><span class="chip todo">Chưa</span><br>1–2 tuần</span>
+    </div>
+    <div class="phase">
+      <span class="id">OW</span>
+      <span class="what"><strong>Web đặt món</strong><small>Ở repo web, cần duyệt phase frontend riêng; làm song song từ cuối O3.</small></span>
+      <span class="est"><span class="chip todo">Chưa</span></span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Chi tiết O0: từng mục kiểm</h2>
+  <p class="lead">Danh sách 19 mục ở contracts mục 17 "Cần kiểm bằng plugin trống", cộng 3 mục bổ sung sau
+    review. Trạng thái dựa trên code và script trên nhánh spike, cùng lần chạy lại <code>check:phase3</code>
+    ngày 2026-10-10.</p>
+  <div class="legend">
+    <span class="chip done">Đạt</span><span class="chip partial">Một phần</span><span class="chip todo">Chưa</span>
+    <span class="chip you">Cần bạn</span><span class="chip moved">Chuyển phase</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Mục kiểm</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead>
+      <tbody>
+        <tr><td class="num">1</td><td>Build plugin TypeScript</td><td><span class="chip done">Đạt</span></td><td>Quyết định D1: server build bằng <code>tsc</code> riêng, admin đọc thẳng TS; không cần <code>@strapi/sdk-plugin</code>.</td></tr>
+        <tr><td class="num">2</td><td>Transaction, khóa dòng, sequence, relation</td><td><span class="chip done">Đạt</span></td><td>20 cập nhật song song không mất lần; 200 mã đơn không trùng; rollback sạch; 8 bảng <code>plugins_ordering_*</code>.</td></tr>
+        <tr><td class="num">3</td><td>Document Service middleware, đường vượt <code>db.query</code></td><td><span class="chip done">Đạt</span></td><td>Middleware chặn được; <code>db.query</code> đi vòng qua, đúng như đọc source. Phần hiện/ẩn ở Content Manager cần UAT (mục cuối bảng).</td></tr>
+        <tr><td class="num">4</td><td>Cron và claim khi chạy 2 process</td><td><span class="chip done">Đạt</span></td><td>2 process Node riêng; process B tắt sau khi claim 10 dòng; 200/200 giao đúng một lần; 10 dòng được nhận lại sau lease 3 giây.</td></tr>
+        <tr><td class="num">5</td><td>Migration của plugin</td><td><span class="chip done">Đạt</span></td><td>Runner trong <code>bootstrap()</code> với bảng <code>plugins_ordering_migrations</code> và khóa advisory; 1.000 dòng cũ: thêm cột → backfill theo lô → <code>NOT NULL</code>; 2 runner đồng thời chạy mỗi migration một lần.</td></tr>
+        <tr><td class="num">6</td><td>Contract test phản hồi SePay/VNPAY/MoMo</td><td><span class="chip moved">Sang O4</span></td><td>Thuộc nghiệp vụ, đã có trong kế hoạch O4.</td></tr>
+        <tr><td class="num">7</td><td>Trộn loại hàng, voucher, lịch hẹn</td><td><span class="chip moved">Sang O1</span></td><td>Thuộc nghiệp vụ, đã có trong kế hoạch O1.</td></tr>
+        <tr><td class="num">8</td><td>Hai chi nhánh, hai nhân viên</td><td><span class="chip done">Đạt</span></td><td>Qua engine phân quyền thật của Strapi với admin user thật: A chỉ thấy đơn A, B chỉ thấy B, không có scope không thấy gì.</td></tr>
+        <tr><td class="num">9</td><td>Làm tròn nhiều dòng, giảm giá, VAT</td><td><span class="chip moved">Sang O1</span></td><td>Thuộc nghiệp vụ, đã có trong kế hoạch O1.</td></tr>
+        <tr><td class="num">10</td><td><code>resolve</code>, <code>validator</code>, app đăng ký adapter</td><td><span class="chip done">Đạt</span></td><td>Thứ tự plugin register → app register → plugin bootstrap → app bootstrap.</td></tr>
+        <tr><td class="num">11</td><td>Body gốc cho webhook, HMAC</td><td><span class="chip done">Đạt</span></td><td>Chữ ký đúng 200, sửa body 401; thiếu body gốc trả <code>RAW_BODY_UNAVAILABLE</code>; form đặt bàn và liên hệ vẫn đạt.</td></tr>
+        <tr><td class="num">12</td><td>CORS cho <code>X-Order-Token</code>, <code>Idempotency-Key</code></td><td><span class="chip done">Đạt</span></td><td>Preflight thật trả 204 với hai header; qua Cloudflare kiểm ở staging.</td></tr>
+        <tr><td class="num">13</td><td>Condition async, handler trả <code>null</code></td><td><span class="chip done">Đạt</span></td><td>Handler nhận thẳng object user (đã sửa lỗi). Trả <code>null</code> thì bị <strong>từ chối</strong> (fail-closed), ngược với kết luận đọc source trước đây; tài liệu đã sửa.</td></tr>
+        <tr><td class="num">14</td><td>Ngày kinh doanh qua nửa đêm</td><td><span class="chip done">Đạt</span></td><td>Giờ chốt 04:00, server UTC.</td></tr>
+        <tr><td class="num">15</td><td>Custom field chữ đa ngôn ngữ, field JSON</td><td><span class="chip you">Cần UAT</span></td><td>Đã đăng ký và có ô nhập; cần xem trong Admin.</td></tr>
+        <tr><td class="num">16</td><td>Catalog tắt i18n khi app bật i18n</td><td><span class="chip done">Đạt</span></td><td><code>smoke:i18n</code> đạt khi plugin bật.</td></tr>
+        <tr><td class="num">17</td><td>Truy vấn JSON trên PostgreSQL</td><td><span class="chip done">Đạt</span></td><td>Tìm theo field <code>jsonb</code> chạy được.</td></tr>
+        <tr><td class="num">18</td><td>App thêm field qua extension</td><td><span class="chip done">Đạt</span></td><td>Field <code>isFeatured</code> của app còn nguyên giá trị sau khi plugin "nâng cấp" thêm attribute mới.</td></tr>
+        <tr><td class="num">19</td><td>Content type plugin không tự mở REST</td><td><span class="chip done">Đạt</span></td><td>Route công khai duy nhất là <code>POST /api/v1/ordering/webhooks/spike</code>; 6 đường đoán đều 404.</td></tr>
+        <tr><td class="num">+</td><td>File types sinh ổn định</td><td><span class="chip done">Đạt</span></td><td>Sinh 2 lần với plugin bật, SHA-256 giống nhau.</td></tr>
+        <tr><td class="num">+</td><td><code>verify:schema</code>, <code>check:phase3</code> khi plugin bật/tắt</td><td><span class="chip done">Đạt</span></td><td>Chạy lại trên DB spike: cả hai lần đạt, 112 file / 677 test. Lỗi <code>smoke:i18n</code> trong báo cáo cũ do DB dev có nội dung thật (script cố ý đòi DB trống), không phải lỗi plugin.</td></tr>
+        <tr><td class="num">+</td><td>Plugin phát event tới app (<code>eventHub</code>)</td><td><span class="chip done">Đạt</span></td><td>App nhận được event của plugin.</td></tr>
+        <tr><td class="num">—</td><td>UAT trong Admin</td><td><span class="chip you">Cần bạn</span></td><td>Content Manager, Content-Type Builder, ô nhập đa ngôn ngữ, content Salanca vẫn sửa được, menu plugin.</td></tr>
+        <tr><td class="num">—</td><td>Deploy staging Dokploy</td><td><span class="chip you">Cần bạn</span></td><td>Bạn deploy hoặc cấp quyền.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>Lệnh đã chạy và kết quả</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Lệnh</th><th>Kết quả</th></tr></thead>
+      <tbody>
+        <tr><td><code>pnpm run lint</code>, <code>pnpm run typecheck</code></td><td><span class="chip done">Đạt</span></td></tr>
+        <tr><td><code>pnpm run test</code></td><td><span class="chip done">Đạt</span> 112 file, 677 test</td></tr>
+        <tr><td><code>pnpm run build</code></td><td><span class="chip done">Đạt</span> server plugin build trước, rồi admin</td></tr>
+        <tr><td><code>DATABASE_NAME=salanca_ordering_spike ORDERING_ENABLED=false pnpm run check:phase3</code></td><td><span class="chip done">Đạt</span> 159 giây</td></tr>
+        <tr><td><code>DATABASE_NAME=salanca_ordering_spike ORDERING_ENABLED=true pnpm run check:phase3</code></td><td><span class="chip done">Đạt</span> 177 giây</td></tr>
+        <tr><td>13 script <code>scripts/spike-ordering/*.mjs</code></td><td><span class="chip done">Đạt</span> cả 13, gồm 5 script mới cho mục 4, 5, 8/13, 11/12/19, 18</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>Trạng thái code và git</h2>
+  <ul>
+    <li><code>main</code> ở <code>5d9eab2</code>, đã push: chỉ có tài liệu, chưa có code ordering.</li>
+    <li>Nhánh <code>spike/ordering-plugin</code>: 2 commit (<code>2c5b3c7</code> plugin spike, <code>3cd92e9</code> nối lifecycle/event với app), <strong>chưa push</strong>. 48 file, khoảng 1.200 dòng.</li>
+    <li>Plugin chỉ chạy khi <code>ORDERING_ENABLED=true</code>; khi tắt, app như <code>main</code>.</li>
+    <li><code>stash@{0}</code> là bản sao code bước 1 cũ, đã khôi phục vào nhánh; xóa được khi đóng O0.</li>
+    <li>DB thử <code>salanca_ordering_spike</code> trên Postgres local; không đụng DB dev hay production.</li>
+  </ul>
+  <div class="callout">
+    <p><strong>Cần bạn xác nhận:</strong> <code>STATUS.md</code> trên nhánh spike ghi "chủ dự án đã duyệt spec
+      và cho code O0 ngày 2026-10-10". Nếu bạn đã cho phép như vậy thì giữ nguyên.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Việc tiếp theo để đóng O0</h2>
+  <ol class="steps">
+    <li><strong>Bổ sung các mục còn thiếu</strong> — <span class="chip done">Xong</span>. Báo cáo theo đúng 19 mục và quyết định D1–D7 ở <code>ordering-spike-report.md</code>.</li>
+    <li><strong>Bạn làm UAT trong Admin</strong> theo 5 mục của spec O0.</li>
+    <li><strong>Deploy staging Dokploy</strong> với <code>ORDERING_ENABLED=true</code>.</li>
+    <li><strong>Đóng O0</strong>: giữ khung plugin làm nền cho O1; bỏ phần code chỉ để thử ở bước 1 của O1; xóa <code>stash@{0}</code>.</li>
+    <li><strong>Bắt đầu O1</strong> theo <code>docs/plans/ordering-o1-core.md</code>.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Đang chờ thông tin (cho các phase sau)</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Cần</th><th>Ai</th><th>Trước phase</th></tr></thead>
+      <tbody>
+        <tr><td>Tài khoản SePay thử hoặc thật (số tài khoản, API key, webhook secret)</td><td>Chủ dự án</td><td>O4</td></tr>
+        <tr><td>Nguồn danh mục xã/phường (đề xuất Tổng cục Thống kê); vùng giao, bảng phí, đơn tối thiểu</td><td>Chủ dự án</td><td>O5</td></tr>
+        <tr><td>Đơn online có bắt buộc hóa đơn điện tử không; giá đã gồm VAT chưa</td><td>Kế toán</td><td>Go-live (O6)</td></tr>
+        <tr><td>Thời hạn lưu dữ liệu; nội dung đồng ý xử lý dữ liệu cá nhân</td><td>Pháp lý</td><td>Go-live (O6)</td></tr>
+        <tr><td>Nội dung email gửi khách</td><td>Chủ dự án</td><td>Go-live (O6)</td></tr>
+        <tr><td>Duyệt phase frontend cho web đặt món</td><td>Chủ dự án</td><td>OW</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>Tài liệu</h2>
+  <ul>
+    <li>Roadmap và danh sách phase: <a href="ordering-roadmap.md"><code>docs/plans/ordering-roadmap.md</code></a></li>
+    <li>Thiết kế: <a href="ordering-core-contracts.md"><code>docs/plans/ordering-core-contracts.md</code></a></li>
+    <li>Nghiên cứu: <a href="ordering-reference.md"><code>docs/plans/ordering-reference.md</code></a></li>
+    <li>Spec: <code>docs/phases/phase-ordering-*.md</code> (O0–O6, OW)</li>
+    <li>Kế hoạch: <code>docs/plans/ordering-spike.md</code>, <code>ordering-o1-core.md</code> … <code>ordering-o6-ops-golive.md</code></li>
+    <li>Báo cáo spike (trên nhánh spike): <code>docs/plans/ordering-spike-report.md</code></li>
+  </ul>
+</section>
+
+<footer>File này tạo trên máy, không publish. Số liệu lấy từ repo và lần chạy lại ngày 2026-10-10.</footer>
+
+</main>
+</body>
+</html>

@@ -993,10 +993,14 @@ Action Scheduler là GPLv3: chỉ học thiết kế, không chép code.
   [rbac-role.ts](https://github.com/medusajs/medusa/blob/146c46b0ad1146b40595c8ef586c4d5890982603/packages/modules/rbac/src/models/rbac-role.ts)).
   Model không có chiều sales channel hay stock location, nên quyền chỉ ở mức loại tài nguyên.
 - **Strapi 5.51.1:** engine permission `await condition.handler(...)`, nên handler async được hỗ trợ.
-  Kết quả không phải boolean hoặc object (ví dụ `undefined`, `null`) bị loại; nếu mọi condition bị loại
-  thì quyền được cấp **không điều kiện**; nếu một condition trả `true` cũng cấp không điều kiện; các
-  object được gộp bằng `$or` (`@strapi/permissions/dist/engine/index.js`, hàm tạo ability, dòng 53–95
-  của bản local).
+  Kết quả không phải boolean hoặc object (ví dụ `undefined`, `null`) bị loại; nếu một condition trả `true`
+  thì cấp không điều kiện; các object được gộp bằng `$or` (`@strapi/permissions/dist/engine/index.js`,
+  hàm tạo ability, dòng 53–95 của bản local).
+  **Sửa sau spike O0 (2026-10-10):** bản đọc trước ghi "mọi condition bị loại thì cấp quyền không điều kiện". Sai: sau khi loại
+  kết quả không hợp lệ, engine kiểm `evaluatedConditions.every(result === false)` trước, mà `[].every(...)`
+  là `true`, nên quyền **bị từ chối** (fail-closed); nhánh `isEmpty` phía sau không bao giờ tới.
+  `scripts/spike-ordering/scope-engine.mjs` chứng minh qua engine thật. Handler nhận thẳng object user
+  (đã gộp permission), không phải `{ user }`.
 
 **Best practice**
 
@@ -1004,8 +1008,9 @@ Action Scheduler là GPLv3: chỉ học thiết kế, không chép code.
   chính đơn bị sửa (Saleor), không chỉ lọc danh sách (TastyIgniter chỉ lọc màn hình Admin).
 - "Thấy mọi chi nhánh" phải là cờ lưu rõ ràng (Saleor `restricted_access_to_channels`), không suy ra
   từ danh sách rỗng. Thiếu dữ liệu thì từ chối.
-- Condition Strapi phải trả `false` khi user không có scope, không bao giờ trả `undefined`/`null`, vì
-  engine coi kết quả không hợp lệ là không có điều kiện.
+- Condition Strapi trả `false` khi user không có scope. Trả `null`/`undefined` không làm lộ quyền (engine
+  từ chối khi mọi kết quả bị loại, xem trên), nhưng vẫn nên trả `false` rõ ràng để dễ đọc và để không phụ
+  thuộc chi tiết cài đặt của engine.
 - Gắn scope theo role (Vendure, Saleor) hợp với tổ chức ổn định; gắn theo user (TastyIgniter) hợp với
   chuỗi quán có nhân viên luân chuyển. Plugin không sửa được schema role/user của Strapi, nên bảng
   riêng là đường duy nhất cho cả hai cách.
@@ -1506,7 +1511,7 @@ Các file source đã đọc được dẫn trực tiếp trong Phần A và Ph�
   lọc theo location chỉ ở màn hình Admin, danh sách rỗng thì không lọc; `sale_permission` 1/2/3.
 - Medusa `rbac-policy.ts`, `rbac-role.ts`: RBAC theo resource/operation, không có chiều chi nhánh.
 - Strapi local `@strapi/permissions/dist/engine/index.js`: handler async được await; kết quả không hợp
-  lệ bị loại và có thể dẫn tới cấp quyền không điều kiện.
+  lệ bị loại; khi mọi kết quả bị loại thì quyền bị từ chối (đã chứng minh ở spike O0).
 - TastyIgniter `WorkingRange.php`, `WorkingSchedule.php`, `HasWorkingHours.php`, `ti-ext-cart`
   `OrderManager.php`: giờ qua nửa đêm, một timezone toàn hệ thống, lưu ngày/giờ địa phương trên đơn.
 - Odoo 18.0 (LGPLv3) `pos_session.py`, `pos_order.py`, `pos_config.py`: đơn thuộc ca, một ca mở mỗi

@@ -145,8 +145,8 @@ scripts/ordering/              # script tích hợp, DB riêng
     - Files: `services/scope.ts`, condition `plugin::ordering.same-location` trong `bootstrap()`.
     - Làm: đọc `staff-location-scope` theo admin user; Super Admin coi là `allLocations`; predicate cho
       query; `assertOrderInScope` trả `ORDER_NOT_FOUND`; condition trả `false` khi không có scope.
-    - Verification: script 2 chi nhánh × 2 nhân viên cho đọc, transition, refund; condition không bao giờ
-      trả `null`.
+    - Verification: script 2 chi nhánh × 2 nhân viên cho đọc, transition, refund; condition trả `false` khi
+      không có scope; handler nhận thẳng object user (kết quả spike O0).
 14. **Tài liệu dev**
     - Files: `src/plugins/ordering/README.md`; sửa contracts nếu code buộc đổi thiết kế.
     - Verification: đọc lại; `git diff --check`.

@@ -33,7 +33,9 @@ export async function spikeWebhookController(ctx: {
   const config = strapi.config.get('plugin::ordering') as { spike?: { enabled?: boolean; webhookSecret?: string } };
   const timestamp = ctx.request.headers[SPIKE_TIMESTAMP_HEADER] ?? '';
   const signature = ctx.request.headers[SPIKE_SIGNATURE_HEADER] ?? '';
-  if (!rawBody || !config.spike?.enabled) { ctx.status = 404; ctx.body = { error: 'SPIKE_DISABLED' }; return; }
+  if (!config.spike?.enabled) { ctx.status = 404; ctx.body = { error: 'SPIKE_DISABLED' }; return; }
+  // Never re-serialize the parsed JSON: signatures are computed on the original bytes.
+  if (!rawBody) { ctx.status = 500; ctx.body = { error: 'RAW_BODY_UNAVAILABLE' }; return; }
   if (!verifySpikeSignature(config.spike.webhookSecret ?? '', timestamp, rawBody, signature)) {
     ctx.status = 401; ctx.body = { error: 'INVALID_SIGNATURE' }; return;
   }
