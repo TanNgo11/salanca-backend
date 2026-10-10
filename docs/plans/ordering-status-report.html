@@ -112,17 +112,18 @@
 <header style="display:grid;gap:10px">
   <p class="eyebrow">Plugin ordering · báo cáo tiến độ · 2026-10-10</p>
   <h1>Module bán hàng đang ở đâu</h1>
-  <p class="lead">Đã xong toàn bộ nghiên cứu, thiết kế, roadmap, spec và kế hoạch thực hiện cho mọi phase.
-    Đang ở phase đầu tiên có code, O0 (spike plugin trống): mọi mục kiểm tự động và UAT trong Admin đã đạt, chỉ
-    còn deploy staging. Chưa có code nghiệp vụ nào.</p>
+  <p class="lead">Đã xong nghiên cứu, thiết kế, roadmap, spec và kế hoạch cho mọi phase. O0 đã đóng.
+    O1 (lõi đơn hàng) đã code xong 15 bước và qua toàn bộ gate tự động trên nhánh
+    <code>feat/ordering-o1</code>; còn UAT Admin và quyết định push/merge. Chưa có giao diện hay API
+    công khai.</p>
 </header>
 
 <section aria-label="Tóm tắt">
   <div class="summary">
-    <div class="card"><span class="label">Phase hiện tại</span><span class="value">O1 · Lõi</span><span class="note">O0 đã đóng; O1 chưa bắt đầu</span></div>
-    <div class="card"><span class="label">Mục kiểm O0 (19 mục + 3 bổ sung)</span><span class="value">19 đạt</span><span class="note">3 chuyển sang O1/O4; UAT đạt; bỏ staging</span></div>
-    <div class="card"><span class="label">Test tự động</span><span class="value">677 / 677</span><span class="note"><code>check:phase3</code> đạt, plugin bật lẫn tắt</span></div>
-    <div class="card"><span class="label">Còn lại theo roadmap</span><span class="value">≈ 8–11 tuần</span><span class="note">ước lượng thô O1–O6, chưa tính web</span></div>
+    <div class="card"><span class="label">Phase hiện tại</span><span class="value">O1 · Lõi</span><span class="note">code xong, gate tự động đạt; chờ UAT</span></div>
+    <div class="card"><span class="label">Bước O1</span><span class="value">15 / 15</span><span class="note">18 commit, 11 script tích hợp đạt</span></div>
+    <div class="card"><span class="label">Test tự động</span><span class="value">857 / 857</span><span class="note"><code>check:phase3</code> đạt, plugin bật lẫn tắt</span></div>
+    <div class="card"><span class="label">Còn lại theo roadmap</span><span class="value">≈ 6–9 tuần</span><span class="note">ước lượng thô O2–O6, chưa tính web</span></div>
   </div>
 </section>
 
@@ -134,15 +135,15 @@
       <span class="what"><strong>Nghiên cứu và thiết kế</strong><small>Reference, contracts (21 mục), roadmap, 8 spec, 7 kế hoạch. Đã ở <code>main</code>.</small></span>
       <span class="est"><span class="chip done">Xong</span></span>
     </div>
-    <div class="phase current">
+    <div class="phase done">
       <span class="id">O0</span>
       <span class="what"><strong>Spike plugin trống</strong><small>Chứng minh Strapi 5.51.1 làm được các việc lõi trước khi viết nghiệp vụ.</small></span>
       <span class="est"><span class="chip done">Đóng</span><br>3–5 ngày</span>
     </div>
-    <div class="phase">
+    <div class="phase current">
       <span class="id">O1</span>
       <span class="what"><strong>Lõi đơn hàng</strong><small>Dữ liệu, tiền, tính giá, workflow, sổ thanh toán, outbox, scope chi nhánh. Chưa có giao diện.</small></span>
-      <span class="est"><span class="chip todo">Chưa</span><br>1,5–2 tuần</span>
+      <span class="est"><span class="chip partial">Chờ UAT</span><br>1,5–2 tuần</span>
     </div>
     <div class="phase">
       <span class="id">O2</span>
@@ -174,6 +175,34 @@
       <span class="what"><strong>Web đặt món</strong><small>Ở repo web, cần duyệt phase frontend riêng; làm song song từ cuối O3.</small></span>
       <span class="est"><span class="chip todo">Chưa</span></span>
     </div>
+  </div>
+</section>
+
+<section>
+  <h2>Chi tiết O1: mục kiểm bắt buộc</h2>
+  <p class="lead">Các mục kiểm tự động bắt buộc của spec O1, chạy trên nhánh
+    <code>feat/ordering-o1</code> và DB thử <code>salanca_ordering_test</code> ngày 2026-10-10.</p>
+  <div class="legend">
+    <span class="chip done">Đạt</span><span class="chip partial">Một phần</span><span class="chip todo">Chưa</span>
+    <span class="chip you">Cần bạn</span><span class="chip moved">Chuyển phase</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Mục kiểm</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead>
+      <tbody>
+        <tr><td class="num">1</td><td>Tiền: vượt safe integer bị từ chối, bigint từ DB đổi đúng</td><td><span class="chip done">Đạt</span></td><td>Vitest money.test.ts (19 ca).</td></tr>
+        <tr><td class="num">2</td><td>Phân bổ giảm giá, phí, VAT gồm/không gồm, hoàn một món</td><td><span class="chip done">Đạt</span></td><td>Ví dụ mockup đúng từng đồng; 1.000 giỏ ngẫu nhiên có seed luôn khớp tổng; Trà đào hoàn 39.886.</td></tr>
+        <tr><td class="num">3</td><td>Workflow: graph sai bị chặn, transition sai bị từ chối, bảng projection</td><td><span class="chip done">Đạt</span></td><td>12 ca graph sai; bảng group × thanh toán 43 ca.</td></tr>
+        <tr><td class="num">4</td><td>Trộn loại hàng</td><td><span class="chip done">Đạt</span></td><td><code>allowMixedProductTypes</code> false từ chối, true tạo 2 group.</td></tr>
+        <tr><td class="num">5</td><td>Ledger: event trùng không ghi tiền lần hai; status sau capture/refund</td><td><span class="chip done">Đạt</span></td><td>Unique (provider, transaction id) ở DB; partially-paid → paid → completed → partially-refunded → refunded.</td></tr>
+        <tr><td class="num">6</td><td>Idempotency</td><td><span class="chip done">Đạt</span></td><td>Cùng key cùng kết quả; khác payload → <code>IDEMPOTENCY_PAYLOAD_MISMATCH</code>; 10 request song song → 1 đơn.</td></tr>
+        <tr><td class="num">7</td><td>Outbox 2 process</td><td><span class="chip done">Đạt</span></td><td>500 event giao đúng một lần; process bị kill, 10 event được nhận lại sau lease.</td></tr>
+        <tr><td class="num">8</td><td>Scope 2 chi nhánh × 4 nhân viên</td><td><span class="chip done">Đạt</span></td><td>Đọc, chuyển bước, hoàn tiền, tạo đơn ngoài scope đều bị chặn; qua engine phân quyền Strapi.</td></tr>
+        <tr><td class="num">9</td><td><code>businessDate</code> 01:30 thứ Bảy, chốt 04:00 → thứ Sáu</td><td><span class="chip done">Đạt</span></td><td>Vitest + script create-order.</td></tr>
+        <tr><td class="num">10</td><td>Tắt plugin không mất bảng</td><td><span class="chip done">Đạt</span></td><td>Lỗi tìm thấy ở O1: schema sync Strapi drop bảng khi tắt plugin; đã sửa bằng <code>persisted_tables</code>, script <code>disable-survives.mjs</code>.</td></tr>
+        <tr><td class="num">11</td><td>UAT Admin: bảng nội bộ ẩn</td><td><span class="chip you">Cần bạn</span></td><td>Script kiểm <code>pluginOptions</code>; cần xem bằng mắt trong Content Manager và Content-Type Builder.</td></tr>
+      </tbody>
+    </table>
   </div>
 </section>
 
@@ -231,6 +260,11 @@
         <tr><td><code>DATABASE_NAME=salanca_ordering_spike ORDERING_ENABLED=false pnpm run check:phase3</code></td><td><span class="chip done">Đạt</span> 159 giây</td></tr>
         <tr><td><code>DATABASE_NAME=salanca_ordering_spike ORDERING_ENABLED=true pnpm run check:phase3</code></td><td><span class="chip done">Đạt</span> 177 giây</td></tr>
         <tr><td>13 script <code>scripts/spike-ordering/*.mjs</code></td><td><span class="chip done">Đạt</span> cả 13, gồm 5 script mới cho mục 4, 5, 8/13, 11/12/19, 18</td></tr>
+        <tr><td>O1 · <code>pnpm run lint</code>, <code>pnpm run typecheck</code>, <code>pnpm run build</code></td><td><span class="chip done">Đạt</span></td></tr>
+        <tr><td>O1 · <code>pnpm run test</code></td><td><span class="chip done">Đạt</span> 129 file, 857 test</td></tr>
+        <tr><td>O1 · <code>DATABASE_NAME=salanca_ordering_test ORDERING_ENABLED=false pnpm run check:phase3</code></td><td><span class="chip done">Đạt</span></td></tr>
+        <tr><td>O1 · <code>DATABASE_NAME=salanca_ordering_test ORDERING_ENABLED=true pnpm run check:phase3</code></td><td><span class="chip done">Đạt</span></td></tr>
+        <tr><td>O1 · <code>pnpm run check:ordering</code></td><td><span class="chip done">Đạt</span> 11/11 script, chạy lại sau hai lượt <code>check:phase3</code> tắt/bật không tạo lại DB</td></tr>
       </tbody>
     </table>
   </div>
@@ -244,21 +278,17 @@
     <li>Plugin chỉ chạy khi <code>ORDERING_ENABLED=true</code>; khi tắt, app như <code>main</code>.</li>
     <li><code>stash@{0}</code> là bản sao code bước 1 cũ, đã khôi phục vào nhánh; xóa được khi đóng O0.</li>
     <li>DB thử <code>salanca_ordering_spike</code> trên Postgres local; không đụng DB dev hay production.</li>
+    <li>Nhánh <code>feat/ordering-o1</code>: 18 commit từ <code>562ad18</code>, <strong>chưa push</strong>, chưa merge <code>main</code>.</li>
+    <li>DB thử <code>salanca_ordering_test</code> (tạo tự động bởi harness); không đụng <code>salanca_cms</code>.</li>
   </ul>
-  <div class="callout">
-    <p><strong>Cần bạn xác nhận:</strong> <code>STATUS.md</code> trên nhánh spike ghi "chủ dự án đã duyệt spec
-      và cho code O0 ngày 2026-10-10". Nếu bạn đã cho phép như vậy thì giữ nguyên.</p>
-  </div>
 </section>
 
 <section>
-  <h2>Việc tiếp theo để đóng O0</h2>
+  <h2>Việc tiếp theo</h2>
   <ol class="steps">
-    <li><strong>Bổ sung các mục còn thiếu</strong> — <span class="chip done">Xong</span>. Báo cáo theo đúng 19 mục và quyết định D1–D7 ở <code>ordering-spike-report.md</code>.</li>
-    <li><strong>UAT trong Admin</strong> — <span class="chip done">Xong</span> (local, 5/5 mục đạt).</li>
-    <li><strong>Staging</strong> — <span class="chip moved">Bỏ</span> theo quyết định chủ dự án.</li>
-    <li><strong>Đóng O0</strong> — <span class="chip done">Xong</span>. Mockup cho mọi phase: <a href="mockups/index.html">mockups/index.html</a>.</li>
-    <li><strong>Bắt đầu O1</strong> theo <code>docs/plans/ordering-o1-core.md</code>.</li>
+    <li><strong>UAT Admin cho O1</strong> — <span class="chip you">Cần bạn</span>. Bật plugin trên DB thử, xem Content Manager/Content-Type Builder không có bảng ordering.</li>
+    <li><strong>Quyết định push/merge nhánh O1</strong> — <span class="chip you">Cần bạn</span>.</li>
+    <li><strong>Bắt đầu O2 (catalog)</strong> theo <code>docs/plans/ordering-o2-catalog.md</code>.</li>
   </ol>
 </section>
 

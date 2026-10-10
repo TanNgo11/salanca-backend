@@ -1,6 +1,6 @@
 # O1 — Lõi đơn hàng: kế hoạch thực hiện
 
-Status: Draft
+Status: Automated verification passed
 Owner: tan_ngo (duyệt), Claude (thực hiện)
 Last updated: 2026-10-10
 Related phase: [`phases/phase-ordering-1-core.md`](../phases/phase-ordering-1-core.md)
@@ -194,4 +194,53 @@ scripts/ordering/              # script tích hợp, DB riêng
 
 ## Completion record
 
-- Chưa bắt đầu.
+### Đã làm (nhánh `feat/ordering-o1`, 18 commit, chưa push, chưa merge `main`)
+
+- Bước 1–15 xong theo kế hoạch; mỗi bước một commit, riêng bước 13 hai commit (service + script
+  engine): 16 commit `f8220d1` … `6222457`, thêm 2 commit sửa `8e1f9fd` (unique index ở DB) và
+  `bce6979` (giữ bảng khi tắt plugin). Tổng 18 commit O1.
+- Mã: `src/plugins/ordering/server/src/{contracts,domain,content-types,repositories,services,providers,jobs,migrations}`;
+  20 content type nội bộ; migration `0001-o1-core`; README plugin; `scripts/ordering/*.mjs` (11 script) và
+  `pnpm run check:ordering`.
+- Ví dụ mockup thành test: giảm 25.000đ → 14.773 / 5.114 / 5.113; VAT 8% gồm trong giá → 8.535 / 2.955 / 2.955
+  (tổng 14.445); hoàn Trà đào = 39.886; hủy 1/3 Gỏi cuốn = 13.296; bảng projection và bảng `businessDate`
+  (thứ Bảy 01:30, chốt 04:00 → thứ Sáu).
+
+### Lệnh đã chạy (2026-10-10, DB `salanca_ordering_test`)
+
+| Lệnh | Kết quả |
+| --- | --- |
+| `pnpm run lint`, `pnpm run typecheck` | đạt |
+| `pnpm run test` | đạt, 129 file / 857 test (O0: 112 / 677) |
+| `ORDERING_ENABLED=true pnpm run build` | đạt |
+| `ORDERING_ENABLED=false pnpm run check:phase3` | đạt |
+| `ORDERING_ENABLED=true pnpm run check:phase3` | đạt; `types/generated/contentTypes.d.ts` không đổi |
+| `pnpm run check:ordering` (chạy lại sau hai lượt `check:phase3` ở trên, không tạo lại DB) | đạt 11/11: schema, disable-survives, registry-boot, idempotency, create-order (200 đơn song song, mã không trùng), transition (2 transition song song → 1 đạt 1 bị từ chối), payment-refund, outbox-two-process (500 event giao đúng một lần, 10 event được nhận lại sau lease 3 giây của process bị kill), jobs, scope (service + engine phân quyền Strapi), review-additions |
+
+### Lệch so với kế hoạch và lý do
+
+- **Tắt plugin từng làm mất bảng.** Schema sync của Strapi xóa bảng có trong schema đã lưu lần trước nhưng
+  không có trong schema hiện tại, nên boot với `ORDERING_ENABLED=false` sau khi đã bật sẽ drop mọi bảng
+  `plugins_ordering_*` (phát hiện khi `check:phase3` tắt/bật làm mất index của migration). Sửa: bootstrap ghi tên
+  bảng vào core store `persisted_tables` (cơ chế Strapi dùng cho bảng audit EE); script `disable-survives.mjs`
+  kiểm. Rollback "tắt cờ" trong spec vì vậy chỉ an toàn từ bản này.
+- Strapi 5 không tạo unique index cho `unique: true`; migration tự tạo (order.code, publicTokenHash, branch.code,
+  staff-location-scope.adminUserId, outbox.uniqueKey).
+- `WorkflowDefinition` thêm `cancelState` và `customerCancellable`; `completed` dùng tiền thu gộp
+  (`Σ captured ≥ total`), hoàn tiền không mở lại đơn (contracts mục 7 đã ghi).
+- Condition `same-location` đăng ký trong `register()` (như O0 đã chứng minh), không phải `bootstrap()`.
+- Builtin test (`test-catalog`, product type `test-food`/`test-service`, provider `test`, consumer `test.ping`/
+  `test.fail`) chỉ bật khi app đặt `testing.builtins = true`; `config/plugins.ts` bật qua env
+  `ORDERING_TEST_BUILTINS=true` (validator từ chối ở production). Adapter `ordering-catalog` là stub tới O2.
+- Trả lời idempotent (replay) không trả lại `publicToken` (token chỉ cấp một lần); snapshot lưu orderId, code,
+  status, total.
+- `cancelLineQuantity` không tự chuyển group sang hủy và không đổi `order.totalAmount`; nhân viên hủy group rõ ràng.
+- Làm tròn tiền mặt nửa ra xa số 0 (195.500 → 196.000). `payment-event` không khớp payment nào mặc định
+  `needs-review` / `order-not-found`. Outbox có thêm cột `failedAt` (quá `maxAttempts` thì dừng retry).
+- Hạn mục trong product type test: bỏ qua `freeQuantity`.
+
+### Còn mở
+
+- UAT thủ công: xem trong Admin rằng 20 bảng nội bộ không hiện ở Content Manager và Content-Type Builder
+  (script đã kiểm `pluginOptions`, chưa kiểm bằng mắt).
+- Chưa push; chưa merge `main`; stash O0 `stash@{0}` vẫn còn.

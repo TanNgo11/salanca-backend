@@ -1,6 +1,6 @@
 # Phase O1 — Lõi đơn hàng
 
-Trạng thái: spec chờ duyệt (2026-10-10). Roadmap: [`plans/ordering-roadmap.md`](../plans/ordering-roadmap.md).
+Trạng thái: automated verification passed (2026-10-10), chờ UAT Admin. Roadmap: [`plans/ordering-roadmap.md`](../plans/ordering-roadmap.md).
 Mockup: [`plans/mockups/ordering-o1-core.html`](../plans/mockups/ordering-o1-core.html).
 Kế hoạch thực hiện: [`plans/ordering-o1-core.md`](../plans/ordering-o1-core.md).
 Thiết kế: [`plans/ordering-core-contracts.md`](../plans/ordering-core-contracts.md) (mục 1–8, 12, 15, 19).
@@ -103,7 +103,10 @@ Theo contracts mục 21:
 
 ## Rollback
 
-Tắt `ORDERING_ENABLED`. Bảng `plugins_ordering_*` chưa có dữ liệu thật; nếu cần thì drop.
+Tắt `ORDERING_ENABLED`. Từ commit `bce6979`, bảng `plugins_ordering_*` được ghi vào core store
+`persisted_tables` nên tắt plugin không làm Strapi drop bảng (trước đó schema sync sẽ xóa bảng đã được theo
+dõi mà không còn trong schema). Muốn bỏ hẳn thì drop bảng và sequence `plugins_ordering_order_code_seq` bằng
+tay sau khi đã sao lưu.
 
 ## Rủi ro
 

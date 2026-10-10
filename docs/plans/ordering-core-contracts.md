@@ -541,6 +541,13 @@ type WorkflowDefinition = {
 };
 ```
 
+Bổ sung khi code O1 (2026-10-10): definition có thêm `cancelState` (tên state terminal `canceled`
+mà `cancelOrder`/`customerCancel` chuyển tới) và cờ `customerCancellable` trên state (mục 21.9).
+Bootstrap còn kiểm: không có cạnh tự lặp, mọi state đến được từ `initial`, state chưa terminal
+đều đi tới được một terminal. Điều kiện "payment không còn thiếu" của `completed` được code hóa là
+`Σ capturedAmount ≥ totalAmount` (tiền đã thu gộp, không trừ refund): hoàn tiền sau khi giao không
+mở lại đơn đã `completed`; `paymentStatus` vẫn phản ánh refund.
+
 `selectWorkflow` trả `{ name, version }` của definition đã đăng ký; core ghi cả hai vào group. Khi
 cấu hình không cho trộn loại hàng (câu hỏi 4), core vẫn tạo đúng một group và từ chối line khác
 workflow; khi cho trộn, core tạo một group cho mỗi workflow. Hai chế độ dùng chung code.
@@ -1809,7 +1816,12 @@ type ConsentSnapshot = {
   instance; outbox, khóa job, đối soát vẫn an toàn khi chạy nhiều instance. Muốn nhiều instance phải thêm
   pub/sub và rate limit dùng chung (Redis), đã hoãn ở app.
 - **Làm tròn tiền mặt:** tùy chọn `cashRounding` theo chi nhánh (ví dụ bội số 1.000đ), mặc định tắt; khi
-  bật, phần làm tròn là adjustment kind `rounding` trên đơn tiền mặt.
+  bật, phần làm tròn là adjustment kind `rounding` trên đơn tiền mặt. Code O1: `branch.cashRounding =
+  { enabled, multiple, providerCodes }`; làm tròn nửa ra xa số 0 (195.500 → 196.000), chạy sau giảm
+  giá/phí và trước thuế; phần chênh phân bổ xuống line như adjustment khác.
+- **Unique ở DB:** Strapi 5 không tạo unique index cho attribute `unique: true` (chỉ kiểm ở tầng
+  entity); migration của plugin tự tạo unique index cho `order.code`, `publicTokenHash`, `branch.code`,
+  `staff-location-scope.adminUserId`, `outbox.uniqueKey` (phát hiện ở O1).
 - **Types sinh tự động:** `types/generated/contentTypes.d.ts` được commit và Strapi sinh lại khi chạy.
   Quy tắc: luôn sinh với `ORDERING_ENABLED=true` để file không đổi qua lại; O0 kiểm.
 - **Không có CI:** repo chưa có workflow CI; mọi gate chạy tay và ghi kết quả vào `docs/STATUS.md`.
