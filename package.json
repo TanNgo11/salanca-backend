@@ -42,6 +42,7 @@
     "check:phase3": "pnpm run verify:schema && pnpm run smoke:crud && pnpm run smoke:i18n && pnpm run typecheck && pnpm run test && pnpm run build",
     "check:phase6": "pnpm run check && pnpm run smoke:api",
     "check:forms": "pnpm run test && pnpm run verify:schema && pnpm run smoke:contact-form && pnpm run smoke:reservation-form",
+    "check:ordering": "pnpm run build:ordering && node scripts/ordering/run-all.mjs",
     "upgrade": "npx @strapi/upgrade latest",
     "upgrade:dry": "npx @strapi/upgrade latest --dry"
   },

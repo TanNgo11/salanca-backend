@@ -11,6 +11,10 @@ import refund from './refund';
 import timeline from './timeline';
 import hold from './hold';
 import outbox from './outbox';
+import branch from './branch';
+import changeLog from './change-log';
+import jobLock from './job-lock';
+import lineCancel from './line-cancel';
 
 export default {
   registry,
@@ -23,6 +27,10 @@ export default {
   timeline,
   hold,
   outbox,
+  branch,
+  'change-log': changeLog,
+  'job-lock': jobLock,
+  'line-cancel': lineCancel,
   migrations: ({ strapi }: { strapi: Core.Strapi }) => ({
     run: (migrations: OrderingMigration[]) => runOrderingMigrations(strapi, migrations),
   }),
