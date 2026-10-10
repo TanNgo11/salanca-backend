@@ -263,6 +263,18 @@ withApp(async (app) => {
     [['drink', traDaStd.documentId], ['main', bbDb.documentId]].sort(),
   );
   assert.equal(lineA.categoriesSnapshot.length, 2, 'categories snapshot keeps both categories');
+  assert.equal(lineA.variantUid, bbStd.documentId, 'default variant lands on the line');
+  assert.equal(lineA.sku, 'BB-STD', 'variant sku is snapshotted');
+  assert.equal(
+    lineA.selectedOptionsSnapshot?.length,
+    1,
+    'selected modifier option is snapshotted on the line',
+  );
+  assert.equal(
+    lineB.selectedOptionsSnapshot?.length,
+    2,
+    'both combo slot picks are snapshotted on the line',
+  );
 
   console.log('[ordering-test] catalog-adapter: sellable normalization, overrides, combo, order pipeline verified');
 });

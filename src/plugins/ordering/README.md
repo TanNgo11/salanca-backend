@@ -44,7 +44,7 @@ Các khóa `plugin::ordering` (mặc định trong `server/src/config/index.ts`)
 
 ```
 src/plugins/ordering/
-  admin/                # placeholder Admin (chưa dùng)
+  admin/                # Admin plugin: trang Danh mục / Tạm hết món, custom field inputs
   server/src/
     content-types/      # order, order-line, fulfillment-group/line, payment(-event),
                         # refund(-line), hold, outbox, idempotency-key, order-job-lock,
@@ -63,8 +63,59 @@ src/plugins/ordering/
 ```
 
 `domain/` không được import Strapi (kiểm chứng bằng grep); `services/`, `repositories/`
-được phép. Content type có thể mở rộng từ app qua `src/extensions/ordering/strapi-server.ts`
-(ví dụ thêm `isFeatured` vào một plugin content type — ví dụ minh họa, repo chưa dùng).
+được phép. Content type plugin có thể mở rộng từ app qua `src/extensions/ordering/
+strapi-server.ts` — ví dụ hiện có: app thêm `isFeatured` vào `catalog-product` bằng code
+(attribute merge vào schema lúc boot, cột `is_featured` sync vào cùng bảng plugin và giữ
+nguyên qua restart — kiểm chứng bởi `scripts/ordering/catalog-extension.mjs`). Không bao
+giờ chép `schema.json` của plugin ra app: thêm attribute bằng code, phần còn lại của schema
+vẫn do plugin sở hữu.
+
+## Module catalog (O2)
+
+9 content type `collectionName` tiền tố `plugins_ordering_catalog_*`, ẩn khỏi
+Content-Type Builder:
+
+- Nhân viên sửa qua Content Manager: `catalog-category` (cây `parent`/`rank`),
+  `catalog-product`, `catalog-variant`, `catalog-price`, `catalog-modifier-group`,
+  `catalog-modifier`, `catalog-availability-window`.
+- Nội bộ (không sửa tay): `catalog-slug` (slug theo locale, sync qua Document Service
+  middleware), `catalog-location-state` (trạng thái tạm hết món theo chi nhánh).
+- `name`/`description`/`name` biến thể & modifier dùng custom field `localized-text`
+  (`{vi, en, ...}` theo locale đang bật); `modifierGroups`/`bundleSlots` là custom field
+  JSON có zod-validate server-side.
+
+`catalog.adapter = 'ordering-catalog'` (mặc định) đọc catalog thật → `Sellable`: chọn giá
+theo context (chi nhánh/kênh/thời điểm), variant, modifier option với `priceDelta`/
+`overrideAmount`, bundle slot bắt buộc (`isRequired`), cửa sổ bán theo giờ địa phương chi
+nhánh, và `catalog-location-state` (tạm hết món). Product type `food` (mặc định của
+catalog product) hỗ trợ fulfillment `pickup`/`delivery`, workflow `pickup-prepay` /
+`pickup-pay-on-pickup` theo `paymentTiming`.
+
+Public read-only API (`auth:false`, cache ngắn + rate limit theo IP):
+
+- `GET /api/v1/ordering/catalog/categories` — cây danh mục public (không `isInternal`).
+- `GET /api/v1/ordering/catalog/products` — chỉ `status:'active'` + `sellOnline`.
+- `GET /api/v1/ordering/catalog/products/:slug` — slug theo locale → `?locale=`.
+
+Trang Admin plugin (menu section **Ordering**):
+
+- **Danh mục** (`/plugins/ordering/categories`): cây + thêm/sửa/xóa, kéo-thả HTML5 đổi thứ
+  tự & đổi cha (fallback nút ↑/↓ + chọn cha), route `/ordering/categories*` yêu cầu
+  `plugin::ordering.catalog.manage`. `move` chạy trong transaction (rank dày đặc, chống
+  chu trình); xóa chặn khi còn con, có sản phẩm thì phải `confirm` (gỡ liên kết, trả danh
+  sách sản phẩm mất danh mục).
+- **Tạm hết món** (`/plugins/ordering/availability`): chọn chi nhánh trong scope, bật/tắt
+  product/variant/modifier, `untilKind` `end-of-business-day` (theo giờ đóng cửa chi
+  nhánh) hoặc `specific-time`, tự mở lại khi hết hạn. Route `/ordering/availability*` chấp
+  nhận `catalog.manage` **hoặc** `catalog.toggle-availability` (policy `has-catalog-access`)
+  + scope chi nhánh của nhân viên.
+
+Permission mới: `plugin::ordering.catalog.manage`, `plugin::ordering.catalog.toggle-availability`
+(mỗi thao tác sửa catalog/trạng thái bán ghi một dòng `admin-change-log`).
+
+Order line giữ snapshot bất biến khi tạo đơn: `titleSnapshot`/`sku`/`variantUid`,
+`selectedOptionsSnapshot` (tùy chọn đã chọn), `categoriesSnapshot`, `componentsSnapshot`
+(thành phần combo theo slot) — sửa catalog sau này không đổi đơn cũ.
 
 ## Service public
 
@@ -154,15 +205,16 @@ permission engine (`plugin::ordering.same-location`).
 
 ```powershell
 pnpm run test             # unit + property (domain thuần)
-pnpm run check:ordering   # build + 10 integration script trên salanca_ordering_test
+pnpm run check:ordering   # build + các integration script trên salanca_ordering_test
+                          # (xem danh sách trong scripts/ordering/run-all.mjs)
 ```
 
 Integration scripts (`scripts/ordering/`) boot Strapi thật trên Postgres loopback
 `salanca_ordering_test` với `ORDERING_TEST_BUILTINS=true` (tắt cron, bật test catalog/
 provider/consumer). Không bao giờ chạy trên `salanca_cms`.
 
-## Chưa có (O2–O6)
+## Chưa có (O3–O6)
 
-Public REST/API route, Admin UI thật, voucher/scheduling/fulfillment provider, ops-alert
-delivery, báo cáo/export, webhook endpoint thật, pendingStats dashboard. `test.ping`/
-`test.fail` chỉ tồn tại dưới `testing.builtins`.
+API order phía public, voucher/scheduling/fulfillment provider, ops-alert delivery, báo
+cáo/export, webhook endpoint thật, pendingStats dashboard. `test.ping`/`test.fail` chỉ
+tồn tại dưới `testing.builtins`.
