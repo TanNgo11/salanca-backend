@@ -57,7 +57,7 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
     // Strapi passes the admin user itself (merged with the permission), not `{ user }`;
     // see admin::is-creator in @strapi/admin config/admin-conditions.js.
     handler: async (user: { id?: number }) =>
-      strapi.plugin('ordering').service('branch-scope').condition({ user }),
+      strapi.plugin('ordering').service('scope').condition(user),
   });
   strapi.log.info('[ordering] lifecycle: plugin register');
 };
