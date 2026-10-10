@@ -8,7 +8,7 @@
 - Vietnamese (`vi`) is the default locale; English (`en`) is secondary.
 - PostgreSQL is required everywhere. Never add SQLite as a fallback.
 - Use Strapi Admin's generated CRUD. Build custom Admin UI only after a documented workflow gap is accepted.
-- Availability, table inventory, payment, and booking-engine models remain deferred.
+- Availability, table inventory, payment, and booking-engine models remain deferred in the CMS app. Exception (owner, 2026-10-10): online ordering (catalog, orders, payments) is built as the generic local plugin `src/plugins/ordering`, phase by phase per `docs/plans/ordering-roadmap.md`; it must not import Salanca app code or change Salanca content types.
 - Form leads in scope: `contact-message` (Forms MVP) and `reservation-request` (Forms-2, Public create-only, soft-overlap + in-memory IP rate limit). Optional Cloudflare Turnstile via `TURNSTILE_SECRET_KEY` (skip when unset). Optional Resend SMTP staff notify via `EMAIL_SMTP_HOST`; recipients per kind in Admin → Email thông báo (`FORM_NOTIFY_TO` until first save) (skip when unset; mail failure never fails create). Redis rate limit stays deferred.
 
 ## Read before changing code

@@ -51,6 +51,23 @@ Start with [`STATUS.md`](STATUS.md). The roadmap describes intended direction; i
 - [`Forms MVP - Contact message`](phases/phase-forms-contact-message.md)
 - [`Forms-2 - Reservation request`](phases/phase-forms-reservation-request.md)
 
+### Ordering plugin (opened 2026-10-10)
+
+Generic online-ordering plugin (`src/plugins/ordering`, Salanca is the first client). All phase specs
+are written and approved before code.
+
+- [`Ordering roadmap and phase list`](plans/ordering-roadmap.md)
+- [`Phase O0 - Empty plugin spike`](phases/phase-ordering-0-spike.md)
+- [`Phase O1 - Order core`](phases/phase-ordering-1-core.md)
+- [`Phase O2 - Catalog module`](phases/phase-ordering-2-catalog.md)
+- [`Phase O3 - Pickup ordering, cash`](phases/phase-ordering-3-pickup-cash.md)
+- [`Phase O4 - SePay bank transfer`](phases/phase-ordering-4-sepay.md)
+- [`Phase O5 - Store self-delivery`](phases/phase-ordering-5-delivery.md)
+- [`Phase O6 - Operations and go-live`](phases/phase-ordering-6-ops-golive.md)
+- [`Phase OW - Ordering web (web repo)`](phases/phase-ordering-w-web.md)
+- Design: [`ordering-core-contracts.md`](plans/ordering-core-contracts.md); research:
+  [`ordering-reference.md`](plans/ordering-reference.md)
+
 Overview: [`plans/be-pattern-lift-plan.md`](plans/be-pattern-lift-plan.md). Do not implement Phase 4+ from roadmap bullets alone; use these specs. Phase 0 must pass before Phase 4 implementation.
 
 ## Source-of-truth rules

@@ -42,6 +42,8 @@ The first milestone does not implement:
 - Frontend API consumption.
 - SMS, Zalo, or distributed rate limiting (Automation phase). Cloudflare Turnstile and Resend staff notify are optional via env.
 - Table availability, hard slot reservation, deposits, payments, or refunds.
+  Online ordering with payments is a separate track since 2026-10-10: a generic local plugin, see
+  [`plans/ordering-roadmap.md`](plans/ordering-roadmap.md). Table booking stays out of scope.
 - Custom Strapi Admin dashboards, calendars, or Kanban views.
 
 **Forms MVP (opened):** public `contact-message` create intake + Admin triage. Optional staff email notify via Resend + `FORM_NOTIFY_TO`.

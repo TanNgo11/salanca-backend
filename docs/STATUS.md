@@ -2,6 +2,8 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
+2026-10-10: **Ordering plugin track opened (owner decision).** Online ordering will be a generic, multi-industry local Strapi plugin (`src/plugins/ordering`, `plugin::ordering.*`), Salanca being the first client; Salanca content types (`menu-item`, `menu-category`, `menu-package`) and the seed stay untouched. Research, design contracts, owner answers and roadmap are in [`plans/ordering-roadmap.md`](plans/ordering-roadmap.md). Phases O0–O6 and OW are listed there. Owner rule: all phase specs are written and approved before any code. **Specs drafted, awaiting owner review; no code on `main`.**
+
 2026-10-09: **Revalidation webhook retries.** `deliverCmsWebhook` now times out each attempt at 10 s and retries network errors, timeouts, 429 and 5xx after 2 s / 10 s / 30 s; other 4xx are not retried. A final failure logs at error level. A publish made while the web restarts therefore still refreshes the site. Contract: [`cms-api-contract.md`](cms-api-contract.md).
 
 2026-10-09: **Admin navigation cleanup.** `Email thông báo` moved from the main menu to Settings → Salanca. The `Xuất dữ liệu khách` screen is gone; a "Xuất CSV" button (date-range dialog, contacts list also picks newsletter) sits on the Yêu cầu đặt bàn and Tin nhắn liên hệ lists, injected into Content Manager `listView.actions`. The lead sidebar shortcuts now stay highlighted on their Content Manager list and edit views instead of "Quản lý nội dung". Export API and RBAC unchanged.

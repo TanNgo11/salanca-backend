@@ -13,6 +13,27 @@ Ngày lập: 2026-10-10. Thiết kế chi tiết ở `ordering-core-contracts.md
 | 3 | Vận hành và chuẩn bị go-live | 1–2 tuần |
 | Sau go-live | Bật từng module khi cần | theo module |
 
+## Chia phase
+
+Chủ dự án chốt cách làm (2026-10-10): roadmap trước, chia phase, **viết spec cho mọi phase trước**,
+chủ dự án duyệt rồi mới code. Mỗi phase đóng được độc lập (test tự động + UAT tay), spec nằm ở
+`docs/phases/phase-ordering-<số>-<tên>.md`, kế hoạch thực hiện chi tiết (nếu cần) ở `docs/plans/`.
+Kết quả của phase trước có thể làm sửa spec phase sau; sửa spec trước khi code phase đó.
+
+| Phase | Nội dung | Thuộc mốc | Ước lượng thô | Spec | Kế hoạch thực hiện |
+| --- | --- | --- | --- | --- | --- |
+| O0 | Spike plugin trống | 0 | 3–5 ngày | [phase-ordering-0-spike](../phases/phase-ordering-0-spike.md) | [ordering-spike](ordering-spike.md) |
+| O1 | Lõi đơn hàng: dữ liệu, tiền, pipeline giá, workflow, outbox, khóa job, idempotency, timeline, scope chi nhánh ở service | 1 | 1,5–2 tuần | [phase-ordering-1-core](../phases/phase-ordering-1-core.md) | [ordering-o1-core](ordering-o1-core.md) |
+| O2 | Module catalog: content type, custom field, "tạm hết", khung giờ bán, adapter mặc định, API đọc catalog | 1 | 1–1,5 tuần | [phase-ordering-2-catalog](../phases/phase-ordering-2-catalog.md) | [ordering-o2-catalog](ordering-o2-catalog.md) |
+| O3 | Đặt hàng tự lấy + tiền mặt: setting chi nhánh, quote, tạo/tra cứu đơn, 3 workflow tự lấy, Admin xử lý đơn, "Thu tiền và giao", gán nhân viên, email | 1 | 1,5–2 tuần | [phase-ordering-3-pickup-cash](../phases/phase-ordering-3-pickup-cash.md) | [ordering-o3-pickup-cash](ordering-o3-pickup-cash.md) |
+| O4 | SePay: QR, webhook, tự khớp, duyệt chuyển khoản, ghi tay, đối soát | 1 | 1 tuần | [phase-ordering-4-sepay](../phases/phase-ordering-4-sepay.md) | [ordering-o4-sepay](ordering-o4-sepay.md) |
+| O5 | Giao tận nơi (quán tự giao) | 2 | 1–2 tuần | [phase-ordering-5-delivery](../phases/phase-ordering-5-delivery.md) | [ordering-o5-delivery](ordering-o5-delivery.md) |
+| O6 | Vận hành và go-live: trang tình trạng, đủ cảnh báo, báo cáo, chốt tiền mặt, CSV, xóa dữ liệu theo hạn, Cloudflare, runbook | 3 | 1–2 tuần | [phase-ordering-6-ops-golive](../phases/phase-ordering-6-ops-golive.md) | [ordering-o6-ops-golive](ordering-o6-ops-golive.md) |
+| OW | Web đặt món (repo web, cần duyệt phase frontend riêng); làm song song khi API của O2–O3 ổn | 1 | theo repo web | [phase-ordering-w-web](../phases/phase-ordering-w-web.md) | trong repo web |
+
+Thứ tự: O0 → O1 → O2 → O3 → O4 → O5 → O6. Kết quả spike (O0) có thể đổi phạm vi các phase sau; khi
+đó sửa bảng này trước khi viết spec phase kế tiếp.
+
 ## Trước khi bắt đầu viết code
 
 - Mở phase chính thức theo `AGENTS.md`: spec ở `docs/phases/`, kế hoạch thực hiện theo `PLANS.md`,

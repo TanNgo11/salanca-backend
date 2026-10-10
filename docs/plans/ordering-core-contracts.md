@@ -424,7 +424,7 @@ chỉ nằm trong quote. Tổng `allocation.amount` của một adjustment bằn
 
 | Entity | Quan hệ và dữ liệu bất biến tối thiểu |
 | --- | --- |
-| `order` | code, status (projection), paymentStatus/fulfillmentStatus (cache), contact snapshot, receive/address snapshot, totals, currency, customerRef, locationRef, businessDate, placedAt, public token hash, origin |
+| `order` | code, status (projection), paymentStatus/fulfillmentStatus (cache), contact snapshot, consent snapshot, customerNote, receive/address snapshot, totals, currency, customerRef, branch relation + locationRef, businessDate, placedAt, public token hash, origin (mục 21) |
 | `order-line` | order và fulfillment group relation, source refs, product type/variant, title/SKU/options/components snapshot, quantity và fulfilled/returned/canceled quantities, unit/discount/fee/tax/total |
 | `order-adjustment` | order relation, kind discount/fee/rounding, code, label, sourceRef, rule snapshot, amount, taxable |
 | `adjustment-allocation` | adjustment/line relations, weight, amount đã làm tròn |
@@ -445,6 +445,8 @@ chỉ nằm trong quote. Tổng `allocation.amount` của một adjustment bằn
 | `voucher` / `voucher-redemption` | line/order relation, code hash, balance/expiry/status, redemption amount, actor/time/location |
 | `order-job-lock` | job name, shard/key, lease owner, lockedAt, expiresAt, attempts, lastError |
 | `staff-location-scope` | admin user id unique, allLocations (cờ rõ ràng), locationRefs, updatedBy/updatedAt (xem mục 14) |
+| `branch` | code unique bất biến (= `locationRef`), tên/địa chỉ đa ngôn ngữ, SĐT, email, timezone, trạng thái, setting bán hàng theo cách nhận (mục 21.1) |
+| `admin-change-log` | actor, action, entity, locationRef, thời điểm, field đổi trước/sau đã che (mục 21.6) |
 | `ops-alert` | alertCode, dedupe key, severity/critical, aggregate ref đã che, status open/acknowledged/resolved, acknowledgedBy, firstSeenAt/lastSeenAt, count; mỗi key chỉ một bản ghi `open` |
 
 Các quan hệ trong bảng là relation thật của plugin. Chỉ `sourceUid`, `sourceDocumentId`,
@@ -1264,6 +1266,15 @@ Bổ sung sau nghiên cứu C17:
   và trang tình trạng vận hành. Lý do: theo `AppProblem` của Saleor, WooCommerce và Action Scheduler;
   `/_health` của Strapi không thấy outbox hay webhook kẹt.
 
+Bổ sung sau review spec các phase (mục 21):
+
+- Chi nhánh là content type `branch` của plugin; thay `location-settings`. Lý do: plugin cài vào Strapi
+  nào cũng có danh sách chi nhánh, giống quyết định catalog.
+- Email tùy chọn, tra cứu bằng mã + số điện thoại chỉ ra dạng xem trạng thái. Lý do: khách Việt Nam
+  thường chỉ để số điện thoại.
+- Thêm tạo đơn hộ, hủy một phần món, bằng chứng đồng ý xử lý dữ liệu, nhật ký thay đổi Admin, quy tắc
+  bảo mật route công khai và các quy tắc nhỏ ở 21.9.
+
 ## 19. Quyết định của chủ dự án (2026-10-10)
 
 Chủ dự án trả lời một phần câu hỏi ở mục 17 và giao một số chỗ cho thiết kế tự định nghĩa. Mục này là
@@ -1339,13 +1350,15 @@ giống cách các action hiện có trong `docs/admin-roles.md`. Plugin không 
 | `plugin::ordering.settings.manage` | cấu hình chi nhánh, giờ, policy, provider |
 | `plugin::ordering.scope.manage` | gán nhân viên vào chi nhánh |
 | `plugin::ordering.ops.read` | trang tình trạng vận hành, alert kỹ thuật |
+| `plugin::ordering.order.create` | tạo đơn hộ khách gọi điện (mục 21.3) |
+| `plugin::ordering.order.edit-lines` | hủy một phần món sau khi đặt (mục 21.5) |
 
 Vai trò đề xuất:
 
 | Vai trò | Scope | Action |
 | --- | --- | --- |
-| Nhân viên chi nhánh | chi nhánh được gán | `order.read`, `order.process`, `payment.record-cash` |
-| Quản lý chi nhánh | chi nhánh được gán | như trên, thêm `order.cancel`, `payment.review`, `refund.manage`, `report.read` |
+| Nhân viên chi nhánh | chi nhánh được gán | `order.read`, `order.process`, `order.create`, `payment.record-cash` |
+| Quản lý chi nhánh | chi nhánh được gán | như trên, thêm `order.cancel`, `order.edit-lines`, `payment.review`, `refund.manage`, `report.read` |
 | Kế toán | `allLocations` | `order.read`, `payment.review`, `refund.manage`, `payment.raw-read`, `report.read`, `export` |
 | Quản trị chuỗi | `allLocations` | mọi action trừ `ops.read` |
 | Super Admin (kỹ thuật) | `allLocations` | mọi action |
@@ -1669,6 +1682,137 @@ hành.
   Hệ quả đã chấp nhận: một món có thể có ở cả content và catalog; giá bán online lấy theo catalog.
 - Voucher buffet về sau là `catalog-product` có `productType = voucher`, khách nhập trong catalog
   plugin; `menu-package` vẫn là content.
+
+## 21. Bổ sung sau review spec các phase (2026-10-10)
+
+Chủ dự án giao thiết kế tự định nghĩa ba điểm còn mở (21.1–21.3). Các mục còn lại là chỗ thiếu tìm thấy
+khi review spec O0–O6. Chỗ nào khác các mục trước thì mục này thắng.
+
+### 21.1. Chi nhánh thuộc plugin
+
+Plugin có content type `branch` riêng; `location` của Salanca giữ nguyên làm content. Cách này giống
+quyết định catalog (mục 20): plugin cài vào Strapi nào cũng có sẵn danh sách chi nhánh.
+
+| Field | Ghi chú |
+| --- | --- |
+| `code` | unique, không đổi sau khi tạo; đây là giá trị của `locationRef` ở mọi chỗ khác |
+| `name`, `address.street` | chữ đa ngôn ngữ (`localized-text`) |
+| `address` | mã và tên tỉnh/thành, xã/phường theo danh mục 2 cấp (O5), số nhà/đường |
+| `phone`, `email` | liên hệ của chi nhánh, hiện cho khách |
+| `timezone` | IANA, bắt buộc |
+| `isActive`, `onlineOrdering`, `rank` | |
+| `fulfillment` | setting theo cách nhận hàng như `LocationOrderingSettings.fulfillment` (mục 19.6), gồm `schedule`, `paymentTiming`, provider, hạn thanh toán, `zones` (O5) |
+| `tax` | ghi đè `TaxConfig` (mục 19.4), tùy chọn |
+
+- Thay cho content type `location-settings` ở các mục trước: `LocationOrderingSettings` giờ là một phần
+  của `branch`.
+- Order có relation thật tới `branch` và vẫn lưu `locationRef` (= `branch.code`) cùng tên chi nhánh lúc
+  đặt trong snapshot. `staff-location-scope`, alert, báo cáo, setting dùng `locationRef`.
+- Sửa trong màn hình "Chi nhánh" của plugin (quyền `settings.manage`, có nhật ký thay đổi, mục 21.6);
+  ẩn khỏi Content Manager vì setting là JSON lồng.
+- API công khai: `GET /api/v1/ordering/branches` trả chi nhánh `isActive` + `onlineOrdering`, chỉ field
+  công khai.
+- Về sau, app nào muốn dùng bảng chi nhánh của mình thì viết `LocationAdapter`; v1 không làm.
+
+### 21.2. Theo dõi đơn khi khách không để lại email
+
+- Email là tùy chọn khi đặt; số điện thoại bắt buộc.
+- Đặt xong, API trả token một lần; web hiện link `#t=` kèm nút "Sao chép link" và "Lưu link" (OW).
+- Tra cứu không cần token: `POST /api/v1/ordering/orders/lookup` với `{ code, phone, captchaToken }`.
+  - Chỉ trả **dạng xem trạng thái**: mã đơn, trạng thái, các bước `isPublic`, giờ lấy/giao dự kiến, tên chi
+    nhánh, tổng tiền, trạng thái thanh toán. Không trả tên, số điện thoại, email, địa chỉ, ghi chú.
+  - Không hủy đơn và không lấy QR thanh toán qua đường này; các việc đó cần token.
+  - Bắt buộc captcha; rate limit theo IP và theo mã đơn (mặc định 5 lần / 15 phút); so số điện thoại sau
+    khi chuẩn hóa về E.164.
+  - Sai mã hoặc sai số điện thoại trả cùng một lỗi `ORDER_LOOKUP_FAILED`, để không dò được mã nào tồn tại.
+- Cách này không trái mục 11 ("không dùng mã ngắn + số điện thoại làm bí mật duy nhất"): mã + số điện
+  thoại chỉ mở dạng xem trạng thái, không mở thao tác nào.
+
+### 21.3. Đơn do nhân viên tạo (khách gọi điện)
+
+- O3: màn hình **"Tạo đơn hộ"** trong Admin, quyền mới `plugin::ordering.order.create`.
+  - Nhân viên chọn chi nhánh trong scope, món từ catalog, cách nhận, slot, liên hệ của khách (tên, số
+    điện thoại, email tùy chọn).
+  - Giá lấy từ catalog qua cùng pipeline; v1 không cho sửa giá tay. Giảm giá tay có lý do và quyền riêng
+    là việc của module khuyến mãi về sau.
+  - `origin.kind = staff-draft`, actor là nhân viên. Nhân viên bấm "Xác nhận" thì đơn rời `draft`.
+  - Đồng ý xử lý dữ liệu: nhân viên tích "Khách đã đồng ý qua điện thoại"; lưu kênh `phone-staff` (mục 21.4).
+  - Thanh toán: trả khi lấy hàng (tiền mặt) ở O3.
+- O4: nút **"Sao chép link thanh toán"** cho đơn nhân viên tạo; nhân viên tự gửi cho khách qua Zalo/SMS.
+  Link mở trang QR bằng token, có hạn thanh toán; không cấp quyền sửa đơn.
+- Vai trò: thêm `order.create` cho Nhân viên chi nhánh và Quản lý chi nhánh.
+
+### 21.4. Bằng chứng đồng ý xử lý dữ liệu cá nhân
+
+Order lưu `consentSnapshot`:
+
+```ts
+type ConsentSnapshot = {
+  policyVersion: string;                // phiên bản chính sách app cấu hình
+  acceptedAt: string;                   // UTC
+  channel: 'web-checkout' | 'phone-staff';
+  actorRef?: string;                    // nhân viên ghi nhận khi channel = phone-staff
+  marketingOptIn: boolean;              // mặc định false, tách khỏi đồng ý xử lý đơn
+};
+```
+
+- `POST /orders` bắt buộc `consent.policyVersion` khớp phiên bản đang bật; thiếu thì `CONSENT_REQUIRED`.
+- Phiên bản và đường dẫn chính sách cấu hình trong setting chung; nội dung chính sách do pháp lý duyệt
+  (cổng go-live O6).
+- Căn cứ: Nghị định 13/2023/NĐ-CP và Luật 91/2025/QH15 (mục 15); số năm lưu chờ pháp lý.
+
+### 21.5. Hủy một món, đổi món khi hết
+
+- Nhân viên hủy một phần số lượng của line (`canceledQuantity`), bắt buộc lý do; trong cùng transaction
+  tạo `refund` + `refund-line` theo số đã phân bổ lúc đặt nếu đơn đã thanh toán, cập nhật totals hiển thị
+  và timeline (`isPublic`), gửi email cho khách nếu có email.
+- "Đổi món" ở v1 = hủy món cũ + nhân viên tạo đơn hộ cho món mới; không sửa line tại chỗ (mô hình
+  `OrderModifier` của Vendure để về sau).
+- O3 làm cho tiền mặt và đơn chưa trả; O4 thêm hoàn tiền chuyển khoản thủ công.
+- Quyền mới `plugin::ordering.order.edit-lines` cho Quản lý chi nhánh.
+
+### 21.6. Nhật ký thay đổi trong Admin
+
+- Bảng `admin-change-log`: actor, action, entity type/id, `locationRef`, thời điểm, các field đổi với giá
+  trị trước/sau **đã che** dữ liệu cá nhân và secret.
+- Ghi cho: chi nhánh và setting, scope nhân viên, catalog (tạo/sửa/xóa, "tạm hết"), provider, ngưỡng
+  cảnh báo, duyệt chuyển khoản, chốt tiền mặt. Thao tác trên đơn ghi ở timeline của đơn (đã có).
+- Đồng thời phát `strapi.eventHub.emit('ordering.admin.changed', …)` (không chứa giá trị) để audit log của
+  app ghi lại nếu muốn; plugin không gọi code của app.
+
+### 21.7. Đường dẫn API thật
+
+- Route công khai của plugin nằm dưới prefix REST của app: với Salanca là `/api/v1/ordering/...`
+  (`config/api.ts`). Tài liệu trước ghi `/ordering/...` là đường tương đối.
+- URL webhook khai cho SePay: `https://<domain cms>/api/v1/ordering/webhooks/sepay`.
+- Route Admin nằm dưới `/ordering/...` của Admin API, cần đăng nhập Admin.
+
+### 21.8. Bảo mật route công khai
+
+- Route công khai của plugin khai `auth: false` nên **không** đi qua quyền Public của users-permissions.
+  Mỗi route phải tự có: rate limit, captcha (tạo đơn, tra cứu), giới hạn kích thước body, sanitize đầu ra
+  theo danh sách field cho phép.
+- Danh sách route công khai, rate limit và webhook ghi vào `docs/security-baseline.md` ở phase mở route
+  đó (O2 catalog, O3 đặt hàng và tra cứu, O4 webhook).
+
+### 21.9. Quy tắc nhỏ
+
+- **Khách tự hủy:** chỉ khi mọi group còn ở bước chờ quán nhận hoặc chờ thanh toán; sau đó phải liên hệ
+  quán. Workflow đánh dấu bước nào cho khách hủy (`customerCancellable`).
+- **Ghi chú cả đơn:** `order.customerNote` (≤ 500 ký tự), ngoài ghi chú từng món.
+- **Mã đơn:** `orderCodeTemplate` cấu hình được, mặc định `{prefix}-{seq:6}` (ví dụ `SLC-000123`); số lấy
+  từ sequence chung.
+- **Số điện thoại:** kiểm và chuẩn hóa số Việt Nam từ O3 (đầu `0` hoặc `+84`), không đợi O5.
+- **Một instance ở v1:** báo đơn realtime (SSE) và rate limit nằm trong process nên chỉ đúng khi chạy 1
+  instance; outbox, khóa job, đối soát vẫn an toàn khi chạy nhiều instance. Muốn nhiều instance phải thêm
+  pub/sub và rate limit dùng chung (Redis), đã hoãn ở app.
+- **Làm tròn tiền mặt:** tùy chọn `cashRounding` theo chi nhánh (ví dụ bội số 1.000đ), mặc định tắt; khi
+  bật, phần làm tròn là adjustment kind `rounding` trên đơn tiền mặt.
+- **Types sinh tự động:** `types/generated/contentTypes.d.ts` được commit và Strapi sinh lại khi chạy.
+  Quy tắc: luôn sinh với `ORDERING_ENABLED=true` để file không đổi qua lại; O0 kiểm.
+- **Không có CI:** repo chưa có workflow CI; mọi gate chạy tay và ghi kết quả vào `docs/STATUS.md`.
+- **Xuất dữ liệu:** `strapi export`/`transfer` sẽ gồm bảng của plugin, có dữ liệu cá nhân; runbook O6 ghi
+  cách mã hóa và nơi giữ file xuất.
 
 ## Nguồn chính
 
