@@ -12,7 +12,7 @@
 <header class="doc-head">
   <p class="eyebrow">Mockup · Phase O3 · Đặt hàng tự lấy, trả tiền mặt</p>
   <h1>Nhân viên nhận và xử lý đơn trong Admin</h1>
-  <p class="lead">Luồng chạy trọn đầu tiên: khách đặt (qua API, web làm ở OW), nhân viên thấy đơn mới ngay, xử lý theo
+  <p class="lead"><strong>Đặc tả từng màn (field, trạng thái, API, quyền, component): <a href="../ordering-o3-screens.md">ordering-o3-screens.md</a>.</strong> Luồng chạy trọn đầu tiên: khách đặt (qua API, web làm ở OW), nhân viên thấy đơn mới ngay, xử lý theo
     từng bước, thu tiền mặt khi giao. Có tạo đơn hộ khách gọi điện và hủy một phần món.</p>
   <div class="links">
     <a href="../../phases/phase-ordering-3-pickup-cash.md">Spec O3</a>
@@ -49,6 +49,31 @@
       <li><span class="n">1</span><span>Báo realtime qua SSE như hộp thư đặt bàn; polling 20 giây làm dự phòng. Chỉ nhận đơn của chi nhánh trong scope.</span></li>
       <li><span class="n">2</span><span>Số điện thoại che bớt trong danh sách; xem đủ trong chi tiết.</span></li>
       <li><span class="n">3</span><span>Chờ quá 10 phút (<code>slaMinutes</code>) → tô đỏ và gửi cảnh báo cho nhân viên/quản lý chi nhánh.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>1b. Hộp thoại đơn mới (hiện trên mọi trang Admin)</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><span class="url">Hộp thoại · đơn 1/2 · đang ở trang Quản lý nội dung</span></div>
+      <div class="modal-backdrop"><div class="modal">
+        <header><strong>Đơn mới · Salanca Q1 · SLC-000124</strong><span class="badge amber">1/2</span></header>
+        <div class="body">
+          <div class="spread"><span>Tự lấy lúc <strong>12:30</strong></span><span class="badge gray">Trả khi nhận</span></div>
+          <div class="small">1 × Bún bò Huế (tô đặc biệt) <span class="muted">· Chả cua · cay vừa · "ít hành"</span><br>1 × Combo trưa 1 người <span class="muted">· Cơm gà xối mỡ · Trà đá</span></div>
+          <div class="alert-box info small">Ghi chú: "Lấy giúp 2 bộ đũa"</div>
+          <div class="spread strong"><span>Tổng</span><span>175.000đ</span></div>
+        </div>
+        <footer><span class="btn ghost">Để sau</span><span class="row"><span class="btn danger">Từ chối ▾</span><span class="btn secondary">Nhận và lùi ▾</span><span class="btn">Nhận</span></span></footer>
+      </div></div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Theo TastyIgniter: hiện ở mọi trang Admin, không bắt mở chi tiết.</span></li>
+      <li><span class="n">2</span><span>"Nhận và lùi" chọn 10/20/30 phút (cấu hình) → dời giờ sẵn sàng, báo khách giờ mới.</span></li>
+      <li><span class="n">3</span><span>"Từ chối" chọn lý do có sẵn (Hết món, Quá tải, Ngoài giờ…) hoặc nhập lý do khác.</span></li>
+      <li><span class="n">4</span><span>Người khác đã xử lý → báo "Đơn đã được Lan nhận" và đóng.</span></li>
     </ol>
   </div>
 </section>
@@ -177,7 +202,10 @@
             <div class="panel">
               <div class="field"><label>Bán online</label><span class="toggle"><span>Tắt</span><span class="on">Bật</span></span></div>
               <div class="field"><label>Giờ mở</label><span class="input">T2–T5 10:00–22:00 · T6–CN 10:00–02:00</span><span class="hint">Giờ đóng nhỏ hơn giờ mở nghĩa là qua nửa đêm</span></div>
+              <div class="field"><label>Cho đặt</label><span class="toggle"><span>ASAP</span><span>Đặt trước</span><span class="on">Cả hai</span></span></div>
               <div class="field"><label>Chuẩn bị tối thiểu</label><span class="input">180 phút</span><span class="hint">"Tối thiểu 3 giờ"</span></div>
+              <div class="field"><label>Đơn tối thiểu · đặt trước tối đa</label><span class="input">0đ · 7 ngày</span></div>
+              <div class="field"><label>Khách tự hủy trước giờ lấy</label><span class="input">30 phút</span></div>
               <div class="field"><label>Khung slot / sức chứa</label><span class="input">15 phút / 8 đơn mỗi slot</span></div>
             </div>
             <div class="panel">

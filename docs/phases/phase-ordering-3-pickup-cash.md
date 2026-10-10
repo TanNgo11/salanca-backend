@@ -2,6 +2,7 @@
 
 Trạng thái: spec chờ duyệt (2026-10-10). Roadmap: [`plans/ordering-roadmap.md`](../plans/ordering-roadmap.md).
 Mockup: [`plans/mockups/ordering-o3-pickup-cash.html`](../plans/mockups/ordering-o3-pickup-cash.html).
+**Đặc tả màn hình (bắt buộc khi code UI):** [`plans/ordering-o3-screens.md`](../plans/ordering-o3-screens.md).
 Kế hoạch thực hiện: [`plans/ordering-o3-pickup-cash.md`](../plans/ordering-o3-pickup-cash.md).
 Thiết kế: [`plans/ordering-core-contracts.md`](../plans/ordering-core-contracts.md) (mục 9, 11, 14,
 19.2, 19.3, 19.5, 19.6, 19.7).
@@ -118,6 +119,29 @@ Acceptance thêm:
   **Đã chốt (a)** (chủ dự án giao thiết kế tự chốt): lưu token mã hóa AES-256-GCM với khóa
   `ORDERING_ENCRYPTION_KEY` trong bản ghi idempotency, xóa cùng lúc bản ghi hết hạn; replay đúng payload
   trả lại token cũ. Link cũ trong email vẫn dùng được. Làm ở bước 5 (API storefront) — xem contracts 21.10.
+
+## Bổ sung từ nghiên cứu UI (2026-10-10)
+
+Nguồn: reference mục U3 (TastyIgniter, Medusa, Saleor, Vendure, WooCommerce). Chi tiết từng màn ở
+`ordering-o3-screens.md`.
+
+- **Hộp thoại đơn mới trên mọi trang Admin** với Nhận / Nhận và lùi N phút / Từ chối (lý do có sẵn) — theo
+  TastyIgniter.
+- **Xem nhanh** đơn ngay trên danh sách — theo WooCommerce.
+- Mỗi lần chuyển bước có **ghi chú** và công tắc **báo khách**; **ghi chú nội bộ** trong lịch sử — theo TastyIgniter,
+  Medusa, Saleor.
+- Nút chuyển bước sinh từ các bước kế tiếp hợp lệ của workflow — theo Vendure.
+- Cài đặt tự lấy thêm: ASAP / đặt trước / cả hai, đơn tối thiểu, hạn khách tự hủy, đặt trước tối đa N ngày.
+- Màn **Cài đặt bán hàng chung** (Settings → Bán hàng): bật hộp thoại đơn mới, âm báo, danh sách lý do từ chối, số
+  phút lùi.
+- Dữ liệu thêm: `fulfillment-group.estimatedReadyAt`; event `note` nội bộ.
+
+Acceptance thêm:
+
+- [ ] Đơn mới hiện hộp thoại ở bất kỳ trang Admin nào; "Nhận và lùi 20 phút" dời giờ sẵn sàng và khách nhận email
+  giờ mới; "Từ chối" bắt buộc lý do.
+- [ ] Hai nhân viên cùng bấm Nhận một đơn → người sau thấy "Đơn đã được … xử lý".
+- [ ] Đủ 5 trạng thái (tải, trống, lỗi, không quyền, đang lưu) ở S1, S4, S6, S7, S8.
 
 ## Rollback
 
