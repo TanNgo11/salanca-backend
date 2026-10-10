@@ -3,6 +3,7 @@ import { businessDate } from './business-date';
 
 describe('businessDate across local midnight', () => {
   it.each([
+    ['2026-10-09T16:40:00Z', '2026-10-09'], // Friday 23:40 in Vietnam
     ['2026-10-09T18:30:00Z', '2026-10-09'], // Saturday 01:30 in Vietnam
     ['2026-10-09T20:59:59Z', '2026-10-09'],
     ['2026-10-09T21:00:00Z', '2026-10-10'], // exact 04:00 cutoff
