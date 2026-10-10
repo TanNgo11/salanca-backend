@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
@@ -120,4 +120,183 @@ export async function withApp(fn) {
       }
     }
   }
+}
+
+/** System actor for service calls — unscoped, never used for staff-only flows. */
+export const systemCtx = { actor: { kind: 'system' } };
+
+export const services = (app) => {
+  const plugin = app.plugin('ordering');
+  return {
+    registry: plugin.service('registry'),
+    scope: plugin.service('scope'),
+    idempotency: plugin.service('idempotency'),
+    order: plugin.service('order'),
+    transition: plugin.service('transition'),
+    payment: plugin.service('payment'),
+    refund: plugin.service('refund'),
+    timeline: plugin.service('timeline'),
+    hold: plugin.service('hold'),
+    outbox: plugin.service('outbox'),
+  };
+};
+
+/** Two branches: Q1 plain, Q3 with cash rounding to 1000 on the `test` provider. */
+export async function seedBranches(app) {
+  const branches = () => app.db.query('plugin::ordering.branch');
+  const base = (code, vi, en, extra = {}) => ({
+    code,
+    name: { vi, en },
+    timezone: 'Asia/Ho_Chi_Minh',
+    isActive: true,
+    onlineOrdering: true,
+    rank: 0,
+    fulfillment: {
+      pickup: {
+        enabled: true,
+        paymentTiming: 'pay-on-pickup',
+        schedule: { businessDayPolicy: { cutoffLocalTime: '04:00' } },
+      },
+    },
+    ...extra,
+  });
+  const Q1 = await branches().create({ data: base('Q1', 'Quận 1', 'District 1') });
+  const Q3 = await branches().create({
+    data: base('Q3', 'Quận 3', 'District 3', {
+      cashRounding: { enabled: true, multiple: 1000, providerCodes: ['test'] },
+    }),
+  });
+  console.log('[ordering-test] seeded branches Q1, Q3');
+  return { Q1, Q3 };
+}
+
+const sellable = (overrides) => ({
+  requiresShipping: false,
+  isVirtual: false,
+  isDownloadable: false,
+  isGiftCard: false,
+  fulfillmentKinds: ['pickup', 'delivery'],
+  options: [],
+  availability: {},
+  categories: [{ ref: 'mon-chinh', title: 'Món chính', path: ['mon-chinh'] }],
+  isActive: true,
+  purchasable: true,
+  ...overrides,
+});
+
+/** Test menu into the `test-catalog` adapter (registered via ORDERING_TEST_BUILTINS). */
+export function seedMenu(app) {
+  // createOrder reads the adapter code from config at call time; point it at the seeded catalog.
+  app.config.set('plugin::ordering.catalog.adapter', 'test-catalog');
+  const adapter = app.plugin('ordering').service('registry').catalogAdapter('test-catalog');
+  adapter.seed([
+    sellable({
+      ref: { uid: 'bun-bo' },
+      productType: 'test-food',
+      title: 'Bún bò',
+      listPrice: { amount: 65000, currency: 'VND' },
+      options: [
+        {
+          uid: 'size',
+          name: 'Size',
+          required: false,
+          defaultOptionUids: [],
+          minQuantity: 0,
+          maxQuantity: 1,
+          stepQuantity: 1,
+          freeQuantity: 0,
+          options: [
+            { uid: 'lon', name: 'Lớn', unitPriceDelta: { amount: 10000, currency: 'VND' }, isActive: true },
+          ],
+        },
+      ],
+    }),
+    sellable({
+      ref: { uid: 'tra-dao' },
+      productType: 'test-food',
+      title: 'Trà đào',
+      listPrice: { amount: 45000, currency: 'VND' },
+    }),
+    sellable({
+      ref: { uid: 'goi-cuon' },
+      productType: 'test-food',
+      title: 'Gỏi cuốn',
+      listPrice: { amount: 15000, currency: 'VND' },
+    }),
+    sellable({
+      ref: { uid: 'cat-toc' },
+      productType: 'test-service',
+      title: 'Cắt tóc',
+      listPrice: { amount: 200000, currency: 'VND' },
+      fulfillmentKinds: ['appointment'],
+      categories: [{ ref: 'dich-vu', title: 'Dịch vụ', path: ['dich-vu'] }],
+    }),
+  ]);
+  console.log('[ordering-test] seeded test-catalog menu');
+}
+
+/** Staff users + scope rows: lan [Q1], minh [Q1,Q3], keToan all, moi unscoped. */
+export async function seedStaff(app) {
+  const scopeService = services(app).scope;
+  const suffix = randomUUID().slice(0, 8);
+  const makeUser = async (name) =>
+    app.admin.services.user.create({
+      firstname: name,
+      lastname: 'O1',
+      email: `o1-${name}-${suffix}@example.invalid`,
+      isActive: true,
+      registrationToken: null,
+      roles: [],
+    });
+  const [lan, minh, keToan, moi] = await Promise.all([
+    makeUser('lan'),
+    makeUser('minh'),
+    makeUser('ketoan'),
+    makeUser('moi'),
+  ]);
+  const scopes = app.db.query('plugin::ordering.staff-location-scope');
+  await scopes.create({ data: { adminUserId: lan.id, allLocations: false, locationRefs: ['Q1'] } });
+  await scopes.create({
+    data: { adminUserId: minh.id, allLocations: false, locationRefs: ['Q1', 'Q3'] },
+  });
+  await scopes.create({ data: { adminUserId: keToan.id, allLocations: true, locationRefs: [] } });
+  const withActor = async (user) => ({
+    user,
+    actor: await scopeService.actorFromAdminUser(user),
+  });
+  const staff = {
+    lan: await withActor(lan),
+    minh: await withActor(minh),
+    keToan: await withActor(keToan),
+    moi: await withActor(moi),
+  };
+  console.log('[ordering-test] seeded staff lan[Q1] minh[Q1,Q3] keToan[all] moi[none]');
+  return staff;
+}
+
+export async function cleanupStaff(app, staff) {
+  for (const { user } of Object.values(staff)) {
+    await app.admin.services.user.deleteById(user.id).catch(() => undefined);
+  }
+}
+
+/** Valid createOrder input against Q1 mirroring the mockup cart (−25k discount, 195000). */
+export function basicOrderInput(overrides = {}) {
+  return {
+    idempotencyKey: randomUUID(),
+    locationRef: 'Q1',
+    locale: 'vi',
+    lines: [
+      { sellableUid: 'bun-bo', quantity: 2 },
+      { sellableUid: 'tra-dao', quantity: 1 },
+      { sellableUid: 'goi-cuon', quantity: 3 },
+    ],
+    receiveMethod: { kind: 'pickup', locationRef: 'Q1' },
+    contact: { name: 'Khách test', phone: '+84900000001' },
+    consent: { policyVersion: 'v1', channel: 'web-checkout' },
+    adjustments: [{ kind: 'discount', code: 'test-25k', label: 'Giảm test 25k', amount: -25000 }],
+    fulfillmentAmount: 0,
+    origin: { kind: 'storefront' },
+    ...overrides,
+  };
 }

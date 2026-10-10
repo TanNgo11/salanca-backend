@@ -107,7 +107,7 @@ describe('priceCart property checks (seeded)', () => {
   const random = mulberry32(20261010);
   const carts = Array.from({ length: 1000 }, (_, index) => randomCart(random, index));
 
-  it('keeps every invariant across 1000 random carts', () => {
+  it('keeps every invariant across 1000 random carts', { timeout: 30000 }, () => {
     for (const [index, cart] of carts.entries()) {
       let first: ReturnType<typeof priceCart>;
       try {

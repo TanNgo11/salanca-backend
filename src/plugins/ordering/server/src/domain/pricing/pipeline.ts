@@ -192,7 +192,8 @@ export function priceCart(input: PricingInput): PricingResult {
         label: 'Làm tròn tiền mặt',
         amount: delta,
         taxable: false,
-        priority: Number.MAX_SAFE_INTEGER,
+        // int4 max: "sorts after everything" while still fitting the adjustment column.
+        priority: 2147483647,
         inputIndex: resolved.length,
       });
     }
