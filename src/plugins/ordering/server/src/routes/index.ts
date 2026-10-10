@@ -24,6 +24,79 @@ export default {
   },
   admin: {
     type: 'admin',
-    routes: [],
+    routes: [
+      // Category management API behind the "Danh mục" screen (plan step 7b). All routes
+      // require an authenticated admin holding `plugin::ordering.catalog.manage`.
+      {
+        method: 'GET',
+        path: '/categories',
+        handler: 'categories.tree',
+        config: {
+          policies: [
+            'admin::isAuthenticatedAdmin',
+            {
+              name: 'admin::hasPermissions',
+              config: { actions: ['plugin::ordering.catalog.manage'] },
+            },
+          ],
+        },
+      },
+      {
+        method: 'POST',
+        path: '/categories',
+        handler: 'categories.create',
+        config: {
+          policies: [
+            'admin::isAuthenticatedAdmin',
+            {
+              name: 'admin::hasPermissions',
+              config: { actions: ['plugin::ordering.catalog.manage'] },
+            },
+          ],
+        },
+      },
+      {
+        method: 'PUT',
+        path: '/categories/:id',
+        handler: 'categories.update',
+        config: {
+          policies: [
+            'admin::isAuthenticatedAdmin',
+            {
+              name: 'admin::hasPermissions',
+              config: { actions: ['plugin::ordering.catalog.manage'] },
+            },
+          ],
+        },
+      },
+      {
+        method: 'POST',
+        path: '/categories/:id/move',
+        handler: 'categories.move',
+        config: {
+          policies: [
+            'admin::isAuthenticatedAdmin',
+            {
+              name: 'admin::hasPermissions',
+              config: { actions: ['plugin::ordering.catalog.manage'] },
+            },
+          ],
+        },
+      },
+      {
+        method: 'DELETE',
+        path: '/categories/:id',
+        handler: 'categories.remove',
+        config: {
+          policies: [
+            'admin::isAuthenticatedAdmin',
+            {
+              name: 'admin::hasPermissions',
+              config: { actions: ['plugin::ordering.catalog.manage'] },
+            },
+          ],
+        },
+      },
+    ],
   },
 };

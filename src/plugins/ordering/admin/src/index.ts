@@ -1,4 +1,4 @@
-import { ShoppingCart } from '@strapi/icons';
+import { Folder, ShoppingCart } from '@strapi/icons';
 
 import { PLUGIN_ID } from './pluginId';
 import en from './translations/en.json';
@@ -35,6 +35,13 @@ export default {
       icon: ShoppingCart,
       intlLabel: { id: `${PLUGIN_ID}.menu.title`, defaultMessage: 'Ordering' },
       Component: () => import('./pages/HomePage'),
+      permissions: [],
+    });
+    app.addMenuLink({
+      to: `/plugins/${PLUGIN_ID}/categories`,
+      icon: Folder,
+      intlLabel: { id: `${PLUGIN_ID}.menu.categories`, defaultMessage: 'Categories' },
+      Component: () => import('./pages/Categories'),
       permissions: [],
     });
     app.registerPlugin({ id: PLUGIN_ID, name: 'Ordering' });

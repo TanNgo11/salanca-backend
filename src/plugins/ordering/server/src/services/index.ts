@@ -12,6 +12,7 @@ import timeline from './timeline';
 import hold from './hold';
 import outbox from './outbox';
 import branch from './branch';
+import catalogCategory from './catalog-category';
 import catalogSlug from './catalog-slug';
 import changeLog from './change-log';
 import jobLock from './job-lock';
@@ -29,6 +30,7 @@ export default {
   hold,
   outbox,
   branch,
+  'catalog-category': catalogCategory,
   'catalog-slug': catalogSlug,
   'change-log': changeLog,
   'job-lock': jobLock,
