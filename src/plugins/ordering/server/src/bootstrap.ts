@@ -18,15 +18,6 @@ const bootstrap = async ({ strapi }: { strapi: Core.Strapi }) => {
   }
 
   await runOrderingMigrations(strapi, orderingMigrations);
-  registry.recordLifecycle('plugin.bootstrap');
-  if (config.spike.enabled) {
-    const database = strapi.config.get('database.connection.connection.database');
-    const host = strapi.config.get('database.connection.connection.host');
-    if (database !== 'salanca_ordering_spike' || !['localhost', '127.0.0.1', '::1'].includes(String(host))) {
-      throw new Error('[ordering] O0 probes require the local salanca_ordering_spike database');
-    }
-    await strapi.eventHub.emit('ordering.spike.ready', { phase: 'O0' });
-  }
 
   strapi.log.info(
     `[ordering] lifecycle: plugin bootstrap; catalog adapters: ${registry.catalogAdapterCodes().join(', ')}`,

@@ -51,12 +51,4 @@ export default {
     allLocations: { type: 'boolean', default: false, required: true },
     locationRefs: { type: 'json', required: true },
   }),
-  'catalog-product': collection('catalog-product', {
-    name: { type: 'customField', customField: 'plugin::ordering.localized-text', required: true },
-    slug: { type: 'json' },
-    modifierGroups: { type: 'json' },
-    isActive: { type: 'boolean', default: true },
-    // O0 probe: simulates a later plugin version adding an attribute (ORDERING_SPIKE_SCHEMA_V2=true).
-    ...(process.env.ORDERING_SPIKE_SCHEMA_V2 === 'true' ? { upgradeMarker: { type: 'string' } } : {}),
-  }, true),
 };

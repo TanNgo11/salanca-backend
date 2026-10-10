@@ -108,9 +108,12 @@ export const resolveOrderingPluginConfig = (
   return {
     enabled,
     resolve: orderingPluginPath,
-    config: env.bool('ORDERING_SPIKE_ENABLED', false)
-      ? { spike: { enabled: true, webhookSecret: env('ORDERING_SPIKE_SECRET', '') } }
-      : {},
+    config: {
+      orderCode: { prefix: 'SLC' },
+      ...(env.bool('ORDERING_TEST_BUILTINS', false)
+        ? { testing: { builtins: true }, catalog: { adapter: 'test-catalog' }, jobs: { enabled: false } }
+        : {}),
+    },
   };
 };
 

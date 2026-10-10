@@ -234,7 +234,7 @@ describe('ordering plugin configuration', () => {
     expect(config(createParams(s3Environment)).ordering).toEqual({
       enabled: false,
       resolve: orderingPluginPath,
-      config: {},
+      config: { orderCode: { prefix: 'SLC' } },
     });
   });
 
@@ -243,7 +243,21 @@ describe('ordering plugin configuration', () => {
     expect(resolveOrderingPluginConfig(env, () => true)).toEqual({
       enabled: true,
       resolve: orderingPluginPath,
-      config: {},
+      config: { orderCode: { prefix: 'SLC' } },
+    });
+  });
+
+  it('selects the test catalog and disables jobs when ORDERING_TEST_BUILTINS is true', () => {
+    const env = createEnv({ ORDERING_ENABLED: 'true', ORDERING_TEST_BUILTINS: 'true' });
+    expect(resolveOrderingPluginConfig(env, () => true)).toEqual({
+      enabled: true,
+      resolve: orderingPluginPath,
+      config: {
+        orderCode: { prefix: 'SLC' },
+        testing: { builtins: true },
+        catalog: { adapter: 'test-catalog' },
+        jobs: { enabled: false },
+      },
     });
   });
 

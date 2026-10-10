@@ -2,14 +2,35 @@ import type { Core } from '@strapi/strapi';
 
 import type { OrderingRegistry } from './services/registry';
 
+/** Admin actions of contracts §19.2, registered under the plugin section. */
+const adminActions = [
+  { uid: 'order.read', displayName: 'Xem đơn hàng' },
+  { uid: 'order.process', displayName: 'Xử lý đơn hàng' },
+  { uid: 'order.cancel', displayName: 'Hủy đơn hàng' },
+  { uid: 'order.create', displayName: 'Tạo đơn hộ khách' },
+  { uid: 'order.edit-lines', displayName: 'Hủy một phần món' },
+  { uid: 'payment.record-cash', displayName: 'Ghi nhận tiền mặt' },
+  { uid: 'payment.review', displayName: 'Duyệt chuyển khoản' },
+  { uid: 'payment.raw-read', displayName: 'Xem payload cổng thanh toán' },
+  { uid: 'refund.manage', displayName: 'Hoàn tiền' },
+  { uid: 'report.read', displayName: 'Báo cáo' },
+  { uid: 'export', displayName: 'Xuất CSV đơn' },
+  { uid: 'settings.manage', displayName: 'Cấu hình bán hàng' },
+  { uid: 'scope.manage', displayName: 'Gán chi nhánh cho nhân viên' },
+  { uid: 'ops.read', displayName: 'Tình trạng vận hành' },
+];
+
 const register = ({ strapi }: { strapi: Core.Strapi }) => {
   const registry = strapi.plugin('ordering').service('registry') as OrderingRegistry;
   registry.registerCatalogAdapter({ code: 'ordering-catalog' });
-  registry.recordLifecycle('plugin.register');
   strapi.customFields.register({ name: 'localized-text', plugin: 'ordering', type: 'json' });
-  strapi.admin.services.permission.actionProvider.register({
-    section: 'plugins', displayName: 'Read orders (O0 probe)', uid: 'order.read', pluginName: 'ordering',
-  });
+  strapi.admin.services.permission.actionProvider.registerMany(
+    adminActions.map((action) => ({
+      section: 'plugins',
+      pluginName: 'ordering',
+      ...action,
+    })),
+  );
   strapi.admin.services.permission.conditionProvider.register({
     name: 'same-location', displayName: 'Assigned ordering branches', plugin: 'ordering',
     category: 'ordering',
@@ -18,19 +39,6 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
     handler: async (user: { id?: number }) =>
       strapi.plugin('ordering').service('branch-scope').condition({ user }),
   });
-  if (strapi.config.get('plugin::ordering.spike.enabled')) {
-    // O0 probe of Strapi's fail-open rule: a handler returning null must never ship (see C17.1).
-    strapi.admin.services.permission.conditionProvider.register({
-      name: 'spike-null-probe', displayName: 'O0 null probe', plugin: 'ordering', category: 'ordering',
-      handler: async () => null,
-    });
-    strapi.documents.use(async (context, next) => {
-      if (context.uid === 'plugin::ordering.order' && context.action === 'update') {
-        throw new Error('O0 probe: order updates must use the ordering service');
-      }
-      return next();
-    });
-  }
   strapi.log.info('[ordering] lifecycle: plugin register');
 };
 

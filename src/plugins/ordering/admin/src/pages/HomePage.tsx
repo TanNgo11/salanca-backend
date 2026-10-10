@@ -6,7 +6,7 @@ const HomePage = () => (
       Bán hàng
     </Typography>
     <Box paddingTop={4}>
-      <Typography>Plugin ordering đang ở giai đoạn spike (Phase O0).</Typography>
+      <Typography>Lõi đơn hàng (Phase O1) đang được xây dựng. Chưa có màn hình vận hành.</Typography>
     </Box>
   </Box>
 );
