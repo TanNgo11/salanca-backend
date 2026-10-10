@@ -95,6 +95,57 @@ export function isWithinSellingWindow(nowLocal: Date, window: SellingWindow): bo
 export const withinAnyWindow = (nowLocal: Date, windows: SellingWindow[] = []): boolean =>
   windows.length === 0 || windows.some((window) => isWithinSellingWindow(nowLocal, window));
 
+/** `instant` rendered as `YYYY-MM-DDTHH:mm:ss` wall time inside an IANA `timezone`. */
+export const localPartsInZone = (instant: Date, timezone: string): string => {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(instant);
+  const take = (type: string) => parts.find((part) => part.type === type)?.value ?? '00';
+  return `${take('year')}-${take('month')}-${take('day')}T${take('hour')}:${take('minute')}:${take('second')}`;
+};
+
+/**
+ * The UTC instant whose wall-clock reading in `timezone` equals `localIso`. Iterates the
+ * fixed-point refinement — converges in ≤3 steps on any civil timezone, including DST days
+ * (a skipped local time lands on the first valid instant after the gap, which is the sane
+ * meaning of "04:00" when 04:00 doesn't exist).
+ */
+export const instantAtLocal = (localIso: string, timezone: string): Date => {
+  let guess = Date.parse(`${localIso}Z`);
+  for (let i = 0; i < 4; i += 1) {
+    const rendered = localPartsInZone(new Date(guess), timezone);
+    const diff = Date.parse(`${rendered}Z`) - Date.parse(`${localIso}Z`);
+    if (diff === 0) break;
+    guess -= diff;
+  }
+  return new Date(guess);
+};
+
+/**
+ * Next occurrence of the business-day cutoff (`'HH:mm'`, e.g. the 04:00 day close) in
+ * `timezone` strictly after `now`. "Tạm hết đến hết ngày kinh doanh" resumes at this
+ * instant (mockup 5 note 2) — usually early tomorrow morning in branch time.
+ */
+export const nextBusinessDayCutoff = (now: Date, cutoff: string, timezone: string): Date => {
+  const day = localPartsInZone(now, timezone).slice(0, 10);
+  const today = instantAtLocal(`${day}T${cutoff}:00`, timezone);
+  if (today.getTime() > now.getTime()) return today;
+  const nextDay = new Date(Date.parse(`${day}T00:00:00Z`) + 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+  return instantAtLocal(`${nextDay}T${cutoff}:00`, timezone);
+};
+
+/** Next occurrence of a staff-entered `'HH:mm'` local time in the branch `timezone`. */
+export const nextLocalTime = nextBusinessDayCutoff;
+
 /**
  * The sellable decision. `reasons` stays machine-readable — UI copy maps them to translated
  * strings. `temporarily-unavailable` carries `resumesAt` so staff/guests see when it ends.

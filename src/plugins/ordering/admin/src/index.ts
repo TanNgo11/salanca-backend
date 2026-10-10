@@ -1,4 +1,4 @@
-import { Folder, ShoppingCart } from '@strapi/icons';
+import { Folder, ShoppingCart, Store } from '@strapi/icons';
 
 import { PLUGIN_ID } from './pluginId';
 import en from './translations/en.json';
@@ -42,6 +42,13 @@ export default {
       icon: Folder,
       intlLabel: { id: `${PLUGIN_ID}.menu.categories`, defaultMessage: 'Categories' },
       Component: () => import('./pages/Categories'),
+      permissions: [],
+    });
+    app.addMenuLink({
+      to: `/plugins/${PLUGIN_ID}/availability`,
+      icon: Store,
+      intlLabel: { id: `${PLUGIN_ID}.menu.availability`, defaultMessage: 'Temporarily out' },
+      Component: () => import('./pages/Availability'),
       permissions: [],
     });
     app.registerPlugin({ id: PLUGIN_ID, name: 'Ordering' });

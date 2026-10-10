@@ -3,7 +3,10 @@ import { describe, expect, it } from 'vitest';
 import {
   type SellingWindow,
   evaluateAvailability,
+  instantAtLocal,
   isWithinSellingWindow,
+  localPartsInZone,
+  nextBusinessDayCutoff,
   timeToMinutes,
 } from './availability';
 
@@ -162,5 +165,48 @@ describe('evaluateAvailability', () => {
       locationState: { selling: false, outOfStockUntil: '2026-10-11T04:00:00' },
     });
     expect(verdict.resumesAt?.getTime()).toBe(Date.parse('2026-10-11T04:00:00'));
+  });
+});
+
+describe('instantAtLocal / localPartsInZone', () => {
+  it('converts a branch-local wall time to the correct UTC instant', () => {
+    // Asia/Ho_Chi_Minh is UTC+7 — 04:00 local is 21:00Z the previous UTC day.
+    const at = instantAtLocal('2026-10-11T04:00:00', 'Asia/Ho_Chi_Minh');
+    expect(at.toISOString()).toBe('2026-10-10T21:00:00.000Z');
+  });
+
+  it('renders instants in the target zone, not the host zone', () => {
+    expect(localPartsInZone(new Date('2026-10-10T21:00:00Z'), 'Asia/Ho_Chi_Minh')).toBe(
+      '2026-10-11T04:00:00',
+    );
+    expect(localPartsInZone(new Date('2026-10-10T21:00:00Z'), 'America/New_York')).toBe(
+      '2026-10-10T17:00:00',
+    );
+  });
+});
+
+describe('nextBusinessDayCutoff', () => {
+  const TZ = 'Asia/Ho_Chi_Minh'; // UTC+7
+  const cases: [string, string, string][] = [
+    // Before the cutoff on the same branch-local day → today's cutoff.
+    ['2026-10-09T20:00:00Z', '04:00', '2026-10-09T21:00:00Z'], // local Oct10 03:00 → Oct10 04:00
+    // After the cutoff → next branch-local day.
+    ['2026-10-10T02:00:00Z', '04:00', '2026-10-10T21:00:00Z'], // local Oct10 09:00 → Oct11 04:00
+    ['2026-10-10T21:00:00Z', '04:00', '2026-10-11T21:00:00Z'], // exactly at cutoff → next day
+    // A same-day "đến giờ" toggle picked by staff (mockup: "14:00 hôm nay").
+    ['2026-10-10T03:30:00Z', '14:00', '2026-10-10T07:00:00Z'], // local 10:30 → 14:00 today
+    ['2026-10-10T10:00:00Z', '14:00', '2026-10-11T07:00:00Z'], // local 17:00 → 14:00 tomorrow
+  ];
+  it.each(cases)('now %s + cutoff %s → %s', (nowIso, cutoff, expectedIso) => {
+    expect(nextBusinessDayCutoff(new Date(nowIso), cutoff, TZ).toISOString()).toBe(
+      `${expectedIso.slice(0, 19)}.000Z`,
+    );
+  });
+
+  it('honours a different branch timezone', () => {
+    // New York is UTC-4 in October: 04:00 local = 08:00Z.
+    expect(
+      nextBusinessDayCutoff(new Date('2026-10-10T05:00:00Z'), '04:00', 'America/New_York').toISOString(),
+    ).toBe('2026-10-10T08:00:00.000Z');
   });
 });

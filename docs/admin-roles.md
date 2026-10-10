@@ -63,6 +63,27 @@ Community has no Manager role, so create it once: Settings → Roles → "Add ne
 `Quản lý`, copy the Editor permissions you want, tick this action, save, then assign it to the
 manager's account.
 
+## Ordering plugin catalog permissions (2026-10-10)
+
+Two actions under **Settings → Roles → Plugins → Ordering** gate the O2 catalog screens and
+their `/ordering/*` admin routes:
+
+| Action | Unlocks |
+| --- | --- |
+| `plugin::ordering.catalog.manage` ("Quản lý danh mục bán hàng") | The `Danh mục` screen: category tree create/edit/delete/move, and the `Tạm hết món` screen including toggles |
+| `plugin::ordering.catalog.toggle-availability` ("Bật/tắt tạm hết món") | Only the `Tạm hết món` screen: branch select, entity list, Còn/Hết toggles |
+
+The two actions overlap deliberately: `catalog.manage` is the full-capability grant for
+managers; `catalog.toggle-availability` is the narrow grant for branch staff. Either action
+opens the availability screen (the routes accept both). Branch staff are additionally
+limited by their `staff-location-scope` row — a staff member scoped to Q1 gets 403 on
+any read or toggle targeting Q3. Every toggle appends an `admin-change-log` row with the
+actor ref and branch.
+
+Bootstrap grants both to Super Admin. Other roles default to deny. Grant
+`catalog.toggle-availability` (+ a `staff-location-scope` row) to branch staff, and
+`catalog.manage` to the `Quản lý` role.
+
 ## Manual UAT checklist
 
 - [ ] Editor cannot open API Tokens, Transfer Tokens, or plugin marketplace settings.
@@ -79,6 +100,9 @@ manager's account.
 - [ ] A role with `read` but not `details` sees event rows but no technical metadata in the drawer.
 - [ ] A role with `export` can download CSV; exporting > 31 days fails instead of truncating.
 - [ ] Creating/editing a CMS entry and deleting a media file each produce exactly one `audit_events` row with a `request_id`.
+- [ ] A role without `catalog.manage` does not see the `Danh mục` screen and gets 403 on `/ordering/categories`.
+- [ ] A staff member with `catalog.toggle-availability` scoped to Q1 sees only Q1 in the branch select and gets 403 toggling at another branch.
+- [ ] Marking a product "Hết ngày kinh doanh" hides it from the public catalog until the configured day-close; toggling "Còn" restores it immediately and writes a change-log row.
 
 ## API tokens (server-to-server)
 

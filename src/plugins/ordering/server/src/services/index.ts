@@ -12,6 +12,7 @@ import timeline from './timeline';
 import hold from './hold';
 import outbox from './outbox';
 import branch from './branch';
+import catalogAvailability from './catalog-availability';
 import catalogCategory from './catalog-category';
 import catalogSlug from './catalog-slug';
 import changeLog from './change-log';
@@ -30,6 +31,7 @@ export default {
   hold,
   outbox,
   branch,
+  'catalog-availability': catalogAvailability,
   'catalog-category': catalogCategory,
   'catalog-slug': catalogSlug,
   'change-log': changeLog,

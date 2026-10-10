@@ -49,6 +49,7 @@ const adminActions = [
   { uid: 'scope.manage', displayName: 'Gán chi nhánh cho nhân viên' },
   { uid: 'ops.read', displayName: 'Tình trạng vận hành' },
   { uid: 'catalog.manage', displayName: 'Quản lý danh mục bán hàng' },
+  { uid: 'catalog.toggle-availability', displayName: 'Bật/tắt tạm hết món' },
 ];
 
 const register = ({ strapi }: { strapi: Core.Strapi }) => {

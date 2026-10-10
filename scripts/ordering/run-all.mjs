@@ -22,6 +22,7 @@ const scripts = [
   'catalog-adapter.mjs',
   'catalog-api.mjs',
   'catalog-categories.mjs',
+  'catalog-availability.mjs',
   'review-additions.mjs',
 ];
 

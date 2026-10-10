@@ -97,6 +97,33 @@ export default {
           ],
         },
       },
+      // "Tạm hết món" screen (plan step 8). `has-catalog-access` admits holders of either
+      // `catalog.manage` or `catalog.toggle-availability`; branch scope is enforced in the
+      // service so staff only touch their own locations.
+      {
+        method: 'GET',
+        path: '/availability/locations',
+        handler: 'availability.locations',
+        config: {
+          policies: ['admin::isAuthenticatedAdmin', 'plugin::ordering.has-catalog-access'],
+        },
+      },
+      {
+        method: 'GET',
+        path: '/availability',
+        handler: 'availability.list',
+        config: {
+          policies: ['admin::isAuthenticatedAdmin', 'plugin::ordering.has-catalog-access'],
+        },
+      },
+      {
+        method: 'POST',
+        path: '/availability/toggle',
+        handler: 'availability.toggle',
+        config: {
+          policies: ['admin::isAuthenticatedAdmin', 'plugin::ordering.has-catalog-access'],
+        },
+      },
     ],
   },
 };

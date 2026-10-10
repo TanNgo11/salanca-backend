@@ -6,6 +6,7 @@ import services from './services';
 import contentTypes from './content-types';
 import routes from './routes';
 import controllers from './controllers';
+import policies from './policies';
 
 export default {
   register,
@@ -16,6 +17,6 @@ export default {
   routes,
   controllers,
   services,
-  policies: {},
+  policies,
   middlewares: {},
 };
