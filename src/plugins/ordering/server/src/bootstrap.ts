@@ -7,6 +7,7 @@ import { runHoldExpiry } from './jobs/hold-expiry';
 import { runIdempotencyCleanup } from './jobs/idempotency-cleanup';
 import { runOutboxDispatcher } from './jobs/outbox-dispatcher';
 import { orderingMigrations } from './migrations';
+import { persistOrderingTables } from './migrations/persisted-tables';
 import { runOrderingMigrations } from './migrations/runner';
 import { assertEnabledCodesRegistered, type OrderingRegistry } from './services/registry';
 
@@ -17,6 +18,13 @@ const bootstrap = async ({ strapi }: { strapi: Core.Strapi }) => {
   // The validator runs before any register(), so code references can only be checked here.
   assertEnabledCodesRegistered(config, registry);
 
+  // Reserve ordering tables in the core store BEFORE migrations run — otherwise a later
+  // boot with ORDERING_ENABLED=false would drop every plugins_ordering_* table (schema
+  // sync removes tables that were in the previous stored schema but not the current one).
+  const added = await persistOrderingTables(strapi);
+  if (added.length > 0) {
+    strapi.log.info(`[ordering] persisted ${added.length} tables`);
+  }
   await runOrderingMigrations(strapi, orderingMigrations);
 
   if (config.jobs.enabled) {

@@ -128,6 +128,21 @@ ghi vào ledger refund, không sửa tổng.
   options: { rule } } })`; owner `${hostname}:${pid}`; lỗi job chỉ log `[ordering] job …`.
 - Một instance: cron đủ. Nhiều instance: outbox vẫn đúng nhờ SKIP LOCKED + lease.
 
+## Tắt plugin không mất dữ liệu
+
+Schema sync của Strapi xóa mọi bảng từng có trong schema lưu trước đó nhưng vắng mặt ở boot
+hiện tại — tức boot với `ORDERING_ENABLED=false` sẽ xóa toàn bộ bảng `plugins_ordering_*`.
+Vì vậy `bootstrap` ghi tên tất cả bảng plugin (kể cả `plugins_ordering_migrations` và link
+tables) vào khóa core-store `persisted_tables`: các bảng trong danh sách này được bảo lưu
+khi schema sync chạy. Tắt plugin → bảng, index, dữ liệu nguyên vẹn; bật lại → chạy tiếp bình
+thường. Xóa dữ liệu ordering là quyết định thủ công, ví dụ (chỉ ý tưởng, không kèm script):
+
+```sql
+-- CHỈ chạy khi thật sự muốn xóa toàn bộ dữ liệu ordering:
+DROP TABLE plugins_ordering_<name> CASCADE; -- với từng bảng plugins_ordering_*
+DELETE FROM strapi_core_store_settings WHERE key = 'persisted_tables';
+```
+
 ## Scope chi nhánh
 
 `staff-location-scope` gán `adminUserId → allLocations | locationRefs[]`. Ngoài scope:

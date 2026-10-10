@@ -10,7 +10,7 @@ export const TEST_DATABASE = 'salanca_ordering_test';
  * loopback database, never the dev or production database. Logs go to `[ordering-test]` and
  * must never contain names, phones, emails, addresses or tokens.
  */
-export function configureTestEnvironment() {
+export function configureTestEnvironment(enabled = true) {
   if (existsSync('.env')) process.loadEnvFile('.env');
   const host = process.env.DATABASE_HOST ?? '127.0.0.1';
   assert.ok(
@@ -22,8 +22,12 @@ export function configureTestEnvironment() {
   process.env.DATABASE_SCHEMA = 'public';
   process.env.NODE_ENV = 'development';
   process.env.HOST = '127.0.0.1';
-  process.env.ORDERING_ENABLED = 'true';
-  process.env.ORDERING_TEST_BUILTINS = 'true';
+  process.env.ORDERING_ENABLED = enabled ? 'true' : 'false';
+  if (enabled) {
+    process.env.ORDERING_TEST_BUILTINS = 'true';
+  } else {
+    delete process.env.ORDERING_TEST_BUILTINS;
+  }
   process.env.AUDIT_IDENTIFIER_HASH_SECRET ??= randomBytes(32).toString('hex');
   process.env.S3_BUCKET = '';
   process.env.EMAIL_SMTP_HOST = '';
@@ -60,8 +64,8 @@ export async function ensureTestDatabase() {
   }
 }
 
-export async function bootOrderingTestApp() {
-  configureTestEnvironment();
+export async function bootOrderingTestApp({ enabled = true } = {}) {
+  configureTestEnvironment(enabled);
   await ensureTestDatabase();
   const { compileStrapi, createStrapi } = strapiRequire('@strapi/core');
   const app = createStrapi(await compileStrapi());
@@ -99,10 +103,10 @@ export async function resetOrderingTables(app) {
 }
 
 /** Boots, resets, runs `fn(app)` and always destroys. Failures set the exit code and rethrow. */
-export async function withApp(fn) {
+export async function withApp(fn, options = {}) {
   let app;
   try {
-    app = await bootOrderingTestApp();
+    app = await bootOrderingTestApp(options);
     await resetOrderingTables(app);
     console.log(`[ordering-test] app booted on ${TEST_DATABASE}`);
     await fn(app);

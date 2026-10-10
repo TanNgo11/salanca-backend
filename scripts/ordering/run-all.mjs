@@ -8,6 +8,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 
 const scripts = [
   'schema.mjs',
+  'disable-survives.mjs',
   'registry-boot.mjs',
   'idempotency.mjs',
   'create-order.mjs',
