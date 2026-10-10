@@ -63,16 +63,14 @@ object keys, which an `immutable` cache would keep serving for up to a year.
   replace still use the old URLs. Clean them up with
   `media:reconcile -- --delete-orphans` (below);
 - after success the backend sends a signed `media.replace` webhook
-  (`uid: plugin::upload.file`); the web revalidates every CMS tag (and the
-  experience heritage story) in both locales, so pages switch to the new URL
-  immediately.
+  (`uid: plugin::upload.file`); the web revalidates every CMS tag in both
+  locales, so pages switch to the new URL immediately.
 
 The override mirrors `@strapi/upload` 5.51.1 internals (`_uploadImage` is
 marked internal) — re-check `fresh-hash-replace.ts` on every Strapi upgrade.
 
-The experience heritage artwork is resolved from the media library by row name
-(`pdf-heritage-vi-bg.webp` / `pdf-heritage-en-bg.webp`), so a Replace reaches
-it too; the URL in `experience-story.data.ts` is only the fallback.
+The experience heritage artwork is the `experience-page.heritageImage` field, so
+a Replace reaches it like any other CMS image.
 
 ### Cleaning orphaned objects (`media:reconcile`)
 

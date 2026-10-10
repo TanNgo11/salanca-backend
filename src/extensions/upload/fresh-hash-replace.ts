@@ -170,8 +170,8 @@ export const createFreshHashReplace =
       fileData.provider = deps.providerName();
 
       const fields = pickReplacedFields(fileData);
-      // Keep the row's name unless the editor typed a new one: code that looks a
-      // file up by name (experience heritage) must survive a Replace.
+      // Keep the row's name unless the editor typed a new one, as stock replace
+      // does.
       if (typeof data.fileInfo?.name !== 'string' || data.fileInfo.name.trim() === '') {
         delete fields.name;
       }

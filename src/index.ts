@@ -17,7 +17,6 @@ import {
   registerAuditLogPermissions,
 } from './api/audit-log';
 import { registerHealthRoutes } from './api/health';
-import { registerExperienceStoryRoutes } from './api/experience-story';
 import {
   bootstrapLeadExportPermissions,
   registerLeadExportAdminRoutes,
@@ -51,7 +50,6 @@ export default {
     getOrCreateMediaProcessingRuntime(strapi);
     registerDocumentInvariants(strapi);
     registerHealthRoutes(strapi);
-    registerExperienceStoryRoutes(strapi);
     registerAuditLogPermissions(strapi);
     registerAuditLogAdminRoutes(strapi);
     registerReservationInboxPermissions(strapi);

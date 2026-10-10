@@ -1,7 +1,7 @@
 {
   "version": 1,
   "createdAt": "2026-10-03T03:23:42.417Z",
-  "schemaHash": "e85df06e4bdb5de160ac8a84da58a3b977bc1b22bf815a8b422900eaa3e587f5",
+  "schemaHash": "b10869e93c2f2afcf486e99a4187fecf2085a0da8e3c3e534a17531cba71bb07",
   "files": [
     {
       "name": "ea999245bede5a2d247e7da3560014f721d2e80b7cbc2d624a634b80dc8b4502.webp",
@@ -314,6 +314,30 @@
       "sha256": "4c907ddf411bae29ee954c30a5f5485773f1e9e884a82bdf0b0ab7b2739e2772",
       "originalName": "amenity-service.png",
       "sourceFile": "amenity-service.png"
+    },
+    {
+      "name": "a6532db771df49f84ee9b50ffbc090979fa516ec0b6f641ebaa8cd0b2c839c9d.webp",
+      "sha256": "a6532db771df49f84ee9b50ffbc090979fa516ec0b6f641ebaa8cd0b2c839c9d",
+      "originalName": "rodizio-signal-continue.webp",
+      "sourceFile": "rodizio-signal-continue.webp"
+    },
+    {
+      "name": "3a6902433fc4c37ff86651094c74de3284169bb22ec94003c7bb3de5873cddf0.webp",
+      "sha256": "3a6902433fc4c37ff86651094c74de3284169bb22ec94003c7bb3de5873cddf0",
+      "originalName": "rodizio-signal-pause.webp",
+      "sourceFile": "rodizio-signal-pause.webp"
+    },
+    {
+      "name": "bbcce7940b99326ce58a33bb65b373864c83cfe2e7b94259b5e8a0d707e00482.webp",
+      "sha256": "bbcce7940b99326ce58a33bb65b373864c83cfe2e7b94259b5e8a0d707e00482",
+      "originalName": "pdf-heritage-vi-bg.webp",
+      "sourceFile": "pdf-heritage-vi-bg.webp"
+    },
+    {
+      "name": "496a72aad7f589b57f3bbbb50398d11ba1ff7ddf151a5a4dfbcd934b15bfd5d5.webp",
+      "sha256": "496a72aad7f589b57f3bbbb50398d11ba1ff7ddf151a5a4dfbcd934b15bfd5d5",
+      "originalName": "pdf-heritage-en-bg.webp",
+      "sourceFile": "pdf-heritage-en-bg.webp"
     }
   ],
   "payload": {
@@ -852,11 +876,6 @@
                   "title": "CHURRASCARIA",
                   "description": null,
                   "showStar": false
-                },
-                {
-                  "title": "CHURRASCARIA",
-                  "description": null,
-                  "showStar": false
                 }
               ],
               "image": {
@@ -895,11 +914,6 @@
               "adultPrice": 950000,
               "childPrice": 590000,
               "includedItems": [
-                {
-                  "title": "CHURRASCARIA",
-                  "description": null,
-                  "showStar": false
-                },
                 {
                   "title": "CHURRASCARIA",
                   "description": null,
@@ -5962,6 +5976,53 @@
               "__file": "8057e82911b18883912d0471e1f54845d277bae99a8efabba913ad6eea58dfde.jpg"
             }
           },
+          "heritageBody": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Từ những năm 1700, nghành chăn thả gia súc đã bắt đầu phổ biến ở miền nam Brazil. Cũng từ đây cộng đồng lao động du mục Brazil đã sáng tạo ra cách ướp những tảng thịt lớn trong muối biển và nướng chậm trên than củi hồng. Còn điều gì tuyệt hơn sau một ngày dài lao động trên đồng cỏ đươc thưởng thức món nướng nóng hổi bên những người anh em?",
+                  "type": "text"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Ngày nay, người Brazil vẫn tiếp nối truyền thống ẩm thực của tổ tiên bằng cách mở những nhà hàng bán đồ nướng của riêng họ trên khắp thế giới. Những tảng thịt bò, heo, gà, cừu, xúc xích ... quay chậm, đều trong những bếp nướng Churrasco queria, những món thịt béo hơn sẽ được đặt bên trên, để nước thịt béo ngậy nóng sẽ chảy xuống thấm vào những món thịt ở phía dưới. Đó là một trong những bí quyết để khi người phục vụ mang xiên thịt tới cắt tại bàn, thịt thơm lừng mà mềm mượt.",
+                  "type": "text"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Từ năm 2003 thương hiệu Au Lac do Brazil là tiền thân của Salanca, tiên phong đưa văn hoá ẩm thực Brazil tới thành phố Hồ Chí Minh, sau đó 2006 tại Hà Nội, với chất lượng ẩm thực, phong cách phục vụ nồng ấm đã được người Việt nhiệt tình ủng hộ tại 2 miền Nam-Bắc. Ngày 1/1/2022, ghi dấu một bước ngoặt quan trọng, thương hiệu Salanca tách hẳn khỏi Au Lac do Brazil, hoạt động và phát triển tại thị trường miền Bắc, dưới sự quản lý của Ms. Nga Nguyễn và anh Jan Stromler là nhà sáng lập đã đem thương hiệu về Việt Nam. Tại miền Nam, thương hiệu Au Lac do Brazil Saigon được chuyển nhượng cho Nova Group phát triển.",
+                  "type": "text"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Bước tiếp những thành công của Au Lac do Brazil, thương hiệu Salanca giữ vững các giá trị và tri ân sự ủng hộ của thực khách. Với mục tiêu lan toả lối sống nồng nhiệt và chân thành, ăn steak là phải thoả thích, vậy tới Salanca Brazil, bạn hãy tạm quên các chế độ ăn uống hà khắc một ngày để khai vị 1 ly caipirinha và thưởng thức thịt nóng được phục vụ tại bàn.",
+                  "type": "text"
+                }
+              ]
+            }
+          ],
+          "heritageImage": {
+            "alt": "Họa tiết chim vẹt và thiên nhiên nhiệt đới Brazil",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50,
+            "media": {
+              "__file": "bbcce7940b99326ce58a33bb65b373864c83cfe2e7b94259b5e8a0d707e00482.webp"
+            }
+          },
           "processHeading": "Từ than hồng đến bàn ăn",
           "processSteps": [
             {
@@ -6010,6 +6071,24 @@
             "label": "Đặt bàn ngay",
             "url": "/vi/dat-ban",
             "openInNewTab": false
+          },
+          "ritualContinueImage": {
+            "alt": "Thẻ xanh Yes Please – tiếp tục phục vụ thịt nướng",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50,
+            "media": {
+              "__file": "a6532db771df49f84ee9b50ffbc090979fa516ec0b6f641ebaa8cd0b2c839c9d.webp"
+            }
+          },
+          "ritualPauseImage": {
+            "alt": "Thẻ đỏ No! Thanks – tạm dừng phục vụ",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50,
+            "media": {
+              "__file": "3a6902433fc4c37ff86651094c74de3284169bb22ec94003c7bb3de5873cddf0.webp"
+            }
           },
           "flavorsHeading": "Mỗi lát cắt, một hương vị",
           "flavorItems": {
@@ -6164,6 +6243,53 @@
               "__file": "8057e82911b18883912d0471e1f54845d277bae99a8efabba913ad6eea58dfde.jpg"
             }
           },
+          "heritageBody": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "From 1700s, the pasture industry became popular in South of Brazil. Developing from this, the community of Brazilian vagrant labor invented a method of marinating huge meat blocks with sea salt and then grilling them slowly over burning charcoal. What is more amazing than enjoying a fresh grill with brothers after a long working day on the pastureland?",
+                  "type": "text"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Nowadays, the Brazilian inherits that dining tradition by opening their exclusive grilling restaurants all over the world. Blocks of beef, pork, chicken, lamb, sausage… are rolled slowly in the same speed inside the Churrasco queria kitchens. Usually, they put the kind which is fattier above, then the greasy liquid falls down and drips over the others below. This is also one of the secrets to serve the meat right at the table, the meat will be sliced right from the skewer by the waiter, with fresh smell and smooth texture.",
+                  "type": "text"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Since 2003, the brand name Au Lac do Brazil, the precursor of Salanca, has led in bringing the Brazil food & beverage to Ho Chi Minh City, and 2006 in Hanoi. The brand was deeply loved and recognized by the Vietnamese diners due to the food quality and the warm service. The date of 1st of January, 2022 marked a significant milestone, Salanca is thoroughly separated from Au Lac do Brazil, managed by Ms. Nga Nguyen and mr. Jan Stromler the initial founder who has franchised the brand to Vietnam, operating and developing in Nothern region. In the South, Au Lac do Brazil is transfered to Nova Group for continuously developing.",
+                  "type": "text"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Moving forward from the previous success of Au Lac do Brazil, the brand Salanca has strengthened their values and always appreciated the diners’ continuous support. Salanca spreads an intense and sincere lifestyle, eating steaks delightfully. Therefore, arriving at Salanca Brazil, you can temporarily leave behind a strict day diet, start with a caipirinha and enjoy the fresh meats served right at your table.",
+                  "type": "text"
+                }
+              ]
+            }
+          ],
+          "heritageImage": {
+            "alt": "Brazilian macaws and tropical flora",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50,
+            "media": {
+              "__file": "496a72aad7f589b57f3bbbb50398d11ba1ff7ddf151a5a4dfbcd934b15bfd5d5.webp"
+            }
+          },
           "processHeading": "From ember to table",
           "processSteps": [
             {
@@ -6212,6 +6338,24 @@
             "label": "Book now",
             "url": "/en/reservations",
             "openInNewTab": false
+          },
+          "ritualContinueImage": {
+            "alt": "Green Yes Please card – keep the meat coming",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50,
+            "media": {
+              "__file": "a6532db771df49f84ee9b50ffbc090979fa516ec0b6f641ebaa8cd0b2c839c9d.webp"
+            }
+          },
+          "ritualPauseImage": {
+            "alt": "Red No! Thanks card – pause service",
+            "caption": null,
+            "focalPointX": 50,
+            "focalPointY": 50,
+            "media": {
+              "__file": "3a6902433fc4c37ff86651094c74de3284169bb22ec94003c7bb3de5873cddf0.webp"
+            }
           },
           "flavorsHeading": "Every slice, a flavour",
           "flavorItems": {
@@ -8069,11 +8213,6 @@
             "openInNewTab": false
           },
           {
-            "label": "Tráng miệng",
-            "url": "/vi/thuc-don#trang-mieng",
-            "openInNewTab": false
-          },
-          {
             "label": "Thực đơn mang về",
             "url": "/vi/thuc-don#mang-ve",
             "openInNewTab": false
@@ -8153,11 +8292,6 @@
           {
             "label": "À la carte",
             "url": "/en/menu#a-la-carte",
-            "openInNewTab": false
-          },
-          {
-            "label": "Desserts",
-            "url": "/en/menu#desserts",
             "openInNewTab": false
           },
           {
@@ -8299,7 +8433,11 @@
       "6cf74f2a17fe4296d6881dd3840f6a7db8d5b231451bc0e0e727422436b5bf6a.png",
       "3be37493a85f8866ab4f2643e03972afb488799d2a5fd3f5b9dd0d3b4fd6cf36.png",
       "7f65c7ca202f4ed76ac5ac3e07a5f1e303cc606c83b4ec9033fa38e939c8ad1d.png",
-      "4c907ddf411bae29ee954c30a5f5485773f1e9e884a82bdf0b0ab7b2739e2772.png"
+      "4c907ddf411bae29ee954c30a5f5485773f1e9e884a82bdf0b0ab7b2739e2772.png",
+      "a6532db771df49f84ee9b50ffbc090979fa516ec0b6f641ebaa8cd0b2c839c9d.webp",
+      "3a6902433fc4c37ff86651094c74de3284169bb22ec94003c7bb3de5873cddf0.webp",
+      "bbcce7940b99326ce58a33bb65b373864c83cfe2e7b94259b5e8a0d707e00482.webp",
+      "496a72aad7f589b57f3bbbb50398d11ba1ff7ddf151a5a4dfbcd934b15bfd5d5.webp"
     ]
   },
   "generatedFrom": "Published CMS content with approved original source artwork"

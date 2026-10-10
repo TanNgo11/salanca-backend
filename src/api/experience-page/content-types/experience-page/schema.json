@@ -55,6 +55,24 @@
       "component": "shared.image",
       "repeatable": false
     },
+    "heritageBody": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "type": "blocks"
+    },
+    "heritageImage": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "type": "component",
+      "component": "shared.image",
+      "repeatable": false
+    },
     "processHeading": {
       "pluginOptions": {
         "i18n": {
@@ -112,6 +130,26 @@
       "component": "shared.link",
       "repeatable": false
     },
+    "ritualContinueImage": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "type": "component",
+      "component": "shared.image",
+      "repeatable": false
+    },
+    "ritualPauseImage": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "type": "component",
+      "component": "shared.image",
+      "repeatable": false
+    },
     "flavorsHeading": {
       "pluginOptions": {
         "i18n": {
@@ -130,7 +168,11 @@
       "type": "component",
       "component": "shared.editorial-card",
       "repeatable": true,
-      "pluginOptions": { "i18n": { "localized": true } }
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
     },
     "manifestoHeading": {
       "pluginOptions": {

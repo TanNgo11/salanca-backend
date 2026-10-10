@@ -172,6 +172,11 @@ whole PDF pages.
 
 ### Experience-specific flavor cards (2026-10-03)
 `experience-page.flavorCards` is an optional localized repeatable `shared.editorial-card` component. Its eyebrow is the card key, title/body are displayed copy, and shared.image is the editable original photo. This additive field restores the old Experience artwork without changing related menu-item images. Existing flavorItems remains supported for older records.
+
+`experience-page.ritualContinueImage` and `experience-page.ritualPauseImage` are optional localized `shared.image` components holding the green ("Yes Please") and red ("No! Thanks") Rodizio table cards. The Experience Rodizio section renders both images from the CMS and hides the card row when either is missing.
+
+`experience-page.heritageBody` (localized blocks, one paragraph per block) and `experience-page.heritageImage` (localized `shared.image`) hold the red brand-history block on the Experience page. The artwork is a fixed 3544×2552 canvas the text overlay is tuned to, so replacements must keep that layout. This replaces the retired hardcoded `GET /experience-story` route; the section is hidden when either field is empty.
+
 Homepage hero supports optional localized `home.hero.decorativeImage` (`shared.image`). It holds the original scarlet macaw frame independently of `backgroundImage`; neither photo is baked into the public text.
 
 Menu artwork supports optional `shared.image.mirrorHorizontally` (default false), labeled “Lật ảnh theo chiều ngang” in Admin. Menu adapters read this value regardless of S3 filename. Set the same image orientation in VI/EN; native text and prices remain separate editable fields.

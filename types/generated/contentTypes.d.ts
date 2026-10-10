@@ -1255,6 +1255,18 @@ export interface ApiExperiencePageExperiencePage
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 180;
       }>;
+    heritageBody: Schema.Attribute.Blocks &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
+    heritageImage: Schema.Attribute.Component<'shared.image', false> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
     hero: Schema.Attribute.Component<'shared.hero', false> &
       Schema.Attribute.Required &
       Schema.Attribute.SetPluginOptions<{
@@ -1323,6 +1335,12 @@ export interface ApiExperiencePageExperiencePage
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 800;
       }>;
+    ritualContinueImage: Schema.Attribute.Component<'shared.image', false> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
     ritualHeading: Schema.Attribute.String &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
@@ -1339,6 +1357,12 @@ export interface ApiExperiencePageExperiencePage
         };
       }>;
     ritualLink: Schema.Attribute.Component<'shared.link', false> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
+    ritualPauseImage: Schema.Attribute.Component<'shared.image', false> &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
           localized: true;
