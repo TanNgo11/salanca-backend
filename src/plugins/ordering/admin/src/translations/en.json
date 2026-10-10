@@ -4,5 +4,9 @@
   "ordering.localized-text.description": "One input per enabled locale",
   "ordering.localized-text.locale.vi": "Vietnamese",
   "ordering.localized-text.locale.en": "English",
-  "ordering.localized-text.default": "default"
+  "ordering.localized-text.default": "default",
+  "ordering.modifier-groups.label": "Attached option groups",
+  "ordering.modifier-groups.description": "Library groups attached to this product with per-product overrides (JSON)",
+  "ordering.bundle-slots.label": "Combo slots",
+  "ordering.bundle-slots.description": "Choice groups inside this combo (JSON)"
 }

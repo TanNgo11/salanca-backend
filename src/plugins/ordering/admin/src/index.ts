@@ -18,6 +18,18 @@ export default {
       intlDescription: { id: `${PLUGIN_ID}.localized-text.description`, defaultMessage: 'One input per enabled locale' },
       components: { Input: () => import('./components/LocalizedTextInput') },
     });
+    app.customFields.register({
+      name: 'modifier-groups', pluginId: PLUGIN_ID, type: 'json',
+      intlLabel: { id: `${PLUGIN_ID}.modifier-groups.label`, defaultMessage: 'Attached option groups' },
+      intlDescription: { id: `${PLUGIN_ID}.modifier-groups.description`, defaultMessage: 'Library groups attached to this product with per-product overrides (JSON)' },
+      components: { Input: () => import('./custom-fields/modifier-groups/Input') },
+    });
+    app.customFields.register({
+      name: 'bundle-slots', pluginId: PLUGIN_ID, type: 'json',
+      intlLabel: { id: `${PLUGIN_ID}.bundle-slots.label`, defaultMessage: 'Combo slots' },
+      intlDescription: { id: `${PLUGIN_ID}.bundle-slots.description`, defaultMessage: 'Choice groups inside this combo (JSON)' },
+      components: { Input: () => import('./custom-fields/bundle-slots/Input') },
+    });
     app.addMenuLink({
       to: `/plugins/${PLUGIN_ID}`,
       icon: ShoppingCart,

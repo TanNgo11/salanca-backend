@@ -18,6 +18,7 @@ const scripts = [
   'jobs.mjs',
   'scope.mjs',
   'catalog-slug.mjs',
+  'catalog-json.mjs',
   'review-additions.mjs',
 ];
 

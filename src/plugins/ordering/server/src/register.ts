@@ -1,12 +1,18 @@
 import type { Core } from '@strapi/strapi';
 
 import type { OrderingConfig } from './config';
+import { validateBundleSlotRefs, validateBundleSlots } from './domain/catalog/bundle-slots';
 import {
   LOCALIZED_TEXT_MAX_DESCRIPTION,
   LOCALIZED_TEXT_MAX_NAME,
   LOCALIZED_TEXT_MAX_SLUG,
   validateLocalizedText,
 } from './domain/catalog/localized-text';
+import {
+  type ModifierLibrary,
+  validateModifierGroupRefs,
+  validateModifierGroups,
+} from './domain/catalog/modifier-groups';
 import { OrderingError } from './domain/errors';
 import { testFoodProductType } from './domain/product-types/test-food';
 import { testServiceProductType } from './domain/product-types/test-service';
@@ -82,6 +88,8 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
   }
 
   strapi.customFields.register({ name: 'localized-text', plugin: 'ordering', type: 'json' });
+  strapi.customFields.register({ name: 'modifier-groups', plugin: 'ordering', type: 'json' });
+  strapi.customFields.register({ name: 'bundle-slots', plugin: 'ordering', type: 'json' });
 
   // Branch codes are immutable — orders pin them via locationRef. This middleware covers the
   // Document Service path (Admin/API); the `branch` service enforces the same rule for
@@ -162,9 +170,71 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
           }
         }
       }
+      // Product JSON fields (plan step 4): structural validation, then reference checks —
+      // groupRef/override keys must resolve to real modifier groups and their members, and
+      // bundle items must reference existing variants. All refs are documentIds.
+      if (context.uid === 'plugin::ordering.catalog-product' && params?.data) {
+        if ('modifierGroups' in params.data) {
+          const structural = validateModifierGroups(params.data.modifierGroups);
+          if (!structural.valid) {
+            throw new OrderingError('VALIDATION_ERROR', structural.message, {
+              details: structural.details,
+            });
+          }
+          if (structural.value.length > 0) {
+            const groups = (await strapi.db
+              .query('plugin::ordering.catalog-modifier-group')
+              .findMany({ select: ['documentId'] })) as { documentId: string }[];
+            const modifiers = (await strapi.db
+              .query('plugin::ordering.catalog-modifier')
+              .findMany({ select: ['documentId'], populate: { group: true } })) as {
+              documentId: string;
+              group?: { documentId?: string } | null;
+            }[];
+            const library: ModifierLibrary = {
+              groupDocumentIds: new Set(groups.map((row) => row.documentId)),
+              modifierDocumentIdsByGroup: modifiers.reduce((map, row) => {
+                const groupRef = row.group?.documentId;
+                if (groupRef) {
+                  const members = map.get(groupRef) ?? new Set<string>();
+                  members.add(row.documentId);
+                  map.set(groupRef, members);
+                }
+                return map;
+              }, new Map<string, Set<string>>()),
+            };
+            const refs = validateModifierGroupRefs(structural.value, library);
+            if (!refs.valid) {
+              throw new OrderingError('VALIDATION_ERROR', refs.message, {
+                details: refs.details,
+              });
+            }
+          }
+        }
+        if ('bundleSlots' in params.data) {
+          const structural = validateBundleSlots(params.data.bundleSlots);
+          if (!structural.valid) {
+            throw new OrderingError('VALIDATION_ERROR', structural.message, {
+              details: structural.details,
+            });
+          }
+          if (structural.value.some((slot) => slot.items.length > 0)) {
+            const variants = (await strapi.db
+              .query('plugin::ordering.catalog-variant')
+              .findMany({ select: ['documentId'] })) as { documentId: string }[];
+            const refs = validateBundleSlotRefs(
+              structural.value,
+              new Set(variants.map((row) => row.documentId)),
+            );
+            if (!refs.valid) {
+              throw new OrderingError('VALIDATION_ERROR', refs.message, {
+                details: refs.details,
+              });
+            }
+          }
+        }
+      }
       if (!entityType) return next();
-      // Merge name/slug with the stored row so a name-only edit regenerates the slug and a
-      // slug-only edit keeps the current name.
       const merged = { name: params?.data?.name, slug: params?.data?.slug };
       if (
         context.action === 'update' &&

@@ -33,8 +33,14 @@ export default catalogCollection(
     minQuantity: { type: 'integer', default: 1 },
     fulfillmentKinds: { type: 'json' },
     taxGroupRef: { type: 'string' },
-    modifierGroups: { type: 'json' },
-    bundleSlots: { type: 'json' },
+    modifierGroups: {
+      type: 'customField',
+      customField: 'plugin::ordering.modifier-groups',
+    },
+    bundleSlots: {
+      type: 'customField',
+      customField: 'plugin::ordering.bundle-slots',
+    },
     rank: { type: 'integer', default: 0 },
     metadata: { type: 'json' },
     variants: {

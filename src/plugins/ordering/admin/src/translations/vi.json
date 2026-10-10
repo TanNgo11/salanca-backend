@@ -4,5 +4,9 @@
   "ordering.localized-text.description": "Một ô nhập cho mỗi ngôn ngữ đang bật",
   "ordering.localized-text.locale.vi": "Tiếng Việt",
   "ordering.localized-text.locale.en": "English",
-  "ordering.localized-text.default": "mặc định"
+  "ordering.localized-text.default": "mặc định",
+  "ordering.modifier-groups.label": "Nhóm tùy chọn gắn vào món",
+  "ordering.modifier-groups.description": "Gắn nhóm từ thư viện, có ghi đè theo món (JSON)",
+  "ordering.bundle-slots.label": "Nhóm chọn của combo",
+  "ordering.bundle-slots.description": "Các nhóm món chọn trong combo (JSON)"
 }
