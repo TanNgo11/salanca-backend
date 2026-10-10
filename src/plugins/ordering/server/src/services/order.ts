@@ -13,6 +13,7 @@ import type {
 import { businessDate } from '../domain/business-date';
 import { OrderingError } from '../domain/errors';
 import { sha256Hex } from '../domain/hashing';
+import { amountFromDb, sumAmounts } from '../domain/money';
 import { formatOrderCode } from '../domain/order-code';
 import { projectPaymentStatus } from '../domain/payment-status';
 import { appliesCashRounding, type CashRoundingPolicy } from '../domain/pricing/cash-rounding';
@@ -151,13 +152,11 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
           details: { orderId },
         });
       }
-      const capturedAmount = payments.reduce(
-        (sum, payment) => sum + Number(payment.capturedAmount),
-        0,
+      const capturedAmount = sumAmounts(
+        payments.map((payment) => amountFromDb(payment.capturedAmount)),
       );
-      const refundedAmount = payments.reduce(
-        (sum, payment) => sum + Number(payment.refundedAmount),
-        0,
+      const refundedAmount = sumAmounts(
+        payments.map((payment) => amountFromDb(payment.refundedAmount)),
       );
       const totalAmount = order.totalAmount;
       const fulfillmentStatus = projectFulfillmentStatus(groupInputs);

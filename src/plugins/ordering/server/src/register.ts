@@ -1,6 +1,7 @@
 import type { Core } from '@strapi/strapi';
 
 import type { OrderingConfig } from './config';
+import { OrderingError } from './domain/errors';
 import { testFoodProductType } from './domain/product-types/test-food';
 import { testServiceProductType } from './domain/product-types/test-service';
 import { builtinWorkflows } from './domain/workflow/definitions';
@@ -40,10 +41,56 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
     registry.registerProductType(testFoodProductType);
     registry.registerProductType(testServiceProductType);
     registry.registerPaymentProvider(createTestPaymentProvider());
-    registry.registerOutboxConsumer('test.ping', async () => {});
+    // test.ping appends to the delivery log (idempotent by event id — ON CONFLICT DO NOTHING);
+    // test.fail always throws for the backoff path. Both exist only under testing.builtins.
+    let deliveryTable: Promise<unknown> | null = null;
+    const ensureDeliveryTable = () => {
+      deliveryTable ??= strapi.db.connection.raw(
+        `CREATE TABLE IF NOT EXISTS ordering_test_delivery_log (
+           event_id integer PRIMARY KEY,
+           owner text NOT NULL,
+           delivered_at timestamptz NOT NULL DEFAULT now()
+         )`,
+      );
+      return deliveryTable;
+    };
+    registry.registerOutboxConsumer('test.ping', async (event) => {
+      await ensureDeliveryTable();
+      await strapi.db.connection.raw(
+        'INSERT INTO ordering_test_delivery_log (event_id, owner) VALUES (?, ?) ON CONFLICT (event_id) DO NOTHING',
+        [Number(event.id), `${process.pid}`],
+      );
+    });
+    registry.registerOutboxConsumer('test.fail', async () => {
+      throw new Error('test.fail consumer always fails');
+    });
   }
 
   strapi.customFields.register({ name: 'localized-text', plugin: 'ordering', type: 'json' });
+
+  // Branch codes are immutable — orders pin them via locationRef. This middleware covers the
+  // Document Service path (Admin/API); the `branch` service enforces the same rule for
+  // service calls. Raw `db.query` bypass is a documented boundary.
+  type DocumentsMiddleware = Parameters<typeof strapi.documents.use>[0];
+  const branchImmutability: DocumentsMiddleware = async (context, next) => {
+    const params = context.params as
+      | { documentId?: string; data?: { code?: string } }
+      | undefined;
+    if (
+      context.uid === 'plugin::ordering.branch' &&
+      context.action === 'update' &&
+      params?.data?.code !== undefined
+    ) {
+      const current = (await strapi.db.query('plugin::ordering.branch').findOne({
+        where: { documentId: params.documentId },
+      })) as { code: string } | null;
+      if (current && params.data.code !== current.code) {
+        throw new OrderingError('BRANCH_CODE_IMMUTABLE', 'branch code is immutable');
+      }
+    }
+    return next();
+  };
+  strapi.documents.use(branchImmutability);
   strapi.admin.services.permission.actionProvider.registerMany(
     adminActions.map((action) => ({
       section: 'plugins',

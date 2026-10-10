@@ -138,6 +138,10 @@ export const services = (app) => {
     timeline: plugin.service('timeline'),
     hold: plugin.service('hold'),
     outbox: plugin.service('outbox'),
+    branch: plugin.service('branch'),
+    changeLog: plugin.service('change-log'),
+    jobLock: plugin.service('job-lock'),
+    lineCancel: plugin.service('line-cancel'),
   };
 };
 

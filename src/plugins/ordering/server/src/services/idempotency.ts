@@ -43,46 +43,49 @@ const idempotency = ({ strapi }: { strapi: Core.Strapi }) => {
   const query = () => strapi.db.query('plugin::ordering.idempotency-key');
   const config = () => strapi.config.get('plugin::ordering') as OrderingConfig;
 
-  return {
-    /** Creates the claimed row. Must run inside the caller's transaction. */
-    async begin(
-      input: { scope: string; key: string; payload: unknown; ttlHours?: number },
-      ctx: ServiceContext,
-    ): Promise<void> {
-      const ttlHours = input.ttlHours ?? config().idempotency.ttlHours;
-      const expiresAt = new Date(nowOf(ctx).getTime() + ttlHours * 3_600_000);
-      try {
-        await query().create({
-          data: {
-            scope: input.scope,
-            key: input.key,
-            requestHash: hashPayload(input.payload),
-            status: 'in-progress',
-            expiresAt,
-          },
-        });
-      } catch (error) {
-        if (isUniqueViolation(error)) throw new IdempotencyConflict(input.scope, input.key);
-        throw error;
-      }
-    },
-
-    /** Marks the claimed row completed. Must run inside the same transaction. */
-    async complete(input: {
-      scope: string;
-      key: string;
-      responseRef: string;
-      responseSnapshot: JsonObject;
-    }): Promise<void> {
-      await query().updateMany({
-        where: { scope: input.scope, key: input.key },
+  /** Creates the claimed row. Must run inside the caller's transaction. */
+  const begin = async (
+    input: { scope: string; key: string; payload: unknown; ttlHours?: number },
+    ctx: ServiceContext,
+  ): Promise<void> => {
+    const ttlHours = input.ttlHours ?? config().idempotency.ttlHours;
+    const expiresAt = new Date(nowOf(ctx).getTime() + ttlHours * 3_600_000);
+    try {
+      await query().create({
         data: {
-          status: 'completed',
-          responseRef: input.responseRef,
-          responseSnapshot: input.responseSnapshot,
+          scope: input.scope,
+          key: input.key,
+          requestHash: hashPayload(input.payload),
+          status: 'in-progress',
+          expiresAt,
         },
       });
-    },
+    } catch (error) {
+      if (isUniqueViolation(error)) throw new IdempotencyConflict(input.scope, input.key);
+      throw error;
+    }
+  };
+
+  /** Marks the claimed row completed. Must run inside the same transaction. */
+  const complete = async (input: {
+    scope: string;
+    key: string;
+    responseRef: string;
+    responseSnapshot: JsonObject;
+  }): Promise<void> => {
+    await query().updateMany({
+      where: { scope: input.scope, key: input.key },
+      data: {
+        status: 'completed',
+        responseRef: input.responseRef,
+        responseSnapshot: input.responseSnapshot,
+      },
+    });
+  };
+
+  return {
+    begin,
+    complete,
 
     async run<T>(
       input: { scope: string; key: string; payload: unknown; ttlHours?: number },
@@ -96,9 +99,9 @@ const idempotency = ({ strapi }: { strapi: Core.Strapi }) => {
       const requestHash = hashPayload(input.payload);
       try {
         return await strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
-          await this.begin({ ...input }, ctx);
+          await begin({ ...input }, ctx);
           const { result, responseRef, responseSnapshot } = await work(trx);
-          await this.complete({ scope: input.scope, key: input.key, responseRef, responseSnapshot });
+          await complete({ scope: input.scope, key: input.key, responseRef, responseSnapshot });
           return { result, replayed: false as const };
         });
       } catch (error) {
