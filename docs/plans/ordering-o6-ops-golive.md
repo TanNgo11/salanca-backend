@@ -5,6 +5,8 @@ Owner: tan_ngo (duyệt), Claude (thực hiện)
 Last updated: 2026-10-10
 Related phase: [`phases/phase-ordering-6-ops-golive.md`](../phases/phase-ordering-6-ops-golive.md)
 
+Đặc tả màn hình: [`ordering-o6-screens.md`](ordering-o6-screens.md) (reference mục U6). Mọi màn UI làm theo file đó.
+
 ## Goal
 
 Đủ công cụ vận hành bán online thật và qua được cổng go-live.

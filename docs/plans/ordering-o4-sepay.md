@@ -5,6 +5,8 @@ Owner: tan_ngo (duyệt), Claude (thực hiện)
 Last updated: 2026-10-10
 Related phase: [`phases/phase-ordering-4-sepay.md`](../phases/phase-ordering-4-sepay.md)
 
+Đặc tả màn hình: [`ordering-o4-screens.md`](ordering-o4-screens.md) (reference mục U4). Mọi màn UI làm theo file đó.
+
 ## Goal
 
 Khách trả bằng QR chuyển khoản; tiền khớp thì tự ghi nhận, lệch thì vào hàng duyệt; webhook mất thì đối

@@ -5,6 +5,8 @@ Owner: tan_ngo (duyệt), Claude (thực hiện)
 Last updated: 2026-10-10
 Related phase: [`phases/phase-ordering-5-delivery.md`](../phases/phase-ordering-5-delivery.md)
 
+Đặc tả màn hình: [`ordering-o5-screens.md`](ordering-o5-screens.md) (reference mục U5). Mọi màn UI làm theo file đó.
+
 ## Goal
 
 Khách chọn giao tận nơi trong vùng, thấy phí trước khi đặt; quán gán người giao và theo dõi tới khi giao

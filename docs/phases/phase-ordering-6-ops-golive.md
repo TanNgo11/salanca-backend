@@ -2,6 +2,7 @@
 
 Trạng thái: spec chờ duyệt (2026-10-10). Roadmap: [`plans/ordering-roadmap.md`](../plans/ordering-roadmap.md).
 Mockup: [`plans/mockups/ordering-o6-ops-golive.html`](../plans/mockups/ordering-o6-ops-golive.html).
+**Đặc tả màn hình (bắt buộc khi code UI):** [`plans/ordering-o6-screens.md`](../plans/ordering-o6-screens.md) (nghiên cứu UI: reference mục U6).
 Kế hoạch thực hiện: [`plans/ordering-o6-ops-golive.md`](../plans/ordering-o6-ops-golive.md).
 Thiết kế: [`plans/ordering-core-contracts.md`](../plans/ordering-core-contracts.md) (mục 12, 15, 19.3,
 19.9); nghiên cứu: reference C17.3.
