@@ -140,4 +140,29 @@ từ adapter `ordering-catalog`.
 
 ## Completion record
 
-- Chưa bắt đầu.
+Automated verification passed on `feat/ordering-o2` (14 commits trên `feat/ordering-o1`,
+chưa merge/push theo quyết định của chủ dự án). Thực hiện 2026-10-10.
+
+- **Bước 1–11 hoàn tất** (commit trên `feat/ordering-o2`): 9 content type catalog +
+  migration 0002; validator `localized-text` + ô nhập theo locale; slug theo locale qua
+  Document Service middleware + `catalog-slug`; `modifierGroups`/`bundleSlots` zod-validate +
+  ref-check + custom field editor; chọn giá thuần + domain availability; adapter
+  `ordering-catalog` thật + product type `food`; 3 public route read-only (`auth:false`,
+  serializer trắng-field, cache ngắn, rate limit theo IP); màn **Danh mục** (bước 7b —
+  cây, CRUD, kéo-thả + nút ↑/↓, move trong transaction, chống vòng lặp, quy tắc xóa);
+  màn **Tạm hết món** (scope chi nhánh, EOD/giờ cụ thể, `catalog.manage` +
+  `catalog.toggle-availability`); extension `src/extensions/ordering/strapi-server.ts`
+  (`isFeatured` còn sau 2 lần boot — `catalog-extension.mjs`); hướng dẫn nhân viên
+  `docs/ordering-catalog-guide.md`; middleware ghi `admin-change-log` cho mọi write
+  Document Service lên catalog CT; `security-baseline.md` ghi mặt tấn công public API.
+- **Gates:** `lint` ✓, `typecheck` ✓, `test` 137 file / 978 ✓, `build` (server + admin
+  Vite) ✓, `check:ordering` 18/18 script trên `salanca_ordering_test` ✓ (gồm
+  `disable-survives` — boot với plugin tắt giữ nguyên bảng).
+- **`check:phase3` bị chặn ở `smoke:i18n`:** guard của script từ chối chạy vì dev DB
+  `salanca_cms` đang có 4 bản ghi `global-setting` thật (bảo vệ nội dung biên tập, không
+  liên quan thay đổi O2). `verify:schema` ✓ và `smoke:crud` ✓ đã chạy; phần còn lại của
+  phase3 chạy riêng lẻ ✓. Cần chủ dự án quyết định chạy smoke:i18n trên DB trống.
+- **UAT thủ công còn mở** (theo spec): màn Danh mục (kéo-thả, xóa có sản phẩm), màn Tạm
+  hết món (scope nhân viên thật), nhập catalog theo `ordering-catalog-guide.md`, đổi
+  ngôn ngữ Admin sang English kiểm tra chuỗi, `curl` 3 public route.
+- Quyết định merge/push thuộc chủ dự án; chưa có code O2 trên `main`.

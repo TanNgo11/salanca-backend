@@ -2,6 +2,26 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
+2026-10-10: **Ordering O2 (module catalog) — automated verification passed** trên
+`feat/ordering-o2` (14 commits trên `feat/ordering-o1`, chưa merge/push). Catalog plugin
+hoàn chỉnh: 9 content type `plugins_ordering_catalog_*` (danh mục cây, sản phẩm, biến
+thể, giá, nhóm/tùy chọn, khung giờ bán, trạng thái theo chi nhánh, slug theo locale);
+`localized-text` + editor `modifierGroups`/`bundleSlots` custom field; adapter
+`ordering-catalog` thật → `Sellable` (ghi đè giá tùy chọn, combo, tạm hết, khung giờ);
+3 public route read-only có rate limit + cache; màn Admin **Danh mục** (kéo-thả, move
+transaction, quy tắc xóa) và **Tạm hết món** (scope chi nhánh, EOD/giờ cụ thể) với
+permission `catalog.manage`/`catalog.toggle-availability`; extension app
+`src/extensions/ordering/strapi-server.ts` (`isFeatured` sống qua 2 boot); snapshot
+đơn (categories, variant, options, combo) kiểm chứng end-to-end; change-log trên mọi
+write catalog qua Document Service; hướng dẫn nhân viên
+[`ordering-catalog-guide.md`](ordering-catalog-guide.md). Gates: lint, typecheck, test
+(137 file / 978), build, `check:ordering` 18/18 script — all green.
+`check:phase3` chặn ở `smoke:i18n` vì dev DB có `global-setting` thật (guard bảo vệ nội
+dung — cần chạy trên DB trống hoặc chờ quyết định chủ dự án). **Open:** UAT thủ công
+theo spec (2 màn Admin, nhập catalog theo guide, đổi ngôn ngữ Admin), quyết định
+merge/push của chủ dự án. Plan + completion record:
+[`plans/ordering-o2-catalog.md`](plans/ordering-o2-catalog.md).
+
 2026-10-10: **Ordering O1 (lõi đơn hàng) — closed** (Admin UAT passed: no internal plugin table in Content Manager or Content-Type Builder; branch pushed for backup, not merged). Earlier note: automated verification passed on `feat/ordering-o1` (18 commits, not pushed, not on `main`). Order core runs by service and tests only: 20 internal content types hidden from Content Manager/CTB, safe-integer Money, 9-step pricing pipeline with largest-remainder allocation (mockup numbers reproduced), workflow engine with graph validation and `order.status` projection, payment/refund ledger with unique provider events, transactional outbox claimed with `FOR UPDATE SKIP LOCKED` + lease (500 events delivered exactly once across two processes), idempotency keys, holds, branch scope enforced in every service and through Strapi's permission engine, business date per branch cutoff, branch/change-log/partial line cancel. Gates: lint, typecheck, `test` (129 files / 857), `build`, `check:phase3` with the plugin off and on, `check:ordering` (11 scripts) — all on `salanca_ordering_test`. Found and fixed: disabling the plugin used to make Strapi drop every `plugins_ordering_*` table; tables are now reserved via core-store `persisted_tables`. **Open:** Admin UAT (internal tables hidden), push/merge decision. Plan and completion record: [`plans/ordering-o1-core.md`](plans/ordering-o1-core.md).
 
 2026-10-10: **Ordering plugin track opened (owner decision).** Online ordering will be a generic, multi-industry local Strapi plugin (`src/plugins/ordering`, `plugin::ordering.*`), Salanca being the first client; Salanca content types (`menu-item`, `menu-category`, `menu-package`) and the seed stay untouched. Research, design contracts, owner answers and roadmap are in [`plans/ordering-roadmap.md`](plans/ordering-roadmap.md). Phases O0–O6 and OW are listed there. **Owner approved the specifications and authorized O0 implementation on 2026-10-10.** O0 automated verification is passed on `spike/ordering-plugin` for every O0 check (two real processes for job claiming, Strapi permission engine with real admin users, plugin migration runner, no generated REST routes, CORS preflight, extension surviving a plugin upgrade); decisions D1–D7 recorded. A desk-reading conclusion was corrected: a Strapi admin condition returning `null` is fail-closed, not fail-open. The step-1 stash was restored with `apply` and retained as a backup. No ordering code on `main`; O1 onward and the web implementation have not started. Admin UAT passed locally on 2026-10-10 (plugin menu, Content Manager/Content-Type Builder visibility, VI/EN custom field, Salanca content forms unchanged). The owner dropped the staging gate for O0, so **O0 is closed**; next is O1. Evidence is recorded in [`plans/ordering-spike-report.md`](plans/ordering-spike-report.md).
