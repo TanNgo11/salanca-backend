@@ -109,13 +109,15 @@ Acceptance thêm:
 - [ ] Nhân viên tạo đơn hộ cho khách gọi điện, đơn chạy tới "Thu tiền và giao".
 - [ ] Hủy 1 món trong đơn đã thu tiền mặt → tổng và hoàn tiền đúng.
 
-## Quyết định cần chốt trước khi code O3 (review O1, 2026-10-10)
+## Quyết định đã chốt trước O3 (review O1, 2026-10-10)
 
 - **Gửi lại request tạo đơn (cùng `Idempotency-Key`) không trả `publicToken`.** O1 chỉ cấp token một lần.
   Khách mất mạng ngay sau khi đặt rồi bấm lại sẽ nhận lại đơn nhưng không có link theo dõi hay thanh
   toán (nặng nhất với đơn trả trước). Hai cách: (a) giữ token đã mã hóa (AES-256-GCM, khóa từ env) trong
   thời hạn của idempotency key và trả lại khi replay; (b) khi replay thì cấp token mới và thay hash cũ.
-  Đề xuất (a): link cũ trong email vẫn dùng được. Chốt trước bước 5 (API storefront).
+  **Đã chốt (a)** (chủ dự án giao thiết kế tự chốt): lưu token mã hóa AES-256-GCM với khóa
+  `ORDERING_ENCRYPTION_KEY` trong bản ghi idempotency, xóa cùng lúc bản ghi hết hạn; replay đúng payload
+  trả lại token cũ. Link cũ trong email vẫn dùng được. Làm ở bước 5 (API storefront) — xem contracts 21.10.
 
 ## Rollback
 

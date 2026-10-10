@@ -1828,6 +1828,15 @@ type ConsentSnapshot = {
 - **Xuất dữ liệu:** `strapi export`/`transfer` sẽ gồm bảng của plugin, có dữ liệu cá nhân; runbook O6 ghi
   cách mã hóa và nơi giữ file xuất.
 
+### 21.10. Token khi gửi lại request tạo đơn (chốt 2026-10-10)
+
+- O1 cấp `publicToken` một lần và chỉ lưu hash; replay idempotent trả lại đơn nhưng không có token.
+- Chốt: bản ghi `idempotency-key` của request tạo đơn lưu thêm token đã mã hóa AES-256-GCM (khóa
+  `ORDERING_ENCRYPTION_KEY` từ env, cùng khóa dùng cho secret do admin nhập ở mục 14). Replay đúng
+  payload trong thời hạn của key trả lại **cùng** token; hết hạn thì xóa cả bản mã. Không cấp token
+  mới, để link đã gửi qua email vẫn dùng được.
+- Thiếu `ORDERING_ENCRYPTION_KEY` khi bật API storefront thì bootstrap báo lỗi. Làm ở O3 bước 5.
+
 ## Nguồn chính
 
 - [Strapi server API](https://docs.strapi.io/cms/plugins-development/server-api), [cron](https://docs.strapi.io/cms/configurations/cron),
