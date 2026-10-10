@@ -1,4 +1,5 @@
+import { o1CoreMigration } from './0001-o1-core';
 import type { OrderingMigration } from './runner';
 
-/** Production migrations, in order. Empty until O1. */
-export const orderingMigrations: OrderingMigration[] = [];
+/** Production migrations, in order. */
+export const orderingMigrations: OrderingMigration[] = [o1CoreMigration];

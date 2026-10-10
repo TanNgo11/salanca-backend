@@ -1,0 +1,63 @@
+import { collection } from '../internal';
+
+const big = (required = true) => ({ type: 'biginteger', required });
+
+export default collection(
+  'order-line',
+  {
+    order: {
+      type: 'relation',
+      relation: 'manyToOne',
+      target: 'plugin::ordering.order',
+      inversedBy: 'lines',
+      required: true,
+    },
+    fulfillmentGroup: {
+      type: 'relation',
+      relation: 'manyToOne',
+      target: 'plugin::ordering.fulfillment-group',
+      inversedBy: 'lines',
+    },
+    position: { type: 'integer', required: true },
+    sellableUid: { type: 'string', required: true },
+    sourceUid: { type: 'string' },
+    sourceDocumentId: { type: 'string' },
+    productType: { type: 'string', required: true },
+    variantUid: { type: 'string' },
+    sku: { type: 'string' },
+    titleSnapshot: { type: 'string', required: true },
+    descriptionSnapshot: { type: 'text' },
+    imageUrlSnapshot: { type: 'string' },
+    selectedOptionsSnapshot: { type: 'json' },
+    componentsSnapshot: { type: 'json' },
+    categoriesSnapshot: { type: 'json' },
+    taxSnapshot: { type: 'json' },
+    note: { type: 'text' },
+    quantity: { type: 'integer', required: true },
+    fulfilledQuantity: { type: 'integer', required: true, default: 0 },
+    returnedQuantity: { type: 'integer', required: true, default: 0 },
+    canceledQuantity: { type: 'integer', required: true, default: 0 },
+    unitAmount: big(),
+    optionAmount: big(),
+    baseAmount: big(),
+    discountAmount: big(),
+    feeAmount: big(),
+    roundingDelta: big(),
+    taxAmount: big(),
+    lineTotalAmount: big(),
+    currency: { type: 'string', required: true },
+    allocations: {
+      type: 'relation',
+      relation: 'oneToMany',
+      target: 'plugin::ordering.adjustment-allocation',
+      mappedBy: 'line',
+    },
+    refundLines: {
+      type: 'relation',
+      relation: 'oneToMany',
+      target: 'plugin::ordering.refund-line',
+      mappedBy: 'line',
+    },
+  },
+  { displayName: 'Dòng hàng' },
+);

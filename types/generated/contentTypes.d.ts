@@ -2913,20 +2913,20 @@ export interface PluginI18NLocale extends Struct.CollectionTypeSchema {
   };
 }
 
-export interface PluginOrderingCatalogProduct
+export interface PluginOrderingAdjustmentAllocation
   extends Struct.CollectionTypeSchema {
-  collectionName: 'plugins_ordering_catalog_product';
+  collectionName: 'plugins_ordering_adjustment_allocation';
   info: {
-    displayName: 'catalog-product';
-    pluralName: 'catalog-products';
-    singularName: 'catalog-product';
+    displayName: 'Ph\u00E2n b\u1ED5 \u0111i\u1EC1u ch\u1EC9nh';
+    pluralName: 'adjustment-allocations';
+    singularName: 'adjustment-allocation';
   };
   options: {
     draftAndPublish: false;
   };
   pluginOptions: {
     'content-manager': {
-      visible: true;
+      visible: false;
     };
     'content-type-builder': {
       visible: false;
@@ -2936,35 +2936,199 @@ export interface PluginOrderingCatalogProduct
     };
   };
   attributes: {
+    adjustment: Schema.Attribute.Relation<
+      'manyToOne',
+      'plugin::ordering.order-adjustment'
+    >;
+    amount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    isActive: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
-    isFeatured: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    line: Schema.Attribute.Relation<'manyToOne', 'plugin::ordering.order-line'>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
-      'plugin::ordering.catalog-product'
+      'plugin::ordering.adjustment-allocation'
     > &
       Schema.Attribute.Private;
-    modifierGroups: Schema.Attribute.JSON;
-    name: Schema.Attribute.JSON &
-      Schema.Attribute.Required &
-      Schema.Attribute.CustomField<'plugin::ordering.localized-text'>;
     publishedAt: Schema.Attribute.DateTime;
-    slug: Schema.Attribute.JSON;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    weight: Schema.Attribute.BigInteger & Schema.Attribute.Required;
+  };
+}
+
+export interface PluginOrderingAdminChangeLog
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_admin_change_log';
+  info: {
+    displayName: 'Nh\u1EADt k\u00FD thay \u0111\u1ED5i';
+    pluralName: 'admin-change-logs';
+    singularName: 'admin-change-log';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    action: Schema.Attribute.String & Schema.Attribute.Required;
+    actorRef: Schema.Attribute.String & Schema.Attribute.Required;
+    changes: Schema.Attribute.JSON & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    entityId: Schema.Attribute.String & Schema.Attribute.Required;
+    entityType: Schema.Attribute.String & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.admin-change-log'
+    > &
+      Schema.Attribute.Private;
+    locationRef: Schema.Attribute.String;
+    occurredAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
   };
 }
 
-export interface PluginOrderingJobLock extends Struct.CollectionTypeSchema {
-  collectionName: 'plugins_ordering_job_lock';
+export interface PluginOrderingBranch extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_branch';
   info: {
-    displayName: 'job-lock';
-    pluralName: 'job-locks';
-    singularName: 'job-lock';
+    displayName: 'Chi nh\u00E1nh';
+    pluralName: 'branches';
+    singularName: 'branch';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    address: Schema.Attribute.JSON;
+    cashRounding: Schema.Attribute.JSON;
+    code: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    email: Schema.Attribute.String;
+    fulfillment: Schema.Attribute.JSON;
+    isActive: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.branch'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.JSON &
+      Schema.Attribute.Required &
+      Schema.Attribute.CustomField<'plugin::ordering.localized-text'>;
+    onlineOrdering: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<false>;
+    orders: Schema.Attribute.Relation<'oneToMany', 'plugin::ordering.order'>;
+    phone: Schema.Attribute.String;
+    publishedAt: Schema.Attribute.DateTime;
+    rank: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    tax: Schema.Attribute.JSON;
+    timezone: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'Asia/Ho_Chi_Minh'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface PluginOrderingFulfillment extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_fulfillment';
+  info: {
+    displayName: '\u0110\u1EE3t giao nh\u1EADn';
+    pluralName: 'fulfillments';
+    singularName: 'fulfillment';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    addressSnapshot: Schema.Attribute.JSON;
+    assigneeRef: Schema.Attribute.String;
+    canceledAt: Schema.Attribute.DateTime;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    deliveredAt: Schema.Attribute.DateTime;
+    group: Schema.Attribute.Relation<
+      'manyToOne',
+      'plugin::ordering.fulfillment-group'
+    >;
+    lines: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.fulfillment-line'
+    >;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.fulfillment'
+    > &
+      Schema.Attribute.Private;
+    metadata: Schema.Attribute.JSON;
+    order: Schema.Attribute.Relation<'manyToOne', 'plugin::ordering.order'>;
+    packedAt: Schema.Attribute.DateTime;
+    providerCode: Schema.Attribute.String & Schema.Attribute.Required;
+    providerReference: Schema.Attribute.String;
+    publishedAt: Schema.Attribute.DateTime;
+    shippedAt: Schema.Attribute.DateTime;
+    status: Schema.Attribute.String & Schema.Attribute.Required;
+    trackingNumber: Schema.Attribute.String;
+    trackingUrl: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface PluginOrderingFulfillmentGroup
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_fulfillment_group';
+  info: {
+    displayName: 'Nh\u00F3m giao nh\u1EADn';
+    pluralName: 'fulfillment-groups';
+    singularName: 'fulfillment-group';
   };
   options: {
     draftAndPublish: false;
@@ -2984,18 +3148,228 @@ export interface PluginOrderingJobLock extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    key: Schema.Attribute.String &
+    fulfillmentAmount: Schema.Attribute.BigInteger &
       Schema.Attribute.Required &
-      Schema.Attribute.Unique;
-    leaseUntil: Schema.Attribute.DateTime;
+      Schema.Attribute.DefaultTo<0>;
+    fulfillments: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.fulfillment'
+    >;
+    lines: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.order-line'
+    >;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
-      'plugin::ordering.job-lock'
+      'plugin::ordering.fulfillment-group'
     > &
       Schema.Attribute.Private;
-    owner: Schema.Attribute.String;
+    order: Schema.Attribute.Relation<'manyToOne', 'plugin::ordering.order'>;
     publishedAt: Schema.Attribute.DateTime;
+    receiveMethod: Schema.Attribute.JSON & Schema.Attribute.Required;
+    status: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    workflowName: Schema.Attribute.String & Schema.Attribute.Required;
+    workflowVersion: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
+export interface PluginOrderingFulfillmentLine
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_fulfillment_line';
+  info: {
+    displayName: 'D\u00F2ng giao nh\u1EADn';
+    pluralName: 'fulfillment-lines';
+    singularName: 'fulfillment-line';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    fulfillment: Schema.Attribute.Relation<
+      'manyToOne',
+      'plugin::ordering.fulfillment'
+    >;
+    line: Schema.Attribute.Relation<'manyToOne', 'plugin::ordering.order-line'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.fulfillment-line'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    quantity: Schema.Attribute.Integer & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface PluginOrderingHold extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_hold';
+  info: {
+    displayName: 'Gi\u1EEF ch\u1ED7';
+    pluralName: 'holds';
+    singularName: 'hold';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    expiresAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    group: Schema.Attribute.Relation<
+      'manyToOne',
+      'plugin::ordering.fulfillment-group'
+    >;
+    line: Schema.Attribute.Relation<'manyToOne', 'plugin::ordering.order-line'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.hold'
+    > &
+      Schema.Attribute.Private;
+    order: Schema.Attribute.Relation<'manyToOne', 'plugin::ordering.order'>;
+    publishedAt: Schema.Attribute.DateTime;
+    quantity: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<1>;
+    releasedAt: Schema.Attribute.DateTime;
+    releaseReason: Schema.Attribute.String;
+    resourceRef: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface PluginOrderingIdempotencyKey
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_idempotency_key';
+  info: {
+    displayName: 'Kh\u00F3a idempotency';
+    pluralName: 'idempotency-keys';
+    singularName: 'idempotency-key';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    expiresAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    key: Schema.Attribute.String & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.idempotency-key'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    requestHash: Schema.Attribute.String & Schema.Attribute.Required;
+    responseRef: Schema.Attribute.String;
+    responseSnapshot: Schema.Attribute.JSON;
+    scope: Schema.Attribute.String & Schema.Attribute.Required;
+    status: Schema.Attribute.Enumeration<['in-progress', 'completed']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'in-progress'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface PluginOrderingOpsAlert extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_ops_alert';
+  info: {
+    displayName: 'C\u1EA3nh b\u00E1o v\u1EADn h\u00E0nh';
+    pluralName: 'ops-alerts';
+    singularName: 'ops-alert';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    acknowledgedAt: Schema.Attribute.DateTime;
+    acknowledgedBy: Schema.Attribute.String;
+    aggregateRef: Schema.Attribute.String;
+    alertCode: Schema.Attribute.String & Schema.Attribute.Required;
+    count: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<1>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    dedupeKey: Schema.Attribute.String & Schema.Attribute.Required;
+    firstSeenAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    lastSeenAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.ops-alert'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    resolvedAt: Schema.Attribute.DateTime;
+    severity: Schema.Attribute.Enumeration<['info', 'warning', 'critical']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'warning'>;
+    status: Schema.Attribute.Enumeration<['open', 'acknowledged', 'resolved']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'open'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -3005,7 +3379,7 @@ export interface PluginOrderingJobLock extends Struct.CollectionTypeSchema {
 export interface PluginOrderingOrder extends Struct.CollectionTypeSchema {
   collectionName: 'plugins_ordering_order';
   info: {
-    displayName: 'order';
+    displayName: '\u0110\u01A1n h\u00E0ng';
     pluralName: 'orders';
     singularName: 'order';
   };
@@ -3024,13 +3398,44 @@ export interface PluginOrderingOrder extends Struct.CollectionTypeSchema {
     };
   };
   attributes: {
+    adjustmentAmount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
+    adjustments: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.order-adjustment'
+    >;
+    branch: Schema.Attribute.Relation<'manyToOne', 'plugin::ordering.branch'>;
+    branchSnapshot: Schema.Attribute.JSON;
+    businessDate: Schema.Attribute.Date & Schema.Attribute.Required;
+    cartHash: Schema.Attribute.String;
     code: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.Unique;
-    counter: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    consentSnapshot: Schema.Attribute.JSON & Schema.Attribute.Required;
+    contactSnapshot: Schema.Attribute.JSON & Schema.Attribute.Required;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    currency: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'VND'>;
+    customerNote: Schema.Attribute.Text;
+    customerRef: Schema.Attribute.String;
+    draftConfirmedAt: Schema.Attribute.DateTime;
+    fulfillmentAmount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
+    fulfillmentGroups: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.fulfillment-group'
+    >;
+    fulfillments: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.fulfillment'
+    >;
+    fulfillmentStatus: Schema.Attribute.Enumeration<
+      ['not-started', 'in-progress', 'partially-done', 'done', 'canceled']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'not-started'>;
+    holds: Schema.Attribute.Relation<'oneToMany', 'plugin::ordering.hold'>;
     lines: Schema.Attribute.Relation<
       'oneToMany',
       'plugin::ordering.order-line'
@@ -3042,7 +3447,192 @@ export interface PluginOrderingOrder extends Struct.CollectionTypeSchema {
     > &
       Schema.Attribute.Private;
     locationRef: Schema.Attribute.String & Schema.Attribute.Required;
+    origin: Schema.Attribute.JSON & Schema.Attribute.Required;
+    payments: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.payment'
+    >;
+    paymentStatus: Schema.Attribute.Enumeration<
+      [
+        'unpaid',
+        'partially-paid',
+        'paid',
+        'overpaid',
+        'partially-refunded',
+        'refunded',
+      ]
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'unpaid'>;
+    placedAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    publicTokenHash: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
     publishedAt: Schema.Attribute.DateTime;
+    receiveMethod: Schema.Attribute.JSON & Schema.Attribute.Required;
+    refunds: Schema.Attribute.Relation<'oneToMany', 'plugin::ordering.refund'>;
+    status: Schema.Attribute.Enumeration<
+      ['draft', 'open', 'completed', 'canceled']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'open'>;
+    subtotalAmount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
+    taxAmount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
+    timeline: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.order-event'
+    >;
+    totalAmount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface PluginOrderingOrderAdjustment
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_order_adjustment';
+  info: {
+    displayName: '\u0110i\u1EC1u ch\u1EC9nh \u0111\u01A1n';
+    pluralName: 'order-adjustments';
+    singularName: 'order-adjustment';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    allocations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.adjustment-allocation'
+    >;
+    amount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
+    code: Schema.Attribute.String & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    kind: Schema.Attribute.Enumeration<['discount', 'fee', 'rounding']> &
+      Schema.Attribute.Required;
+    label: Schema.Attribute.String & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.order-adjustment'
+    > &
+      Schema.Attribute.Private;
+    order: Schema.Attribute.Relation<'manyToOne', 'plugin::ordering.order'>;
+    priority: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    publishedAt: Schema.Attribute.DateTime;
+    ruleSnapshot: Schema.Attribute.JSON;
+    sourceRef: Schema.Attribute.String;
+    taxable: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface PluginOrderingOrderEvent extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_order_event';
+  info: {
+    displayName: 'D\u00F2ng th\u1EDDi gian \u0111\u01A1n';
+    pluralName: 'order-events';
+    singularName: 'order-event';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    actorRef: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    isPublic: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<false>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.order-event'
+    > &
+      Schema.Attribute.Private;
+    occurredAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    order: Schema.Attribute.Relation<'manyToOne', 'plugin::ordering.order'>;
+    payload: Schema.Attribute.JSON;
+    publishedAt: Schema.Attribute.DateTime;
+    type: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface PluginOrderingOrderJobLock
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_order_job_lock';
+  info: {
+    displayName: 'Kh\u00F3a job \u0111\u01A1n h\u00E0ng';
+    pluralName: 'order-job-locks';
+    singularName: 'order-job-lock';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    attempts: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    expiresAt: Schema.Attribute.DateTime;
+    jobName: Schema.Attribute.String & Schema.Attribute.Required;
+    lastError: Schema.Attribute.Text;
+    lastSuccessAt: Schema.Attribute.DateTime;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.order-job-lock'
+    > &
+      Schema.Attribute.Private;
+    lockedAt: Schema.Attribute.DateTime;
+    owner: Schema.Attribute.String;
+    publishedAt: Schema.Attribute.DateTime;
+    shardKey: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'default'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -3052,7 +3642,7 @@ export interface PluginOrderingOrder extends Struct.CollectionTypeSchema {
 export interface PluginOrderingOrderLine extends Struct.CollectionTypeSchema {
   collectionName: 'plugins_ordering_order_line';
   info: {
-    displayName: 'order-line';
+    displayName: 'D\u00F2ng h\u00E0ng';
     pluralName: 'order-lines';
     singularName: 'order-line';
   };
@@ -3071,29 +3661,75 @@ export interface PluginOrderingOrderLine extends Struct.CollectionTypeSchema {
     };
   };
   attributes: {
+    allocations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.adjustment-allocation'
+    >;
+    baseAmount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
+    canceledQuantity: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    categoriesSnapshot: Schema.Attribute.JSON;
+    componentsSnapshot: Schema.Attribute.JSON;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    label: Schema.Attribute.String & Schema.Attribute.Required;
+    currency: Schema.Attribute.String & Schema.Attribute.Required;
+    descriptionSnapshot: Schema.Attribute.Text;
+    discountAmount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
+    feeAmount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
+    fulfilledQuantity: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    fulfillmentGroup: Schema.Attribute.Relation<
+      'manyToOne',
+      'plugin::ordering.fulfillment-group'
+    >;
+    imageUrlSnapshot: Schema.Attribute.String;
+    lineTotalAmount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
       'plugin::ordering.order-line'
     > &
       Schema.Attribute.Private;
-    order: Schema.Attribute.Relation<'manyToOne', 'plugin::ordering.order'>;
+    note: Schema.Attribute.Text;
+    optionAmount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
+    order: Schema.Attribute.Relation<'manyToOne', 'plugin::ordering.order'> &
+      Schema.Attribute.Required;
+    position: Schema.Attribute.Integer & Schema.Attribute.Required;
+    productType: Schema.Attribute.String & Schema.Attribute.Required;
     publishedAt: Schema.Attribute.DateTime;
+    quantity: Schema.Attribute.Integer & Schema.Attribute.Required;
+    refundLines: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.refund-line'
+    >;
+    returnedQuantity: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    roundingDelta: Schema.Attribute.BigInteger & Schema.Attribute.Required;
+    selectedOptionsSnapshot: Schema.Attribute.JSON;
+    sellableUid: Schema.Attribute.String & Schema.Attribute.Required;
+    sku: Schema.Attribute.String;
+    sourceDocumentId: Schema.Attribute.String;
+    sourceUid: Schema.Attribute.String;
+    taxAmount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
+    taxSnapshot: Schema.Attribute.JSON;
+    titleSnapshot: Schema.Attribute.String & Schema.Attribute.Required;
+    unitAmount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    variantUid: Schema.Attribute.String;
   };
 }
 
 export interface PluginOrderingOutbox extends Struct.CollectionTypeSchema {
   collectionName: 'plugins_ordering_outbox';
   info: {
-    displayName: 'outbox';
-    pluralName: 'outboxs';
+    displayName: 'Outbox';
+    pluralName: 'outboxes';
     singularName: 'outbox';
   };
   options: {
@@ -3111,13 +3747,18 @@ export interface PluginOrderingOutbox extends Struct.CollectionTypeSchema {
     };
   };
   attributes: {
+    aggregateId: Schema.Attribute.String & Schema.Attribute.Required;
+    aggregateType: Schema.Attribute.String & Schema.Attribute.Required;
+    attempts: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    availableAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    deliveries: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
-    eventId: Schema.Attribute.String &
-      Schema.Attribute.Required &
-      Schema.Attribute.Unique;
+    deliveredAt: Schema.Attribute.DateTime;
+    failedAt: Schema.Attribute.DateTime;
+    lastError: Schema.Attribute.Text;
     leaseUntil: Schema.Attribute.DateTime;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
@@ -3125,9 +3766,77 @@ export interface PluginOrderingOutbox extends Struct.CollectionTypeSchema {
       'plugin::ordering.outbox'
     > &
       Schema.Attribute.Private;
-    owner: Schema.Attribute.String;
+    lockedAt: Schema.Attribute.DateTime;
+    lockedBy: Schema.Attribute.String;
+    occurredAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    payload: Schema.Attribute.JSON & Schema.Attribute.Required;
     publishedAt: Schema.Attribute.DateTime;
-    status: Schema.Attribute.String &
+    type: Schema.Attribute.String & Schema.Attribute.Required;
+    uniqueKey: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface PluginOrderingPayment extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_payment';
+  info: {
+    displayName: 'Thanh to\u00E1n';
+    pluralName: 'payments';
+    singularName: 'payment';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    actorRef: Schema.Attribute.String;
+    businessDate: Schema.Attribute.Date;
+    capturedAmount: Schema.Attribute.BigInteger &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    capturedAt: Schema.Attribute.DateTime;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    currency: Schema.Attribute.String & Schema.Attribute.Required;
+    events: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.payment-event'
+    >;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.payment'
+    > &
+      Schema.Attribute.Private;
+    order: Schema.Attribute.Relation<'manyToOne', 'plugin::ordering.order'>;
+    providerCode: Schema.Attribute.String & Schema.Attribute.Required;
+    providerReference: Schema.Attribute.String;
+    publishedAt: Schema.Attribute.DateTime;
+    refundedAmount: Schema.Attribute.BigInteger &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    refunds: Schema.Attribute.Relation<'oneToMany', 'plugin::ordering.refund'>;
+    requestedAmount: Schema.Attribute.BigInteger &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    status: Schema.Attribute.Enumeration<
+      ['pending', 'authorized', 'captured', 'failed', 'cancelled']
+    > &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'pending'>;
     updatedAt: Schema.Attribute.DateTime;
@@ -3140,7 +3849,7 @@ export interface PluginOrderingPaymentEvent
   extends Struct.CollectionTypeSchema {
   collectionName: 'plugins_ordering_payment_event';
   info: {
-    displayName: 'payment-event';
+    displayName: 'S\u1EF1 ki\u1EC7n thanh to\u00E1n';
     pluralName: 'payment-events';
     singularName: 'payment-event';
   };
@@ -3159,20 +3868,135 @@ export interface PluginOrderingPaymentEvent
     };
   };
   attributes: {
+    amount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    eventId: Schema.Attribute.String &
-      Schema.Attribute.Required &
-      Schema.Attribute.Unique;
+    currency: Schema.Attribute.String & Schema.Attribute.Required;
+    kind: Schema.Attribute.String & Schema.Attribute.Required;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
       'plugin::ordering.payment-event'
     > &
       Schema.Attribute.Private;
-    payload: Schema.Attribute.JSON;
+    payment: Schema.Attribute.Relation<'manyToOne', 'plugin::ordering.payment'>;
+    providerCode: Schema.Attribute.String & Schema.Attribute.Required;
+    providerTransactionId: Schema.Attribute.String & Schema.Attribute.Required;
     publishedAt: Schema.Attribute.DateTime;
+    rawPayload: Schema.Attribute.JSON;
+    receivedAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    reviewedAt: Schema.Attribute.DateTime;
+    reviewedBy: Schema.Attribute.String;
+    reviewReason: Schema.Attribute.String;
+    reviewStatus: Schema.Attribute.Enumeration<
+      [
+        'auto-matched',
+        'needs-review',
+        'matched-manually',
+        'refund-due',
+        'ignored',
+      ]
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'auto-matched'>;
+    transferType: Schema.Attribute.Enumeration<['in', 'out']>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface PluginOrderingRefund extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_refund';
+  info: {
+    displayName: 'Ho\u00E0n ti\u1EC1n';
+    pluralName: 'refunds';
+    singularName: 'refund';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    actorRef: Schema.Attribute.String;
+    amount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    currency: Schema.Attribute.String & Schema.Attribute.Required;
+    idempotencyKey: Schema.Attribute.String;
+    lines: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.refund-line'
+    >;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.refund'
+    > &
+      Schema.Attribute.Private;
+    order: Schema.Attribute.Relation<'manyToOne', 'plugin::ordering.order'>;
+    payment: Schema.Attribute.Relation<'manyToOne', 'plugin::ordering.payment'>;
+    providerReference: Schema.Attribute.String;
+    publishedAt: Schema.Attribute.DateTime;
+    reason: Schema.Attribute.Text & Schema.Attribute.Required;
+    settledAt: Schema.Attribute.DateTime;
+    status: Schema.Attribute.Enumeration<['pending', 'settled', 'failed']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'pending'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface PluginOrderingRefundLine extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_refund_line';
+  info: {
+    displayName: 'D\u00F2ng ho\u00E0n ti\u1EC1n';
+    pluralName: 'refund-lines';
+    singularName: 'refund-line';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    amount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    line: Schema.Attribute.Relation<'manyToOne', 'plugin::ordering.order-line'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.refund-line'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    quantity: Schema.Attribute.Integer & Schema.Attribute.Required;
+    refund: Schema.Attribute.Relation<'manyToOne', 'plugin::ordering.refund'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -3183,7 +4007,7 @@ export interface PluginOrderingStaffLocationScope
   extends Struct.CollectionTypeSchema {
   collectionName: 'plugins_ordering_staff_location_scope';
   info: {
-    displayName: 'staff-location-scope';
+    displayName: 'Ph\u1EA1m vi chi nh\u00E1nh';
     pluralName: 'staff-location-scopes';
     singularName: 'staff-location-scope';
   };
@@ -3625,12 +4449,25 @@ declare module '@strapi/strapi' {
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;
-      'plugin::ordering.catalog-product': PluginOrderingCatalogProduct;
-      'plugin::ordering.job-lock': PluginOrderingJobLock;
+      'plugin::ordering.adjustment-allocation': PluginOrderingAdjustmentAllocation;
+      'plugin::ordering.admin-change-log': PluginOrderingAdminChangeLog;
+      'plugin::ordering.branch': PluginOrderingBranch;
+      'plugin::ordering.fulfillment': PluginOrderingFulfillment;
+      'plugin::ordering.fulfillment-group': PluginOrderingFulfillmentGroup;
+      'plugin::ordering.fulfillment-line': PluginOrderingFulfillmentLine;
+      'plugin::ordering.hold': PluginOrderingHold;
+      'plugin::ordering.idempotency-key': PluginOrderingIdempotencyKey;
+      'plugin::ordering.ops-alert': PluginOrderingOpsAlert;
       'plugin::ordering.order': PluginOrderingOrder;
+      'plugin::ordering.order-adjustment': PluginOrderingOrderAdjustment;
+      'plugin::ordering.order-event': PluginOrderingOrderEvent;
+      'plugin::ordering.order-job-lock': PluginOrderingOrderJobLock;
       'plugin::ordering.order-line': PluginOrderingOrderLine;
       'plugin::ordering.outbox': PluginOrderingOutbox;
+      'plugin::ordering.payment': PluginOrderingPayment;
       'plugin::ordering.payment-event': PluginOrderingPaymentEvent;
+      'plugin::ordering.refund': PluginOrderingRefund;
+      'plugin::ordering.refund-line': PluginOrderingRefundLine;
       'plugin::ordering.staff-location-scope': PluginOrderingStaffLocationScope;
       'plugin::review-workflows.workflow': PluginReviewWorkflowsWorkflow;
       'plugin::review-workflows.workflow-stage': PluginReviewWorkflowsWorkflowStage;

@@ -1,0 +1,67 @@
+import { collection } from '../internal';
+
+const oneToMany = (target: string, mappedBy: string) => ({
+  type: 'relation',
+  relation: 'oneToMany',
+  target: `plugin::ordering.${target}`,
+  mappedBy,
+});
+
+export default collection(
+  'order',
+  {
+    code: { type: 'string', required: true, unique: true },
+    publicTokenHash: { type: 'string', required: true, unique: true },
+    status: {
+      type: 'enumeration',
+      enum: ['draft', 'open', 'completed', 'canceled'],
+      required: true,
+      default: 'open',
+    },
+    paymentStatus: {
+      type: 'enumeration',
+      enum: ['unpaid', 'partially-paid', 'paid', 'overpaid', 'partially-refunded', 'refunded'],
+      required: true,
+      default: 'unpaid',
+    },
+    fulfillmentStatus: {
+      type: 'enumeration',
+      enum: ['not-started', 'in-progress', 'partially-done', 'done', 'canceled'],
+      required: true,
+      default: 'not-started',
+    },
+    subtotalAmount: { type: 'biginteger', required: true },
+    adjustmentAmount: { type: 'biginteger', required: true },
+    fulfillmentAmount: { type: 'biginteger', required: true },
+    taxAmount: { type: 'biginteger', required: true },
+    totalAmount: { type: 'biginteger', required: true },
+    currency: { type: 'string', required: true, default: 'VND' },
+    customerRef: { type: 'string' },
+    contactSnapshot: { type: 'json', required: true },
+    consentSnapshot: { type: 'json', required: true },
+    customerNote: { type: 'text' },
+    branch: {
+      type: 'relation',
+      relation: 'manyToOne',
+      target: 'plugin::ordering.branch',
+      inversedBy: 'orders',
+    },
+    locationRef: { type: 'string', required: true },
+    branchSnapshot: { type: 'json' },
+    businessDate: { type: 'date', required: true },
+    placedAt: { type: 'datetime', required: true },
+    receiveMethod: { type: 'json', required: true },
+    origin: { type: 'json', required: true },
+    cartHash: { type: 'string' },
+    draftConfirmedAt: { type: 'datetime' },
+    lines: oneToMany('order-line', 'order'),
+    fulfillmentGroups: oneToMany('fulfillment-group', 'order'),
+    fulfillments: oneToMany('fulfillment', 'order'),
+    adjustments: oneToMany('order-adjustment', 'order'),
+    payments: oneToMany('payment', 'order'),
+    refunds: oneToMany('refund', 'order'),
+    timeline: oneToMany('order-event', 'order'),
+    holds: oneToMany('hold', 'order'),
+  },
+  { displayName: 'Đơn hàng' },
+);

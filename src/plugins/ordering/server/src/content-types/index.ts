@@ -1,54 +1,48 @@
-/** Minimal O0 schemas only. No order business rules or public CRUD routes. */
-const internalOptions = {
-  'content-manager': { visible: false },
-  'content-type-builder': { visible: false },
-  i18n: { localized: false },
-};
-
-const collection = (name: string, attributes: Record<string, unknown>, visible = false) => ({
-  schema: {
-    kind: 'collectionType',
-    collectionName: `plugins_ordering_${name.replaceAll('-', '_')}`,
-    info: { singularName: name, pluralName: `${name}s`, displayName: name },
-    options: { draftAndPublish: false },
-    pluginOptions: {
-      ...internalOptions,
-      'content-manager': { visible },
-    },
-    attributes,
-  },
-});
+/**
+ * Internal collections of the ordering plugin (contracts §5, §21). All are hidden from Content
+ * Manager and Content-Type Builder; every mutation goes through a plugin service. Schemas own the
+ * tables; `migrations/` owns constraints, indexes and sequences Strapi cannot express.
+ */
+import adjustmentAllocation from './adjustment-allocation';
+import adminChangeLog from './admin-change-log';
+import branch from './branch';
+import fulfillment from './fulfillment';
+import fulfillmentGroup from './fulfillment-group';
+import fulfillmentLine from './fulfillment-line';
+import hold from './hold';
+import idempotencyKey from './idempotency-key';
+import opsAlert from './ops-alert';
+import order from './order';
+import orderAdjustment from './order-adjustment';
+import orderEvent from './order-event';
+import orderJobLock from './order-job-lock';
+import orderLine from './order-line';
+import outbox from './outbox';
+import payment from './payment';
+import paymentEvent from './payment-event';
+import refund from './refund';
+import refundLine from './refund-line';
+import staffLocationScope from './staff-location-scope';
 
 export default {
-  order: collection('order', {
-    code: { type: 'string', required: true, unique: true },
-    locationRef: { type: 'string', required: true },
-    counter: { type: 'integer', default: 0 },
-    lines: { type: 'relation', relation: 'oneToMany', target: 'plugin::ordering.order-line', mappedBy: 'order' },
-  }),
-  'order-line': collection('order-line', {
-    label: { type: 'string', required: true },
-    order: { type: 'relation', relation: 'manyToOne', target: 'plugin::ordering.order', inversedBy: 'lines' },
-  }),
-  'payment-event': collection('payment-event', {
-    eventId: { type: 'string', unique: true, required: true },
-    payload: { type: 'json' },
-  }),
-  outbox: collection('outbox', {
-    eventId: { type: 'string', unique: true, required: true },
-    status: { type: 'string', default: 'pending', required: true },
-    owner: { type: 'string' },
-    leaseUntil: { type: 'datetime' },
-    deliveries: { type: 'integer', default: 0 },
-  }),
-  'job-lock': collection('job-lock', {
-    key: { type: 'string', unique: true, required: true },
-    owner: { type: 'string' },
-    leaseUntil: { type: 'datetime' },
-  }),
-  'staff-location-scope': collection('staff-location-scope', {
-    adminUserId: { type: 'integer', unique: true, required: true },
-    allLocations: { type: 'boolean', default: false, required: true },
-    locationRefs: { type: 'json', required: true },
-  }),
+  'adjustment-allocation': adjustmentAllocation,
+  'admin-change-log': adminChangeLog,
+  branch,
+  fulfillment,
+  'fulfillment-group': fulfillmentGroup,
+  'fulfillment-line': fulfillmentLine,
+  hold,
+  'idempotency-key': idempotencyKey,
+  'ops-alert': opsAlert,
+  order,
+  'order-adjustment': orderAdjustment,
+  'order-event': orderEvent,
+  'order-job-lock': orderJobLock,
+  'order-line': orderLine,
+  outbox,
+  payment,
+  'payment-event': paymentEvent,
+  refund,
+  'refund-line': refundLine,
+  'staff-location-scope': staffLocationScope,
 };
