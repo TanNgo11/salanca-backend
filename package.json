@@ -26,6 +26,7 @@
     "seed:cms-fields": "node scripts/seed-cms-fields.mjs",
     "seed:content-fixes": "node scripts/seed-content-fixes.mjs",
     "seed:production": "node scripts/seed-production-content.mjs",
+    "seed:experience-update": "node scripts/seed-experience-update.mjs",
     "token:preview": "node scripts/create-preview-token.mjs",
     "verify:seed": "node scripts/verify-seed.mjs",
     "media:reconcile": "node scripts/reconcile-media/index.mjs",

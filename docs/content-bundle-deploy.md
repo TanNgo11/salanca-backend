@@ -13,3 +13,14 @@ The script validates schema and file checksums, blocks unpublished destination e
 Optional read-only inspection uses this same command with --preview. Internal scripts/lib/content-release and scripts/lib/content-import modules remain implementation dependencies; call the production entry above. The old demo, sibling deploy, one-off correction scripts and their package commands are retired.
 
 Failures can leave partial updates. Preserve recovery snapshots and use the platform database backup for full rollback. Rebuild/revalidate the frontend after applying content. Production execution and CDN access remain server checks; Git push alone does not apply CMS data.
+
+## Targeted experience update (2026-10-10)
+
+When the full release is blocked by intentional destination state (for example the unpublished Desserts category), apply only the 2026-10-10 changes:
+
+```sh
+node scripts/seed-experience-update.mjs          # preview
+node scripts/seed-experience-update.mjs --apply  # write + publish VI/EN
+```
+
+It sets the experience-page Rodizio cards and heritage block, removes the duplicate CHURRASCARIA buffet item and the Desserts header link. It refuses documents with unpublished edits, saves a recovery snapshot under .tmp/content-deploy-backups, reuses media already on S3 and touches nothing else.
