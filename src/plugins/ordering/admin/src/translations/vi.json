@@ -1,0 +1,8 @@
+{
+  "ordering.menu.title": "Bán hàng",
+  "ordering.localized-text.label": "Chữ đa ngôn ngữ",
+  "ordering.localized-text.description": "Một ô nhập cho mỗi ngôn ngữ đang bật",
+  "ordering.localized-text.locale.vi": "Tiếng Việt",
+  "ordering.localized-text.locale.en": "English",
+  "ordering.localized-text.default": "mặc định"
+}

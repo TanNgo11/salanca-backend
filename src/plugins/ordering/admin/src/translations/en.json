@@ -1,0 +1,8 @@
+{
+  "ordering.menu.title": "Ordering",
+  "ordering.localized-text.label": "Localized text",
+  "ordering.localized-text.description": "One input per enabled locale",
+  "ordering.localized-text.locale.vi": "Vietnamese",
+  "ordering.localized-text.locale.en": "English",
+  "ordering.localized-text.default": "default"
+}
