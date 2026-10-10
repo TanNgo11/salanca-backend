@@ -244,3 +244,8 @@ scripts/ordering/              # script tích hợp, DB riêng
 - UAT thủ công: xem trong Admin rằng 20 bảng nội bộ không hiện ở Content Manager và Content-Type Builder
   (script đã kiểm `pluginOptions`, chưa kiểm bằng mắt).
 - Chưa push; chưa merge `main`; stash O0 `stash@{0}` vẫn còn.
+- Review O1 (2026-10-10, session khác chạy lại): lint, typecheck, 129 file / 857 test, `check:ordering`
+  11/11, `check:phase3` bật và tắt trên `salanca_ordering_test` đều đạt (một lần test media timeout
+  chập chờn, chạy lại đạt). Probe thêm: thêm rồi bỏ cột trên `order`/`outbox` khi plugin bật, 14 index
+  của migration vẫn còn (Strapi chỉ xóa index có trong schema lần trước nó lưu). Còn mở: UAT bằng mắt 20
+  bảng nội bộ; quyết định token khi replay (ghi ở spec O3).
