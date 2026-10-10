@@ -25,6 +25,28 @@ export const o1CoreMigration: OrderingMigration = {
       `CREATE UNIQUE INDEX IF NOT EXISTS plugins_ordering_ops_alert_open_dedupe_uq
        ON plugins_ordering_ops_alert (dedupe_key) WHERE status = 'open'`,
     );
+    // Strapi `unique: true` is application-level only; these columns are lookup keys and
+    // dedupe guards, so the constraint lives in the database.
+    await trx.raw(
+      `CREATE UNIQUE INDEX IF NOT EXISTS plugins_ordering_order_code_uq
+       ON plugins_ordering_order (code)`,
+    );
+    await trx.raw(
+      `CREATE UNIQUE INDEX IF NOT EXISTS plugins_ordering_order_public_token_hash_uq
+       ON plugins_ordering_order (public_token_hash)`,
+    );
+    await trx.raw(
+      `CREATE UNIQUE INDEX IF NOT EXISTS plugins_ordering_branch_code_uq
+       ON plugins_ordering_branch (code)`,
+    );
+    await trx.raw(
+      `CREATE UNIQUE INDEX IF NOT EXISTS plugins_ordering_staff_scope_admin_user_uq
+       ON plugins_ordering_staff_location_scope (admin_user_id)`,
+    );
+    await trx.raw(
+      `CREATE UNIQUE INDEX IF NOT EXISTS plugins_ordering_outbox_unique_key_uq
+       ON plugins_ordering_outbox (unique_key)`,
+    );
     await trx.raw(
       `CREATE INDEX IF NOT EXISTS plugins_ordering_order_location_business_idx
        ON plugins_ordering_order (location_ref, business_date)`,
