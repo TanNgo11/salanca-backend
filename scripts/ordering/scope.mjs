@@ -105,6 +105,37 @@ withApp(async (app) => {
     });
     assert.equal(await scope.condition(staff.keToan.user), true);
 
+    // The same condition must hold inside Strapi's own permission engine (O0 spike pattern):
+    // a token ability over `plugin::ordering.order.read` filtered by `same-location`.
+    const ORDER = 'plugin::ordering.order';
+    const ACTION = 'plugin::ordering.order.read';
+    const engineVisible = async (user) => {
+      const ability = await app.admin.services.permission.engine.generateTokenAbility(
+        [
+          {
+            action: ACTION,
+            subject: ORDER,
+            properties: {},
+            conditions: ['plugin::ordering.same-location'],
+          },
+        ],
+        user,
+      );
+      const manager = app.admin.services.permission.createPermissionsManager({
+        ability,
+        action: ACTION,
+        model: ORDER,
+      });
+      if (!manager.isAllowed) return [];
+      const where = manager.getQuery() ?? {};
+      const rows = await app.db.query(ORDER).findMany({ where });
+      return rows.map((row) => row.locationRef).sort();
+    };
+    assert.deepEqual(await engineVisible(staff.lan.user), ['Q1']);
+    assert.deepEqual(await engineVisible(staff.minh.user), ['Q1', 'Q3']);
+    assert.deepEqual(await engineVisible(staff.keToan.user), ['Q1', 'Q3']);
+    assert.deepEqual(await engineVisible(staff.moi.user), []);
+
     const lanList = await order.listOrders({}, ctxOf(staff.lan));
     assert.equal(lanList.length, 1);
     assert.equal(lanList[0].id, q1.order.order.id);
