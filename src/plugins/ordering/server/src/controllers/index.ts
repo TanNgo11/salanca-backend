@@ -1,1 +1,5 @@
-export default {};
+import catalog from './catalog';
+
+export default {
+  catalog,
+};

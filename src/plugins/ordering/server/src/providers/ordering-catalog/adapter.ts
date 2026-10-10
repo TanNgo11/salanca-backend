@@ -154,6 +154,7 @@ const createLoader = (strapi: Core.Strapi, defaultLocale: string) => {
   const modifiersByRef = new Map<string, ModifierRow>();
   const variantsByRef = new Map<string, VariantRow>();
   const states = new Map<string, LocationState>();
+  const slugRows = new Map<string, Map<string, string>>();
   const branchTimezones = new Map<string, string | undefined>();
   let modifiersLoaded = false;
 
@@ -231,6 +232,20 @@ const createLoader = (strapi: Core.Strapi, defaultLocale: string) => {
 
   const stateOf = (ref: string): LocationState | null => states.get(ref) ?? null;
 
+  /** Loads `catalog-slug` rows so serializers can emit the public slug per locale. */
+  const collectSlugs = async (entityType: string, refs: Iterable<string>) => {
+    const missing = [...refs].filter((ref) => !slugRows.has(ref));
+    if (missing.length === 0) return;
+    const rows = (await strapi.db.query('plugin::ordering.catalog-slug').findMany({
+      where: { entityType, entityDocumentId: { $in: missing } },
+    })) as { entityDocumentId: string; locale: string; slug: string }[];
+    for (const ref of missing) slugRows.set(ref, new Map());
+    for (const row of rows) slugRows.get(row.entityDocumentId)?.set(row.locale, row.slug);
+  };
+
+  const slugOf = (ref: string, locale: string): string | undefined =>
+    slugRows.get(ref)?.get(locale) ?? slugRows.get(ref)?.get(defaultLocale);
+
   const branchTimezone = async (locationRef?: string): Promise<string | undefined> => {
     if (!locationRef) return undefined;
     if (!branchTimezones.has(locationRef)) {
@@ -269,10 +284,12 @@ const createLoader = (strapi: Core.Strapi, defaultLocale: string) => {
     collectGroups,
     collectVariants,
     collectStates,
+    collectSlugs,
     groupsByRef,
     modifiersByRef,
     variantsByRef,
     stateOf,
+    slugOf,
     branchTimezone,
     windowsFor,
   };
@@ -443,6 +460,35 @@ const toSellable = async (
   };
   const verdict = evaluateAvailability({ ...availabilityInput, nowLocal });
 
+  // Public-catalog extras the storefront serializer needs (Step 7): slug for pretty URLs and
+  // every variant with its context-selected price — the Sellable itself keeps only the first.
+  await loader.collectSlugs('catalog-product', [product.documentId]);
+  const catalogExtras = {
+    slug: loader.slugOf(product.documentId, locale),
+    availability: {
+      reasons: verdict.reasons,
+      ...(verdict.resumesAt ? { resumesAt: verdict.resumesAt.toISOString() } : {}),
+    },
+    variants: variants.map((row) => {
+      const price = row.prices?.length
+        ? selectCatalogPrice(row.prices, {
+            at: new Date(ctx.now),
+            locationRef: ctx.locationRef,
+            channel: ctx.channel,
+          })
+        : null;
+      return {
+        ref: row.documentId,
+        ...(row.sku ? { sku: row.sku } : {}),
+        title: pick(row.name),
+        isDefault: row.isDefault === true,
+        price: price ? price.amount : null,
+        ...(price?.compareAtAmount !== undefined ? { compareAtPrice: price.compareAtAmount } : {}),
+        available: !stateBlocks(loader.stateOf(row.documentId), ctx.now),
+      };
+    }),
+  };
+
   const fulfillmentKinds = asArray<string>(product.fulfillmentKinds);
   const sellable: Sellable = {
     ref: { uid: product.documentId, sourceDocumentId: product.documentId },
@@ -481,6 +527,7 @@ const toSellable = async (
     purchasable: verdict.purchasable,
     metadata: {
       availabilityInput,
+      catalog: catalogExtras,
       ...(normalizedSlots.length > 0 ? { bundleSlots: normalizedSlots } : {}),
     },
   };
@@ -556,12 +603,17 @@ export const createOrderingCatalogAdapter = ({ strapi }: { strapi: Core.Strapi }
     async listCategories(_ctx: AdapterContext, input: { locale: Locale }): Promise<JsonObject[]> {
       const loader = newLoader();
       const index = await loader.allCategories();
+      await loader.collectSlugs(
+        'catalog-category',
+        [...index.values()].map((row) => row.documentId),
+      );
       const rows = [...index.values()].sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
       const output: JsonObject[] = [];
       for (const row of rows) {
         const chain = [...(await loader.ancestorsOf(row.documentId)).reverse(), row];
         output.push({
           ref: row.documentId,
+          slug: loader.slugOf(row.documentId, input.locale) ?? null,
           title:
             resolveLocalizedText(row.name, input.locale, loader.defaultLocale) ?? row.documentId,
           description: resolveLocalizedText(row.description, input.locale, loader.defaultLocale),
