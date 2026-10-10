@@ -15,6 +15,8 @@ bắt buộc phải bật ở v1, nhưng các contract dưới đây phải gi�
   và các quan hệ nội bộ của plugin.
 - Catalog, product type, pricing, payment, fulfillment, scheduling, voucher, notification và invoice
   là registry/provider có contract; provider không import content type của app.
+- Plugin có module catalog riêng làm adapter mặc định (mục 20). Lõi đơn hàng vẫn chỉ gọi catalog qua
+  `CatalogAdapter`, nên module catalog thay được bằng adapter khác.
 - Sản phẩm của app được tham chiếu bằng `sourceUid`/`sourceDocumentId` dạng string. Quan hệ giữa
   bảng nội bộ plugin là relation thật, không dùng `orderRef` string để giả làm relation.
 - Client chỉ gửi ref, quantity, variant, option, nhận hàng, slot và locale. Server đọc lại catalog,
@@ -171,6 +173,8 @@ type Sellable = {
   fulfillmentKinds: string[];          // pickup, delivery, appointment, issue-code...
   options: OptionGroup[];
   availability: AvailabilityRules;
+  categories: { ref: string; title: string; path: string[] }[]; // mục 20; line lưu snapshot
+  minQuantity?: number;
   taxGroupRef?: string;
   isActive: boolean;
   purchasable: boolean;
@@ -237,6 +241,13 @@ lần hai và không quyết định final order price:
 
 ```ts
 interface CatalogAdapter {
+  listCategories(ctx: AdapterContext, input: { locale: Locale }): Promise<JsonObject[]>;   // mục 20
+  listSellables(ctx: AdapterContext, input: {
+    locale: Locale;
+    categoryRef?: string;
+    cursor?: string;
+    limit: number;
+  }): Promise<{ items: Sellable[]; nextCursor?: string }>;                                 // mục 20
   getSellable(ctx: AdapterContext, ref: SellableRef, input: { locale: Locale }): Promise<Sellable | null>;
   getListPrice(ctx: AdapterContext, sellable: Sellable): Promise<Money>;
   getAvailability(ctx: AdapterContext, sellable: Sellable, quantity: number): Promise<AvailabilityResult>;
@@ -264,6 +275,7 @@ type OrderLine = {
   imageUrlSnapshot?: string;
   selectedOptionsSnapshot: JsonObject;
   componentsSnapshot?: JsonObject;
+  categoriesSnapshot: JsonObject;       // ref/title/path lúc đặt, cho báo cáo theo danh mục
   note?: string;
   quantity: number;
   fulfilledQuantity: number;
@@ -296,6 +308,7 @@ type Fulfillment = {
   providerCode: string;
   providerReference?: string;
   status: string;
+  assigneeRef?: string;                 // nhân viên giao khi quán tự giao (mục 19.8)
   addressSnapshot?: AddressSnapshot;
   packedAt?: string;
   shippedAt?: string;
@@ -420,7 +433,8 @@ chỉ nằm trong quote. Tổng `allocation.amount` của một adjustment bằn
 | `fulfillment` | order/group relation, provider, status, address snapshot, timestamps, tracking |
 | `fulfillment-line` | fulfillment/line relations và quantity |
 | `payment` | order relation, provider, requested/captured/refunded amount, status, provider reference |
-| `payment-event` | payment tùy chọn, provider transaction id unique, transfer type, amount, kind, raw payload đã bảo vệ |
+| `payment-event` | payment tùy chọn, provider transaction id unique, transfer type, amount, kind, raw payload đã bảo vệ, review status/reason/actor (mục 19.1) |
+| `cash-closing` | locationRef, businessDate, actor, số tiền hệ thống tính, số tiền đếm được, chênh lệch, ghi chú (mục 19.3) |
 | `refund` | payment/order relation, amount, reason, actor, idempotency key, provider reference, status |
 | `refund-line` | refund/line relations, quantity, amount theo snapshot line |
 | `invoice` | order relation, provider, reference, status, issuedAt/canceledAt, lỗi gần nhất (không chứa dữ liệu người mua thô) |
@@ -571,6 +585,10 @@ type PaymentEvent = {
   kind: string;
   rawPayload: JsonObject;
   receivedAt: string;
+  reviewStatus: 'auto-matched' | 'needs-review' | 'matched-manually' | 'refund-due' | 'ignored';
+  reviewReason?: string;                // no-code, order-not-found, underpaid... (mục 19.1)
+  reviewedBy?: string;
+  reviewedAt?: string;
 };
 
 type RawWebhook = {
@@ -641,7 +659,9 @@ phải trả HTTP 200/201 và body JSON đúng `{"success": true}` trong 30 giâ
 kết quả (`00`, `01`, `02`, `04`, `97`, `99`); MoMo yêu cầu HTTP 204. Không hard-code một response
 chung trong core.
 
-`RawWebhook.body` phải là bytes gốc, không phải JSON đã parse rồi stringify lại. SePay HMAC ký chuỗi
+`RawWebhook.body` phải là bytes gốc, không phải JSON đã parse rồi stringify lại. Không có body gốc thì
+trả lỗi và mở alert, không dùng `JSON.stringify(ctx.request.body)` thay thế như plugin Creem
+(reference C20). SePay HMAC ký chuỗi
 `{X-SePay-Timestamp}.{raw_body}` và tài liệu cảnh báo serialize lại sẽ làm sai chữ ký
 ([xác thực](https://developer.sepay.vn/vi/sepay-webhooks/xac-thuc)). Strapi 5.51.1 parse body bằng
 `koa-body` trong middleware `strapi::body` toàn cục, chạy trước route của plugin, nên plugin không tự
@@ -872,6 +892,8 @@ Rule mặc định (giá trị là đề xuất, chủ dự án chỉnh được
 | `job-heartbeat-missed` | dispatcher/đối soát không chạy thành công trong 2 chu kỳ liên tiếp | Strapi `/_health` không thấy lỗi này |
 | `order-awaiting-acceptance` | group ở bước chờ nhận quá `slaMinutes` của bước đó (mặc định 10 phút) | Theo nghiệp vụ quán; chưa thấy ở nguồn đã đọc |
 | `reconciliation-mismatch` | đối soát định kỳ thấy giao dịch có ở provider mà chưa có trong ledger | SePay khuyên đối soát định kỳ |
+| `manual-payment-unconfirmed` | chuyển khoản ghi tay quá 24 giờ chưa thấy ở SePay (mục 19.1) | Quyết định 2026-10-10 |
+| `cash-closing-mismatch` | chốt tiền mặt cuối ngày có chênh lệch khác 0 (mục 19.3) | Quyết định 2026-10-10 |
 
 Lease mặc định 5 phút: claim mà không chạy, hoặc chạy quá 5 phút, thì trả lại để worker khác nhận
 (Action Scheduler dùng 300 giây). Thời hạn lưu mặc định: outbox đã giao 30 ngày, outbox lỗi 90 ngày,
@@ -954,7 +976,7 @@ export default ({ env }) => ({
     enabled: true,
     resolve: './src/plugins/ordering',
     config: {
-      catalog: { adapter: 'salanca-menu-item', locale: 'vi' },
+      catalog: { adapter: 'ordering-catalog', defaultLocale: 'vi' }, // module catalog của plugin (mục 20)
       productTypes: { food: { enabled: true }, voucher: { enabled: false } },
       providers: {
         payment: {
@@ -971,7 +993,8 @@ export default ({ env }) => ({
 ```
 
 `validator` chạy lúc nạp plugin, trước `register()` của app, nên chưa kiểm được code có tồn tại không.
-App đăng ký adapter trong `register()` của mình (ví dụ catalog `salanca-menu-item`); `bootstrap()`
+App đăng ký adapter riêng (nếu có) trong `register()` của mình; catalog mặc định `ordering-catalog` do
+plugin tự đăng ký. `bootstrap()`
 của plugin mới đối chiếu mọi code đang `enabled` với registry và dừng khởi động nếu thiếu. Thứ tự này
 có trong `@strapi/core/dist/Strapi.js`: register plugin, register app, bootstrap plugin, bootstrap app.
 Secret lấy
@@ -983,6 +1006,24 @@ Schema nội bộ nên ẩn khỏi Content Manager nếu không cần CRUD; tran
 qua service/route có permission, không cho nhân viên sửa trực tiếp. Source local Strapi 5.51.1 cho thấy
 Document Service middleware có thể chặn call qua Document Service và schema có
 `content-manager.visible`, nhưng direct `strapi.db.query` bypass và UI/permission cần fixture kiểm chứng.
+
+Bổ sung sau C20 (các plugin Strapi 5 đã đọc):
+
+- Mọi content type của plugin có `collectionName` tiền tố `plugins_ordering_` và ẩn khỏi
+  Content-Type Builder (`content-type-builder.visible: false`), kể cả catalog đang hiện ở Content
+  Manager, để admin không sửa được schema của plugin. Bảng nội bộ (order, payment-event, outbox…) ẩn
+  luôn khỏi Content Manager.
+- Plugin không bao giờ ghi file vào thư mục của app lúc chạy. WebbyCommerce làm vậy để lách việc plugin
+  không nạp được component; container production thường chỉ đọc.
+- Secret ưu tiên lấy từ env. Khi muốn cho admin nhập thông tin cổng thanh toán trong Admin (tiện cho
+  khách không có quyền sửa env), lưu bằng AES-256-GCM với khóa `ORDERING_ENCRYPTION_KEY` 32 byte từ env,
+  chỉ hiện dạng che (`••••1234`), env thắng nếu có cả hai. Plugin Shopify dùng AES-256-CBC không có MAC;
+  GCM phát hiện được dữ liệu bị sửa.
+- Setting chung của plugin lưu bằng `strapi.store({ type: 'plugin', name: 'ordering' })` như Open
+  Mercato và Creem; setting theo chi nhánh lưu bằng content type riêng để lọc theo chi nhánh và có audit.
+- Plugin có thể cung cấp custom field `plugin::ordering.product-ref` để app gắn sản phẩm vào content
+  của mình, kèm Document Service middleware gắn giá/trạng thái bán vào kết quả đọc (cách của plugin
+  Shopify). Không bắt buộc; Salanca hiện không dùng (mục 20.5).
 
 Route custom phải lấy `branchRef` từ identity/permission và thêm predicate vào mọi query order,
 fulfillment, payment và setting; không dựa vào việc ẩn link trong Admin. Condition của Strapi có thể
@@ -1057,6 +1098,8 @@ workflow dành riêng cho chúng vào phase hiện tại.
 ## 16. Mapping Salanca
 
 - `menu-item`: catalog adapter; food product type; pickup là fulfillment đầu tiên.
+  **Đã thay bằng mục 20 (2026-10-10):** catalog thuộc plugin; `menu-item` giữ nguyên làm content
+  (mục 20.5).
 - `menu-package`: product type voucher về sau; mã và redemption thuộc `VoucherProvider`.
 - `location`: `locationRef`, opening hours, capacity, `Asia/Ho_Chi_Minh` và provider scope; không import UID vào core.
 - SePay: `PaymentProvider` bank transfer, memo template, QR/presentation, HMAC/API Key secret ref,
@@ -1064,6 +1107,7 @@ workflow dành riêng cho chúng vào phase hiện tại.
 - Cash: provider nội bộ, capture do staff với permission và audit.
 - Pickup: `FulfillmentProvider` `pickup`, `FulfillmentGroup` lưu workflow/version và
   `fulfillment-line` lưu quantity theo món.
+- Catalog: dùng module catalog của plugin (mục 20), không đọc `menu-item` qua adapter riêng.
 - `reservation-request`: tính năng app hiện có; khi chuyển sang appointment, adapter map line schedule
   vào `SchedulingProvider`, không biến reservation content type thành dependency lõi.
 - Delivery, VAT/e-invoice, customer account, promotion và loyalty là capability/module bật sau.
@@ -1073,28 +1117,52 @@ workflow dành riêng cho chúng vào phase hiện tại.
 ### Cần chủ dự án quyết định
 
 1. SePay: tiền vào được auto-capture ngay hay phải staff duyệt; over/underpayment và nhiều transfer
-   hợp lệ xử lý thế nào.
+   hợp lệ xử lý thế nào. **Đã trả lời 2026-10-10:** tự ghi nhận khi khớp, kèm luồng duyệt tay cho
+   trường hợp lệch (mục 19.1).
 2. Voucher: issue sau captured hay duyệt thủ công; use-once hay trừ dần; expiry, refund và revenue
-   recognition.
+   recognition. **Mặc định 2026-10-10:** mục 19.9.
 3. Appointment: deposit/multiple payment, giữ slot bao lâu khi pending, policy đổi/hủy, resource và
-   capacity theo location.
+   capacity theo location. **Mặc định 2026-10-10:** mục 19.9.
 4. Mixed product types: có cho món + voucher + appointment trong một order hay tách fulfillment group.
+   **Mặc định 2026-10-10:** mục 19.9.
 5. Provider Admin: ai được bật/tắt, điều kiện min/max/fee/location và audit.
+   **Mặc định 2026-10-10:** mục 19.9.
 6. VAT/e-invoice: giá đã gồm VAT chưa, tax category/rate, nhà cung cấp hóa đơn và thời điểm issue.
+   **Đã trả lời 2026-10-10:** làm thành cấu hình (mục 19.4). Giá trị cụ thể (gồm VAT hay chưa, thuế
+   suất, có xuất hóa đơn không) vẫn cần kế toán xác nhận trước khi bật.
 7. Guest/customer v1: chỉ public token hay thêm customer theo phone; retention và consent.
+   **Mặc định 2026-10-10:** mục 19.9.
 8. Raw payload/log: thời hạn lưu và field nào được phép giữ để đối soát.
+   **Mặc định 2026-10-10:** mục 19.9; pháp lý/kế toán xác nhận số ngày trước go-live.
 9. Ngày kinh doanh của branch có kết thúc sau nửa đêm không, và `cutoffLocalTime` cụ thể là gì.
+   **Mặc định 2026-10-10:** mục 19.9.
 10. SePay dùng auto-capture sau khi đã xác minh amount/code hay staff duyệt; webhook ACK immediate hay
-    after-processing cho từng provider.
+    after-processing cho từng provider. **Đã trả lời 2026-10-10:** như câu 1. ACK là quyết định kỹ
+    thuật: SePay `immediate` sau khi lưu raw event, VNPAY `after-processing` vì mã trả về phụ thuộc kết
+    quả (mục 19.1).
 11. Discount/fee tính trước hay sau VAT, rounding policy cho từng loại fee, và refund line dùng weight
-    placement-stable hay re-distribute.
+    placement-stable hay re-distribute. **Mặc định 2026-10-10:** mục 19.9.
 12. Role nào được xem raw payment/PII và nhận alert vận hành; retention/ẩn danh cụ thể theo policy nào.
+    **Phần role đã chốt 2026-10-10** (mục 19.2). Thời hạn lưu và ẩn danh: mặc định ở mục 19.9, gộp
+    với câu 8.
 13. Ai được xem đơn của mọi chi nhánh; một nhân viên có làm ở nhiều chi nhánh không; ai gán chi nhánh
-    cho nhân viên.
+    cho nhân viên. **Đã chốt 2026-10-10:** chủ dự án giao cho thiết kế tự định nghĩa (mục 19.2).
 14. Đơn trả tiền mặt khi nhận: group đã giao xong nhưng chưa ghi nhận tiền thì đơn chưa `completed`.
-    Staff ghi nhận tiền mặt ngay khi giao, hay cuối ca đối soát?
+    Staff ghi nhận tiền mặt ngay khi giao, hay cuối ca đối soát? **Đã chốt 2026-10-10:** chủ dự án giao
+    cho thiết kế tự định nghĩa (mục 19.3).
 15. Ngưỡng cảnh báo: đơn chờ nhận bao lâu thì báo (đề xuất 10 phút), báo cho ai (bếp chi nhánh, quản
     lý, kỹ thuật) và qua kênh nào (email, Zalo, Telegram…); các ngưỡng còn lại ở bảng rule mục 12.
+    **Mặc định 2026-10-10:** người nhận theo vai trò ở mục 19.2, ngưỡng và kênh ở mục 19.9.
+
+### Câu hỏi từ khách Salanca
+
+| Câu hỏi | Trạng thái 2026-10-10 |
+| --- | --- |
+| Khách tự đến lấy hay giao tận nơi; nếu giao thì ai giao | **Đã trả lời:** có cả hai; v1 quán tự giao, tích hợp hãng giao về sau (mục 19.8). |
+| "Tối thiểu 3 giờ" | **Đã trả lời:** là policy cấu hình, không phải số cố định (mục 19.5). |
+| Trả tiền trước hay sau khi quán nhận đơn | **Đã trả lời:** cấu hình được (mục 19.6). |
+| Các chi nhánh dùng chung tài khoản SePay không | **Để sau:** cấu hình tài khoản theo chi nhánh, hỗ trợ cả dùng chung (mục 19.7). |
+| Chi nhánh nào nhận đơn online | **Đã trả lời:** hiện có 1 chi nhánh; code hỗ trợ nhiều chi nhánh từ đầu (mục 19.7). |
 
 ### Cần kiểm bằng plugin trống
 
@@ -1118,6 +1186,16 @@ workflow dành riêng cho chúng vào phase hiện tại.
     trả `false`) và handler trả `null` thì bị bắt trong test, vì engine sẽ cấp quyền không điều kiện.
 14. Fixture `businessDate` với giờ chốt 04:00 và giờ mở 22:00–02:00 theo `Asia/Ho_Chi_Minh`, server
     chạy UTC.
+15. Local plugin đăng ký custom field `localized-text` và hai custom field JSON (`modifierGroups`,
+    `bundleSlots`) có ô nhập riêng trong Content Manager; validate khi lưu.
+16. Content type catalog không bật i18n và Draft & Publish vẫn hiện đúng trong Content Manager khi app
+    bật i18n cho content khác; slug theo ngôn ngữ unique bằng index migration.
+17. Truy vấn JSON trên PostgreSQL (`jsonb`) để tìm product theo slug từng ngôn ngữ và product dùng một
+    modifier group.
+18. Thêm field cho `catalog-product` từ app bằng `src/extensions/ordering/strapi-server.ts`, nâng cấp
+    plugin không mất field.
+19. Build bằng `@strapi/sdk-plugin` (`strapi-plugin build`/`verify`) cho local plugin trong monorepo
+    pnpm; content type của plugin không tự mở REST route nào ngoài route plugin khai.
 
 ## 18. Quyết định đã đổi so với vòng 1
 
@@ -1164,6 +1242,17 @@ Sửa sau review vòng 4 (đã đối chiếu source Strapi 5.51.1 và tài li�
 - `FulfillmentProvider.create` trả `providerReference` thay vì `fulfillmentId`. Lý do: tránh nhầm với
   id do core tạo.
 
+Bổ sung sau quyết định catalog thuộc plugin và nghiên cứu C18–C19:
+
+- Catalog là module của plugin (mục 20); `CatalogAdapter` giữ làm port. Lý do: plugin generic như
+  WooCommerce, cài được vào Strapi bất kỳ; content của Salanca giữ nguyên.
+- Catalog không bật i18n và Draft & Publish; chữ đa ngôn ngữ trong custom field JSON; product dùng
+  `status`. Lý do: i18n của Strapi nhân mọi relation theo ngôn ngữ, Draft & Publish nhân bản ghi và
+  phải đăng theo thứ tự khi có nhiều content type liên quan.
+- Tách biến thể (SKU, giá, tồn kho) khỏi tùy chọn cộng thêm (thư viện dùng chung + ghi đè theo món);
+  combo có nhóm chọn; giá là bảng có điều kiện; tồn kho là module riêng nối qua `inventoryRef`. Lý do:
+  theo TastyIgniter, Bagisto, Medusa, Vendure (reference C19).
+
 Bổ sung sau nghiên cứu C17:
 
 - Scope chi nhánh có cờ `allLocations` rõ ràng; không có scope thì từ chối; ghi phải kiểm chi nhánh của
@@ -1174,6 +1263,412 @@ Bổ sung sau nghiên cứu C17:
 - Thêm `OpsAlertRule` với ngưỡng mặc định, cửa sổ gộp, ngưỡng critical, `slaMinutes` trên bước workflow
   và trang tình trạng vận hành. Lý do: theo `AppProblem` của Saleor, WooCommerce và Action Scheduler;
   `/_health` của Strapi không thấy outbox hay webhook kẹt.
+
+## 19. Quyết định của chủ dự án (2026-10-10)
+
+Chủ dự án trả lời một phần câu hỏi ở mục 17 và giao một số chỗ cho thiết kế tự định nghĩa. Mục này là
+thiết kế cho các câu trả lời đó. Các mục trước giữ nguyên; chỗ nào khác nhau thì mục này thắng.
+
+### 19.1. SePay tự ghi nhận, có luồng duyệt tay
+
+Tiền vào được **tự ghi nhận** (`reviewStatus = auto-matched`) khi đủ mọi điều kiện:
+
+- chữ ký và timestamp hợp lệ, `transferType = in`;
+- tách được mã đơn từ nội dung chuyển khoản theo memo template;
+- đơn tồn tại, chưa hủy hay hết hạn, và còn thiếu tiền;
+- số tiền đúng bằng số còn thiếu (`amountTolerance`, mặc định 0);
+- tài khoản nhận (`accountNumber`/`subAccount`) thuộc chi nhánh của đơn (mục 19.7).
+
+Ghi ledger, cập nhật projection và transition của group chạy trong cùng transaction với payment-event.
+
+Thiếu bất kỳ điều kiện nào thì payment-event là `needs-review` kèm lý do, và **không** tự đổi đơn:
+
+| `reviewReason` | Ví dụ |
+| --- | --- |
+| `no-code` | khách chuyển khoản không ghi mã đơn |
+| `order-not-found` | mã sai hoặc không tồn tại |
+| `underpaid` | chuyển thiếu |
+| `overpaid` | chuyển dư |
+| `order-closed` | đơn đã hủy hoặc hết hạn rồi mới có tiền |
+| `already-paid` | đơn đã đủ tiền, khách chuyển thêm lần nữa |
+| `account-mismatch` | tiền vào tài khoản không thuộc chi nhánh của đơn |
+
+Màn hình **"Duyệt chuyển khoản"** trong Admin (quyền `payment.review`, lọc theo chi nhánh; tiền không
+xác định được chi nhánh chỉ hiện với người có `allLocations`). Thao tác:
+
+- **Gán vào đơn:** chọn đơn. Đủ tiền thì ghi nhận và chạy transition như tự động. Thiếu thì ghi nhận
+  một phần, đơn vẫn chờ; lần chuyển bù có mã và đúng số còn thiếu sẽ tự khớp. Dư thì ghi nhận đủ,
+  phần dư thành `refund-due`.
+- **Cần hoàn tiền:** tạo refund thủ công (chuyển khoản trả lại ngoài hệ thống), nhân viên nhập mã giao
+  dịch hoàn.
+- **Mở lại đơn** (chỉ với `order-closed`): chỉ được khi còn hàng/slot; không thì phải hoàn tiền.
+- **Bỏ qua:** tiền không liên quan đơn hàng, ví dụ chuyển khoản nội bộ.
+
+Mọi thao tác bắt buộc ghi lý do, ghi timeline và audit, khóa dòng payment-event để hai người không xử
+lý cùng lúc, và idempotent.
+
+**Ghi nhận chuyển khoản thủ công** khi webhook không tới (nhân viên thấy tiền trong app ngân hàng): tạo
+payment-event `kind = manual` kèm mã tham chiếu ngân hàng, cần quyền `payment.review`. Webhook hoặc job
+đối soát tới sau với cùng mã tham chiếu và số tiền sẽ được gắn vào event thủ công này, không ghi tiền
+lần hai. Quá 24 giờ không thấy giao dịch tương ứng ở SePay thì mở alert `manual-payment-unconfirmed`.
+
+Cấu hình theo provider: `captureMode: 'auto' | 'review-all'` (mặc định `auto`; khách khác có thể bắt
+duyệt mọi giao dịch) và `amountTolerance`.
+
+ACK: SePay dùng `webhookAckMode = immediate`. Sai chữ ký thì trả lỗi. Còn lại, sau khi lưu raw event
+thì luôn trả `{"success": true}`, kể cả khi không khớp đơn: event đã lưu và đã vào hàng duyệt, trả lỗi
+chỉ làm SePay gửi lại vô ích. VNPAY dùng `after-processing` vì `RspCode` phụ thuộc kết quả.
+
+### 19.2. Vai trò và quyền
+
+Plugin đăng ký các action dưới đây. Bootstrap cấp hết cho Super Admin, role khác mặc định không có,
+giống cách các action hiện có trong `docs/admin-roles.md`. Plugin không tự tạo role; tài liệu cài
+đặt hướng dẫn tạo role, như role `Quản lý` hiện có.
+
+| Action | Cho phép |
+| --- | --- |
+| `plugin::ordering.order.read` | xem danh sách và chi tiết đơn trong scope |
+| `plugin::ordering.order.process` | nhận, từ chối, chuyển bước đơn |
+| `plugin::ordering.order.cancel` | hủy đơn |
+| `plugin::ordering.payment.record-cash` | ghi nhận tiền mặt khi giao (mục 19.3) |
+| `plugin::ordering.payment.review` | duyệt chuyển khoản, ghi nhận chuyển khoản thủ công |
+| `plugin::ordering.refund.manage` | tạo và ghi nhận hoàn tiền |
+| `plugin::ordering.payment.raw-read` | xem payload gốc của cổng thanh toán |
+| `plugin::ordering.report.read` | báo cáo, chốt tiền mặt cuối ngày |
+| `plugin::ordering.export` | xuất CSV đơn (có dữ liệu cá nhân) |
+| `plugin::ordering.settings.manage` | cấu hình chi nhánh, giờ, policy, provider |
+| `plugin::ordering.scope.manage` | gán nhân viên vào chi nhánh |
+| `plugin::ordering.ops.read` | trang tình trạng vận hành, alert kỹ thuật |
+
+Vai trò đề xuất:
+
+| Vai trò | Scope | Action |
+| --- | --- | --- |
+| Nhân viên chi nhánh | chi nhánh được gán | `order.read`, `order.process`, `payment.record-cash` |
+| Quản lý chi nhánh | chi nhánh được gán | như trên, thêm `order.cancel`, `payment.review`, `refund.manage`, `report.read` |
+| Kế toán | `allLocations` | `order.read`, `payment.review`, `refund.manage`, `payment.raw-read`, `report.read`, `export` |
+| Quản trị chuỗi | `allLocations` | mọi action trừ `ops.read` |
+| Super Admin (kỹ thuật) | `allLocations` | mọi action |
+
+- Một nhân viên có thể được gán nhiều chi nhánh. `scope.manage` chỉ thuộc Quản trị chuỗi và Super
+  Admin, nên quản lý chi nhánh không tự mở rộng scope của mình.
+- Payload thanh toán gốc chỉ Kế toán, Quản trị chuỗi và Super Admin xem được. Các role khác chỉ thấy
+  số tiền, thời gian, mã đơn và tên ngân hàng.
+- Người nhận alert: `order-awaiting-acceptance` đến nhân viên và quản lý của chi nhánh đó;
+  `payment-unmatched`, `manual-payment-unconfirmed`, `cash-closing-mismatch` đến quản lý chi nhánh và
+  kế toán; `webhook-failing`, `outbox-stuck`, `job-heartbeat-missed` đến người có `ops.read`.
+
+### 19.3. Tiền mặt
+
+- Đơn trả khi nhận hàng có một thao tác **"Thu tiền và giao"**. Thao tác này ghi payment tiền mặt
+  (số tiền bằng số còn thiếu, actor, thời điểm, `businessDate`) và chuyển group sang bước đã giao
+  trong **cùng một transaction**. Không có trạng thái "đã giao mà chưa thu tiền", nên đơn không kẹt ở
+  `open`.
+- Khách đưa thiếu thì không giao được. Muốn giảm giá tại quầy phải dùng adjustment có lý do và quyền
+  riêng (module khuyến mãi về sau); v1 báo quản lý.
+- Hệ thống không theo dõi tiền thối; chỉ ghi số tiền của đơn.
+- Hủy hoặc hoàn sau khi đã thu tiền mặt: tạo refund qua provider `cash`, ghi actor.
+- Cuối ngày: báo cáo tiền mặt theo nhân viên và `businessDate` của chi nhánh. Quản lý bấm **"Chốt
+  tiền mặt"**: nhập số đếm được, hệ thống lưu `cash-closing` (số tính ra, số đếm, chênh lệch, ghi chú).
+  Chênh lệch khác 0 thì mở alert `cash-closing-mismatch`. Đây là bản nhẹ của ca bán hàng Odoo;
+  module ca đầy đủ để sau.
+
+### 19.4. VAT là cấu hình
+
+```ts
+type TaxConfig = {
+  enabled: boolean;
+  pricesIncludeTax: boolean;            // giá niêm yết đã gồm VAT
+  defaultCategory: string;
+  categories: Record<string, {
+    label: string;
+    rates: { ratePercent: number; validFrom: string; validTo?: string }[];
+  }>;
+  invoice?: { providerCode: string; issueAt: 'on-capture' | 'on-complete' | 'on-request' };
+};
+```
+
+- Có cấu hình chung và ghi đè theo chi nhánh. Loại thuế của món lấy từ `Sellable.taxGroupRef` qua
+  catalog adapter; không có thì dùng `defaultCategory`.
+- Thuế suất có ngày hiệu lực, vì Việt Nam từng giảm VAT tạm thời theo từng giai đoạn. Line lưu thuế
+  suất áp dụng tại lúc đặt; đổi thuế suất không ảnh hưởng đơn cũ.
+- `pricesIncludeTax = true`: thuế của line = làm tròn(`số tiền line sau phân bổ` × r / (100 + r)).
+  `false`: thuế = làm tròn(`số tiền line` × r / 100) và cộng thêm vào tổng.
+- Salanca để `enabled = false` cho tới khi kế toán xác nhận giá đã gồm VAT chưa, thuế suất bao nhiêu và
+  có xuất hóa đơn điện tử không. Khi tắt, đơn không tách thuế nhưng dữ liệu vẫn đủ để bật về sau.
+
+### 19.5. "Tối thiểu 3 giờ" là policy
+
+- Đây là `leadTimeMinutes` (180) của `SchedulePolicy`, cấu hình trong Admin theo chi nhánh × cách nhận
+  hàng.
+- Món nào cần chuẩn bị lâu hơn có thể khai `leadTimeMinutes` riêng trong availability của sellable.
+  Lead time của đơn là giá trị lớn nhất giữa chi nhánh và các line.
+- Frontend đọc giá trị từ `GET /ordering/config` và quote để hiển thị và khóa slot quá sớm. Server vẫn
+  kiểm lại ở quote và create order, trả `SLOT_TOO_EARLY`; không tin frontend.
+
+### 19.6. Trả trước hay sau là cấu hình
+
+`paymentTiming` cấu hình theo chi nhánh × cách nhận hàng. Mỗi giá trị ứng với một workflow có phiên
+bản:
+
+| `paymentTiming` | Luồng |
+| --- | --- |
+| `prepay` | đặt đơn → chờ thanh toán (hết hạn sau `paymentTimeoutMinutes`, mặc định 15) → chờ quán nhận → chuẩn bị → sẵn sàng → đã giao |
+| `accept-then-pay` | đặt đơn → chờ quán nhận → quán nhận và gửi QR/link → chờ thanh toán → chuẩn bị → sẵn sàng → đã giao |
+| `pay-on-pickup` | đặt đơn → chờ quán nhận → chuẩn bị → sẵn sàng → thu tiền và giao (mục 19.3) |
+
+- `prepay` mà quán từ chối sau khi khách đã trả thì sinh `refund-due`; nhân viên hoàn tiền qua luồng
+  19.1.
+- Bootstrap và màn hình cấu hình kiểm tính hợp lệ: `prepay` và `accept-then-pay` cần ít nhất một
+  provider online đang bật; `pay-on-pickup` cần `cash` hoặc chuyển khoản tại quầy.
+- Đổi cấu hình chỉ áp cho đơn mới; đơn cũ giữ workflow/version đã lưu trên group.
+
+Setting vận hành theo chi nhánh (sửa trong Admin với quyền `settings.manage`, có audit):
+
+```ts
+type LocationOrderingSettings = {
+  locationRef: string;
+  onlineOrdering: boolean;
+  fulfillment: Record<string, {         // key: pickup, delivery...
+    enabled: boolean;
+    schedule: SchedulePolicy;           // timezone, giờ chốt ngày, giờ mở, leadTimeMinutes (180 = 3 giờ)
+    paymentTiming: 'prepay' | 'accept-then-pay' | 'pay-on-pickup';
+    paymentProviders: string[];
+    paymentTimeoutMinutes: number;
+  }>;
+  tax?: Partial<TaxConfig>;             // ghi đè cấu hình thuế chung
+};
+```
+
+### 19.7. Nhiều chi nhánh từ đầu
+
+Hiện Salanca có 1 chi nhánh bán online, nhưng code hỗ trợ nhiều chi nhánh ngay từ v1:
+
+- `order.locationRef` bắt buộc. Mọi setting, scope, báo cáo và alert đều theo chi nhánh.
+- Chi nhánh có `onlineOrdering = false` thì quote trả `LOCATION_UNAVAILABLE`.
+- Tài khoản SePay khai trong config app theo object có key (không dùng mảng, xem mục 14):
+  `providers.payment.sepay.accounts: { <id>: { accountNumber, subAccount?, locationRefs | 'all' } }`.
+  Dùng chung một tài khoản cho mọi chi nhánh hay mỗi chi nhánh một tài khoản đều chạy; việc chọn cách
+  nào để sau.
+- Mã đơn duy nhất trên toàn hệ thống, nên dùng chung tài khoản vẫn khớp được đơn. Memo template có thể
+  thêm mã chi nhánh nếu cần.
+- Fixture và test luôn có ít nhất 2 chi nhánh, dù production đang có 1.
+
+### 19.8. Tự đến lấy và giao tận nơi
+
+V1 có cả hai cách nhận hàng: `pickup` và `delivery`.
+
+- Giao tận nơi ở v1 là **quán tự giao** (provider `self-delivery`): nhân viên của quán đi giao, hoặc
+  quán tự gọi xe ngoài hệ thống rồi nhập mã chuyến/link theo dõi bằng tay.
+- Tích hợp hãng giao (GHN, Ahamove, Grab Express…) là provider có capability `carrier` về sau. Nó cắm
+  vào cùng `FulfillmentProvider` ở mục 5 (`calculatePrice`, `create`, `cancel`, tracking), không đổi
+  lõi hay dữ liệu đơn.
+
+Vùng giao và phí, theo cách của TastyIgniter (reference C17.4):
+
+```ts
+type DeliveryZone = {
+  code: string;
+  label: string;
+  priority: number;                     // vùng ưu tiên cao xét trước
+  match:
+    | { kind: 'commune'; communeCodes: string[] }  // v1
+    | { kind: 'radius'; maxKm: number };            // cần provider geocoding, để sau
+  rules: {                              // xét theo thứ tự, rule đầu tiên khớp thắng
+    when: 'any' | 'subtotal-gte' | 'subtotal-lt';
+    subtotal?: number;
+    fee: number | 'unavailable';
+  }[];
+  minOrderAmount?: number;
+  extraLeadTimeMinutes?: number;        // cộng vào lead time của chi nhánh
+};
+```
+
+- V1 khớp theo mã xã/phường trong địa chỉ khách (địa chỉ 2 cấp từ 01/07/2025), không cần API bản đồ.
+- Ví dụ rule: đơn dưới 100.000 thì không giao; dưới 300.000 thì phí 20.000; từ 300.000 thì miễn phí.
+- Địa chỉ ngoài mọi vùng, hoặc rule khớp là `unavailable`, thì quote trả `DELIVERY_UNAVAILABLE`.
+- Phí giao là `fulfillmentAmount` của group, tính ở bước 5 của pipeline (mục 6), nên khuyến mãi miễn
+  phí giao dùng được về sau.
+- Setting: `LocationOrderingSettings.fulfillment.delivery` có thêm `zones: DeliveryZone[]`.
+- Đơn giao tận nơi bắt buộc có số điện thoại trong `contactSnapshot` và `addressSnapshot` trên
+  fulfillment.
+
+Workflow giao dùng chung 3 kiểu thanh toán ở mục 19.6, phần cuối thay bằng:
+
+| Bước | Ghi chú |
+| --- | --- |
+| sẵn sàng | món đã xong, chờ người giao |
+| đang giao | gán `assigneeRef`; tracking nhập tay nếu quán gọi xe ngoài |
+| đã giao | trả khi nhận thì người giao bấm "Thu tiền và giao" (mục 19.3) |
+| giao thất bại | bắt buộc lý do; giao lại hoặc hủy và hoàn tiền |
+
+- Tiền mặt người giao thu được tính vào báo cáo và chốt tiền mặt theo người giao.
+- Khách nhận thông báo ở các bước có `isPublic`.
+
+### 19.9. Mặc định cho các câu còn lại
+
+Chủ dự án giao thiết kế tự đặt mặc định. Mọi giá trị dưới đây là cấu hình, chỉnh được về sau. Ba chỗ
+đánh dấu cần người có chuyên môn xác nhận trước mốc ghi trong bảng.
+
+| Câu | Mặc định | Cần xác nhận |
+| --- | --- | --- |
+| 2. Voucher | Phát mã sau khi thanh toán đủ; dùng một lần (hợp với voucher buffet); hạn dùng cấu hình theo sản phẩm; mã chưa dùng hoàn được khi quản lý duyệt | **Kế toán**: ghi doanh thu lúc bán hay lúc dùng, trước khi bật module voucher |
+| 3. Lịch hẹn | Giữ slot 15 phút khi chờ thanh toán; cọc tùy chọn theo dịch vụ (mặc định không cọc); đổi/hủy miễn phí trước 24 giờ | Chủ dự án, khi bật module |
+| 4. Trộn loại hàng | V1 không trộn: mỗi đơn một workflow (`allowMixedProductTypes = false`) | Không |
+| 5. Bật/tắt provider | Quản trị chuỗi qua `settings.manage`, có audit; secret chỉ nằm trong env | Không |
+| 6. Giá trị VAT | `TaxConfig.enabled = false` (mục 19.4) | **Kế toán**: gồm VAT chưa, thuế suất, hóa đơn điện tử, trước khi bật thuế |
+| 7. Khách hàng | V1 chỉ khách vãng lai, lưu snapshot liên hệ; module khách hàng theo số điện thoại về sau | Không |
+| 8 và 12. Lưu dữ liệu | Ledger và snapshot đơn giữ theo thời hạn lưu chứng từ kế toán. Raw payload thanh toán giữ 180 ngày rồi xóa các field cá nhân (tên, số tài khoản của người chuyển), chỉ giữ id, số tiền, thời gian. Log không chứa PII. | **Pháp lý/kế toán**: số năm và số ngày, trước go-live |
+| 9. Ngày kinh doanh | Chốt ngày lúc 04:00 giờ chi nhánh | Không, chỉnh trong Admin |
+| 11. Giảm giá và VAT | Giảm giá áp trên giá niêm yết (đã gồm VAT khi `pricesIncludeTax`), phân bổ xuống line rồi mới tách thuế; hoàn một món dùng số đã phân bổ lúc đặt, không chia lại | Không, quyết định kỹ thuật |
+| 15. Cảnh báo | Ngưỡng ở bảng rule mục 12; người nhận theo vai trò ở 19.2; kênh v1 là email qua SMTP hiện có của app; Zalo/Telegram là `NotificationProvider` về sau | Không, chỉnh trong Admin |
+
+## 20. Catalog thuộc plugin (quyết định 2026-10-10)
+
+Chủ dự án chốt: plugin là plugin bán hàng generic, cài vào nhiều Strapi khác nhau, giống WooCommerce
+với WordPress. Salanca chỉ là một trường hợp dùng; content type của Salanca chỉ là nội dung, không
+phải nguồn dữ liệu bán hàng. Vì vậy **catalog (danh mục, sản phẩm, biến thể, tùy chọn, combo, khung giờ
+bán) là module của plugin**.
+
+Điều này thay cho giả định cũ ở mục 4 và mục 16 rằng catalog nằm ở app và plugin chỉ đọc qua adapter.
+`CatalogAdapter` vẫn giữ làm port: module catalog của plugin là adapter mặc định (`ordering-catalog`).
+Khách nào đã có bảng sản phẩm riêng và muốn giữ thì mới viết adapter khác.
+
+### 20.1. Content type của module catalog
+
+Sửa sau nghiên cứu C19 (2026-10-10). Bản đầu của mục này bật i18n và Draft & Publish, có một bảng
+`catalog-option` chung cho mọi loại tùy chọn và `catalog-component` cho combo. Đã đổi vì: i18n của
+Strapi nhân mọi relation theo ngôn ngữ (giá, biến thể, danh mục sẽ lệch giữa VI/EN); biến thể và tùy
+chọn cộng thêm là hai khái niệm khác nhau; combo cần nhóm chọn có quy tắc.
+
+| Content type | Nội dung chính |
+| --- | --- |
+| `catalog-category` | cây danh mục (`parent`), `name`/`description`/`slug` dạng chữ đa ngôn ngữ, ảnh, `rank`, `isActive`, `isInternal` |
+| `catalog-product` | `productType`, chữ đa ngôn ngữ (tên, mô tả, slug), ảnh, danh mục (nhiều-nhiều), `status` (`draft`/`active`/`archived`), `sellOnline`, `minQuantity`, cách nhận hàng được phép, `taxGroupRef`, `modifierGroups` và `bundleSlots` (JSON, xem dưới), `rank`, `metadata` |
+| `catalog-variant` | thuộc product, SKU unique, tên đa ngôn ngữ, `attributes` (giá trị sinh biến thể, ví dụ `{ size: 'L' }`), `isDefault`, `rank`, `trackInventory`, `inventoryRef` |
+| `catalog-price` | thuộc variant, `amount`, `compareAtAmount`, `currency`, `minQuantity`, `rules` (`locationRef`, `channel`, `customerGroup`…), `priority`, `validFrom`/`validTo`. V1 mỗi variant một giá gốc không điều kiện |
+| `catalog-modifier-group` | thư viện tùy chọn cộng thêm dùng chung: tên đa ngôn ngữ, kiểu chọn (`single`, `multiple`, `quantity`, `text`), min/max mặc định, `rank` |
+| `catalog-modifier` | thuộc group: tên đa ngôn ngữ, giá cộng thêm, `rank`, `trackInventory`, `inventoryRef` |
+| `catalog-availability-window` | khung giờ bán theo giờ địa phương (bữa sáng, bữa trưa…), ngày trong tuần, thời gian hiệu lực; gắn vào danh mục hoặc product |
+| `catalog-location-state` | product, variant hoặc modifier × `locationRef`: có bán ở chi nhánh không, tạm hết đến lúc nào, ai bật |
+
+**Hai field JSON trên product**, sửa ngay trong trang product của Content Manager bằng custom field của
+plugin, validate ở service:
+
+```ts
+type ProductModifierGroup = {             // gắn thư viện vào món, ghi đè theo món (TastyIgniter)
+  groupRef: string;                       // catalog-modifier-group
+  required: boolean;
+  min: number;
+  max: number;
+  freeQuantity: number;
+  rank: number;
+  overrides: Record<string, {             // key: catalog-modifier
+    priceDelta?: number;
+    isDefault?: boolean;
+    hidden?: boolean;
+  }>;
+};
+
+type BundleSlot = {                       // nhóm chọn trong combo (Bagisto bundle)
+  key: string;
+  name: Record<string, string>;           // { vi, en }
+  selection: 'single' | 'multiple';
+  required: boolean;
+  min: number;
+  max: number;
+  rank: number;
+  items: { variantRef: string; quantity: number; isDefault: boolean; priceDelta: number }[];
+};
+```
+
+Quy tắc:
+
+- **Không bật i18n.** Chữ cần dịch dùng custom field `plugin::ordering.localized-text` (kiểu `json`,
+  dạng `{ vi: '...', en: '...' }`), ô nhập hiện một ô cho mỗi ngôn ngữ đang bật trong Strapi. Slug unique
+  theo từng ngôn ngữ được kiểm ở service và bằng index của plugin migration.
+- **Không bật Draft & Publish.** Product dùng `status`; chỉ `active` mới bán được. Đổi giá áp ngay cho
+  quote mới; đơn đã đặt giữ snapshot. Giá theo đợt dùng `validFrom`/`validTo` của `catalog-price`.
+- **Biến thể và tùy chọn cộng thêm tách riêng.** Variant có SKU, giá, tồn kho riêng; modifier chỉ cộng
+  giá vào line, không sinh SKU. Món không có biến thể vẫn có một variant mặc định.
+- **Combo** là product có `bundleSlots`. Combo cố định là mọi slot chỉ có một item. Một item bắt buộc
+  đang tạm hết thì combo hết. Line lưu `componentsSnapshot`.
+- **Chọn giá:** bước 3 của pipeline (mục 6) lấy `catalog-price` khớp ngữ cảnh cụ thể nhất (chi nhánh,
+  kênh, nhóm khách, số lượng, thời điểm), như cách Medusa resolve price rule. V1 chỉ có giá gốc.
+- **Tồn kho đếm số lượng** là module `inventory` về sau (`stock-item`, `stock-level` theo location có
+  `onHand`/`reserved`, sổ `stock-movement`), nối qua `inventoryRef` trên variant và modifier; giữ hàng
+  dùng `hold` của lõi. V1 chỉ có `catalog-location-state` ("tạm hết").
+- **Thuộc tính khai trong Admin** cho ngành bán lẻ (bộ thuộc tính kiểu Bagisto attribute family) là
+  module về sau; v1 `attributes` của variant là JSON tự do.
+- Nhân viên sửa catalog bằng Content Manager có sẵn (đúng `AGENTS.md`). Plugin thêm hai custom field
+  JSON ở trên và màn hình nhanh "tạm hết món" theo chi nhánh; đây là chỗ CRUD sinh sẵn không đủ (sửa
+  lồng nhóm tùy chọn và combo ngay trong trang món).
+- Quyền: action `plugin::ordering.catalog.manage` và `plugin::ordering.catalog.toggle-availability`
+  (nhân viên chi nhánh chỉ bật/tắt "tạm hết" trong scope của mình).
+- Line lưu `categoriesSnapshot`, nên báo cáo theo danh mục không đổi khi đổi tên hay chuyển danh mục.
+- Danh mục còn dùng cho khung giờ bán; về sau dùng cho khuyến mãi theo danh mục và chia món về bếp/bar.
+- Adapter `ordering-catalog` đổi dữ liệu trên thành `Sellable` của mục 4: `modifierGroups` đã áp ghi đè
+  thành `Sellable.options`, `bundleSlots` thành thành phần combo, `catalog-price` đã chọn thành
+  `listPrice`, `catalog-location-state` và khung giờ bán thành `availability`.
+
+### 20.2. API storefront cho catalog
+
+- `GET /ordering/catalog/categories?locale=`
+- `GET /ordering/catalog/products?locale=&category=&location=&cursor=`
+- `GET /ordering/catalog/products/:slug?locale=&location=`
+
+Kết quả đã tính sẵn: giá, tùy chọn, có bán ở chi nhánh không, có trong khung giờ bán không, tạm hết hay
+không. Cả ba route chỉ đọc, chỉ trả bản published và có cache ngắn. Giá cuối cùng vẫn do quote quyết
+định.
+
+### 20.3. App mở rộng catalog
+
+App thêm field riêng (ví dụ cờ "món nổi bật" của Salanca) bằng `src/extensions/ordering/strapi-server.ts`,
+thêm attribute bằng code. Không chép `schema.json`: Strapi 5.51.1 gộp schema mở rộng một cách nông,
+nên khai `attributes` trong `schema.json` sẽ thay toàn bộ attribute của plugin và mất field khi nâng cấp
+plugin (reference C18). Plugin cam kết giữ tên attribute ổn định giữa các bản; đổi tên phải qua
+migration và changelog.
+
+### 20.4. Phạm vi plugin so với WooCommerce
+
+Để không sót nghiệp vụ lõi, bảng dưới so các phần chính của WooCommerce với module của plugin.
+
+| WooCommerce | Plugin `ordering` | Khi nào |
+| --- | --- | --- |
+| Sản phẩm, danh mục, thuộc tính, biến thể | module catalog (mục 20.1) | Mốc 1 |
+| Sản phẩm grouped/bundle | `bundleSlots` trên product (combo có nhóm chọn) | Mốc 1 |
+| Tùy chọn cộng thêm (ở WooCommerce là extension trả phí) | thư viện `catalog-modifier-group` + ghi đè theo món | Mốc 1 |
+| Sản phẩm virtual/downloadable | cờ trên product type, voucher là product type | voucher sau go-live |
+| Tồn kho | v1 chỉ "tạm hết" theo chi nhánh (cả modifier); module `inventory` đếm số lượng, giữ hàng, sổ biến động | sau |
+| Giỏ hàng | v1 giỏ ở client + quote ở server; giỏ lưu ở server (đồng bộ nhiều máy, giỏ bỏ dở) là module sau | sau |
+| Checkout, đơn hàng, trạng thái | lõi order + workflow theo group | Mốc 1 |
+| Cổng thanh toán | `PaymentProvider`: SePay, tiền mặt; VNPAY, MoMo sau | Mốc 1 |
+| Hoàn tiền | refund + refund-line | Mốc 1 |
+| Vùng giao và phương thức giao | `DeliveryZone` + `FulfillmentProvider` | Mốc 2 |
+| Thuế | `TaxConfig` | khi kế toán chốt |
+| Mã giảm giá | `order-adjustment` đã có chỗ; module khuyến mãi | sau |
+| Khách hàng, tài khoản | v1 khách vãng lai; module khách hàng | sau |
+| Email | `NotificationProvider` + template | Mốc 1 |
+| Báo cáo | theo ngày kinh doanh, chi nhánh, danh mục | Mốc 3 |
+| REST/Store API | storefront API (mục 11, 20.2) | Mốc 1 |
+| Webhook ra ngoài | outbox đã có chỗ; module webhook | sau |
+| Cài đặt cửa hàng | config plugin + setting theo chi nhánh | Mốc 1 |
+
+Những thứ WooCommerce không có mà plugin cần cho F&B và dịch vụ: nhiều chi nhánh và scope nhân viên,
+khung giờ bán, lead time, thời điểm trả tiền, ngày kinh doanh qua nửa đêm, đặt lịch hẹn, cảnh báo vận
+hành.
+
+### 20.5. Salanca dùng catalog của plugin
+
+- Món bán online của Salanca nằm trong `catalog-product`, danh mục trong `catalog-category`.
+- ~~Còn mở: số phận của `menu-item`/`menu-category`.~~ **Đã chốt 2026-10-10:** giữ nguyên
+  `menu-item`, `menu-category`, `menu-package` và seed bundle; đó là content của Salanca, có từ trước
+  khi có bán hàng. Không chuyển dữ liệu, không liên kết, không sửa schema. Khi bán online, khách tự
+  nhập sản phẩm vào catalog của plugin; website đọc sản phẩm bán được từ API catalog (mục 20.2).
+  Trang menu hiện tại có tiếp tục đọc content cũ hay chuyển sang catalog là việc của phase frontend.
+  Hệ quả đã chấp nhận: một món có thể có ở cả content và catalog; giá bán online lấy theo catalog.
+- Voucher buffet về sau là `catalog-product` có `productType = voucher`, khách nhập trong catalog
+  plugin; `menu-package` vẫn là content.
 
 ## Nguồn chính
 

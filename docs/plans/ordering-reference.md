@@ -42,6 +42,9 @@ Chỉ dùng để học thiết kế; không chép code từ nguồn GPL.
 | [Action Scheduler](https://github.com/woocommerce/action-scheduler/tree/3a8178faa44f5b6dc2c7e56eb4a0195f80f86c64) | `3a8178f` | GPLv3 | claim, batch, retry, queue runner, cảnh báo việc quá hạn |
 | [TastyIgniter user](https://github.com/tastyigniter/ti-ext-user/tree/3077e34fc9b6ee7a2df3beed79bf5d6171df9fbc) 4.x | `3077e34` | MIT | staff, location được gán, phạm vi đơn |
 | [Odoo](https://github.com/odoo/odoo/tree/8749886bd765b1bf03af9cf423f92c9beaf52a0a/addons/point_of_sale) 18.0 POS | `8749886` | LGPLv3 | ca bán hàng (session), ngày kinh doanh |
+| [Strapi Shopify plugin](https://github.com/strapi-community/shopify/tree/8821013cb081196fc41a740bf6a07b33b5a30fb9) | `8821013` | MIT | cấu trúc plugin Strapi 5, custom field, webhook body gốc, mã hóa secret |
+| [Strapi Open Mercato plugin](https://github.com/VirtusLab-Open-Source/strapi-plugin-open-mercato/tree/ae30c8bc69e0b70bd89844a93ada190034c4ca63) | `ae30c8b` | MIT | setting mã hóa trong plugin store |
+| [Creem Strapi plugin](https://github.com/armitage-labs/creem/tree/cbb07d19b10efdb64399bf924d2cb838da170089/packages/integrations/strapi) | `cbb07d1` | MIT | webhook HMAC, setting trong plugin store |
 
 Không đọc: Orderable (phần nghiệp vụ F&B đã có TastyIgniter thay).
 
@@ -1086,6 +1089,337 @@ Action Scheduler là GPLv3: chỉ học thiết kế, không chép code.
   nhất theo provider, cảnh báo đang mở), vì health check của Strapi không thấy các thứ này.
 - Có thời hạn lưu khác nhau cho việc thành công và việc lỗi (Action Scheduler).
 
+### C17.4. Vùng giao và phí giao
+
+**Các hệ thống làm thế nào**
+
+- **TastyIgniter:** mỗi chi nhánh có các `LocationArea` kiểu polygon, circle hoặc address, kèm
+  `conditions` và `priority` ([LocationArea.php](https://github.com/tastyigniter/ti-ext-local/blob/b8e31850c6168e4195c15f3049944bad354b7e92/src/Models/LocationArea.php)).
+  `CoveredArea` xét các condition theo `priority`, lấy condition đầu tiên khớp với tổng giỏ
+  (`above`, `below`, `all`...). Phí `-1` nghĩa là không giao, phí `0` là miễn phí, và condition còn cho
+  mức đơn tối thiểu. Phí theo khoảng cách được cộng thêm nếu biết vị trí khách
+  ([CoveredArea.php#L21-L87](https://github.com/tastyigniter/ti-ext-local/blob/b8e31850c6168e4195c15f3049944bad354b7e92/src/Classes/CoveredArea.php#L21-L87),
+  [CoveredAreaCondition.php#L54-L75](https://github.com/tastyigniter/ti-ext-local/blob/b8e31850c6168e4195c15f3049944bad354b7e92/src/Classes/CoveredAreaCondition.php#L54-L75)).
+- Contract giao hàng của Medusa, Vendure, WooCommerce và Saleor đã so ở B6: phí và lựa chọn giao do
+  provider/method tính, đơn lưu snapshot địa chỉ và phương thức.
+
+**Best practice**
+
+- Vùng giao gắn với chi nhánh, có thứ tự ưu tiên. Rule phí xét theo thứ tự, rule đầu tiên khớp thắng,
+  có giá trị "không giao" riêng và mức đơn tối thiểu.
+- Khớp vùng theo khoảng cách cần tọa độ, tức cần geocoding. Ở Việt Nam, khớp theo mã xã/phường trong
+  địa chỉ 2 cấp không cần API bản đồ và đủ cho quán tự giao.
+- Phí giao là một khoản của nhóm giao nhận, đi qua cùng pipeline giá, để khuyến mãi miễn phí giao dùng
+  được về sau.
+
+## C18. Catalog và danh mục trong plugin
+
+Bối cảnh: plugin sẽ cài vào nhiều Strapi khác nhau, nên catalog (sản phẩm, danh mục, biến thể, tùy
+chọn) phải thuộc plugin. C12 đã so mô hình sản phẩm; mục này bổ sung danh mục, khung giờ bán và cách app
+mở rộng content type của plugin.
+
+**Các hệ thống làm thế nào**
+
+- **Medusa:** `ProductCategory` là cây (`parent_category`, `category_children`, `mpath`), có `rank`,
+  `is_active`, `is_internal`, `handle` unique, `name`/`description` dịch được, quan hệ nhiều-nhiều với
+  product ([product-category.ts](https://github.com/medusajs/medusa/blob/146c46b0ad1146b40595c8ef586c4d5890982603/packages/modules/product/src/models/product-category.ts)).
+  Ngoài category còn có collection, tag và type riêng
+  ([models](https://github.com/medusajs/medusa/tree/146c46b0ad1146b40595c8ef586c4d5890982603/packages/modules/product/src/models)).
+- **Vendure:** `Collection` là cây (`parent`, `children`, `isRoot`), có `position`, `isPrivate`, bản
+  dịch, ảnh, gắn theo channel. Thành viên của collection có thể tính từ `filters` và kế thừa filter của
+  cha (`inheritFilters`) ([collection.entity.ts](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/core/src/entity/collection/collection.entity.ts)).
+- **TastyIgniter:** `Category` là cây lồng (`NestedTree`), có `priority`, `status`, slug
+  ([Category.php](https://github.com/tastyigniter/ti-ext-cart/blob/99fcb6208031bf20f9df4cda69f861080339ac62/src/Models/Category.php)).
+  `Mealtime` là khung giờ bán (giờ bắt đầu/kết thúc, hiệu lực theo ngày hoặc lặp lại theo thứ)
+  ([Mealtime.php](https://github.com/tastyigniter/ti-ext-cart/blob/99fcb6208031bf20f9df4cda69f861080339ac62/src/Models/Mealtime.php)).
+  Món có `minimum_qty`, `order_restriction` theo cách nhận hàng, gắn location, tồn kho và
+  `isAvailable($datetime)` ([Menu.php](https://github.com/tastyigniter/ti-ext-cart/blob/99fcb6208031bf20f9df4cda69f861080339ac62/src/Models/Menu.php)).
+- **Strapi 5.51.1 (source local):** `applyUserExtension` trong `@strapi/core/dist/loaders/plugins/index.js`
+  đọc `src/extensions/<plugin>/content-types/**/schema.json` và `strapi-server.js`. Schema mở rộng
+  được gộp **nông** (`{ ...schema, ...extendedSchema }`): khai `attributes` trong `schema.json` sẽ thay
+  toàn bộ attribute của plugin. `strapi-server.js` nhận object plugin và trả lại, nên thêm field bằng
+  code được mà không chép cả schema.
+
+**Best practice**
+
+- Danh mục là cây, quan hệ nhiều-nhiều với sản phẩm, có thứ tự (`rank`/`position`), cờ bật và cờ nội
+  bộ, tên dịch được.
+- Khung giờ bán (bữa sáng, bữa trưa) là entity riêng gắn vào danh mục hoặc món, tách khỏi giờ mở cửa
+  của chi nhánh (TastyIgniter `Mealtime`).
+- Món có số lượng tối thiểu, giới hạn theo cách nhận hàng và trạng thái theo chi nhánh.
+- App mở rộng content type của plugin bằng `strapi-server` (thêm field bằng code), không chép
+  `schema.json`, để nâng cấp plugin không mất field của app.
+- Line lưu snapshot danh mục để báo cáo theo danh mục không đổi khi đổi tên hay chuyển danh mục.
+
+## C19. Catalog sâu: tùy chọn, combo, giá, tồn kho, mở rộng theo ngành, cách dựng trên Strapi
+
+Vòng này đọc phần catalog vì từ 2026-10-10 catalog thuộc plugin (contracts mục 20). Bagisto mới clone
+lại ở `3fb8300` (MIT).
+
+### C19.1. Tùy chọn món: biến thể khác với tùy chọn cộng thêm
+
+**Các hệ thống làm thế nào**
+
+- **Medusa, Vendure:** option (`ProductOption`, `ProductOptionGroup`) dùng để **sinh biến thể**: mỗi tổ
+  hợp size × màu là một variant có SKU và giá riêng (C12). Không có tùy chọn cộng thêm kiểu topping
+  trong lõi; Vendure làm việc này bằng custom field trên order line cùng
+  `OrderItemPriceCalculationStrategy`.
+- **WooCommerce:** variation sinh từ attribute; tùy chọn cộng thêm là extension trả phí, không ở lõi.
+- **TastyIgniter** (lõi F&B, 4 bảng):
+  - Thư viện dùng chung: `MenuOption` (tên, `display_type`, `priority`) và `MenuOptionValue` (tên, giá,
+    thứ tự, có thể gắn tồn kho)
+    ([MenuOption.php](https://github.com/tastyigniter/ti-ext-cart/blob/99fcb6208031bf20f9df4cda69f861080339ac62/src/Models/MenuOption.php),
+    [MenuOptionValue.php](https://github.com/tastyigniter/ti-ext-cart/blob/99fcb6208031bf20f9df4cda69f861080339ac62/src/Models/MenuOptionValue.php)).
+  - Gắn vào món: `MenuItemOption` (bắt buộc, `min_selected`, `max_selected`, `free_quantity`, thứ tự)
+    và `MenuItemOptionValue` (`override_price`, `is_default`, `free_quantity`, thứ tự)
+    ([MenuItemOption.php](https://github.com/tastyigniter/ti-ext-cart/blob/99fcb6208031bf20f9df4cda69f861080339ac62/src/Models/MenuItemOption.php),
+    [MenuItemOptionValue.php](https://github.com/tastyigniter/ti-ext-cart/blob/99fcb6208031bf20f9df4cda69f861080339ac62/src/Models/MenuItemOptionValue.php)).
+  - Một nhóm "Topping" khai một lần, mỗi món gắn vào và ghi đè giá, mặc định, min/max riêng.
+- **Bagisto:** `product_customizable_options` (2024) là tùy chọn cộng thêm theo từng sản phẩm, kiểu
+  text/checkbox/radio/select/multiselect/date/file, mỗi lựa chọn có giá
+  ([migration](https://github.com/bagisto/bagisto/blob/3fb8300b6343baefcf57bec5b6a9c188a2177d57/packages/Webkul/Product/src/Database/Migrations/2024_10_11_135010_create_product_customizable_options_table.php),
+  [ProductCustomizableOptionPrice.php](https://github.com/bagisto/bagisto/blob/3fb8300b6343baefcf57bec5b6a9c188a2177d57/packages/Webkul/Product/src/Models/ProductCustomizableOptionPrice.php));
+  không có thư viện dùng chung.
+
+**Best practice**
+
+- Tách hai khái niệm: **thuộc tính sinh biến thể** (size → SKU, giá, tồn kho riêng) và **tùy chọn cộng
+  thêm** (topping, mức cay, ghi chú → cộng giá vào line, không sinh SKU).
+- Tùy chọn cộng thêm dùng thư viện dùng chung + bảng gắn theo sản phẩm có ghi đè (TastyIgniter). Quán có
+  hàng chục món dùng chung nhóm "Topping", sửa giá topping một chỗ.
+- Có kiểu tùy chọn nhập chữ (khắc tên, lời chúc trên bánh) cho ngành khác (Bagisto).
+
+### C19.2. Combo và bundle
+
+**Các hệ thống làm thế nào**
+
+- **Bagisto bundle:** sản phẩm bundle có các `product_bundle_options` (`type` select/radio/checkbox/
+  multiselect, `is_required`, `sort_order`); mỗi option có `product_bundle_option_products` (sản phẩm
+  con, `qty`, `is_user_defined` cho khách đổi số lượng, `is_default`)
+  ([ProductBundleOption.php](https://github.com/bagisto/bagisto/blob/3fb8300b6343baefcf57bec5b6a9c188a2177d57/packages/Webkul/Product/src/Models/ProductBundleOption.php),
+  [ProductBundleOptionProduct.php](https://github.com/bagisto/bagisto/blob/3fb8300b6343baefcf57bec5b6a9c188a2177d57/packages/Webkul/Product/src/Models/ProductBundleOptionProduct.php)).
+  Kiểm tồn kho của bundle bằng tồn của từng sản phẩm con × số lượng
+  ([Bundle.php#L537-L550](https://github.com/bagisto/bagisto/blob/3fb8300b6343baefcf57bec5b6a9c188a2177d57/packages/Webkul/Product/src/Type/Bundle.php#L537-L550)).
+- **Bagisto grouped** và **WooCommerce grouped:** chỉ là danh sách sản phẩm hiển thị chung, khách thêm
+  từng cái vào giỏ như dòng riêng
+  ([ProductGroupedProduct.php](https://github.com/bagisto/bagisto/blob/3fb8300b6343baefcf57bec5b6a9c188a2177d57/packages/Webkul/Product/src/Models/ProductGroupedProduct.php)).
+- **Medusa:** variant liên kết nhiều inventory item với `required_quantity`, nên một SKU combo trừ tồn
+  của nhiều thành phần (C12), nhưng không có lựa chọn của khách trong combo.
+
+**Best practice**
+
+- Combo = sản phẩm có các **nhóm chọn** (chọn 1 món chính, chọn 1 nước), mỗi nhóm có quy tắc chọn
+  (radio/checkbox, bắt buộc, min/max) và danh sách thành phần có số lượng, mặc định, giá chênh khi đổi
+  (Bagisto bundle). Combo cố định là trường hợp mỗi nhóm chỉ có một thành phần.
+- Tồn kho/"tạm hết" của combo tính từ thành phần: một thành phần bắt buộc hết thì combo hết.
+- Line lưu snapshot thành phần đã chọn (`componentsSnapshot`), để bếp thấy đúng món và báo cáo theo món.
+
+### C19.3. Giá theo ngữ cảnh
+
+**Các hệ thống làm thế nào**
+
+- **Medusa pricing:** `PriceSet` gắn với variant, chứa nhiều `Price` (`currency_code`, `amount`,
+  `min_quantity`, `max_quantity`); mỗi price có `PriceRule` (`attribute`, `value`, `operator`,
+  `priority`), ví dụ theo region hay nhóm khách; `PriceList` (sale/override, trạng thái, `starts_at`,
+  `ends_at`) gom giá theo đợt
+  ([price.ts](https://github.com/medusajs/medusa/blob/146c46b0ad1146b40595c8ef586c4d5890982603/packages/modules/pricing/src/models/price.ts),
+  [price-rule.ts](https://github.com/medusajs/medusa/blob/146c46b0ad1146b40595c8ef586c4d5890982603/packages/modules/pricing/src/models/price-rule.ts),
+  [price-list.ts](https://github.com/medusajs/medusa/blob/146c46b0ad1146b40595c8ef586c4d5890982603/packages/modules/pricing/src/models/price-list.ts)).
+- **Vendure:** `ProductVariantPrice` là giá theo channel và currency
+  ([product-variant-price.entity.ts](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/core/src/entity/product-variant/product-variant-price.entity.ts));
+  `ProductVariantPriceSelectionStrategy` chọn giá, `ProductVariantPriceCalculationStrategy` tính giá
+  ([config/catalog](https://github.com/vendure-ecommerce/vendure/tree/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/core/src/config/catalog)).
+- **Saleor:** `ProductVariantChannelListing` giữ `price_amount`, `cost_price_amount`,
+  `prior_price_amount`, `discounted_price_amount` theo channel
+  ([product/models.py#L485-L510](https://github.com/saleor/saleor/blob/782a751f622c4a047798ce7084b7c66c0877ec6f/saleor/product/models.py#L485-L510)).
+- **Bagisto:** `product_customer_group_prices` (nhóm khách, `qty`, `value_type` cố định hoặc giảm %,
+  `value`) ([ProductCustomerGroupPrice.php](https://github.com/bagisto/bagisto/blob/3fb8300b6343baefcf57bec5b6a9c188a2177d57/packages/Webkul/Product/src/Models/ProductCustomerGroupPrice.php)).
+
+**Best practice**
+
+- Giá không phải một cột duy nhất mà là danh sách bản ghi giá có điều kiện (chi nhánh, kênh, nhóm khách,
+  số lượng tối thiểu, khoảng thời gian). Bộ chọn giá lấy bản ghi cụ thể nhất khớp ngữ cảnh (Medusa).
+- V1 chỉ cần giá gốc, nhưng bảng giá nên là bảng riêng ngay từ đầu, để thêm giá theo chi nhánh, giờ vàng
+  hay nhóm khách sau này không phải đổi schema.
+- Lưu giá gốc và giá trước khi giảm (Saleor `prior_price`) để hiển thị giá gạch.
+
+### C19.4. Tồn kho
+
+**Các hệ thống làm thế nào**
+
+- **Medusa inventory:** `InventoryItem` là hàng vật lý (SKU, kích thước, `requires_shipping`), tách khỏi
+  variant; `InventoryLevel` theo location có `stocked_quantity`, `reserved_quantity`,
+  `incoming_quantity`, `available_quantity` tính ra; `ReservationItem` giữ hàng cho line theo location,
+  có `allow_backorder`
+  ([inventory models](https://github.com/medusajs/medusa/tree/146c46b0ad1146b40595c8ef586c4d5890982603/packages/modules/inventory/src/models)).
+- **Vendure:** `StockLevel` (`stockOnHand`, `stockAllocated`) theo variant × location; `StockMovement`
+  là sổ với các loại Allocation, Sale, Release, Cancellation, StockAdjustment; variant có
+  `trackInventory`, `outOfStockThreshold`; `StockLocationStrategy` chọn kho, `StockDisplayStrategy`
+  quyết định khách thấy số lượng hay chỉ "còn/hết"
+  ([stock-level.entity.ts](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/core/src/entity/stock-level/stock-level.entity.ts),
+  [stock-movement](https://github.com/vendure-ecommerce/vendure/tree/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/core/src/entity/stock-movement)).
+- **WooCommerce (GPL):** bảng `wc_reserved_stock` (order, product, số lượng, `expires`); giữ tồn khi
+  checkout (mặc định 60 phút trong `reserve_stock_for_order`), chỉ tính bản ghi chưa hết hạn
+  ([ReserveStock.php](https://github.com/woocommerce/woocommerce/blob/5fb08bdc3cd394aa3748f1e74e46bf0681e85183/plugins/woocommerce/src/Checkout/Helpers/ReserveStock.php)).
+- **TastyIgniter:** `Stock` đa hình (`stockable_type`: món **hoặc giá trị tùy chọn**) theo location, có
+  `is_tracked`, `low_stock_alert`, `low_stock_threshold`; `StockHistory` là sổ biến động
+  ([Stock.php](https://github.com/tastyigniter/ti-ext-cart/blob/99fcb6208031bf20f9df4cda69f861080339ac62/src/Models/Stock.php)).
+- **Bagisto:** tồn theo nguồn hàng (`product_inventories`), số đã đặt theo channel
+  (`product_ordered_inventories`), số bán được = tồn − đã đặt
+  ([ProductInventory.php](https://github.com/bagisto/bagisto/blob/3fb8300b6343baefcf57bec5b6a9c188a2177d57/packages/Webkul/Product/src/Models/ProductInventory.php),
+  [ProductOrderedInventory.php](https://github.com/bagisto/bagisto/blob/3fb8300b6343baefcf57bec5b6a9c188a2177d57/packages/Webkul/Product/src/Models/ProductOrderedInventory.php)).
+
+**Best practice**
+
+- Tồn kho là module riêng, cắm vào catalog qua tham chiếu (`inventoryRef`), không phải cột `qty` trên
+  sản phẩm. Theo dõi tồn là cờ bật/tắt theo từng mục (`trackInventory`/`is_tracked`).
+- Số lượng theo location gồm có sẵn, đã giữ, sắp về; số bán được tính ra. Mọi thay đổi ghi vào sổ biến
+  động (Vendure, TastyIgniter).
+- Giữ hàng có thời hạn (WooCommerce `expires`), khớp với `hold` của lõi.
+- F&B cần theo dõi tồn cả tùy chọn (hết trân châu) và có cảnh báo sắp hết (TastyIgniter).
+- Hiển thị cho khách là chiến lược riêng: số lượng hay chỉ "còn/hết" (Vendure).
+
+### C19.5. Mở rộng theo ngành: loại sản phẩm và field riêng
+
+**Các hệ thống làm thế nào**
+
+- **Vendure custom fields:** khai trong config, theo entity, các kiểu `string`, `localeString`, `text`,
+  `localeText`, `int`, `float`, `boolean`, `datetime`, `relation`, `struct`; lưu thành cột thật nên
+  cần migration
+  ([custom-field-types.ts](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/core/src/config/custom-field/custom-field-types.ts)).
+- **Bagisto:** EAV với `Attribute`, `AttributeFamily`, `AttributeGroup`, `AttributeOption`; giá trị lưu
+  ở `product_attribute_values` theo `locale` và `channel`; mỗi loại sản phẩm là một class `Type`
+  ([Attribute models](https://github.com/bagisto/bagisto/tree/3fb8300b6343baefcf57bec5b6a9c188a2177d57/packages/Webkul/Attribute/src/Models),
+  [ProductAttributeValue.php](https://github.com/bagisto/bagisto/blob/3fb8300b6343baefcf57bec5b6a9c188a2177d57/packages/Webkul/Product/src/Models/ProductAttributeValue.php)).
+- **Strapi:** app thêm field bằng extension `strapi-server` (C18); plugin đăng ký được custom field
+  kiểu `json`, `string`, `integer`... (`@strapi/core/dist/registries/custom-fields.js`, danh sách
+  `ALLOWED_TYPES`).
+
+**Best practice**
+
+- Hai tầng mở rộng: dev thêm field bằng code (Vendure custom field, Strapi extension); người quản trị
+  khai thuộc tính theo bộ thuộc tính/loại sản phẩm (Bagisto attribute family) cho ngành bán lẻ nhiều
+  thuộc tính.
+- Hành vi theo loại sản phẩm nằm trong registry có code (Bagisto `Type`, `ProductTypeDefinition` của
+  lõi), không suy ra từ dữ liệu.
+- EAV linh hoạt nhưng truy vấn chậm và khó ràng buộc; chỉ dùng cho thuộc tính mô tả/lọc, không dùng cho
+  giá, tồn kho hay quan hệ.
+
+### C19.6. Dựng catalog trên Strapi 5.51.1
+
+Đọc source local:
+
+- **i18n coi mọi quan hệ là dữ liệu theo từng ngôn ngữ.** `isLocalizedAttribute` trả `true` cho field có
+  `localized`, cho **mọi relation** và cho `uid`
+  (`@strapi/i18n/dist/server/services/content-types.js`). Field thường có `localized: false` thì được
+  chép sang các ngôn ngữ khác (`copyNonLocalizedAttributes`, `fillNonLocalizedAttributes`), nhưng
+  relation thì không. Nếu sản phẩm bật i18n, quan hệ tới danh mục, biến thể, tùy chọn phải nối riêng ở
+  từng ngôn ngữ và dễ lệch giữa VI/EN. `docs/cms-content-model.md` của Salanca đã gặp giới hạn cùng loại
+  (field kỹ thuật trong component localized không tự đồng bộ).
+- **Plugin không nạp được component theo đường chuẩn.** Loader component chỉ đọc
+  `strapi.dirs.dist.components` của app (`@strapi/core/dist/loaders/components.js`); loader plugin không
+  có bước nạp component. Thêm component từ `register()` của plugin không có tài liệu: **Chưa kiểm**.
+- **Plugin đăng ký được custom field** (registry custom field, kiểu cho phép gồm `json`), kèm ô nhập
+  riêng trong Admin.
+
+**Best practice cho plugin**
+
+- Dữ liệu thương mại (giá, SKU, quan hệ, tồn kho) không được nhân theo ngôn ngữ. Content type catalog
+  để không bật i18n; chữ cần dịch (tên, mô tả, slug) lưu trong custom field kiểu `json`
+  `{ vi, en, ... }` có ô nhập theo từng ngôn ngữ. Cách này giống bảng translation của Vendure và field
+  `translatable()` của Medusa: một bản ghi, nhiều bản dịch.
+- Không dựa vào component cho cấu trúc lồng của plugin; dùng content type + relation, hoặc custom field
+  `json` có validate ở service.
+- Trạng thái sản phẩm dùng field `status` (nháp/đang bán/lưu trữ) như Medusa và cờ `enabled` của
+  Vendure, thay vì Draft & Publish của Strapi. Draft & Publish nhân bản ghi thành bản nháp và bản đã
+  đăng; với nhiều content type có quan hệ, việc đăng phải theo thứ tự (**Chưa kiểm** bằng fixture).
+  Snapshot trên line đã bảo vệ đơn cũ khi giá đổi.
+
+## C20. Các plugin thương mại có sẵn trên Strapi 5
+
+Tìm trên Strapi Marketplace và npm (2026-10-10). Chưa có plugin Strapi 5 nào làm trọn catalog + đơn +
+thanh toán ở mức production. Đã đọc 4 plugin Strapi 5, giấy phép MIT:
+
+| Plugin | Commit | Làm gì |
+| --- | --- | --- |
+| [`@strapi-community/shopify`](https://github.com/strapi-community/shopify/tree/8821013cb081196fc41a740bf6a07b33b5a30fb9) | `8821013` | custom field "Shopify product", webhook, đồng bộ sản phẩm |
+| [`@sensinum/strapi-plugin-open-mercato`](https://github.com/VirtusLab-Open-Source/strapi-plugin-open-mercato/tree/ae30c8bc69e0b70bd89844a93ada190034c4ca63) | `ae30c8b` | cùng khung với plugin Shopify, nối Open Mercato |
+| [`@creem_io/strapi`](https://github.com/armitage-labs/creem/tree/cbb07d19b10efdb64399bf924d2cb838da170089/packages/integrations/strapi) | `cbb07d1` | sản phẩm, checkout và webhook của Creem trong Admin |
+| [WebbyCommerce](https://github.com/webbycrown/webbycommerce/tree/27451514df7b9167df1a3d0a8f92c2c45f62a5de) | `2745151` | bộ thương mại đầy đủ kiểu WooCommerce (đã chấm ở A12) |
+
+Các plugin cho Strapi 4 (`strapi-plugin-payments`, `strapi-stripe`, `@dbbs/strapi-stripe-payment`)
+không đọc sâu vì khác đời Strapi và lâu không cập nhật.
+
+**Cách các plugin làm**
+
+- **Đóng gói:** plugin Shopify build bằng `@strapi/sdk-plugin` (`strapi-plugin build`, `verify`,
+  `watch:link`), TypeScript cho cả server và admin, test bằng Jest
+  ([package.json](https://github.com/strapi-community/shopify/blob/8821013cb081196fc41a740bf6a07b33b5a30fb9/package.json)).
+- **Config:** `default` + `validator` dùng zod `safeParse`, ném lỗi gom mọi issue
+  ([config/index.ts](https://github.com/strapi-community/shopify/blob/8821013cb081196fc41a740bf6a07b33b5a30fb9/server/src/config/index.ts),
+  [config/schema.ts](https://github.com/strapi-community/shopify/blob/8821013cb081196fc41a740bf6a07b33b5a30fb9/server/src/config/schema.ts)).
+  Khớp với cách Strapi nạp config ở C11.
+- **Content type nội bộ:** `collectionName` có tiền tố `plugins_shopify_`, `draftAndPublish: false`, ẩn
+  khỏi cả Content Manager lẫn Content-Type Builder (`content-manager.visible: false`,
+  `content-type-builder.visible: false`)
+  ([shops/schema.ts](https://github.com/strapi-community/shopify/blob/8821013cb081196fc41a740bf6a07b33b5a30fb9/server/src/content-types/shops/schema.ts)).
+- **Secret do admin nhập:** khóa API của shop lưu trong DB dạng mã hóa AES-256-CBC với
+  `encryptionKey` 32 ký tự từ config
+  ([utils/encrypt.ts](https://github.com/strapi-community/shopify/blob/8821013cb081196fc41a740bf6a07b33b5a30fb9/server/src/utils/encrypt.ts)).
+  Open Mercato mã hóa cả cấu hình rồi lưu bằng `strapi.store({ type: 'plugin' })`; Creem lưu setting
+  bằng `strapi.store` nhưng secret webhook lấy từ env.
+- **Custom field từ plugin:** `strapi.customFields.register({ name: 'product', plugin, type: 'json' })`
+  trong `register()`. App đặt field này vào content type của mình; một Document Service middleware
+  (`strapi.documents.use`) gắn dữ liệu sản phẩm vào kết quả `findOne`/`findMany` của các content type
+  có field đó ([register.ts](https://github.com/strapi-community/shopify/blob/8821013cb081196fc41a740bf6a07b33b5a30fb9/server/src/register.ts)).
+  Đây là cách nối content của app với sản phẩm của plugin mà plugin không cần biết content type của app.
+- **Quyền:** đăng ký action bằng `strapi.admin.services.permission.actionProvider.registerMany` trong
+  bootstrap ([permissions.ts](https://github.com/strapi-community/shopify/blob/8821013cb081196fc41a740bf6a07b33b5a30fb9/server/src/permissions.ts)).
+- **Webhook và body gốc:**
+  - Plugin Shopify đọc `ctx.request.body[UNPARSED]` (`koa-body/lib/unparsed`) để kiểm HMAC bằng SDK của
+    Shopify; README yêu cầu app bật `includeUnparsed: true` cho `strapi::body`
+    ([webhook.validator.ts](https://github.com/strapi-community/shopify/blob/8821013cb081196fc41a740bf6a07b33b5a30fb9/server/src/validators/webhook.validator.ts),
+    [README](https://github.com/strapi-community/shopify/blob/8821013cb081196fc41a740bf6a07b33b5a30fb9/README.md)).
+    Controller gọi service xử lý mà **không `await`** và luôn trả `{}`, nên lỗi xử lý bị mất
+    ([webhook.controller.ts](https://github.com/strapi-community/shopify/blob/8821013cb081196fc41a740bf6a07b33b5a30fb9/server/src/controllers/webhook.controller.ts)).
+  - Creem so chữ ký bằng `crypto.timingSafeEqual`, nhưng khi không có body gốc thì **dùng
+    `JSON.stringify(ctx.request.body)` thay thế**; chuyển tiếp event sang URL khác ngay trong request
+    webhook với timeout 10 giây
+    ([creem-controller.ts#L280-L320](https://github.com/armitage-labs/creem/blob/cbb07d19b10efdb64399bf924d2cb838da170089/packages/integrations/strapi/server/src/controllers/creem-controller.ts#L280-L320)).
+- **WebbyCommerce:**
+  - Lúc bootstrap, plugin **ghi file schema** content type và component vào `src/api` và
+    `src/components` của app rồi yêu cầu khởi động lại
+    ([bootstrap.js](https://github.com/webbycrown/webbycommerce/blob/27451514df7b9167df1a3d0a8f92c2c45f62a5de/server/src/bootstrap.js),
+    khoảng dòng 196–410 và 3070–3160). Đây là cách lách việc plugin không nạp được component (C19.6).
+  - Product và variation có `price`/`sale_price` kiểu `decimal`, `stock_quantity` nằm ngay trên sản
+    phẩm; danh mục không có cây; product bật Draft & Publish
+    ([product/schema.json](https://github.com/webbycrown/webbycommerce/blob/27451514df7b9167df1a3d0a8f92c2c45f62a5de/server/src/content-types/product/schema.json)).
+  - Thư viện thuộc tính dùng chung (`product-attribute` có `type`, `is_variation`, `is_visible`,
+    `is_filterable`; `product-attribute-value` có `color_hex`), variation trỏ tới giá trị thuộc tính
+    ([product-attribute/schema.json](https://github.com/webbycrown/webbycommerce/blob/27451514df7b9167df1a3d0a8f92c2c45f62a5de/server/src/content-types/product-attribute/schema.json)).
+  - Coupon đếm lượt dùng bằng cột `used_count`
+    ([coupon/schema.json](https://github.com/webbycrown/webbycommerce/blob/27451514df7b9167df1a3d0a8f92c2c45f62a5de/server/src/content-types/coupon/schema.json)).
+
+**Best practice**
+
+- Build bằng `@strapi/sdk-plugin`, TypeScript, validate config bằng schema (zod) và gom lỗi.
+- Bảng nội bộ có tiền tố tên bảng của plugin, tắt Draft & Publish, ẩn khỏi Content Manager. Mọi content
+  type của plugin, kể cả catalog đang hiện ở Content Manager, phải ẩn khỏi **Content-Type Builder** để
+  admin không sửa được schema của plugin.
+- Không bao giờ ghi file vào thư mục của app lúc chạy (WebbyCommerce): container production thường chỉ
+  đọc, và schema của plugin phải đi theo phiên bản plugin.
+- Secret do admin nhập thì mã hóa khi lưu bằng khóa từ env; nên dùng chế độ có xác thực (AES-256-GCM)
+  thay vì CBC không có MAC. Secret trong env vẫn là cách ưu tiên.
+- Webhook: kiểm chữ ký trên body gốc, so bằng `timingSafeEqual`. Không có body gốc thì từ chối, **không
+  serialize lại JSON** (Creem). Không gọi tiếp ra ngoài trong request webhook, không gọi service mà
+  không `await` (Shopify); ghi event bền vững rồi xử lý qua outbox.
+- Nối content của app với sản phẩm của plugin bằng custom field + Document Service middleware (Shopify)
+  khi app muốn; không bắt buộc.
+- Tiền là số nguyên, không dùng `decimal`. Tồn kho tách khỏi sản phẩm. Lượt dùng coupon phải có khóa
+  hoặc bản ghi lượt dùng riêng, không chỉ tăng một cột.
+- Thư viện thuộc tính có cờ "sinh biến thể / hiện cho khách / dùng để lọc" (WebbyCommerce, WooCommerce)
+  là mẫu tốt cho module thuộc tính bán lẻ về sau.
+
 ---
 
 ## Phụ lục: Đã đọc
@@ -1184,6 +1518,28 @@ Các file source đã đọc được dẫn trực tiếp trong Phần A và Ph�
   gộp theo key và cửa sổ thời gian, ngưỡng critical, giới hạn số bản ghi.
 - Vendure `job.ts`, `health-check.controller.ts`; Strapi local `services/server/index.js`: retry/trạng
   thái job, health check theo strategy; `/_health` của Strapi chỉ báo process còn sống.
+
+### Sau review vòng 4 (C18–C20)
+
+- Medusa `product-category.ts`, pricing (`price.ts`, `price-rule.ts`, `price-list.ts`), inventory
+  (`inventory-item.ts`, `inventory-level.ts`, `reservation-item.ts`): danh mục dạng cây, giá theo quy tắc,
+  tồn theo location tách khỏi variant.
+- Vendure `collection.entity.ts`, `product-variant-price.entity.ts`, `stock-level.entity.ts`,
+  `stock-movement/*`, `config/catalog/*`, `custom-field-types.ts`: collection dạng cây có filter, giá theo
+  channel, sổ biến động tồn, các strategy chọn giá/kho/hiển thị tồn, custom field theo config.
+- Saleor `product/models.py`: giá theo channel kèm giá vốn và giá trước giảm.
+- TastyIgniter `Category.php`, `Mealtime.php`, `Menu.php`, `MenuOption*.php`, `MenuItemOption*.php`,
+  `Stock.php`: danh mục cây, khung giờ bán, thư viện tùy chọn + ghi đè theo món, tồn đa hình theo location.
+- Bagisto `ProductBundleOption*.php`, `Type/Bundle.php`, `ProductCustomizableOption*`,
+  `ProductCustomerGroupPrice.php`, `ProductInventory.php`, `ProductOrderedInventory.php`, Attribute models:
+  combo có nhóm chọn, tùy chọn cộng thêm theo sản phẩm, giá theo nhóm khách, tồn theo nguồn hàng, EAV.
+- WooCommerce `ReserveStock.php`: giữ tồn có hạn khi checkout.
+- Strapi local `@strapi/i18n/dist/server/services/content-types.js`, `@strapi/core/dist/loaders/components.js`,
+  `registries/custom-fields.js`, `loaders/plugins/index.js` (`applyUserExtension`): relation luôn theo
+  ngôn ngữ, plugin không nạp component, custom field của plugin, gộp schema mở rộng nông.
+- Plugin Strapi 5: Shopify (`register.ts`, `config/*`, `shops/schema.ts`, `encrypt.ts`,
+  `webhook.validator.ts`, `webhook.controller.ts`, `permissions.ts`), Open Mercato (`admin.service.ts`),
+  Creem (`creem-controller.ts`), WebbyCommerce (`bootstrap.js`, schema product/attribute/coupon).
 
 ### Chưa kiểm được
 
