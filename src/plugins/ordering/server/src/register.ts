@@ -1,5 +1,12 @@
 import type { Core } from '@strapi/strapi';
 
+import type { OrderingConfig } from './config';
+import { testFoodProductType } from './domain/product-types/test-food';
+import { testServiceProductType } from './domain/product-types/test-service';
+import { builtinWorkflows } from './domain/workflow/definitions';
+import { createOrderingCatalogStubAdapter } from './providers/ordering-catalog-stub';
+import { createTestCatalogAdapter } from './providers/test-catalog';
+import { createTestPaymentProvider } from './providers/test-payment';
 import type { OrderingRegistry } from './services/registry';
 
 /** Admin actions of contracts §19.2, registered under the plugin section. */
@@ -21,8 +28,21 @@ const adminActions = [
 ];
 
 const register = ({ strapi }: { strapi: Core.Strapi }) => {
+  const config = strapi.config.get('plugin::ordering') as OrderingConfig;
   const registry = strapi.plugin('ordering').service('registry') as OrderingRegistry;
-  registry.registerCatalogAdapter({ code: 'ordering-catalog' });
+
+  registry.registerCatalogAdapter(createOrderingCatalogStubAdapter());
+  for (const workflow of builtinWorkflows) {
+    registry.registerWorkflow(workflow);
+  }
+  if (config.testing.builtins) {
+    registry.registerCatalogAdapter(createTestCatalogAdapter());
+    registry.registerProductType(testFoodProductType);
+    registry.registerProductType(testServiceProductType);
+    registry.registerPaymentProvider(createTestPaymentProvider());
+    registry.registerOutboxConsumer('test.ping', async () => {});
+  }
+
   strapi.customFields.register({ name: 'localized-text', plugin: 'ordering', type: 'json' });
   strapi.admin.services.permission.actionProvider.registerMany(
     adminActions.map((action) => ({
