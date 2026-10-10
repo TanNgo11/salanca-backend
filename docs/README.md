@@ -22,6 +22,7 @@ Start with [`STATUS.md`](STATUS.md). The roadmap describes intended direction; i
 | What is the full delivery sequence? | [`strapi-backend-roadmap.md`](strapi-backend-roadmap.md) |
 | What BE pattern-lift plan (from Nhà Thật) governs Phase 0/4–7? | [`plans/be-pattern-lift-plan.md`](plans/be-pattern-lift-plan.md) |
 | What must an editor do in Admin? | [`cms-editor-guide.md`](cms-editor-guide.md) |
+| How does staff enter the ordering catalog? | [`ordering-catalog-guide.md`](ordering-catalog-guide.md) |
 | What did the initial bootstrap verify? | [`bootstrap-report.md`](bootstrap-report.md) |
 | What evidence exists for Phase 2? | [`phase-02-verification.md`](phase-02-verification.md) |
 | What evidence exists for Phase 3? | [`phase-03-verification.md`](phase-03-verification.md) |
