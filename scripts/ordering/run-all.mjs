@@ -17,6 +17,7 @@ const scripts = [
   'outbox-two-process.mjs',
   'jobs.mjs',
   'scope.mjs',
+  'catalog-slug.mjs',
   'review-additions.mjs',
 ];
 

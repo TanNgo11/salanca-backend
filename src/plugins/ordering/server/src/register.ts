@@ -1,6 +1,12 @@
 import type { Core } from '@strapi/strapi';
 
 import type { OrderingConfig } from './config';
+import {
+  LOCALIZED_TEXT_MAX_DESCRIPTION,
+  LOCALIZED_TEXT_MAX_NAME,
+  LOCALIZED_TEXT_MAX_SLUG,
+  validateLocalizedText,
+} from './domain/catalog/localized-text';
 import { OrderingError } from './domain/errors';
 import { testFoodProductType } from './domain/product-types/test-food';
 import { testServiceProductType } from './domain/product-types/test-service';
@@ -8,7 +14,16 @@ import { builtinWorkflows } from './domain/workflow/definitions';
 import { createOrderingCatalogStubAdapter } from './providers/ordering-catalog-stub';
 import { createTestCatalogAdapter } from './providers/test-catalog';
 import { createTestPaymentProvider } from './providers/test-payment';
+import type catalogSlugFactory from './services/catalog-slug';
 import type { OrderingRegistry } from './services/registry';
+
+type CatalogSlugService = ReturnType<typeof catalogSlugFactory>;
+
+/** UIDs that carry per-locale slug rows in `catalog-slug` (contracts §20.1). */
+const SLUGGED_UIDS = {
+  'plugin::ordering.catalog-category': 'catalog-category',
+  'plugin::ordering.catalog-product': 'catalog-product',
+} as const;
 
 /** Admin actions of contracts §19.2, registered under the plugin section. */
 const adminActions = [
@@ -91,6 +106,104 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
     return next();
   };
   strapi.documents.use(branchImmutability);
+
+  // Catalog integrity (plan steps 2–3): every localized-text attribute on a plugin UID is
+  // validated against the app's enabled locales, and category/product writes reconcile their
+  // per-locale `catalog-slug` rows in the same transaction (released on delete). db.query
+  // bypass is a documented boundary, same as branch code immutability.
+  const slugService = () =>
+    strapi.plugin('ordering').service('catalog-slug') as CatalogSlugService;
+  const enabledLocales = async (): Promise<string[]> => {
+    try {
+      const rows = (await strapi.plugin('i18n').service('locales').find()) as {
+        code: string;
+      }[];
+      return rows.length > 0 ? rows.map((row) => row.code) : ['vi', 'en'];
+    } catch {
+      return ['vi', 'en'];
+    }
+  };
+  const localizedMax = (field: string): number =>
+    field === 'description'
+      ? LOCALIZED_TEXT_MAX_DESCRIPTION
+      : field === 'slug'
+        ? LOCALIZED_TEXT_MAX_SLUG
+        : LOCALIZED_TEXT_MAX_NAME;
+
+  const catalogIntegrity: DocumentsMiddleware = async (context, next) => {
+    if (!context.uid.startsWith('plugin::ordering.')) return next();
+    const entityType = SLUGGED_UIDS[context.uid as keyof typeof SLUGGED_UIDS];
+    const params = context.params as
+      | { documentId?: string; data?: Record<string, unknown> }
+      | undefined;
+
+    if (context.action === 'create' || context.action === 'update') {
+      const attributes = context.contentType.attributes as Record<
+        string,
+        { customField?: string; required?: boolean }
+      >;
+      const localizedFields = Object.entries(attributes).filter(
+        ([, attribute]) => attribute.customField === 'plugin::ordering.localized-text',
+      );
+      if (localizedFields.length > 0 && params?.data) {
+        const locales = await enabledLocales();
+        for (const [field, attribute] of localizedFields) {
+          if (!(field in params.data)) continue;
+          const result = validateLocalizedText(params.data[field], {
+            enabledLocales: locales,
+            maxLength: localizedMax(field),
+            required: attribute.required === true,
+            field,
+          });
+          if (!result.valid) {
+            throw new OrderingError('VALIDATION_ERROR', result.message, {
+              details: result.details,
+            });
+          }
+        }
+      }
+      if (!entityType) return next();
+      // Merge name/slug with the stored row so a name-only edit regenerates the slug and a
+      // slug-only edit keeps the current name.
+      const merged = { name: params?.data?.name, slug: params?.data?.slug };
+      if (
+        context.action === 'update' &&
+        params?.documentId &&
+        (merged.name === undefined || merged.slug === undefined)
+      ) {
+        const current = (await strapi.db.query(context.uid).findOne({
+          where: { documentId: params.documentId },
+        })) as { name?: unknown; slug?: unknown } | null;
+        merged.name = merged.name === undefined ? current?.name : merged.name;
+        merged.slug = merged.slug === undefined ? current?.slug : merged.slug;
+      }
+      return strapi.db.transaction(async () => {
+        const result = await next();
+        const documentId =
+          (result as { documentId?: string } | null | undefined)?.documentId ??
+          params?.documentId;
+        if (documentId) {
+          await slugService().sync({
+            entityType,
+            entityDocumentId: documentId,
+            name: merged.name,
+            slug: merged.slug,
+          });
+        }
+        return result;
+      });
+    }
+    if (context.action === 'delete' && entityType && params?.documentId) {
+      return strapi.db.transaction(async () => {
+        const result = await next();
+        await slugService().release(entityType, params.documentId as string);
+        return result;
+      });
+    }
+    return next();
+  };
+  strapi.documents.use(catalogIntegrity);
+
   strapi.admin.services.permission.actionProvider.registerMany(
     adminActions.map((action) => ({
       section: 'plugins',
