@@ -19,6 +19,7 @@ const scripts = [
   'scope.mjs',
   'catalog-slug.mjs',
   'catalog-json.mjs',
+  'catalog-adapter.mjs',
   'review-additions.mjs',
 ];
 

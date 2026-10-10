@@ -14,10 +14,11 @@ import {
   validateModifierGroups,
 } from './domain/catalog/modifier-groups';
 import { OrderingError } from './domain/errors';
+import { foodProductType } from './domain/product-types/food';
 import { testFoodProductType } from './domain/product-types/test-food';
 import { testServiceProductType } from './domain/product-types/test-service';
 import { builtinWorkflows } from './domain/workflow/definitions';
-import { createOrderingCatalogStubAdapter } from './providers/ordering-catalog-stub';
+import { createOrderingCatalogAdapter } from './providers/ordering-catalog/adapter';
 import { createTestCatalogAdapter } from './providers/test-catalog';
 import { createTestPaymentProvider } from './providers/test-payment';
 import type catalogSlugFactory from './services/catalog-slug';
@@ -53,7 +54,8 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
   const config = strapi.config.get('plugin::ordering') as OrderingConfig;
   const registry = strapi.plugin('ordering').service('registry') as OrderingRegistry;
 
-  registry.registerCatalogAdapter(createOrderingCatalogStubAdapter());
+  registry.registerCatalogAdapter(createOrderingCatalogAdapter({ strapi }));
+  registry.registerProductType(foodProductType);
   for (const workflow of builtinWorkflows) {
     registry.registerWorkflow(workflow);
   }

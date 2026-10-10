@@ -29,8 +29,12 @@ export type AvailabilityInput = {
   /** Union of product windows and every ancestor category window. Empty = no time limit. */
   windows?: SellingWindow[];
   nowLocal?: Date;
+  /** Branch IANA timezone — callers re-derive `nowLocal` from it when the verdict ages. */
+  timezone?: string;
   /** Bundle flag: every item of every required slot must be available for the combo to sell. */
   allRequiredComponentsAvailable?: boolean;
+  /** False when any ancestor category is inactive — the whole subtree stops selling. */
+  categoryActive?: boolean;
 };
 
 export type AvailabilityVerdict = {
@@ -124,6 +128,9 @@ export function evaluateAvailability(input: AvailabilityInput): AvailabilityVerd
   }
   if (input.allRequiredComponentsAvailable === false) {
     reasons.push('component-unavailable');
+  }
+  if (input.categoryActive === false) {
+    reasons.push('category-inactive');
   }
   return {
     purchasable: reasons.length === 0,

@@ -11,6 +11,7 @@ import type {
   Sellable,
 } from '../contracts';
 import { businessDate } from '../domain/business-date';
+import { bundleComponentsFromSellable } from '../domain/catalog/bundle-components';
 import { OrderingError } from '../domain/errors';
 import { sha256Hex } from '../domain/hashing';
 import { amountFromDb, sumAmounts } from '../domain/money';
@@ -445,7 +446,10 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
                 descriptionSnapshot: line.sellable.description ?? null,
                 imageUrlSnapshot: line.sellable.imageUrl ?? null,
                 selectedOptionsSnapshot: input.lines[index].selected ?? [],
-                componentsSnapshot: null,
+                componentsSnapshot: bundleComponentsFromSellable(
+                  line.sellable,
+                  input.lines[index].selected ?? [],
+                ),
                 categoriesSnapshot: line.sellable.categories,
                 taxSnapshot: pricedLine.taxSnapshot,
                 note: input.lines[index].note ?? null,
