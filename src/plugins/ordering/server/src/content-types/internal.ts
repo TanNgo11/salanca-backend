@@ -7,6 +7,7 @@ const plurals: Record<string, string> = {
   branch: 'branches',
   hold: 'holds',
   outbox: 'outboxes',
+  'catalog-category': 'catalog-categories',
 };
 
 export const collection = (
@@ -28,4 +29,22 @@ export const collection = (
     i18n: { localized: false },
   },
   attributes,
+});
+
+/**
+ * Catalog content types (contracts §20.1) staff edit in Content Manager. Same conventions as
+ * `collection` — no i18n, no Draft & Publish, hidden from Content-Type Builder — but visible in
+ * Content Manager unless `hideFromContentManager` (catalog-slug, catalog-location-state).
+ */
+export const catalogCollection = (
+  name: string,
+  attributes: Record<string, unknown>,
+  options: { displayName: string; hideFromContentManager?: boolean },
+) => ({
+  ...collection(name, attributes, options),
+  pluginOptions: {
+    'content-manager': { visible: !options.hideFromContentManager },
+    'content-type-builder': { visible: false },
+    i18n: { localized: false },
+  },
 });

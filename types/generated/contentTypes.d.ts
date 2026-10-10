@@ -3063,6 +3063,522 @@ export interface PluginOrderingBranch extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface PluginOrderingCatalogAvailabilityWindow
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_catalog_availability_window';
+  info: {
+    displayName: 'Khung gi\u1EDD b\u00E1n';
+    pluralName: 'catalog-availability-windows';
+    singularName: 'catalog-availability-window';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    category: Schema.Attribute.Relation<
+      'manyToOne',
+      'plugin::ordering.catalog-category'
+    >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    daysOfWeek: Schema.Attribute.JSON;
+    endTime: Schema.Attribute.Time & Schema.Attribute.Required;
+    isActive: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.catalog-availability-window'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::ordering.localized-text'>;
+    product: Schema.Attribute.Relation<
+      'manyToOne',
+      'plugin::ordering.catalog-product'
+    >;
+    publishedAt: Schema.Attribute.DateTime;
+    rank: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    startTime: Schema.Attribute.Time & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    validFrom: Schema.Attribute.DateTime;
+    validTo: Schema.Attribute.DateTime;
+  };
+}
+
+export interface PluginOrderingCatalogCategory
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_catalog_category';
+  info: {
+    displayName: 'Danh m\u1EE5c b\u00E1n h\u00E0ng';
+    pluralName: 'catalog-categories';
+    singularName: 'catalog-category';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    availabilityWindows: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.catalog-availability-window'
+    >;
+    children: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.catalog-category'
+    >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::ordering.localized-text'>;
+    image: Schema.Attribute.Media<'images'>;
+    isActive: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    isInternal: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.catalog-category'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.JSON &
+      Schema.Attribute.Required &
+      Schema.Attribute.CustomField<'plugin::ordering.localized-text'>;
+    parent: Schema.Attribute.Relation<
+      'manyToOne',
+      'plugin::ordering.catalog-category'
+    >;
+    products: Schema.Attribute.Relation<
+      'manyToMany',
+      'plugin::ordering.catalog-product'
+    >;
+    publishedAt: Schema.Attribute.DateTime;
+    rank: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    slug: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::ordering.localized-text'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface PluginOrderingCatalogLocationState
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_catalog_location_state';
+  info: {
+    displayName: 'Tr\u1EA1ng th\u00E1i b\u00E1n theo chi nh\u00E1nh';
+    pluralName: 'catalog-location-states';
+    singularName: 'catalog-location-state';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    entityDocumentId: Schema.Attribute.String & Schema.Attribute.Required;
+    entityType: Schema.Attribute.Enumeration<
+      ['product', 'variant', 'modifier']
+    > &
+      Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.catalog-location-state'
+    > &
+      Schema.Attribute.Private;
+    locationRef: Schema.Attribute.String & Schema.Attribute.Required;
+    outOfStockUntil: Schema.Attribute.DateTime;
+    publishedAt: Schema.Attribute.DateTime;
+    selling: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<true>;
+    toggledAt: Schema.Attribute.DateTime;
+    toggledBy: Schema.Attribute.String;
+    untilKind: Schema.Attribute.Enumeration<
+      ['end-of-business-day', 'specific-time']
+    >;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface PluginOrderingCatalogModifier
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_catalog_modifier';
+  info: {
+    displayName: 'T\u00F9y ch\u1ECDn';
+    pluralName: 'catalog-modifiers';
+    singularName: 'catalog-modifier';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    group: Schema.Attribute.Relation<
+      'manyToOne',
+      'plugin::ordering.catalog-modifier-group'
+    > &
+      Schema.Attribute.Required;
+    inventoryRef: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.catalog-modifier'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.JSON &
+      Schema.Attribute.Required &
+      Schema.Attribute.CustomField<'plugin::ordering.localized-text'>;
+    priceDelta: Schema.Attribute.BigInteger &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    publishedAt: Schema.Attribute.DateTime;
+    rank: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    trackInventory: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<false>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface PluginOrderingCatalogModifierGroup
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_catalog_modifier_group';
+  info: {
+    displayName: 'Nh\u00F3m t\u00F9y ch\u1ECDn';
+    pluralName: 'catalog-modifier-groups';
+    singularName: 'catalog-modifier-group';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::ordering.localized-text'>;
+    freeQuantity: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.catalog-modifier-group'
+    > &
+      Schema.Attribute.Private;
+    maxQuantity: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<1>;
+    minQuantity: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    modifiers: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.catalog-modifier'
+    >;
+    name: Schema.Attribute.JSON &
+      Schema.Attribute.Required &
+      Schema.Attribute.CustomField<'plugin::ordering.localized-text'>;
+    publishedAt: Schema.Attribute.DateTime;
+    rank: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    selectionType: Schema.Attribute.Enumeration<
+      ['single', 'multiple', 'quantity', 'text']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'multiple'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface PluginOrderingCatalogPrice
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_catalog_price';
+  info: {
+    displayName: 'Gi\u00E1';
+    pluralName: 'catalog-prices';
+    singularName: 'catalog-price';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    amount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
+    compareAtAmount: Schema.Attribute.BigInteger;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    currency: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'VND'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.catalog-price'
+    > &
+      Schema.Attribute.Private;
+    minQuantity: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<1>;
+    priority: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    publishedAt: Schema.Attribute.DateTime;
+    rules: Schema.Attribute.JSON;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    validFrom: Schema.Attribute.DateTime;
+    validTo: Schema.Attribute.DateTime;
+    variant: Schema.Attribute.Relation<
+      'manyToOne',
+      'plugin::ordering.catalog-variant'
+    > &
+      Schema.Attribute.Required;
+  };
+}
+
+export interface PluginOrderingCatalogProduct
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_catalog_product';
+  info: {
+    displayName: 'S\u1EA3n ph\u1EA9m b\u00E1n online';
+    pluralName: 'catalog-products';
+    singularName: 'catalog-product';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    availabilityWindows: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.catalog-availability-window'
+    >;
+    bundleSlots: Schema.Attribute.JSON;
+    categories: Schema.Attribute.Relation<
+      'manyToMany',
+      'plugin::ordering.catalog-category'
+    >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::ordering.localized-text'>;
+    fulfillmentKinds: Schema.Attribute.JSON;
+    image: Schema.Attribute.Media<'images'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.catalog-product'
+    > &
+      Schema.Attribute.Private;
+    metadata: Schema.Attribute.JSON;
+    minQuantity: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<1>;
+    modifierGroups: Schema.Attribute.JSON;
+    name: Schema.Attribute.JSON &
+      Schema.Attribute.Required &
+      Schema.Attribute.CustomField<'plugin::ordering.localized-text'>;
+    productType: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'food'>;
+    publishedAt: Schema.Attribute.DateTime;
+    rank: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    sellOnline: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    slug: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::ordering.localized-text'>;
+    status: Schema.Attribute.Enumeration<['draft', 'active', 'archived']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'draft'>;
+    taxGroupRef: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    variants: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.catalog-variant'
+    >;
+  };
+}
+
+export interface PluginOrderingCatalogSlug extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_catalog_slug';
+  info: {
+    displayName: 'Slug catalog';
+    pluralName: 'catalog-slugs';
+    singularName: 'catalog-slug';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    entityDocumentId: Schema.Attribute.String & Schema.Attribute.Required;
+    entityType: Schema.Attribute.Enumeration<
+      ['catalog-category', 'catalog-product']
+    > &
+      Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.catalog-slug'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    slug: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface PluginOrderingCatalogVariant
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_catalog_variant';
+  info: {
+    displayName: 'Bi\u1EBFn th\u1EC3';
+    pluralName: 'catalog-variants';
+    singularName: 'catalog-variant';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    attributes: Schema.Attribute.JSON;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    inventoryRef: Schema.Attribute.String;
+    isDefault: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.catalog-variant'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.JSON &
+      Schema.Attribute.Required &
+      Schema.Attribute.CustomField<'plugin::ordering.localized-text'>;
+    prices: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.catalog-price'
+    >;
+    product: Schema.Attribute.Relation<
+      'manyToOne',
+      'plugin::ordering.catalog-product'
+    > &
+      Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    rank: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    sku: Schema.Attribute.String;
+    trackInventory: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<false>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface PluginOrderingFulfillment extends Struct.CollectionTypeSchema {
   collectionName: 'plugins_ordering_fulfillment';
   info: {
@@ -4452,6 +4968,15 @@ declare module '@strapi/strapi' {
       'plugin::ordering.adjustment-allocation': PluginOrderingAdjustmentAllocation;
       'plugin::ordering.admin-change-log': PluginOrderingAdminChangeLog;
       'plugin::ordering.branch': PluginOrderingBranch;
+      'plugin::ordering.catalog-availability-window': PluginOrderingCatalogAvailabilityWindow;
+      'plugin::ordering.catalog-category': PluginOrderingCatalogCategory;
+      'plugin::ordering.catalog-location-state': PluginOrderingCatalogLocationState;
+      'plugin::ordering.catalog-modifier': PluginOrderingCatalogModifier;
+      'plugin::ordering.catalog-modifier-group': PluginOrderingCatalogModifierGroup;
+      'plugin::ordering.catalog-price': PluginOrderingCatalogPrice;
+      'plugin::ordering.catalog-product': PluginOrderingCatalogProduct;
+      'plugin::ordering.catalog-slug': PluginOrderingCatalogSlug;
+      'plugin::ordering.catalog-variant': PluginOrderingCatalogVariant;
       'plugin::ordering.fulfillment': PluginOrderingFulfillment;
       'plugin::ordering.fulfillment-group': PluginOrderingFulfillmentGroup;
       'plugin::ordering.fulfillment-line': PluginOrderingFulfillmentLine;

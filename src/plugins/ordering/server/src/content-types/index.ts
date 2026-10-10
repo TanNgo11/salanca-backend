@@ -6,6 +6,15 @@
 import adjustmentAllocation from './adjustment-allocation';
 import adminChangeLog from './admin-change-log';
 import branch from './branch';
+import catalogAvailabilityWindow from './catalog-availability-window';
+import catalogCategory from './catalog-category';
+import catalogLocationState from './catalog-location-state';
+import catalogModifier from './catalog-modifier';
+import catalogModifierGroup from './catalog-modifier-group';
+import catalogPrice from './catalog-price';
+import catalogProduct from './catalog-product';
+import catalogSlug from './catalog-slug';
+import catalogVariant from './catalog-variant';
 import fulfillment from './fulfillment';
 import fulfillmentGroup from './fulfillment-group';
 import fulfillmentLine from './fulfillment-line';
@@ -28,6 +37,15 @@ export default {
   'adjustment-allocation': adjustmentAllocation,
   'admin-change-log': adminChangeLog,
   branch,
+  'catalog-availability-window': catalogAvailabilityWindow,
+  'catalog-category': catalogCategory,
+  'catalog-location-state': catalogLocationState,
+  'catalog-modifier': catalogModifier,
+  'catalog-modifier-group': catalogModifierGroup,
+  'catalog-price': catalogPrice,
+  'catalog-product': catalogProduct,
+  'catalog-slug': catalogSlug,
+  'catalog-variant': catalogVariant,
   fulfillment,
   'fulfillment-group': fulfillmentGroup,
   'fulfillment-line': fulfillmentLine,
