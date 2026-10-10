@@ -1,3 +1,4 @@
+import type { Core } from '@strapi/strapi';
 import { describe, expect, it } from 'vitest';
 
 import config from '../config';
@@ -6,7 +7,7 @@ import { OrderingError } from '../domain/errors';
 import { testFoodProductType } from '../domain/product-types/test-food';
 import { testServiceProductType } from '../domain/product-types/test-service';
 import { pickupPayOnPickupWorkflow } from '../domain/workflow/definitions';
-import { createOrderingCatalogStubAdapter } from '../providers/ordering-catalog-stub';
+import { createOrderingCatalogAdapter } from '../providers/ordering-catalog/adapter';
 import { createTestCatalogAdapter } from '../providers/test-catalog';
 import { createTestPaymentProvider } from '../providers/test-payment';
 import createRegistry, { assertEnabledCodesRegistered } from './registry';
@@ -75,7 +76,9 @@ describe('ordering registry', () => {
 
   it('passes when every enabled code is registered', () => {
     const registry = createRegistry();
-    registry.registerCatalogAdapter(createOrderingCatalogStubAdapter());
+    registry.registerCatalogAdapter(
+      createOrderingCatalogAdapter({ strapi: undefined as unknown as Core.Strapi }),
+    );
     registry.registerCatalogAdapter(createTestCatalogAdapter());
     registry.registerProductType(testServiceProductType);
     registry.registerPaymentProvider(createTestPaymentProvider());
