@@ -12,7 +12,7 @@ import type {
   WorkflowDefinition,
 } from '../contracts';
 import { OrderingError } from '../domain/errors';
-import { assertWorkflowShape } from '../domain/workflow/definition';
+import { assertWorkflowDefinition } from '../domain/workflow/definition';
 
 /**
  * Typed in-memory registry of adapters, product types, providers, workflows and outbox consumers.
@@ -125,7 +125,7 @@ const registry = () => {
     notificationChannels: () => [...notificationProviders.keys()],
 
     registerWorkflow(definition: WorkflowDefinition) {
-      assertWorkflowShape(definition);
+      assertWorkflowDefinition(definition);
       const key = workflowKey(definition.name, definition.version);
       if (workflows.has(key)) {
         throw new Error(`[ordering] workflow "${key}" is already registered`);
