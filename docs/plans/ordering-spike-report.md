@@ -3,8 +3,8 @@
 Ngày: 2026-10-10. Nhánh: `spike/ordering-plugin`. Spec: [`phases/phase-ordering-0-spike.md`](../phases/phase-ordering-0-spike.md).
 Kế hoạch: [`ordering-spike.md`](ordering-spike.md).
 
-Trạng thái: **automated verification passed** cho mọi mục kiểm thuộc O0. Còn 2 gate tay: UAT trong
-Admin và deploy staging Dokploy. Dữ liệu thử chỉ ở PostgreSQL local `salanca_ordering_spike`
+Trạng thái: **automated verification passed** cho mọi mục kiểm thuộc O0; **UAT trong Admin đạt**
+(local). Còn 1 gate: deploy staging Dokploy. Dữ liệu thử chỉ ở PostgreSQL local `salanca_ordering_spike`
 (`scripts/spike-ordering/runtime.mjs` và `bootstrap()` của plugin đều từ chối DB khác).
 
 ## Quyết định rút ra
@@ -61,11 +61,21 @@ node scripts/spike-ordering/{load,tx,middleware,scope,scope-engine,dispatch,disp
 `check:phase3` trên DB dev `salanca_cms` dừng ở `smoke:i18n` vì script cố ý đòi các singleton trống
 (DB dev có nội dung thật). Không xóa dữ liệu thật; chạy trên DB spike thì đạt.
 
-## Gate tay còn mở
+## UAT trong Admin (2026-10-10, local)
 
-- **UAT trong Admin** (spec O0): Admin hiện menu plugin; Content Manager chỉ hiện `catalog-product` của
-  plugin; Content-Type Builder không hiện type nào của plugin; ô nhập chữ đa ngôn ngữ hiện đúng; content
-  Salanca (i18n) vẫn sửa được như cũ.
+`pnpm run develop` với `ORDERING_ENABLED=true` trên DB spike, cổng 1399, admin thử tạo bằng
+`strapi admin:create-user` (chỉ tồn tại trong DB spike). Kiểm bằng Chrome:
+
+- [x] Menu "Bán hàng" hiện; trang plugin mở được ("Plugin ordering đang ở giai đoạn spike").
+- [x] Content Manager: của plugin chỉ có `catalog-product`; các type nội bộ không hiện.
+- [x] Content-Type Builder: chỉ có type của Salanca và `User`, không có type nào của plugin.
+- [x] Ô nhập `name` hiện 2 ô "name (VI)", "name (EN)"; lưu xong DB có
+  `{"vi":"Món thử UAT","en":"UAT dish"}`; field `isFeatured` của app (extension) hiện trong form.
+- [x] Content Salanca: form tạo "Món" đủ field, nhãn tiếng Việt, gợi ý "Giá trị này riêng cho ngôn ngữ
+  đang chọn", Draft & Publish như cũ.
+
+## Gate còn mở
+
 - **Staging Dokploy:** build Nixpacks có plugin, `ORDERING_ENABLED=true`, Admin hiện plugin, `/_health`
   trả 204, preflight qua Cloudflare.
 
