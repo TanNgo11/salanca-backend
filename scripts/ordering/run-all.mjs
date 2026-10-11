@@ -35,6 +35,7 @@ const scripts = [
   'notifications.mjs',
   'sla-alerts.mjs',
   'lookup-drafts.mjs',
+  'stream.mjs',
 ];
 
 const results = [];

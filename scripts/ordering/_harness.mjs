@@ -386,6 +386,7 @@ export async function seedAdminHttpStaff(app, { actions = ORDERING_ACTIONS, scop
     role,
     users,
     as: Object.fromEntries(Object.keys(users).map((name) => [name, call(name)])),
+    tokenOf: async (name) => tokens[name],
     async cleanup() {
       for (const user of Object.values(users)) {
         await app.admin.services.user.deleteById(user.id).catch(() => undefined);

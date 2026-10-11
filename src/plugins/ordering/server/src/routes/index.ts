@@ -167,6 +167,7 @@ export default {
       // Order inbox and actions (screens S1–S5).
       adminRoute('GET', '/orders', 'admin-orders.list', 'order.read'),
       adminRoute('GET', '/orders/summary', 'admin-orders.summary', 'order.read'),
+      adminRoute('GET', '/orders/stream', 'admin-stream.stream', 'order.read'),
       adminRoute('GET', '/orders/:id', 'admin-orders.detail', 'order.read'),
       adminRoute('POST', '/orders/:id/transition', 'admin-orders.transition', 'order.process'),
       adminRoute('POST', '/orders/:id/notes', 'admin-orders.addNote', 'order.process'),

@@ -24,6 +24,7 @@ import adminOrders from './admin-orders';
 import orderingSettings from './ordering-settings';
 import notification from './notification';
 import alert from './alert';
+import orderStream from './order-stream';
 
 export default {
   registry,
@@ -49,6 +50,7 @@ export default {
   'ordering-settings': orderingSettings,
   notification,
   alert,
+  'order-stream': orderStream,
   migrations: ({ strapi }: { strapi: Core.Strapi }) => ({
     run: (migrations: OrderingMigration[]) => runOrderingMigrations(strapi, migrations),
   }),

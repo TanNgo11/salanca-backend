@@ -7,6 +7,7 @@ import type { OrderingConfig } from '../config';
 import { maskPayload } from '../domain/pii';
 import type { TransactionClient } from '../migrations/runner';
 import { nowOf, type ServiceContext } from './context';
+import type { StreamEvent } from './order-stream';
 import type { OrderingRegistry } from './registry';
 
 const TABLE = 'plugins_ordering_outbox';
@@ -164,6 +165,19 @@ const outbox = ({ strapi }: { strapi: Core.Strapi }) => {
     return 'delivered';
   };
 
+  const toStreamEvent = (type: string, payload: Record<string, unknown>): StreamEvent | null => {
+    const orderId = Number(payload.orderId);
+    const locationRef = typeof payload.locationRef === 'string' ? payload.locationRef : undefined;
+    if (!Number.isSafeInteger(orderId) || !locationRef) return null;
+    if (type === 'order.created') {
+      return { type: 'order.created', orderId, locationRef, code: String(payload.code ?? '') };
+    }
+    if (type === 'fulfillment-group.transitioned' || type === 'order.transitioned') {
+      return { type: 'order.updated', orderId, locationRef, to: String(payload.to ?? '') };
+    }
+    return null;
+  };
+
   return {
     async enqueue(
       input: {
@@ -189,6 +203,16 @@ const outbox = ({ strapi }: { strapi: Core.Strapi }) => {
           attempts: 0,
         },
       });
+      const live = toStreamEvent(input.type, input.payload);
+      if (live) {
+        // Nested transactions share Strapi's commit callbacks, so this fires after the OUTERMOST
+        // commit (and never on rollback). Outside a transaction it fires right away.
+        await strapi.db.transaction(async ({ onCommit }: { onCommit: (cb: () => void) => void }) => {
+          onCommit(() => {
+            (strapi.plugin('ordering').service('order-stream') as { publish: (event: StreamEvent) => void }).publish(live);
+          });
+        });
+      }
       return row.id as number;
     },
 

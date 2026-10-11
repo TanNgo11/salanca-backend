@@ -777,6 +777,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
               from: projection.before.status,
               to: projection.after.status,
               actorRef: actorRefOf(ctx),
+              locationRef: order.locationRef,
             },
             uniqueKey: `order.transitioned:${orderId}:draft:${randomUUID()}`,
           },
