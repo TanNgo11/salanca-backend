@@ -311,3 +311,86 @@ export function basicOrderInput(overrides = {}) {
     ...overrides,
   };
 }
+
+/** Every plugin action registered by register.ts (contracts §19.2, §21.3, §21.5). */
+export const ORDERING_ACTIONS = [
+  'order.read', 'order.process', 'order.cancel', 'order.create', 'order.edit-lines',
+  'payment.record-cash', 'payment.review', 'payment.raw-read', 'refund.manage', 'report.read',
+  'export', 'settings.manage', 'scope.manage', 'ops.read', 'catalog.manage',
+  'catalog.toggle-availability',
+];
+
+/**
+ * HTTP-level admin fixtures: a non-super-admin role holding `actions`, and staff users with that
+ * role plus a location scope. `login` returns a Bearer token from POST /admin/login, so route
+ * policies (admin::hasPermissions) run for real. Requires `app.listen()` first.
+ */
+export async function seedAdminHttpStaff(app, { actions = ORDERING_ACTIONS, scopes } = {}) {
+  const suffix = randomUUID().slice(0, 8);
+  const role = await app.admin.services.role.create({
+    name: `ordering-test-${suffix}`,
+    description: 'ordering integration test role',
+  });
+  await app.admin.services.role.assignPermissions(
+    role.id,
+    actions.map((action) => ({
+      action: `plugin::ordering.${action}`,
+      subject: null,
+      properties: {},
+      conditions: [],
+    })),
+  );
+  const password = `Test-${randomUUID()}-Aa1`;
+  const users = {};
+  for (const [name, scope] of Object.entries(scopes)) {
+    const user = await app.admin.services.user.create({
+      firstname: name,
+      lastname: 'HTTP',
+      email: `http-${name}-${suffix}@example.invalid`,
+      password,
+      isActive: true,
+      registrationToken: null,
+      roles: [role.id],
+    });
+    if (scope) {
+      await app.db
+        .query('plugin::ordering.staff-location-scope')
+        .create({ data: { adminUserId: user.id, ...scope } });
+    }
+    users[name] = user;
+  }
+  const base = `http://127.0.0.1:${process.env.PORT}`;
+  const tokens = {};
+  for (const [name, user] of Object.entries(users)) {
+    const res = await fetch(`${base}/admin/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: user.email, password }),
+    });
+    assert.equal(res.status, 200, `admin login for ${name} must succeed`);
+    tokens[name] = (await res.json()).data.token;
+  }
+  const call = (name) => async (method, path, body) => {
+    const res = await fetch(`${base}/ordering${path}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${tokens[name]}`,
+        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    const text = await res.text();
+    return { status: res.status, body: text ? JSON.parse(text) : null };
+  };
+  return {
+    role,
+    users,
+    as: Object.fromEntries(Object.keys(users).map((name) => [name, call(name)])),
+    async cleanup() {
+      for (const user of Object.values(users)) {
+        await app.admin.services.user.deleteById(user.id).catch(() => undefined);
+      }
+      await app.admin.services.role.deleteByIds([role.id]).catch(() => undefined);
+    },
+  };
+}

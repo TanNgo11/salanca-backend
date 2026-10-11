@@ -18,6 +18,7 @@ import { foodProductType } from './domain/product-types/food';
 import { testFoodProductType } from './domain/product-types/test-food';
 import { testServiceProductType } from './domain/product-types/test-service';
 import { builtinWorkflows } from './domain/workflow/definitions';
+import { createCashPaymentProvider } from './providers/cash';
 import { createOrderingCatalogAdapter } from './providers/ordering-catalog/adapter';
 import { createTestCatalogAdapter } from './providers/test-catalog';
 import { createTestPaymentProvider } from './providers/test-payment';
@@ -74,6 +75,7 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
 
   registry.registerCatalogAdapter(createOrderingCatalogAdapter({ strapi }));
   registry.registerProductType(foodProductType);
+  registry.registerPaymentProvider(createCashPaymentProvider());
   for (const workflow of builtinWorkflows) {
     registry.registerWorkflow(workflow);
   }

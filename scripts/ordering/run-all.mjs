@@ -28,6 +28,7 @@ const scripts = [
   'catalog-availability.mjs',
   'catalog-extension.mjs',
   'review-additions.mjs',
+  'branches.mjs',
 ];
 
 const results = [];

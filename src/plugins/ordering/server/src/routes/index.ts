@@ -1,3 +1,21 @@
+/** Admin route guard: authenticated admin holding every listed plugin action. */
+const can = (...actions: string[]) => ({
+  policies: [
+    'admin::isAuthenticatedAdmin',
+    {
+      name: 'admin::hasPermissions',
+      config: { actions: actions.map((action) => `plugin::ordering.${action}`) },
+    },
+  ],
+});
+
+const adminRoute = (method: string, path: string, handler: string, ...actions: string[]) => ({
+  method,
+  path,
+  handler,
+  config: can(...actions),
+});
+
 export default {
   'content-api': {
     type: 'content-api',
@@ -18,6 +36,12 @@ export default {
         method: 'GET',
         path: '/catalog/products/:slug',
         handler: 'catalog.product',
+        config: { auth: false, policies: [], middlewares: [] },
+      },
+      {
+        method: 'GET',
+        path: '/branches',
+        handler: 'storefront.branches',
         config: { auth: false, policies: [], middlewares: [] },
       },
     ],
@@ -124,6 +148,11 @@ export default {
           policies: ['admin::isAuthenticatedAdmin', 'plugin::ordering.has-catalog-access'],
         },
       },
+      // "Chi nhánh" (screens S7). Scope is enforced in the branch service.
+      adminRoute('GET', '/branches', 'admin-branches.list', 'settings.manage'),
+      adminRoute('POST', '/branches', 'admin-branches.create', 'settings.manage'),
+      adminRoute('GET', '/branches/:code', 'admin-branches.get', 'settings.manage'),
+      adminRoute('PATCH', '/branches/:code', 'admin-branches.update', 'settings.manage'),
     ],
   },
 };

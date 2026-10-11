@@ -9,8 +9,10 @@ WooCommerce).
 Quy ước cho người code:
 
 - Tên route API là đề xuất. Được đổi khi code, nhưng phải sửa lại file này trong cùng commit.
-- Mọi route Admin nằm dưới Admin API (`/ordering/admin/...`), cần đăng nhập Admin, kiểm action và scope chi nhánh
-  ở **service** (không chỉ ẩn nút). Ngoài scope trả `ORDER_NOT_FOUND` (404).
+- Mọi route Admin nằm dưới Admin API của plugin (`/ordering/...`, cùng kiểu route O2 `/ordering/categories`;
+  **đổi khi code O3**: bỏ đoạn `/admin` trong các đường dẫn đề xuất bên dưới, ví dụ `/ordering/orders`,
+  `/ordering/branches/:code`). Cần đăng nhập Admin; action kiểm ở route (`admin::hasPermissions`), scope chi nhánh
+  kiểm ở **service** (không chỉ ẩn nút). Ngoài scope trả 404 (`ORDER_NOT_FOUND` / `BRANCH_NOT_FOUND`).
 - Chuỗi giao diện đặt trong `admin/src/translations/{vi,en}.json`, không viết cứng.
 - Bố cục trang dùng `Layouts`/`Page` của `@strapi/strapi/admin`; gọi API bằng `useFetchClient`; thông báo bằng
   `useNotification`; ẩn/hiện theo quyền bằng `useRBAC`. Component từ `@strapi/design-system` (U3.7).
@@ -156,7 +158,9 @@ Giá không sửa tay ở v1. Xác nhận lỗi `PRICE_CHANGED`/`SELLABLE_UNAVAI
 
 - Route: `/plugins/ordering/branches` (danh sách) và `/plugins/ordering/branches/:code`.
 - Quyền: xem `settings.manage`; chỉ chi nhánh trong scope trừ khi `allLocations`.
-- API: `GET/POST /ordering/admin/branches`, `GET/PATCH /ordering/admin/branches/:code`.
+- API: `GET/POST /ordering/branches`, `GET/PATCH /ordering/branches/:code` (lỗi validate:
+  `VALIDATION_ERROR` với `details.issues[{ path, message }]`, `path` theo field như
+  `fulfillment.pickup.schedule.leadTimeMinutes`). Tạo chi nhánh cần scope mọi chi nhánh.
 
 Danh sách: tên, mã, bán online (badge), cách nhận đang bật, số nhân viên. Nút **+ Thêm chi nhánh**.
 
