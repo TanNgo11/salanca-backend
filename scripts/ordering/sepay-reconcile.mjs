@@ -1,5 +1,6 @@
 // O4 step 8: reconciliation records a missed transfer once, even from two processes.
-// A later API row whose id is a UUID but whose reference matches a webhook does not capture again.
+// A later API row whose id is a UUID but whose reference matches a webhook does not capture again;
+// without a reference, the same amount, time, account and memo code is the same transfer.
 // The fixture file is the only SePay response. No network.
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
@@ -26,6 +27,8 @@ const ACCOUNTS = ['0123456789', '999000111222', '333000111222'];
 const MISSED_ID = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
 const AGAIN_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const OUT_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+const BARE_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+const BARE_AGAIN_ID = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
 
 if (mode === 'worker') {
   const app = await bootOrderingTestApp();
@@ -197,6 +200,60 @@ try {
     const hookedOrder = await order.getOrder(hookedId, systemCtx);
     assert.equal(capturedOf(hookedOrder), hookedTotal);
 
+    // Some banks send no reference. The webhook and the API row then share only the amount,
+    // the SePay transaction time, the account and the memo code; that is still one transfer.
+    const bare = await place();
+    const bareId = bare.order.order.id;
+    const bareTotal = bare.order.order.totalAmount;
+    const bareCode = bare.order.order.code;
+    const bareAck = await post({
+      id: 88002,
+      gateway: 'MBBank',
+      transactionDate: '2026-10-11 11:30:00',
+      accountNumber: '0123456789',
+      content: `SLC${bareCode}`,
+      transferType: 'in',
+      transferAmount: bareTotal,
+    });
+    assert.deepEqual(bareAck.body, { success: true });
+    assert.equal(capturedOf(await order.getOrder(bareId, systemCtx)), bareTotal);
+    writeFixture([
+      {
+        id: BARE_ID,
+        transaction_date: '2026-10-11 11:30:00',
+        account_number: '0123456789',
+        transfer_type: 'in',
+        amount_in: bareTotal,
+        amount_out: 0,
+        transaction_content: `SLC${bareCode}`,
+        bank_brand_name: 'MBBank',
+      },
+    ]);
+    const bareRun = await runSepayReconciliation(app, { owner: 'parent-bare' });
+    assert.equal(bareRun.ingested, 0);
+    assert.ok(bareRun.duplicates >= 1);
+    assert.equal(await events().findOne({ where: { providerTransactionId: BARE_ID } }), null);
+    assert.equal(capturedOf(await order.getOrder(bareId, systemCtx)), bareTotal);
+
+    // Same order and amount at another time is a second transfer and is reviewed, not dropped.
+    writeFixture([
+      {
+        id: BARE_AGAIN_ID,
+        transaction_date: '2026-10-11 11:45:00',
+        account_number: '0123456789',
+        transfer_type: 'in',
+        amount_in: bareTotal,
+        amount_out: 0,
+        transaction_content: `SLC${bareCode}`,
+        bank_brand_name: 'MBBank',
+      },
+    ]);
+    const secondPay = await runSepayReconciliation(app, { owner: 'parent-bare-again' });
+    assert.equal(secondPay.ingested, 1);
+    const secondRow = await events().findOne({ where: { providerTransactionId: BARE_AGAIN_ID } });
+    assert.equal(secondRow.reviewReason, 'already-paid');
+    assert.equal(capturedOf(await order.getOrder(bareId, systemCtx)), bareTotal);
+
     const manualOrder = await place();
     const manualId = manualOrder.order.order.id;
     const manualTotal = manualOrder.order.order.totalAmount;
@@ -233,7 +290,7 @@ try {
     assert.equal(afterOut.groups[0].status, 'awaiting-acceptance');
     assert.equal(capturedOf(afterOut), manualTotal);
 
-    console.log('[ordering-test] sepay reconcile: once, attach, out');
+    console.log('[ordering-test] sepay reconcile: once, attach, no reference, out');
   });
 } finally {
   try {

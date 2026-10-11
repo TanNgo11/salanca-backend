@@ -62,6 +62,49 @@ const referenceRows = async (
   return rows ?? [];
 };
 
+/**
+ * `raw_payload` read through `db.raw` arrives as JSON text (the ORM parses it, raw SQL does
+ * not). Anything that is not an object reads as `{}`.
+ */
+const payloadObject = (value: unknown): Record<string, unknown> => {
+  let parsed = value;
+  if (typeof value === 'string') {
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      return {};
+    }
+  }
+  return parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)
+    ? (parsed as Record<string, unknown>)
+    : {};
+};
+
+type SameTimeRow = { rawPayload: unknown };
+
+/**
+ * Rows with the same amount, direction and SePay `transactionDate` under another id. Used only
+ * when the bank sent no reference: the webhook (integer id) and reconciliation (UUID) then have
+ * nothing else in common.
+ */
+const sameTimeRows = async (
+  db: { raw: (sql: string, bindings: readonly unknown[]) => Promise<{ rows?: SameTimeRow[] }> },
+  input: { providerCode: string; providerTransactionId: string; amount: number; transferType: string; transactionDate: string },
+): Promise<SameTimeRow[]> => {
+  const { rows } = await db.raw(
+    `SELECT raw_payload AS "rawPayload"
+       FROM plugins_ordering_payment_event
+      WHERE provider_code = ?
+        AND provider_transaction_id <> ?
+        AND amount = ?
+        AND transfer_type = ?
+        AND raw_payload->>'transactionDate' = ?
+      LIMIT 20`,
+    [input.providerCode, input.providerTransactionId, input.amount, input.transferType, input.transactionDate],
+  );
+  return rows ?? [];
+};
+
 type ReferenceHit =
   | { kind: 'confirm-manual'; row: ReferenceRow }
   | { kind: 'review-manual'; reason: 'underpaid' | 'overpaid' }
@@ -126,10 +169,8 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
     sepayTransactionId: string,
     ctx: ServiceContext,
   ) => {
-    const raw =
-      row.rawPayload !== null && typeof row.rawPayload === 'object' && !Array.isArray(row.rawPayload)
-        ? (row.rawPayload as Record<string, unknown>)
-        : {};
+    // Reference rows come from raw SQL, so the payload may still be JSON text.
+    const raw = payloadObject(row.rawPayload);
     if (raw.confirmed === true) return;
     const transferredAt = typeof raw.transferredAt === 'string' ? raw.transferredAt : undefined;
     await events().update({
@@ -403,6 +444,31 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
       const settings = settingsOf();
       const content = text(event.metadata?.content);
       const orderCode = settings ? extractOrderCode(settings.memoTemplate, content) : null;
+
+      // No bank reference: the same transfer seen by the webhook and by reconciliation still has
+      // the same amount, SePay timestamp, receiving account and memo code. Without this, a
+      // captured transfer would come back from reconciliation as `already-paid` and invite a
+      // refund of money that was never overpaid.
+      const transactionDate = text(event.metadata?.transactionDate);
+      if (!bankReference && transactionDate && settings) {
+        const keyOf = (accountNumber: unknown, subAccount: unknown) =>
+          accountScope(settings, text(accountNumber) ?? '', text(subAccount))?.key ?? null;
+        const accountKey = keyOf(event.metadata?.accountNumber, event.metadata?.subAccount);
+        const candidates = await sameTimeRows(strapi.db.connection, {
+          providerCode: event.providerCode,
+          providerTransactionId: event.providerTransactionId,
+          amount: event.amount.amount,
+          transferType: 'in',
+          transactionDate,
+        });
+        const same = candidates.some(({ rawPayload }) => {
+          const raw = payloadObject(rawPayload);
+          const rowAccount = text(raw.accountKey) ?? keyOf(raw.accountNumber, raw.subAccount);
+          const rowCode = text(raw.memoCode) ?? extractOrderCode(settings.memoTemplate, text(raw.content));
+          return rowAccount === accountKey && rowCode === orderCode;
+        });
+        if (same) return { duplicate: true, decision: { outcome: 'ignored' } };
+      }
       if (!orderCode) {
         return flagUnmatched(
           await remember({ outcome: 'needs-review', reviewReason: 'no-code', orderCode: null, dueAmount: null }),

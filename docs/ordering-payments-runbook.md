@@ -63,11 +63,17 @@ xử lý cùng một khoản: một người thành công, người kia nhận `
 
 Nhân viên mở đơn và ghi mã giao dịch ngân hàng cùng số tiền đã thấy. Webhook hoặc đối soát tới sau,
 cùng mã và cùng số tiền, chỉ xác nhận dòng đó, không ghi sổ lần hai. Khác số tiền thì vào hàng duyệt.
+Mã đã tới từ SePay (webhook hoặc đối soát) thì không ghi tay được nữa (409 `PAYMENT_ALREADY_RECEIVED`);
+xử lý giao dịch đó ở Duyệt chuyển khoản.
 
 Job đối soát chạy mỗi giờ (`0 0 * * * *`), một process giữ khóa. Nó đọc
 `GET https://userapi.sepay.vn/v2/transactions` bằng `Authorization: Bearer <SEPAY_API_TOKEN>`,
 `since_id` theo từng số tài khoản. API không lọc theo số tài khoản; job tự lọc. Tối đa khoảng 3 request
 mỗi giây; HTTP 429 thì thử lại, không quá 3 lần. Cursor chỉ tiến khi cả trang đã ghi xong.
+
+Webhook (id số) và API (id UUID) là cùng một giao dịch khi trùng `referenceCode` và số tiền. Ngân hàng
+không gửi `referenceCode` thì cần trùng cả số tiền, `transactionDate` (đúng từng giây), tài khoản nhận và mã
+đơn trong nội dung. Cùng đơn, cùng số tiền nhưng khác giờ là lần chuyển thứ hai và vào hàng duyệt.
 
 Giao dịch đối soát không ghi được vào sổ mở một cảnh báo theo id giao dịch của SePay. Khớp được thì
 không mở cảnh báo đó.

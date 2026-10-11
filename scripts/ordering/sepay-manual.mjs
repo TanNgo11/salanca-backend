@@ -149,6 +149,7 @@ withApp(async (app) => {
     assert.equal(stored[0].providerTransactionId, 'FT9001');
     assert.equal(stored[0].rawPayload.confirmed, true);
     assert.equal(stored[0].rawPayload.sepayTransactionId, '9100');
+    assert.ok(stored[0].rawPayload.transferredAt, 'confirming keeps the staff transfer time');
     assert.equal(JSON.stringify(stored[0].rawPayload).includes('0123456789'), false);
     assert.equal(JSON.stringify(stored[0].rawPayload).includes('SENDER-NAME-XYZ'), false);
     agg = await load(orderId);
