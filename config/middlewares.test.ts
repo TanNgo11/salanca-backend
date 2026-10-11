@@ -170,6 +170,12 @@ describe('cors middleware', () => {
     const body = enabled.find((entry) => typeof entry === 'object' && entry !== null && 'name' in entry && (entry as { name?: string }).name === 'strapi::body') as { config?: Record<string, unknown> } | undefined;
     expect(cors?.config?.headers).toEqual(expect.arrayContaining(['X-Order-Token', 'Idempotency-Key']));
     expect(body?.config?.includeUnparsed).toBe(true);
+
+    const disabled = config({ env: createEnv(s3Environment) } as Core.Config.Shared.ConfigParams);
+    const disabledBody = disabled.find(
+      (entry) => typeof entry === 'object' && entry !== null && 'name' in entry && (entry as { name?: string }).name === 'strapi::body',
+    ) as { config?: Record<string, unknown> } | undefined;
+    expect(disabledBody?.config?.includeUnparsed).toBeUndefined();
   });
 });
 

@@ -79,6 +79,7 @@ const registry = () => {
     paymentProvider: (code: string) => paymentProviders.resolve(code, 'PROVIDER_NOT_REGISTERED'),
     hasPaymentProvider: (code: string) => paymentProviders.has(code),
     paymentProviderCodes: () => paymentProviders.codes(),
+    paymentProviders: () => paymentProviders.values(),
 
     registerFulfillmentProvider: (provider: FulfillmentProvider) =>
       fulfillmentProviders.register(provider),

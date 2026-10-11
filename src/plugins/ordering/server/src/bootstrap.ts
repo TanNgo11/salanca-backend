@@ -10,6 +10,7 @@ import { runSlaCheck } from './jobs/sla-check';
 import { orderingMigrations } from './migrations';
 import { persistOrderingTables } from './migrations/persisted-tables';
 import { runOrderingMigrations } from './migrations/runner';
+import { assertSignedWebhooksHaveRawBody } from './domain/raw-body';
 import { parseEncryptionKey } from './domain/token-cipher';
 import { assertEnabledCodesRegistered, type OrderingRegistry } from './services/registry';
 
@@ -19,6 +20,15 @@ const bootstrap = async ({ strapi }: { strapi: Core.Strapi }) => {
 
   // The validator runs before any register(), so code references can only be checked here.
   assertEnabledCodesRegistered(config, registry);
+  // A signed webhook provider without the original body would silently fail every signature.
+  assertSignedWebhooksHaveRawBody({
+    providers: registry.paymentProviders().map((provider) => ({
+      code: provider.code,
+      capabilities: provider.capabilities,
+      enabled: config.providers.payment[provider.code]?.enabled === true,
+    })),
+    middlewares: strapi.config.get('middlewares'),
+  });
 
   const captcha = config.storefront.captchaProvider;
   if (captcha && !registry.hasCaptchaProvider(captcha)) {
