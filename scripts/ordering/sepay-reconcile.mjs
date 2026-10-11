@@ -124,6 +124,9 @@ try {
     const missedJson = JSON.stringify(missedEvents[0].rawPayload);
     assert.equal(missedJson.includes('0123456789'), false);
     assert.equal(missedJson.includes(`SLC${missedCode}`), false);
+    // The review screen locates the branch and order from these, not from the raw text.
+    assert.equal(missedEvents[0].rawPayload.accountKey, 'q1');
+    assert.equal(missedEvents[0].rawPayload.memoCode, missedCode);
     const missedOrder = await order.getOrder(missedId, systemCtx);
     assert.equal(missedOrder.groups[0].status, 'awaiting-acceptance');
     assert.equal(capturedOf(missedOrder), missedTotal);

@@ -2,7 +2,9 @@ import type { Core } from '@strapi/strapi';
 
 import type { OrderingConfig } from '../config';
 import type { NormalizedPaymentEvent } from '../contracts/payment';
+import { extractOrderCode } from '../domain/payments/memo';
 import type { SepayTransactionPage } from '../providers/sepay/client';
+import { accountScope, type SepaySettings } from '../providers/sepay/config';
 import { sepaySettingsFromConfig } from '../providers/sepay/provider';
 import type alertFactory from '../services/alert';
 import type { ServiceContext } from '../services/context';
@@ -17,15 +19,27 @@ const digits = (value: string | null | undefined): string => (value ?? '').repla
 
 /**
  * What reconciliation stores. The match reads content from the event, not from this object.
- * Account numbers and the raw transfer text stay out of the row.
+ * Account numbers and the raw transfer text stay out of the row. The review screen still needs
+ * the branch and the order, so the row keeps the configured account key and the memo's order
+ * code instead.
  */
-const reconciliationPayload = (event: NormalizedPaymentEvent): Record<string, unknown> => ({
-  source: 'reconciliation',
-  referenceCode: event.reference ?? null,
-  transactionDate:
-    typeof event.metadata?.transactionDate === 'string' ? event.metadata.transactionDate : null,
-  transferType: event.transferType ?? null,
-});
+const reconciliationPayload = (
+  event: NormalizedPaymentEvent,
+  settings: SepaySettings,
+): Record<string, unknown> => {
+  const metadata = event.metadata ?? {};
+  const accountNumber = typeof metadata.accountNumber === 'string' ? metadata.accountNumber : '';
+  const subAccount = typeof metadata.subAccount === 'string' ? metadata.subAccount : null;
+  const content = typeof metadata.content === 'string' ? metadata.content : null;
+  return {
+    source: 'reconciliation',
+    accountKey: accountScope(settings, accountNumber, subAccount)?.key ?? null,
+    memoCode: extractOrderCode(settings.memoTemplate, content),
+    referenceCode: event.reference ?? null,
+    transactionDate: typeof metadata.transactionDate === 'string' ? metadata.transactionDate : null,
+    transferType: event.transferType ?? null,
+  };
+};
 
 type PageLister = {
   listTransactionPage(input: { cursor?: string }): Promise<SepayTransactionPage>;
@@ -72,7 +86,7 @@ export const runSepayReconciliation = async (
             if (!row.event) continue;
             if (digits(row.accountNumber) !== digits(account.accountNumber)) continue;
             const saved = await matching.ingest(
-              { event: row.event, rawPayload: reconciliationPayload(row.event) },
+              { event: row.event, rawPayload: reconciliationPayload(row.event, settings) },
               ctx,
             );
             if (saved.duplicate) duplicates += 1;

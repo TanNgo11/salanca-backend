@@ -34,6 +34,9 @@ type EventRow = {
 
 const OPEN = 'needs-review';
 const RESOLVED = ['matched-manually', 'refund-due', 'ignored'];
+/** Every open review is listed. The resolved tab is history: the newest rows only. */
+const OPEN_LIMIT = 5000;
+const RESOLVED_LIMIT = 1000;
 
 const maskAccount = (value: string | null): string | null => {
   if (!value) return null;
@@ -74,6 +77,9 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
 
   const locationOf = (row: EventRow, settings: SepaySettings | null): 'all' | string[] | null => {
     if (!settings) return null;
+    // Reconciliation rows keep the configured account key, not the account number.
+    const accountKey = text(row.rawPayload?.accountKey);
+    if (accountKey) return settings.accounts[accountKey]?.locationRefs ?? null;
     const account = accountScope(
       settings,
       text(row.rawPayload?.accountNumber) ?? '',
@@ -91,8 +97,12 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
     return location.some((ref) => staffScope.locationRefs.includes(ref));
   };
 
-  const codeOf = (row: EventRow, settings: SepaySettings | null): string | null =>
-    settings ? extractOrderCode(settings.memoTemplate, text(row.rawPayload?.content)) : null;
+  /** Webhook rows keep the memo; reconciliation rows keep only the code taken from it. */
+  const codeOf = (row: EventRow, settings: SepaySettings | null): string | null => {
+    const stored = text(row.rawPayload?.memoCode);
+    if (stored) return stored;
+    return settings ? extractOrderCode(settings.memoTemplate, text(row.rawPayload?.content)) : null;
+  };
 
   const lockEvent = async (trx: TransactionClient, id: number): Promise<EventRow> => {
     const found = (await events().findOne({ where: { id } })) as EventRow | null;
@@ -141,21 +151,29 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
       const staffScope = await scope().loadScope(ctx);
       if (!staffScope) throw new OrderingError('SCOPE_REQUIRED', 'staff member has no location scope');
       const settings = settingsOf();
-      const rows = (await events().findMany({
-        where: { providerCode: 'sepay', transferType: 'in' },
-        orderBy: { receivedAt: 'desc' },
-        limit: 500,
-      })) as EventRow[];
-      const located = rows
-        .filter((row) => row.kind !== 'manual')
-        .map((row) => ({ row, location: locationOf(row, settings) }))
-        .filter((item) => visible(staffScope, item.location));
-      const openCount = located.filter((item) => item.row.reviewStatus === OPEN).length;
-      const resolvedCount = located.filter((item) => RESOLVED.includes(item.row.reviewStatus)).length;
-      const wanted = query.status === 'resolved' ? RESOLVED : [OPEN];
+      // Status is filtered in the database. Auto-matched transfers are most of the table; reading
+      // the newest N of everything would push older open reviews out of the list and the counts.
+      // Branch visibility depends on the receiving account in rawPayload, so it stays in memory.
+      const base = {
+        providerCode: 'sepay',
+        transferType: 'in',
+        $or: [{ kind: { $null: true } }, { kind: { $ne: 'manual' } }],
+      };
+      const load = async (statuses: string[], limit: number) =>
+        ((await events().findMany({
+          where: { ...base, reviewStatus: { $in: statuses } },
+          orderBy: { receivedAt: 'desc' },
+          limit,
+        })) as EventRow[])
+          .map((row) => ({ row, location: locationOf(row, settings) }))
+          .filter((item) => visible(staffScope, item.location));
+      const openRows = await load([OPEN], OPEN_LIMIT);
+      const resolvedRows = await load(RESOLVED, RESOLVED_LIMIT);
+      const openCount = openRows.length;
+      const resolvedCount = resolvedRows.length;
+      const located = query.status === 'resolved' ? resolvedRows : openRows;
       const q = query.q?.trim().toLowerCase();
       const filtered = located.filter(({ row, location }) => {
-        if (!wanted.includes(row.reviewStatus)) return false;
         if (query.reason && row.reviewReason !== query.reason) return false;
         if (query.branch) {
           const refs = location === 'all' ? null : location;
@@ -165,7 +183,7 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
         if (query.from && at < new Date(query.from).getTime()) return false;
         if (query.to && at > new Date(query.to).getTime()) return false;
         if (q) {
-          const content = text(row.rawPayload?.content)?.toLowerCase() ?? '';
+          const content = (text(row.rawPayload?.content) ?? text(row.rawPayload?.memoCode) ?? '').toLowerCase();
           const id = row.providerTransactionId.toLowerCase();
           const amount = String(amountFromDb(row.amount));
           if (!content.includes(q) && !id.includes(q) && amount !== q) return false;

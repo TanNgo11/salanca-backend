@@ -93,6 +93,46 @@ withApp(async (app) => {
     const unknownTxn = seq + 1;
     await transfer('555555555555', 40_000, 'khong ro chi nhanh');
 
+    // A reconciliation row has no account number or memo text, only the account key and code.
+    const reconciled = await place();
+    const reconciledRow = await events().create({
+      data: {
+        providerCode: 'sepay',
+        providerTransactionId: 'b6f1c0de-0000-4000-8000-000000000001',
+        transferType: 'in',
+        amount: 30_000,
+        currency: 'VND',
+        kind: 'transfer',
+        rawPayload: {
+          source: 'reconciliation',
+          accountKey: 'q1',
+          memoCode: reconciled.order.order.code,
+          referenceCode: 'FTRECREV1',
+          transactionDate: '2026-10-11 09:00:00',
+          transferType: 'in',
+        },
+        receivedAt: new Date(Date.now() - 60 * 60_000),
+        reviewStatus: 'needs-review',
+        reviewReason: 'underpaid',
+      },
+    });
+
+    // Auto-matched transfers far outnumber open reviews. They must not push older open rows
+    // out of the list or the counts.
+    const knex = app.db.connection;
+    const filler = Array.from({ length: 600 }, (_, index) => ({
+      provider_code: 'sepay',
+      provider_transaction_id: `filler-${index}`,
+      transfer_type: 'in',
+      amount: 1000,
+      currency: 'VND',
+      kind: 'transfer',
+      raw_payload: JSON.stringify({ accountNumber: '0123456789', content: 'filler' }),
+      received_at: new Date(Date.now() + 60_000),
+      review_status: 'auto-matched',
+    }));
+    await knex.batchInsert('plugins_ordering_payment_event', filler, 200);
+
     const lanList = await http.as.lan('GET', '/payment-reviews?status=open&pageSize=100');
     assert.equal(lanList.status, 200);
     const lanIds = lanList.body.results.map((row) => row.providerTransactionId);
@@ -107,6 +147,17 @@ withApp(async (app) => {
     assert.equal(underRow.accountMasked, '0123•••6789');
     assert.equal(underRow.suggestedOrder.code, short.order.order.code);
     assert.equal(underRow.suggestedOrder.due, total);
+    assert.equal(lanList.body.counts.open, lanList.body.pagination.total);
+    assert.ok(lanList.body.counts.open >= 4, 'open reviews survive 600 newer auto-matched rows');
+    const reconciledItem = lanList.body.results.find((row) => row.id === reconciledRow.id);
+    assert.ok(reconciledItem, 'Q1 staff see a reconciled transfer into the Q1 account');
+    assert.deepEqual(reconciledItem.locationRefs, ['Q1']);
+    assert.equal(reconciledItem.suggestedOrder.code, reconciled.order.order.code);
+    const byCode = await http.as.lan(
+      'GET',
+      `/payment-reviews?status=open&pageSize=100&q=${encodeURIComponent(reconciled.order.order.code.toLowerCase())}`,
+    );
+    assert.ok(byCode.body.results.some((row) => row.id === reconciledRow.id));
     const closedRow = lanList.body.results.find((row) => row.providerTransactionId === String(closedTxn));
     assert.equal(closedRow.canReopen, true);
 
