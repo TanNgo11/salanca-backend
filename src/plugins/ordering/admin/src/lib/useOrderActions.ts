@@ -62,6 +62,24 @@ export const useOrderActions = (onChanged?: (detail: OrderDetail | null) => void
         () => post(`/ordering/orders/${orderId}/refunds`, { amount, reason, idempotencyKey: `admin-refund-${crypto.randomUUID()}` }),
         t('action.refunded'),
       ),
+    refundBank: (orderId: number, amount: number, reason: string) =>
+      run(
+        'refund-bank',
+        () =>
+          post(`/ordering/orders/${orderId}/refunds`, {
+            method: 'bank',
+            amount,
+            reason,
+            idempotencyKey: `admin-refund-${crypto.randomUUID()}`,
+          }),
+        t('action.refundPending'),
+      ),
+    settleRefund: (refundId: number, reference: string, settledAt?: string) =>
+      run(
+        'settle-refund',
+        () => post(`/ordering/refunds/${refundId}/settle`, { reference, ...(settledAt ? { settledAt } : {}) }),
+        t('action.refundSettled'),
+      ),
     preview: async (orderId: number, lineId: number, quantity: number) => {
       const { data } = await get(`/ordering/orders/${orderId}/lines/${lineId}/cancel-preview?quantity=${quantity}`);
       return data as { refundAmount: number; refundShortfall: number };

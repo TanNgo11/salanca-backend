@@ -187,6 +187,7 @@ export default {
       ),
       adminRoute('POST', '/orders/:id/lines/:lineId/cancel', 'admin-orders.cancelLine', 'order.edit-lines'),
       adminRoute('POST', '/orders/:id/refunds', 'admin-orders.refund', 'refund.manage'),
+      adminRoute('POST', '/refunds/:id/settle', 'admin-orders.settleRefund', 'refund.manage'),
       adminRoute('POST', '/orders/:id/manual-payments', 'admin-orders.recordManual', 'payment.review'),
       // "Duyệt chuyển khoản" (screens P2–P3). Scope is enforced in the review service.
       adminRoute('GET', '/payment-reviews', 'payment-review.list', 'payment.review'),

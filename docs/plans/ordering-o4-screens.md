@@ -81,10 +81,14 @@ gửi giao dịch cùng mã (khi đó badge thành "Đã đối soát").
 
 Theo TastyIgniter refund + Vendure `settle-refund-dialog`.
 
-- P5a tạo: `Toggle` Toàn phần / Một phần; số tiền (khi một phần, hiện "tối đa X đ"); lý do *; API
-  `POST /ordering/orders/:id/refunds { method: 'bank', amount, reason }` → refund trạng thái "Chờ chuyển".
-- P5b ghi nhận đã chuyển: mã giao dịch hoàn *, thời điểm; API `POST /ordering/refunds/:id/settle`. Refund chưa
-  ghi mã hiện trong P1 với nút "Ghi nhận đã hoàn".
+- P5a tạo: hai nút Toàn phần / Một phần (không dùng dropdown trong modal); số tiền khi một phần, hiện
+  "tối đa X đ"; lý do *. API `POST /ordering/orders/:id/refunds { method: 'bank', amount, reason }` → refund
+  trạng thái "Chờ chuyển", chưa cộng `refundedAmount`. Không gửi `method` (hoặc `method: 'cash'`) vẫn là hoàn
+  tiền mặt, ghi sổ ngay.
+- P5b ghi nhận đã chuyển: mã giao dịch hoàn * (`reference`, 4–41 ký tự chữ/số/gạch), thời điểm
+  (`settledAt`, bỏ trống = bây giờ). API `POST /ordering/refunds/:id/settle { reference, settledAt? }`.
+  Cùng mã trên đúng phiếu đó không ghi sổ lần hai. `paymentStatus` đổi sau khi settle. Refund chưa ghi mã
+  hiện trong P1 với nút "Ghi nhận đã hoàn".
 
 ## P6. Sao chép link thanh toán
 

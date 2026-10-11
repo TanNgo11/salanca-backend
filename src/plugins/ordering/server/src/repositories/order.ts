@@ -94,7 +94,7 @@ const orderRepository = ({ strapi }: { strapi: Core.Strapi }) => {
           fulfillmentGroups: true,
           adjustments: { populate: { allocations: true } },
           payments: true,
-          refunds: { populate: { lines: true } },
+          refunds: { populate: { lines: true, payment: true } },
           holds: true,
         },
       });

@@ -10,11 +10,13 @@ import { refundLineAmount } from '../domain/refund-amount';
 import type { TransactionClient } from '../migrations/runner';
 import orderRepository from '../repositories/order';
 import type { PaymentRow, RefundRow } from '../repositories/types';
+import type changeLogFactory from './change-log';
 import type { ServiceContext } from './context';
 import { actorRefOf, nowOf } from './context';
 import type idempotencyFactory from './idempotency';
 import type orderServiceFactory from './order';
 import type outboxFactory from './outbox';
+import type scopeFactory from './scope';
 import type timelineFactory from './timeline';
 import type { OrderingRegistry } from './registry';
 
@@ -24,6 +26,20 @@ type Services = {
   order: ReturnType<typeof orderServiceFactory>;
   timeline: ReturnType<typeof timelineFactory>;
   outbox: ReturnType<typeof outboxFactory>;
+  changeLog: ReturnType<typeof changeLogFactory>;
+  scope: ReturnType<typeof scopeFactory>;
+};
+
+const BANK_REFERENCE = /^[A-Za-z0-9][A-Za-z0-9-]{3,40}$/;
+
+const relationId = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isInteger(value)) return value;
+  if (typeof value === 'string' && /^\d+$/.test(value)) return Number(value);
+  if (typeof value === 'object' && value !== null && 'id' in value) {
+    const id = (value as { id: unknown }).id;
+    return typeof id === 'number' && Number.isInteger(id) ? id : null;
+  }
+  return null;
 };
 
 type LineRow = {
@@ -62,6 +78,9 @@ export type CreateRefundResult = {
  * The public `createRefund` wraps the transaction core in the `refund` idempotency scope —
  * a replayed key returns the stored snapshot. `createRefundInTransaction` is the
  * idempotency-free core other services (line-cancel) compose inside their own transaction.
+ * `refundedAmount` moves only when the provider settles. A pending refund (SePay records the
+ * outbound transfer later) reserves the captured remainder and leaves `paymentStatus` unchanged
+ * until `settleRefund`.
  */
 const refund = ({ strapi }: { strapi: Core.Strapi }) => {
   const services = (): Services => {
@@ -72,6 +91,8 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
       order: plugin.service('order') as Services['order'],
       timeline: plugin.service('timeline') as Services['timeline'],
       outbox: plugin.service('outbox') as Services['outbox'],
+      changeLog: plugin.service('change-log') as Services['changeLog'],
+      scope: plugin.service('scope') as Services['scope'],
     };
   };
   const repo = orderRepository({ strapi });
@@ -180,7 +201,15 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
 
     const captured = amountFromDb(payment.capturedAmount);
     const refunded = amountFromDb(payment.refundedAmount);
-    if (total > captured - refunded) {
+    // Pending rows already reserve this payment. The row lock above serializes a second create.
+    // Strapi stores the payment relation in a link table, not a column on the refund.
+    const pendingRows = (await trx('plugins_ordering_refund as refund')
+      .join('plugins_ordering_refund_payment_lnk as link', 'link.refund_id', 'refund.id')
+      .where('link.payment_id', input.paymentId)
+      .where('refund.status', 'pending')
+      .select('refund.amount')) as Array<{ amount: string | number }>;
+    const pending = pendingRows.reduce((sum, row) => sum + amountFromDb(row.amount), 0);
+    if (total > captured - refunded - pending) {
       throw new OrderingError(
         'REFUND_EXCEEDS_CAPTURED',
         'refund exceeds the captured remainder',
@@ -226,10 +255,14 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
         },
       });
     }
-    await payments().update({
-      where: { id: input.paymentId },
-      data: { refundedAmount: refunded + total },
-    });
+    // Cash settles in the provider call. SePay stays pending until a person records the
+    // outbound reference, so the projection must not move yet.
+    if (settled) {
+      await payments().update({
+        where: { id: input.paymentId },
+        data: { refundedAmount: refunded + total },
+      });
+    }
     // Refunds only move paymentStatus; the order status itself is unchanged.
     await order.recomputeProjection(orderId);
     const eventType = `refund.${result.status}`;
@@ -265,8 +298,154 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
     return { refund: created as RefundRow, amount: total, orderId, status: result.status };
   };
 
+  const referenceOf = (value: unknown): string => {
+    if (typeof value !== 'string' || !BANK_REFERENCE.test(value.trim())) {
+      throw new OrderingError(
+        'VALIDATION_ERROR',
+        'bank reference must be 4–41 letters, digits or hyphens',
+        { details: { field: 'reference' } },
+      );
+    }
+    return value.trim();
+  };
+
+  const settledAtOf = (value: unknown, ctx: ServiceContext): Date => {
+    if (value === undefined || value === null || value === '') return nowOf(ctx);
+    if (typeof value !== 'string' || Number.isNaN(new Date(value).getTime())) {
+      throw new OrderingError('VALIDATION_ERROR', 'settledAt is not a valid time', {
+        details: { field: 'settledAt' },
+      });
+    }
+    return new Date(value);
+  };
+
+  /**
+   * POST /refunds/:id/settle. Records the outbound bank reference and, for a refund tied to a
+   * payment, moves `refundedAmount` then. The same reference on the same refund is a replay.
+   * A refund with no order (review "refund due") is visible only to `allLocations`.
+   */
+  const settleRefund = async (
+    refundId: number,
+    input: { reference: unknown; settledAt?: unknown },
+    ctx: ServiceContext,
+  ): Promise<{ refund: RefundRow; orderId: number | null; replayed: boolean }> => {
+    const reference = referenceOf(input.reference);
+    const settledAt = settledAtOf(input.settledAt, ctx);
+    const { order, timeline, outbox, changeLog, scope } = services();
+    return strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
+      const locked = await trx('plugins_ordering_refund').where({ id: refundId }).forUpdate().first();
+      if (!locked) {
+        throw new OrderingError('REFUND_NOT_FOUND', 'refund not found');
+      }
+      const row = (await refunds().findOne({
+        where: { id: refundId },
+        populate: { payment: true, order: true },
+      })) as RefundRow | null;
+      if (!row) {
+        throw new OrderingError('REFUND_NOT_FOUND', 'refund not found');
+      }
+      const orderId = relationId(row.order);
+      const paymentId = relationId(row.payment);
+      let locationRef: string | undefined;
+      if (orderId !== null) {
+        const aggregate = await order.getOrder(orderId, ctx);
+        locationRef = aggregate.order.locationRef;
+      } else {
+        const staffScope = await scope.loadScope(ctx);
+        if (!staffScope || staffScope.allLocations !== true) {
+          throw new OrderingError('REFUND_NOT_FOUND', 'refund not found');
+        }
+      }
+      if (row.status === 'settled' && row.providerReference === reference) {
+        return { refund: row, orderId, replayed: true };
+      }
+      if (row.status !== 'pending') {
+        throw new OrderingError('VALIDATION_ERROR', 'refund is already settled', {
+          details: { field: 'reference' },
+        });
+      }
+      await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [`refund-ref:${reference}`]);
+      const taken = (await refunds().findMany({
+        where: { providerReference: reference },
+        limit: 2,
+      })) as Array<{ id: number }>;
+      if (taken.some((other) => other.id !== refundId)) {
+        throw new OrderingError('VALIDATION_ERROR', 'bank reference already recorded', {
+          details: { field: 'reference' },
+        });
+      }
+      const amount = amountFromDb(row.amount);
+      if (paymentId !== null) {
+        const paymentLocked = await repo.lockPayment(trx, paymentId);
+        if (!paymentLocked) {
+          throw new OrderingError('PAYMENT_NOT_FOUND', 'payment not found', {
+            details: { paymentId },
+          });
+        }
+        const payment = (await payments().findOne({ where: { id: paymentId } })) as PaymentRow;
+        const captured = amountFromDb(payment.capturedAmount);
+        const refunded = amountFromDb(payment.refundedAmount);
+        if (amount > captured - refunded) {
+          throw new OrderingError(
+            'REFUND_EXCEEDS_CAPTURED',
+            'refund exceeds the captured remainder',
+            { details: { paymentId } },
+          );
+        }
+        await payments().update({
+          where: { id: paymentId },
+          data: { refundedAmount: refunded + amount },
+        });
+      }
+      const updated = (await refunds().update({
+        where: { id: refundId },
+        data: { status: 'settled', providerReference: reference, settledAt },
+      })) as RefundRow;
+      if (orderId !== null) {
+        await order.recomputeProjection(orderId);
+        await timeline.record(
+          {
+            orderId,
+            type: 'refund.settled',
+            isPublic: true,
+            payload: { amount, refundId },
+          },
+          ctx,
+        );
+        await outbox.enqueue(
+          {
+            type: 'refund.settled',
+            aggregateType: 'refund',
+            aggregateId: String(refundId),
+            payload: {
+              orderId,
+              paymentId,
+              refundId,
+              amount,
+              actorRef: actorRefOf(ctx),
+            },
+            uniqueKey: `refund.settled:${refundId}`,
+          },
+          ctx,
+        );
+      }
+      await changeLog.record(
+        {
+          action: 'refund.settle',
+          entityType: 'refund',
+          entityId: refundId,
+          locationRef,
+          after: { reference, amount },
+        },
+        ctx,
+      );
+      return { refund: updated, orderId, replayed: false };
+    });
+  };
+
   return {
     createRefundInTransaction,
+    settleRefund,
 
     async createRefund(
       input: {
@@ -275,6 +454,8 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
         lines?: Array<{ lineId: number; quantity: number }>;
         reason: string;
         idempotencyKey: string;
+        /** Written in the same transaction as the refund. A replay does not write it again. */
+        audit?: { locationRef?: string; after: Record<string, unknown> };
       },
       ctx: ServiceContext,
     ): Promise<CreateRefundResult> {
@@ -291,13 +472,25 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
         throw new OrderingError('VALIDATION_ERROR', 'refund reason is required');
       }
 
-      const { idempotencyKey, ...payload } = input;
+      const { idempotencyKey, audit, ...payload } = input;
       const outcome = await services().idempotency.run(
         { scope: 'refund', key: idempotencyKey, payload },
         ctx,
         async (trx) => {
           const { refund: created, amount, orderId, status } =
             await createRefundInTransaction(trx, { ...input, idempotencyKey }, ctx);
+          if (audit) {
+            await services().changeLog.record(
+              {
+                action: 'refund.create',
+                entityType: 'refund',
+                entityId: created.id as number,
+                locationRef: audit.locationRef,
+                after: audit.after,
+              },
+              ctx,
+            );
+          }
           return {
             result: { refundId: created.id as number },
             responseRef: `refund:${created.id}`,

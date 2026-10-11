@@ -101,13 +101,22 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     }),
     refund: adminAction(strapi, async (ctx, serviceCtx) => {
       const input = body(ctx.request.body);
-      return service().refundCash(
+      return service().refundOrder(
         id(ctx.params.id),
         {
+          method: input.method,
           amount: Number(input.amount),
           reason: optionalText(input.reason),
           idempotencyKey: optionalText(input.idempotencyKey),
         },
+        serviceCtx,
+      );
+    }),
+    settleRefund: adminAction(strapi, async (ctx, serviceCtx) => {
+      const input = body(ctx.request.body);
+      return service().settleRefund(
+        id(ctx.params.id),
+        { reference: input.reference, settledAt: input.settledAt },
         serviceCtx,
       );
     }),

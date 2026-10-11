@@ -45,6 +45,16 @@ const MAX_NOTE = 1000;
 const maskReference = (value: string): string =>
   value.length <= 8 ? `${value.slice(0, 2)}•••` : `${value.slice(0, 4)}•••${value.slice(-4)}`;
 
+const relationId = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isInteger(value)) return value;
+  if (typeof value === 'string' && /^\d+$/.test(value)) return Number(value);
+  if (typeof value === 'object' && value !== null && 'id' in value) {
+    const id = (value as { id: unknown }).id;
+    return typeof id === 'number' && Number.isInteger(id) ? id : null;
+  }
+  return null;
+};
+
 const eventConfirmed = (kind: string | null, reviewStatus: string, rawPayload: unknown): boolean => {
   if (kind === 'manual') {
     const raw =
@@ -424,12 +434,14 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
         paymentEvents,
         refunds: aggregate.refunds.map((refund) => ({
           id: refund.id,
+          paymentId: relationId(refund.payment),
           amount: refund.amount,
           reason: refund.reason,
           status: refund.status,
           actorRef: refund.actorRef,
           actorName: nameOf.get(refund.actorRef ?? '') ?? null,
           settledAt: refund.settledAt,
+          referenceMasked: refund.providerReference ? maskReference(refund.providerReference) : null,
         })),
         timeline: events.map((event) => ({
           id: event.id,
@@ -701,6 +713,96 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
         ctx,
       );
       return service.detail(orderId, ctx);
+    },
+
+    /**
+     * POST /orders/:id/refunds { method: 'bank' }. The SePay provider leaves the refund pending.
+     * `paymentStatus` stays put until settle. Pending refunds on the payment count against the cap.
+     */
+    async refundBank(
+      orderId: number,
+      input: { amount: number; reason?: string; idempotencyKey?: string },
+      ctx: ServiceContext,
+    ) {
+      const aggregate = await loadScoped(orderId, ctx);
+      const reason = input.reason?.trim() ?? '';
+      if (!reason) {
+        throw new OrderingError('VALIDATION_ERROR', 'refund reason is required', {
+          details: { field: 'reason' },
+        });
+      }
+      if (!Number.isSafeInteger(input.amount) || input.amount <= 0) {
+        throw new OrderingError('VALIDATION_ERROR', 'refund amount must be a positive integer', {
+          details: { field: 'amount' },
+        });
+      }
+      let best: { id: number; room: number } | null = null;
+      for (const payment of aggregate.payments) {
+        if (payment.providerCode !== 'sepay') continue;
+        const pendingRows = (await strapi.db
+          .connection('plugins_ordering_refund as refund')
+          .join('plugins_ordering_refund_payment_lnk as link', 'link.refund_id', 'refund.id')
+          .where('link.payment_id', payment.id)
+          .where('refund.status', 'pending')
+          .select('refund.amount')) as Array<{ amount: string | number }>;
+        const pending = pendingRows.reduce((sum, row) => sum + amountFromDb(row.amount), 0);
+        const room = payment.capturedAmount - payment.refundedAmount - pending;
+        if (best === null || room > best.room) best = { id: payment.id, room };
+      }
+      if (!best || input.amount > best.room) {
+        throw new OrderingError('REFUND_EXCEEDS_CAPTURED', 'no bank payment left to refund', {
+          details: { max: Math.max(0, best?.room ?? 0) },
+        });
+      }
+      const paymentId = best.id;
+      const idempotencyKey = input.idempotencyKey ?? `admin-refund:${randomUUID()}`;
+      await s.refund().createRefund(
+        {
+          paymentId,
+          amount: input.amount,
+          reason,
+          idempotencyKey,
+          audit: {
+            locationRef: aggregate.order.locationRef,
+            after: { amount: input.amount, method: 'bank', reason },
+          },
+        },
+        ctx,
+      );
+      return service.detail(orderId, ctx);
+    },
+
+    /** POST /orders/:id/refunds. `method: 'bank'` waits for a reference; cash settles immediately. */
+    async refundOrder(
+      orderId: number,
+      input: { method?: unknown; amount: number; reason?: string; idempotencyKey?: string },
+      ctx: ServiceContext,
+    ) {
+      if (input.method === 'bank') return service.refundBank(orderId, input, ctx);
+      if (input.method === undefined || input.method === 'cash') {
+        return service.refundCash(orderId, input, ctx);
+      }
+      throw new OrderingError('VALIDATION_ERROR', 'method must be cash or bank', {
+        details: { field: 'method' },
+      });
+    },
+
+    /** POST /refunds/:id/settle. Out of scope is 404. Returns the order detail when the refund has one. */
+    async settleRefund(
+      refundId: number,
+      input: { reference: unknown; settledAt?: unknown },
+      ctx: ServiceContext,
+    ) {
+      const settled = await s.refund().settleRefund(refundId, input, ctx);
+      if (settled.orderId === null) {
+        return {
+          ok: true,
+          refundId: settled.refund.id,
+          status: settled.refund.status,
+          replayed: settled.replayed,
+        };
+      }
+      return service.detail(settled.orderId, ctx);
     },
 
     /**

@@ -34,12 +34,14 @@ import { RBAC_DETAIL } from '../../lib/permissions';
 import type { InboxSettings, NextTransition, OrderDetail } from '../../lib/types';
 import { useOrderActions } from '../../lib/useOrderActions';
 import {
+  BankRefundDialog,
   CancelDialog,
   CashHandoverDialog,
   LineCancelDialog,
   ManualPaymentDialog,
   RefundDialog,
   RejectDialog,
+  SettleRefundDialog,
   TransitionDialog,
 } from './OrderDialogs';
 
@@ -50,6 +52,8 @@ type Dialog =
   | { kind: 'cash' }
   | { kind: 'line'; lineId: number }
   | { kind: 'refund' }
+  | { kind: 'refund-bank' }
+  | { kind: 'settle'; refundId: number }
   | { kind: 'manual' }
   | null;
 
@@ -183,6 +187,16 @@ export const OrderDetailPage = () => {
   const cashHeld = detail.payments
     .filter((payment) => payment.providerCode === 'cash')
     .reduce((sum, payment) => sum + payment.capturedAmount - payment.refundedAmount, 0);
+  const pendingOn = (paymentId: number) =>
+    detail.refunds
+      .filter((refund) => refund.status === 'pending' && refund.paymentId === paymentId)
+      .reduce((sum, refund) => sum + refund.amount, 0);
+  const bankHeld = detail.payments
+    .filter((payment) => payment.providerCode === 'sepay')
+    .reduce(
+      (sum, payment) => sum + Math.max(0, payment.capturedAmount - payment.refundedAmount - pendingOn(payment.id)),
+      0,
+    );
   const closed = order.status === 'canceled' || order.status === 'completed';
 
   const onStep = (item: NextTransition) => {
@@ -220,6 +234,7 @@ export const OrderDetailPage = () => {
         {can.canCancel && !closed ? <MenuItem onSelect={() => setDialog({ kind: 'cancel' })}>{t('detail.cancelOrder')}</MenuItem> : null}
         {can.canReview ? <MenuItem onSelect={() => setDialog({ kind: 'manual' })}>{t('review.manual')}</MenuItem> : null}
         {can.canManage && cashHeld > 0 ? <MenuItem onSelect={() => setDialog({ kind: 'refund' })}>{t('detail.refund')}</MenuItem> : null}
+        {can.canManage && bankHeld > 0 ? <MenuItem onSelect={() => setDialog({ kind: 'refund-bank' })}>{t('detail.refundBank')}</MenuItem> : null}
         <MenuItem
           onSelect={() => {
             void navigator.clipboard?.writeText(order.code);
@@ -350,11 +365,21 @@ export const OrderDetailPage = () => {
                     </Flex>
                   ))}
                   {detail.refunds.map((refund) => (
-                    <Row
-                      key={`r${refund.id}`}
-                      label={`${t('detail.refundRow')} · ${refund.reason} · ${refund.actorName ?? '—'}`}
-                      value={`−${formatMoney(refund.amount)}`}
-                    />
+                    <Flex key={`r${refund.id}`} justifyContent="space-between" alignItems="center" paddingBottom={1} gap={2}>
+                      <Typography textColor="neutral600">
+                        {t('detail.refundRow')} · {refund.reason} · {refund.actorName ?? '—'}
+                        {refund.referenceMasked ? ` · ${refund.referenceMasked}` : ''}
+                      </Typography>
+                      <Flex gap={2} alignItems="center">
+                        {refund.status === 'pending' ? <Badge>{t('refund.status.pending')}</Badge> : null}
+                        {refund.status === 'pending' && can.canManage ? (
+                          <Button size="S" variant="secondary" onClick={() => setDialog({ kind: 'settle', refundId: refund.id })}>
+                            {t('detail.settleRefund')}
+                          </Button>
+                        ) : null}
+                        <Typography>{`−${formatMoney(refund.amount)}`}</Typography>
+                      </Flex>
+                    </Flex>
                   ))}
                 </>
               )}
@@ -481,6 +506,21 @@ export const OrderDetailPage = () => {
           : null}
         {dialog?.kind === 'refund' ? (
           <RefundDialog max={cashHeld} busy={actions.busy !== null} onClose={() => setDialog(null)} onSubmit={(amount, reason) => void actions.refund(order.id, amount, reason)} />
+        ) : null}
+        {dialog?.kind === 'refund-bank' ? (
+          <BankRefundDialog
+            max={bankHeld}
+            busy={actions.busy !== null}
+            onClose={() => setDialog(null)}
+            onSubmit={(amount, reason) => void actions.refundBank(order.id, amount, reason)}
+          />
+        ) : null}
+        {dialog?.kind === 'settle' ? (
+          <SettleRefundDialog
+            busy={actions.busy !== null}
+            onClose={() => setDialog(null)}
+            onSubmit={(reference, settledAt) => void actions.settleRefund(dialog.refundId, reference, settledAt)}
+          />
         ) : null}
         {dialog?.kind === 'manual' ? (
           <ManualPaymentDialog

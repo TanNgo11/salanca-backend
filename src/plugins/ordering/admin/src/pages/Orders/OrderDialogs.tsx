@@ -440,3 +440,106 @@ export const ManualPaymentDialog = ({
     </Frame>
   );
 };
+
+/** Bank refund (screens P5a). Two buttons, not a dropdown — a menu inside Modal freezes the page. */
+export const BankRefundDialog = ({
+  max,
+  busy,
+  onClose,
+  onSubmit,
+}: {
+  max: number;
+  busy: boolean;
+  onClose: () => void;
+  onSubmit: (amount: number, reason: string) => void;
+}) => {
+  const t = useT();
+  const [mode, setMode] = useState<'full' | 'partial'>('full');
+  const [amount, setAmount] = useState<number | undefined>(undefined);
+  const [reason, setReason] = useState('');
+  const value = mode === 'full' ? max : amount;
+  const valid = value !== undefined && value > 0 && value <= max && reason.trim().length >= 3;
+  return (
+    <Frame
+      title={t('dialog.refundBank.title')}
+      onClose={onClose}
+      action={
+        <Button variant="danger" loading={busy} disabled={!valid} onClick={() => onSubmit(value ?? 0, reason.trim())}>
+          {t('dialog.refundBank.confirm')}
+        </Button>
+      }
+    >
+      <Flex gap={2}>
+        <Button variant={mode === 'full' ? 'default' : 'secondary'} onClick={() => setMode('full')}>
+          {t('dialog.refundBank.full')}
+        </Button>
+        <Button variant={mode === 'partial' ? 'default' : 'secondary'} onClick={() => setMode('partial')}>
+          {t('dialog.refundBank.partial')}
+        </Button>
+      </Flex>
+      {mode === 'partial' ? (
+        <Field.Root required hint={t('dialog.refund.max', { amount: formatMoney(max) })}>
+          <Field.Label>{t('dialog.refund.amount')}</Field.Label>
+          <NumberInput value={amount} onValueChange={setAmount} />
+          <Field.Hint />
+        </Field.Root>
+      ) : (
+        <Typography>{t('dialog.refund.max', { amount: formatMoney(max) })}</Typography>
+      )}
+      <Field.Root required>
+        <Field.Label>{t('dialog.reason')}</Field.Label>
+        <Textarea value={reason} onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setReason(event.target.value)} />
+      </Field.Root>
+    </Frame>
+  );
+};
+
+/** Record the outbound transfer (screens P5b). Text fields only. */
+export const SettleRefundDialog = ({
+  busy,
+  onClose,
+  onSubmit,
+}: {
+  busy: boolean;
+  onClose: () => void;
+  onSubmit: (reference: string, settledAt?: string) => void;
+}) => {
+  const t = useT();
+  const [reference, setReference] = useState('');
+  const [when, setWhen] = useState('');
+  const whenOk = when === '' || !Number.isNaN(new Date(when).getTime());
+  const valid = REFERENCE.test(reference.trim()) && whenOk;
+  return (
+    <Frame
+      title={t('dialog.settle.title')}
+      onClose={onClose}
+      action={
+        <Button
+          loading={busy}
+          disabled={!valid}
+          onClick={() => onSubmit(reference.trim(), when ? new Date(when).toISOString() : undefined)}
+        >
+          {t('dialog.settle.confirm')}
+        </Button>
+      }
+    >
+      <Field.Root required>
+        <Field.Label>{t('dialog.settle.reference')}</Field.Label>
+        <TextInput
+          name="settle-reference"
+          value={reference}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => setReference(event.target.value)}
+        />
+      </Field.Root>
+      <Field.Root>
+        <Field.Label>{t('dialog.settle.when')}</Field.Label>
+        <TextInput
+          name="settle-when"
+          type="datetime-local"
+          value={when}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => setWhen(event.target.value)}
+        />
+      </Field.Root>
+    </Frame>
+  );
+};

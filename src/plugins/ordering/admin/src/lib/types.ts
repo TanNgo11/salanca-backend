@@ -98,7 +98,16 @@ export type OrderDetail = {
     confirmed: boolean;
     receivedAt: string;
   }>;
-  refunds: Array<{ id: number; amount: number; reason: string; status: string; actorName: string | null; settledAt: string | null }>;
+  refunds: Array<{
+    id: number;
+    paymentId: number | null;
+    amount: number;
+    reason: string;
+    status: string;
+    actorName: string | null;
+    settledAt: string | null;
+    referenceMasked: string | null;
+  }>;
   timeline: Array<{
     id: number;
     type: string;
