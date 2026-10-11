@@ -1,4 +1,4 @@
-# Ordering storefront API (O3)
+# Ordering storefront API (O3) and SePay webhook (O4)
 
 Public routes of the `ordering` plugin for the web app (phase OW). Base path with Salanca's REST prefix:
 `/api/v1/ordering`. All routes are `auth: false`; each one rate-limits by the visitor IP, caps JSON bodies
@@ -103,8 +103,23 @@ note, lineTotalAmount }`, `totals { currency, subtotal, adjustment, fulfillment,
 
 ### `GET /orders/payment` (`X-Order-Token`)
 
-`{ code, paymentStatus, currency, total, due, paymentTiming, methods, presentation }`. `presentation` is
-`null` for cash; online providers fill it (QR, bank account, memo, expiry) in O4.
+`{ payment: { code, paymentStatus, currency, total, due, paymentTiming, methods, presentation } }`.
+`presentation` is `null` for cash, when nothing is due, when no group is `awaiting-payment`, or when
+the payment window has already passed. SePay fills it while the window is open:
+
+```json
+{
+  "qr": "https://qr.sepay.vn/img?...",
+  "bankAccount": { "bankCode": "MBBank", "bankName": "MB Bank", "accountNumber": "…", "accountName": "…" },
+  "memo": "SLCSLC-000124",
+  "expiresAt": "2026-10-11T08:15:00.000Z"
+}
+```
+
+`memo` is `SEPAY_MEMO_TEMPLATE` with `{orderCode}` replaced (default template `SLC{orderCode}`, so order
+`SLC-000124` expects the transfer content to contain `SLCSLC-000124`). `qr` is a SePay image URL in
+production. Tests embed an SVG data URL and never call SePay. The account number is the branch account
+from `SEPAY_ACCOUNTS` (a branch-specific account wins over one with `locationRefs: "all"`).
 
 ### `POST /orders/cancel` (`X-Order-Token`)
 
@@ -121,4 +136,48 @@ No name, phone, email, note or actions. Limits: per IP and 5 tries per order cod
 ## Order steps (pickup, pay on pickup)
 
 `placed` → `awaiting-acceptance` → `preparing` → `ready` → `delivered`; or `rejected` / `canceled`.
-Prepay and accept-then-pay add `awaiting-payment` (online payment arrives with O4).
+Prepay and accept-then-pay add `awaiting-payment`. A SePay transfer that matches the order moves that
+step on: prepay to `awaiting-acceptance`, accept-then-pay to `preparing`.
+
+## SePay webhook
+
+### `POST /webhooks/sepay`
+
+SePay calls this. It is not a storefront route: no order token, no `Idempotency-Key`, no captcha, and
+it is not covered by the storefront rate limits. The signature is the authentication. Give SePay:
+
+`https://<cms domain>/api/v1/ordering/webhooks/sepay`
+
+Headers:
+
+| Header | Value |
+| --- | --- |
+| `Content-Type` | `application/json` |
+| `X-SePay-Timestamp` | Unix seconds |
+| `X-SePay-Signature` | `sha256=` + hex HMAC-SHA256 of `{timestamp}.{raw body}` using `SEPAY_WEBHOOK_SECRET` |
+
+The HMAC is over the exact request bytes, not a re-serialized JSON value. A timestamp more than 300
+seconds off, or a signature that does not match, is **401** `{ "success": false }`. A body that is not
+the payload below is **400** `{ "success": false }`. Anything else, after the raw event is stored, is
+**200** `{ "success": true }` — including a duplicate `id`, an outbound transfer, and money that does
+not match an order. SePay retries any other response.
+
+```json
+{
+  "id": 96001,
+  "gateway": "MBBank",
+  "transactionDate": "2026-10-11 14:00:00",
+  "accountNumber": "0123456789",
+  "content": "SLCSLC-000124",
+  "transferType": "in",
+  "transferAmount": 195000,
+  "referenceCode": "FT96001"
+}
+```
+
+`id` is an integer (or a digit string) and is the idempotency key. The same `id` does not capture
+twice. `transferType: "out"` is stored and ignored. `content` is what matching reads; SePay's own
+`code` field is not. `transferAmount` is integer VND (a trailing `.00` is rounded). The account number
+must belong to the order's branch.
+
+Do not log the raw body, the sender name, or the full account number. The secret is env-only.

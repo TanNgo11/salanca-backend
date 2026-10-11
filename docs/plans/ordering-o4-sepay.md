@@ -144,7 +144,8 @@ soát bù; workflow `prepay` và `accept-then-pay` chạy trọn.
 | 8 đối soát | `d2359e7` | client giả, 2 process ghi một lần; UUID và webhook cùng mã không ghi sổ lần hai |
 | 9 hết hạn thanh toán | `65125b7` | prepay quá hạn thì `expired` và nhả hold; tiền tới sau là `order-closed` |
 | 10 hoàn chuyển khoản | `496e16c` | phiếu `pending` chưa đổi `paymentStatus`; settle ghi mã rồi mới cộng sổ |
-| 11 cảnh báo thanh toán | commit này | một cảnh báo mỗi khóa; webhook lỗi 5 lần, tiền không khớp, ghi tay quá 24 giờ, đối soát không ghi được |
+| 11 cảnh báo thanh toán | `cb9016e` | một cảnh báo mỗi khóa; webhook lỗi 5 lần, tiền không khớp, ghi tay quá 24 giờ, đối soát không ghi được |
+| 12 smoke + tài liệu | commit này | webhook ký giả khớp đơn trên DB test; env, runbook, contract |
 
 **Quyết định bước 7:** mã ngân hàng là `providerTransactionId` của event `kind=manual`. Webhook cùng `referenceCode` và cùng số tiền chỉ đặt `confirmed`. Khác số tiền thì lưu `needs-review`, không ghi thêm. Ghi chú nhân viên nằm ở change log (`reason`). `rawPayload` không có nội dung chuyển khoản hay số tài khoản. Đơn ngoài scope trả 404. Event ghi tay không vào hàng duyệt.
 
@@ -155,3 +156,5 @@ soát bù; workflow `prepay` và `accept-then-pay` chạy trọn.
 **Quyết định bước 10:** `createRefundInTransaction` chỉ cộng `refundedAmount` khi provider trả `settled` (tiền mặt vẫn ghi ngay). SePay trả `pending` và phiếu chờ bị trừ vào số còn hoàn được. `POST /orders/:id/refunds` với `method: 'bank'` chưa đổi `paymentStatus`. `POST /refunds/:id/settle { reference, settledAt? }` ghi mã rồi mới cộng sổ. Cùng mã trên đúng phiếu đó không ghi lần hai; mã trùng phiếu khác là lỗi. Đơn ngoài scope trả 404. Phiếu không gắn đơn (duyệt "cần hoàn") chỉ `allLocations` ghi mã.
 
 **Quyết định bước 11:** năm lần chữ ký hoặc xử lý webhook lỗi liên tiếp mở `webhook-failing:<provider>`, lần 20 thành `critical`, webhook hợp lệ thì xóa bộ đếm và đóng cảnh báo. Tiền không khớp là một cảnh báo đang mở cho mỗi provider. Chuyển khoản ghi tay quá 24 giờ mà SePay chưa xác nhận là một cảnh báo theo id event, đóng khi đã `confirmed`. Đối soát mở một cảnh báo cho mỗi giao dịch provider không ghi được vào sổ. Cron `jobs.manualConfirmCron` mặc định `0 15 * * * *`. Không có màn trạng thái vận hành.
+
+**Quyết định bước 12:** URL khai cho SePay là `https://<domain cms>/api/v1/ordering/webhooks/sepay`. Provider chỉ đăng ký khi có `SEPAY_WEBHOOK_SECRET`; boot từ chối nếu thiếu token hoặc tài khoản. Smoke `scripts/smoke-ordering-sepay.mjs` ký bằng secret giả trên `salanca_ordering_test`, không gọi SePay.
