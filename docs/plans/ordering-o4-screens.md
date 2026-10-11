@@ -76,6 +76,8 @@ Theo Vendure `add-manual-payment-dialog` + Saleor "Manual transaction".
 
 API `POST /ordering/orders/:id/manual-payments`. Sau khi lưu, sự kiện hiện badge "Chờ đối soát" tới khi SePay
 gửi giao dịch cùng mã (khi đó badge thành "Đã đối soát").
+Mã đã có trong một giao dịch SePay (webhook hoặc đối soát, không phân biệt hoa thường) → 409
+`PAYMENT_ALREADY_RECEIVED`: giao dịch đó xử lý ở Duyệt chuyển khoản, không ghi tay lần hai.
 
 ## P5. Hoàn tiền (chuyển khoản)
 

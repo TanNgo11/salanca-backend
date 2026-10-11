@@ -1,5 +1,6 @@
 // O4 step 7: staff record a transfer by bank reference. A later webhook with the same
-// reference and the same amount confirms that row and does not capture again. No call to SePay.
+// reference and the same amount confirms that row and does not capture again. A transfer the
+// webhook already stored cannot be recorded again by hand. No call to SePay.
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 
@@ -257,6 +258,30 @@ withApp(async (app) => {
     assert.equal(typedRows[0].rawPayload.confirmed, true);
     assert.equal(capturedOf(await load(typedId)), total);
 
+    // The webhook came first and already captured. Recording the same bank reference by hand
+    // (any letter case) is refused, so the ledger is not credited twice.
+    const webFirst = await place();
+    const webFirstId = webFirst.order.order.id;
+    const webFirstHook = await post({
+      id: 9300,
+      transferType: 'in',
+      transferAmount: total,
+      accountNumber: '0123456789',
+      content: `SLC${webFirst.order.order.code}`,
+      referenceCode: 'FTWEB9300',
+    });
+    assert.deepEqual(webFirstHook.body, { success: true });
+    assert.equal(capturedOf(await load(webFirstId)), total);
+    const lateManual = await http.as.lan('POST', `/orders/${webFirstId}/manual-payments`, {
+      reference: 'ftweb9300',
+      amount: total,
+    });
+    assert.equal(lateManual.status, 409, JSON.stringify(lateManual.body));
+    assert.equal(lateManual.body.error.code, 'PAYMENT_ALREADY_RECEIVED');
+    const webFirstAgg = await load(webFirstId);
+    assert.equal(capturedOf(webFirstAgg), total);
+    assert.equal((await rowsFor('ftweb9300', 'FTWEB9300')).length, 0);
+
     const q3 = await order.createOrder(
       basicOrderInput({
         locationRef: 'Q3',
@@ -272,7 +297,7 @@ withApp(async (app) => {
     assert.equal(denied.body.error.code, 'ORDER_NOT_FOUND');
     assert.equal((await rowsFor('FT9009')).length, 0);
 
-    console.log('[ordering-test] sepay manual: record, attach, mismatch, scope');
+    console.log('[ordering-test] sepay manual: record, attach, mismatch, webhook first, scope');
   } finally {
     await http.cleanup();
   }

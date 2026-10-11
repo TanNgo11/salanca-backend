@@ -72,6 +72,14 @@ export const o4Messages: Record<string, [string, string]> = {
     'Someone else just reviewed this transfer',
   ],
   'error.REOPEN_UNAVAILABLE': ['Không mở lại được đơn này', 'This order cannot be reopened'],
+  'error.PAYMENT_ALREADY_RECEIVED': [
+    'SePay đã gửi giao dịch này — xử lý ở Duyệt chuyển khoản',
+    'SePay already sent this transfer — handle it in Transfer review',
+  ],
+  'error.ORDER_CLOSED': [
+    'Đơn đã đóng — dùng "Mở lại đơn" thay vì gán',
+    'The order is closed — use "Reopen the order" instead of assigning',
+  ],
   'error.PAYMENT_NOT_FOUND': [
     'Không thấy giao dịch trong phạm vi của bạn',
     'Transfer not found in your scope',

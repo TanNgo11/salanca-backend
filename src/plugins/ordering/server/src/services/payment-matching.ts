@@ -39,7 +39,10 @@ type ReferenceDb = {
   raw: (sql: string, bindings: readonly unknown[]) => Promise<{ rows?: ReferenceRow[] }>;
 };
 
-/** Other rows that share this bank reference: the manual id, or `rawPayload.referenceCode`. */
+/**
+ * Other rows that share this bank reference: the manual id, or `rawPayload.referenceCode`.
+ * Case-insensitive: staff may type `ft…` for the bank's `FT…`.
+ */
 const referenceRows = async (
   db: ReferenceDb,
   input: { providerCode: string; providerTransactionId: string; reference: string },
@@ -50,8 +53,8 @@ const referenceRows = async (
       WHERE provider_code = ?
         AND provider_transaction_id <> ?
         AND (
-          provider_transaction_id = ?
-          OR COALESCE(raw_payload->>'referenceCode', '') = ?
+          UPPER(provider_transaction_id) = UPPER(?)
+          OR UPPER(COALESCE(raw_payload->>'referenceCode', '')) = UPPER(?)
         )
       LIMIT 20`,
     [input.providerCode, input.providerTransactionId, input.reference, input.reference],
@@ -595,12 +598,27 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
     ): Promise<{ eventId: number; paymentId: number; reviewStatus: 'matched-manually' | 'refund-due' }> {
       const { order } = services();
       return strapi.db.transaction(async ({ trx }) => {
+        // Same lock as ingest, taken before the group locks (same order as ingest), so a
+        // webhook and a manual record of one bank reference cannot both capture.
+        await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [`sepay-ref:sepay:${input.reference}`]);
         const first = await order.getOrder(input.orderId, ctx);
         await lockGroups(trx, first);
         const aggregate = await order.getOrder(input.orderId, ctx);
         const existing = await events().findOne({
           where: { providerCode: 'sepay', providerTransactionId: input.reference },
         });
+        // A webhook or reconciliation row keeps the bank reference in `rawPayload.referenceCode`
+        // under SePay's own id. That transfer is already stored: capture it from review instead.
+        const sameTransfer = await referenceRows(trx, {
+          providerCode: 'sepay',
+          providerTransactionId: input.reference,
+          reference: input.reference,
+        });
+        if (sameTransfer.length > 0) {
+          throw new OrderingError('PAYMENT_ALREADY_RECEIVED', 'this bank transfer was already received from SePay', {
+            details: { field: 'reference' },
+          });
+        }
         if (existing) {
           throw new OrderingError('VALIDATION_ERROR', 'bank reference already recorded', {
             details: { field: 'reference' },
