@@ -2,6 +2,7 @@
 
 Trạng thái: spec chờ duyệt (2026-10-10). Roadmap: [`plans/ordering-roadmap.md`](../plans/ordering-roadmap.md).
 Mockup: [`plans/mockups/ordering-o4-sepay.html`](../plans/mockups/ordering-o4-sepay.html).
+**Đặc tả màn hình (bắt buộc khi code UI):** [`plans/ordering-o4-screens.md`](../plans/ordering-o4-screens.md) (nghiên cứu UI: reference mục U4).
 Kế hoạch thực hiện: [`plans/ordering-o4-sepay.md`](../plans/ordering-o4-sepay.md).
 Thiết kế: [`plans/ordering-core-contracts.md`](../plans/ordering-core-contracts.md) (mục 8, 12, 19.1,
 19.7); nghiên cứu: reference B5, C10, C11, C20.

@@ -2,6 +2,7 @@
 
 Trạng thái: spec chờ duyệt (2026-10-10). Roadmap: [`plans/ordering-roadmap.md`](../plans/ordering-roadmap.md).
 Mockup: [`plans/mockups/ordering-w-web.html`](../plans/mockups/ordering-w-web.html).
+**Đặc tả màn hình (bắt buộc khi code UI):** [`plans/ordering-w-screens.md`](../plans/ordering-w-screens.md) (nghiên cứu UI: reference mục UW).
 Phase này làm ở repo web, không ở backend; theo `AGENTS.md`, tích hợp frontend cần phase được duyệt
 riêng. File này chỉ ghi phạm vi và hợp đồng API mà web dùng.
 

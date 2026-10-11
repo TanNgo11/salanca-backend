@@ -1425,6 +1425,199 @@ không đọc sâu vì khác đời Strapi và lâu không cập nhật.
 - Thư viện thuộc tính có cờ "sinh biến thể / hiện cho khách / dùng để lọc" (WebbyCommerce, WooCommerce)
   là mẫu tốt cho module thuộc tính bán lẻ về sau.
 
+## U3. Giao diện Admin cho O3: các hệ thống làm thế nào
+
+Theo quy tắc từ 2026-10-10: mọi màn hình của plugin phải dựa trên cách các hệ thống có sẵn đã làm, để mockup đủ
+chính xác cho người khác code. Mục này phục vụ mockup O3. Nguồn ở commit cố định:
+
+| Nguồn | Commit | Giấy phép |
+| --- | --- | --- |
+| [TastyIgniter cart](https://github.com/tastyigniter/ti-ext-cart/tree/99fcb6208031bf20f9df4cda69f861080339ac62) | `99fcb62` | MIT |
+| [TastyIgniter local](https://github.com/tastyigniter/ti-ext-local/tree/b8e31850c6168e4195c15f3049944bad354b7e92) | `b8e3185` | MIT |
+| [Medusa admin dashboard](https://github.com/medusajs/medusa/tree/146c46b0ad1146b40595c8ef586c4d5890982603/packages/admin/dashboard) | `146c46b` | MIT |
+| [Saleor dashboard](https://github.com/saleor/saleor-dashboard/tree/8b0e4c9875779dd5395c243f50ab31abb0616c84) | `8b0e4c9` | BSD-3-Clause |
+| [Vendure dashboard](https://github.com/vendure-ecommerce/vendure/tree/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/dashboard) | `e5146b1` | GPLv3 (chỉ học thiết kế) |
+| [WooCommerce admin](https://github.com/woocommerce/woocommerce/tree/5fb08bdc3cd394aa3748f1e74e46bf0681e85183/plugins/woocommerce/src/Internal/Admin/Orders) | `5fb08bd` | GPLv3 (chỉ học thiết kế) |
+
+### U3.1. Danh sách đơn
+
+- **TastyIgniter** ([order.php](https://github.com/tastyigniter/ti-ext-cart/blob/99fcb6208031bf20f9df4cda69f861080339ac62/resources/models/order.php)):
+  cột mã, chi nhánh, khách, loại đơn (tự lấy/giao), ASAP, giờ, ngày, trạng thái (badge màu, đổi trạng thái
+  ngay tại danh sách), thanh toán, tổng; cột ẩn mặc định: người được giao, SĐT, email, ngày tạo/sửa (vẫn tìm
+  được). Bộ lọc: người được giao (chưa giao / của tôi / người khác), trạng thái, loại đơn, cách trả, khoảng ngày.
+  Tìm một ô cho mọi cột tìm được.
+- **Saleor** ([OrderListDatagrid](https://github.com/saleor/saleor-dashboard/blob/8b0e4c9875779dd5395c243f50ab31abb0616c84/src/orders/components/OrderListDatagrid/datagrid.ts)):
+  cột số đơn, ngày, khách, thanh toán, trạng thái, giao hàng, tiền trước thuế, tổng, kênh.
+- **Medusa** ([order-list const](https://github.com/medusajs/medusa/blob/146c46b0ad1146b40595c8ef586c4d5890982603/packages/admin/dashboard/src/routes/orders/order-list/const.ts)):
+  mã hiển thị, ngày, khách, kênh, trạng thái thanh toán, trạng thái giao, tổng.
+- **Vendure** ([orders.tsx](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/dashboard/src/app/routes/_authenticated/_orders/orders.tsx)):
+  người dùng tự bật/tắt cột (`defaultVisibility`), lọc theo state lấy từ chính quy trình đơn.
+- **WooCommerce** ([ListTable.php](https://github.com/woocommerce/woocommerce/blob/5fb08bdc3cd394aa3748f1e74e46bf0681e85183/plugins/woocommerce/src/Internal/Admin/Orders/ListTable.php)):
+  tab trạng thái kèm số đếm, nút **Xem nhanh** mở hộp thoại ngay trên danh sách, cột thao tác nhanh trên dòng.
+
+**Best practice:** tab trạng thái có số đếm; cột chính = mã, giờ lấy/giao, khách (SĐT che), loại đơn, tổng, thanh
+toán (badge), trạng thái (badge), thời gian chờ; cột phụ ẩn mặc định nhưng tìm được; bộ lọc chi nhánh, ngày kinh
+doanh, cách trả, loại đơn; xem nhanh không rời danh sách; trạng thái thanh toán và trạng thái xử lý là hai badge riêng.
+
+### U3.2. Đơn mới tới: hộp thoại nhận/từ chối
+
+- **TastyIgniter** ([status_workflow_modal](https://github.com/tastyigniter/ti-ext-cart/blob/99fcb6208031bf20f9df4cda69f861080339ac62/resources/views/_partials/orders/status_workflow_modal.blade.php),
+  [InjectStatusWorkflow](https://github.com/tastyigniter/ti-ext-cart/blob/99fcb6208031bf20f9df4cda69f861080339ac62/src/Http/Middleware/InjectStatusWorkflow.php)):
+  hộp thoại hiện **trên mọi trang Admin** khi có đơn mới: "chi nhánh: #mã · loại lúc giờ · món · tổng", nút
+  **Nhận**, **Nhận và lùi N phút** (danh sách số phút cấu hình), **Từ chối** (chọn lý do từ danh sách cấu hình).
+  Bật/tắt và giới hạn người dùng nhận hộp thoại bằng setting.
+
+**Best practice:** đơn mới hiện ngay một thẻ tóm tắt với 3 hành động, không bắt nhân viên mở chi tiết; lý do từ
+chối và số phút lùi là danh sách cấu hình; chỉ người trong scope chi nhánh nhận.
+
+### U3.3. Chi tiết đơn và đổi trạng thái
+
+- **Medusa** ([order-detail.tsx](https://github.com/medusajs/medusa/blob/146c46b0ad1146b40595c8ef586c4d5890982603/packages/admin/dashboard/src/routes/orders/order-detail/order-detail.tsx)):
+  hai cột. Cột chính: thông tin chung (mã, ngày, badge, menu thao tác, hủy có hộp thoại xác nhận), tóm tắt món và
+  tiền, thanh toán, giao nhận. Cột phụ: khách, **hoạt động** (dòng thời gian + ô ghi chú nội bộ
+  `order-note-form`). Có `copy-payment-link`.
+- **Saleor** ([orders/components](https://github.com/saleor/saleor-dashboard/tree/8b0e4c9875779dd5395c243f50ab31abb0616c84/src/orders/components)):
+  `OrderHistory` có ô ghi chú và thời gian tương đối ("5 phút trước"), `OrderCustomerNote`, `OrderAlerts`,
+  `OrderCancelDialog` ("Hủy đơn #… / Giữ đơn / Hủy đơn"), `OrderMarkAsPaidDialog`, `OrderManualTransactionDialog`.
+- **Vendure** ([state-transition-control](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/dashboard/src/app/routes/_authenticated/_orders/components/state-transition-control.tsx),
+  [refund-order-dialog](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/dashboard/src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx),
+  [add-manual-payment-dialog](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/dashboard/src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx)):
+  nút chuyển trạng thái lấy từ các bước kế tiếp hợp lệ của quy trình; hoàn tiền chọn số lượng từng dòng, hiện
+  "tối đa được hoàn", lý do; ghi thanh toán tay gồm cách trả + mã giao dịch.
+- **TastyIgniter** ([orderstatus.php](https://github.com/tastyigniter/ti-ext-cart/blob/99fcb6208031bf20f9df4cda69f861080339ac62/resources/models/orderstatus.php)):
+  đổi trạng thái kèm **ghi chú** và công tắc **báo khách** (mặc định bật); lịch sử trạng thái có cột ngày, trạng
+  thái, ghi chú, đã báo khách chưa, nhân viên.
+
+**Best practice:** hai cột (món + tiền + thanh toán bên trái; khách, giờ lấy, lịch sử + ghi chú nội bộ bên phải);
+nút chính đổi theo bước kế tiếp của workflow; mỗi lần chuyển bước cho thêm ghi chú và chọn báo khách; mọi thao
+tác phá hủy (hủy, từ chối, hủy món, hoàn tiền) có hộp thoại xác nhận nêu rõ hậu quả và số tiền; hoàn tiền theo
+dòng hiện số tối đa.
+
+### U3.4. Tạo đơn hộ
+
+- **Saleor** `OrderDraftPage`, `OrderProductAddDialog`, `OrderCustomerChangeDialog`, nút **Finalize**; lịch sử ghi
+  "Đã tạo đơn nháp".
+- **Vendure** [`orders_.draft.$id.tsx`](https://github.com/vendure-ecommerce/vendure/blob/e5146b14b080809b5d4b3bc429eb87b771aa843c/packages/dashboard/src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx):
+  trang nháp với tìm sản phẩm, chọn khách, cách giao, trạng thái nháp.
+- **Medusa** có route `draft-orders` riêng.
+
+**Best practice:** tạo đơn nháp → thêm món bằng ô tìm (hộp thoại chọn biến thể và tùy chọn) → khách → cách nhận
+→ **Xác nhận** để thành đơn thật; đơn nháp có danh sách riêng.
+
+### U3.5. Cài đặt chi nhánh cho tự lấy
+
+- **TastyIgniter** ([collectionsettings.php](https://github.com/tastyigniter/ti-ext-cart/blob/99fcb6208031bf20f9df4cda69f861080339ac62/resources/models/collectionsettings.php),
+  [workinghour.php](https://github.com/tastyigniter/ti-ext-local/blob/b8e31850c6168e4195c15f3049944bad354b7e92/resources/models/workinghour.php)):
+  bật nhận tự lấy; cộng lead time vào slot; khoảng slot (15'); thời gian chuẩn bị (25'); giới hạn giờ đặt
+  (**chỉ ASAP / chỉ đặt trước / cả hai**); **hạn khách tự hủy** (phút trước giờ lấy); **đơn tối thiểu**; cho đặt
+  trước, số ngày tối thiểu/tối đa. Giờ mở chọn kiểu 24/7, hằng ngày, theo bảng giờ từng ngày, linh hoạt.
+
+**Best practice:** chia tab theo cách nhận (tự lấy, giao); mỗi tab có: bật/tắt, ASAP/đặt trước, thời gian chuẩn bị,
+khoảng slot, sức chứa slot, đặt trước tối đa N ngày, đơn tối thiểu, hạn khách tự hủy, thời điểm trả tiền, cách trả.
+Giờ mở dùng bảng theo ngày trong tuần, cho phép nhiều ca và ca qua nửa đêm.
+
+### U3.6. Gán nhân viên vào chi nhánh
+
+- **Saleor** (`PermissionGroupDetailsPage`): khung "Channels permissions" có ô **"Allow access to orders of all
+  channels"** và danh sách chọn kênh có ô tìm ("Select visible order channels").
+- **TastyIgniter** (`ti-ext-user` `User`): staff có danh sách location và `sale_permission` (mọi đơn / đơn nhóm /
+  đơn được giao) — đã đọc ở C17.1.
+
+**Best practice:** trong màn sửa nhân viên: một công tắc "Xem mọi chi nhánh" và, khi tắt, ô chọn nhiều chi nhánh có
+tìm; danh sách nhân viên hiện cột chi nhánh và cảnh báo người chưa được gán.
+
+### U3.7. Component của Strapi Design System dùng cho các màn trên
+
+Có sẵn trong `@strapi/design-system` 2.2.3 của repo: `Table`/`RawTable`, `Tabs`, `Badge`, `Status`, `Button`,
+`IconButton`, `Modal`, `Dialog` (xác nhận), `Field` + `TextInput`/`Textarea`/`NumberInput`/`Select`/`Combobox`/
+`Checkbox`/`Switch`/`Toggle`/`DatePicker`/`TimePicker`, `Searchbar`, `Pagination`, `SimpleMenu` (menu thao tác),
+`Popover`, `Tooltip`, `Alert`, `EmptyStateLayout`, `Loader`, `Card`, `Box`/`Flex`/`Grid`, `Typography`. Màn Admin của
+app (hộp thư đặt bàn, nhật ký hoạt động) dùng `Box`, `Flex`, `Typography`, `Button`, `Tag`, `Alert`; plugin dùng
+cùng bộ để giao diện đồng nhất. Bố cục trang dùng `Layouts`/`Page` của `@strapi/strapi/admin`; thông báo dùng
+`useNotification`; gọi API dùng `useFetchClient`; ẩn hiện theo quyền dùng `useRBAC`.
+
+## U4. Giao diện thanh toán và duyệt chuyển khoản (O4)
+
+Nguồn thêm: [TastyIgniter payregister](https://github.com/tastyigniter/ti-ext-payregister/tree/86d0a991351718c250c9326bf0f741b508e196e6)
+`86d0a99` (MIT).
+
+- **Saleor** ([OrderTransaction](https://github.com/saleor/saleor-dashboard/tree/8b0e4c9875779dd5395c243f50ab31abb0616c84/src/orders/components/OrderTransaction),
+  [OrderTransactionTile](https://github.com/saleor/saleor-dashboard/tree/8b0e4c9875779dd5395c243f50ab31abb0616c84/src/orders/components/OrderTransactionTile),
+  [OrderManualTransactionDialog](https://github.com/saleor/saleor-dashboard/tree/8b0e4c9875779dd5395c243f50ab31abb0616c84/src/orders/components/OrderManualTransactionDialog)):
+  mỗi giao dịch là một khối: tên ("Transaction #1 on <ngày>"), tổng theo loại (đã giữ, đã thu, đã hoàn, đang chờ),
+  danh sách sự kiện (loại, số tiền, mã tham chiếu bên cổng, thời gian, trạng thái Success/Failure/Pending/Info,
+  link "View in payment provider"); trống thì "This transaction doesn't have any events". Hộp thoại "Manual
+  transaction" cho cách trả không tích hợp (số tiền + mô tả/mã); nút "Mark as Paid".
+- **Medusa** (`order-payment-section`, `copy-payment-link`): danh sách payment có badge trạng thái, nút thu
+  (capture), hoàn; sao chép link thanh toán.
+- **Vendure** (`add-manual-payment-dialog`, `settle-refund-dialog`): thêm thanh toán tay = cách trả + mã giao dịch;
+  hoàn tiền có bước "settle" nhập mã giao dịch hoàn.
+- **TastyIgniter** ([paymentlog.php](https://github.com/tastyigniter/ti-ext-payregister/blob/86d0a991351718c250c9326bf0f741b508e196e6/resources/models/paymentlog.php),
+  [payment.php](https://github.com/tastyigniter/ti-ext-payregister/blob/86d0a991351718c250c9326bf0f741b508e196e6/resources/models/payment.php)):
+  nhật ký thanh toán trong đơn; hoàn tiền chọn **Toàn phần / Một phần**, số tiền (hiện khi một phần), lý do. Danh
+  sách cách trả: tên, mô tả, trạng thái, mặc định, bật/tắt hàng loạt.
+- **Hàng duyệt chuyển khoản không khớp:** không hệ thống nào ở trên có (họ dùng cổng thẻ trả kết quả chắc chắn).
+  Mẫu gần nhất là khối giao dịch của Saleor (sự kiện + mã tham chiếu) và hộp thoại giao dịch tay của Saleor/Vendure.
+
+**Best practice:** thanh toán trong chi tiết đơn hiển thị theo khối giao dịch có sự kiện và mã tham chiếu; ghi tay luôn
+có mã giao dịch; hoàn tiền chọn toàn phần/một phần, hiện số tối đa, bắt buộc lý do, và có bước ghi mã giao dịch hoàn
+khi hoàn ngoài hệ thống. Hàng duyệt là danh sách riêng (giống hộp đơn) mỗi dòng mở hộp thoại xử lý có tab theo cách
+xử lý.
+
+## U5. Giao diện vùng giao và đơn đang giao (O5)
+
+- **TastyIgniter** ([locationarea.php](https://github.com/tastyigniter/ti-ext-local/blob/b8e31850c6168e4195c15f3049944bad354b7e92/resources/models/locationarea.php),
+  [deliverysettings.php](https://github.com/tastyigniter/ti-ext-cart/blob/99fcb6208031bf20f9df4cda69f861080339ac62/resources/models/deliverysettings.php)):
+  mỗi vùng có tên, cờ mặc định, kiểu vùng (đa giác / bán kính / **theo thành phần địa chỉ**: danh sách
+  "loại thành phần + giá trị"), bảng **điều kiện phí** lặp lại (phí, điều kiện: mọi đơn / trên / dưới, số tiền),
+  bảng phí theo khoảng cách. Tab giao hàng có cùng bộ field với tự lấy (bật, ASAP/đặt trước, lead time, slot, hạn
+  hủy, đơn tối thiểu, đặt trước N ngày).
+- **Saleor** ([shipping/components](https://github.com/saleor/saleor-dashboard/tree/8b0e4c9875779dd5395c243f50ab31abb0616c84/src/shipping/components)):
+  vùng → danh sách nước/khu vực được gán (trống: "Currently, there are no countries assigned…"), khoảng mã bưu
+  chính gồm/trừ, các mức phí theo **giá trị đơn tối thiểu/tối đa** từng kênh.
+- **Medusa** (`routes/locations`): location → service zone → geo zone (quốc gia, tỉnh, thành phố, mã bưu chính) →
+  shipping option có giá theo điều kiện tổng đơn.
+- **Người giao:** TastyIgniter dùng "người được giao" (assignee) trên đơn và lọc theo người được giao; không có
+  màn riêng cho tài xế.
+
+**Best practice:** vùng = danh sách địa bàn chọn từ danh mục (không gõ tự do) + bảng điều kiện phí xét theo thứ tự;
+vùng trống có thông báo hướng dẫn; danh sách đơn giao lọc theo người giao (tái dùng mẫu assignee).
+
+## U6. Giao diện vận hành, chốt tiền, báo cáo (O6)
+
+- **Odoo POS 18.0** ([closing_popup.xml](https://github.com/odoo/odoo/blob/8749886bd765b1bf03af9cf423f92c9beaf52a0a/addons/point_of_sale/static/src/app/navbar/closing_popup/closing_popup.xml),
+  LGPLv3): "Closing Register": mỗi cách trả một dòng **Đầu ca · Tiền vào · Đếm được · Chênh lệch**; ô đếm tiền mặt
+  (có công cụ đếm theo mệnh giá); ghi chú mở/đóng ca; nút thu/chi tiền mặt; tải báo cáo bán trong ngày; "Close
+  Register" / "Discard".
+- **Action Scheduler** ([ActionScheduler_ListTable.php](https://github.com/woocommerce/action-scheduler/blob/3a8178faa44f5b6dc2c7e56eb4a0195f80f86c64/classes/ActionScheduler_ListTable.php),
+  GPLv3): danh sách job: tên, trạng thái (tab Chờ/Đang chạy/Lỗi/Xong/Hủy), tham số, nhóm, lặp, lịch, nhật ký; nút
+  **Chạy ngay** và **Hủy** trên dòng; cảnh báo việc quá hạn ở đầu trang (C17.3).
+- **Saleor** `AppProblem` (C17.3): cảnh báo có số lần, mức nghiêm trọng, nút bỏ qua (dismiss) ghi người bỏ qua.
+
+**Best practice:** chốt tiền = bảng theo cách trả với cột hệ thống tính / đếm được / chênh lệch tô màu khi khác 0 và
+ô ghi chú bắt buộc khi lệch; trang vận hành có thẻ tổng quan + bảng job có thao tác "chạy ngay"; cảnh báo là danh sách
+có số lần, mức độ, "đã biết" ghi người.
+
+## UW. Giao diện web đặt món (OW)
+
+Nguồn thêm: [Medusa Next.js storefront](https://github.com/medusajs/nextjs-starter-medusa/tree/9818886f06e493cb2249733d114d339aa216ef00)
+`9818886` (MIT); [TastyIgniter Orange theme](https://github.com/tastyigniter/ti-theme-orange/tree/b741f1e60a7cb449536d79024a413ae04095f248)
+`b741f1e` (MIT).
+
+- **TastyIgniter Orange** ([livewire](https://github.com/tastyigniter/ti-theme-orange/tree/b741f1e60a7cb449536d79024a413ae04095f248/resources/views/livewire),
+  [includes](https://github.com/tastyigniter/ti-theme-orange/tree/b741f1e60a7cb449536d79024a413ae04095f248/resources/views/includes)):
+  hộp **chọn cách nhận** ở đầu trang menu (giao/tự lấy, tìm hoặc đánh dấu địa chỉ, chọn giờ); món mở **hộp thoại
+  món** (tùy chọn, ghi chú, "Thêm vào đơn"/"Cập nhật"); **giỏ cố định** bên cạnh (nhắc đơn tối thiểu, phí); checkout
+  một bước hoặc hai bước, field theo cấu hình; trang đơn sau khi đặt có mã, chi tiết, món, quán, trạng thái, nút hủy
+  và đặt lại.
+- **Medusa storefront** ([checkout components](https://github.com/medusajs/nextjs-starter-medusa/tree/9818886f06e493cb2249733d114d339aa216ef00/src/modules/checkout/components)):
+  checkout chia bước có thể mở lại (địa chỉ → giao hàng → thanh toán → xem lại), mã giảm giá, nút đặt hàng ở bước
+  cuối, trang xác nhận đơn.
+
+**Best practice:** chọn chi nhánh/cách nhận/giờ trước khi xem menu (giá và tạm hết phụ thuộc chi nhánh); món mở hộp
+thoại tùy chọn; giỏ luôn thấy được và nhắc đơn tối thiểu; checkout một trang chia khối rõ (liên hệ → nhận hàng → thanh
+toán → đồng ý → đặt); trang trạng thái có nút hủy khi còn được hủy.
+
 ---
 
 ## Phụ lục: Đã đọc

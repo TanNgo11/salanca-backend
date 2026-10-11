@@ -118,6 +118,18 @@ khi giao, khách nhận email.
       không, vượt rate limit bị chặn, response không có field cá nhân; thiếu `consent` →
       `CONSENT_REQUIRED`; tạo đơn hộ ngoài scope bị từ chối; hủy một phần đúng tiền.
 
+15. **Bổ sung từ nghiên cứu UI (2026-10-10)** — làm theo `ordering-o3-screens.md` cho mọi màn
+    - Files: `admin/src/components/NewOrderDialog/` (S2, gắn ở cấp app admin), `admin/src/components/OrderPreview/`
+      (S3), `admin/src/pages/Settings/` (S9, `app.addSettingsLink`), field `estimatedReadyAt` trên
+      `fulfillment-group` (migration), `services/transition.ts` (nhận `note`, `notifyCustomer`, `delayMinutes`,
+      `reasonCode`), route `POST .../notes`, `GET .../lines/:lineId/cancel-preview`.
+    - Làm: hộp thoại đơn mới xếp hàng nhiều đơn; nút chuyển bước sinh từ `nextTransitions`; ghi chú nội bộ; cài
+      đặt tự lấy mới (`orderTiming`, `minOrderAmount`, `customerCancelBeforeMinutes`, `maxAdvanceDays`) có kiểm
+      trong quote/create; setting chung lưu `strapi.store`.
+    - Verification: Vitest cho tính `estimatedReadyAt` (ASAP, đặt trước, lùi) và các quy tắc đặt hàng mới; tích hợp:
+      "Nhận và lùi" đổi giờ và gửi email đúng một lần; 2 người cùng nhận → 1 thành công; UAT theo acceptance thêm
+      của spec.
+
 ## Data and rollback
 
 - Migration/backfill: bảng `notification-delivery` (`branch` đã có từ O1).

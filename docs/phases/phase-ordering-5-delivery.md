@@ -2,6 +2,7 @@
 
 Trạng thái: spec chờ duyệt (2026-10-10). Roadmap: [`plans/ordering-roadmap.md`](../plans/ordering-roadmap.md).
 Mockup: [`plans/mockups/ordering-o5-delivery.html`](../plans/mockups/ordering-o5-delivery.html).
+**Đặc tả màn hình (bắt buộc khi code UI):** [`plans/ordering-o5-screens.md`](../plans/ordering-o5-screens.md) (nghiên cứu UI: reference mục U5).
 Kế hoạch thực hiện: [`plans/ordering-o5-delivery.md`](../plans/ordering-o5-delivery.md).
 Thiết kế: [`plans/ordering-core-contracts.md`](../plans/ordering-core-contracts.md) (mục 5
 `FulfillmentProvider`, 19.8); nghiên cứu: reference B6, C17.4.
