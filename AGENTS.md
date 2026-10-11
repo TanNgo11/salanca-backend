@@ -52,6 +52,30 @@ Update stale documentation in the same change when behavior or a decision change
 - Prefer fixed product schemas over unrestricted Dynamic Zones or generic page builders.
 - Audit rows are append-only: the `audit-event` ledger must never expose a delete or update route.
 
+## Server rules (owner decision 2026-10-11)
+
+- **No N+1 queries.** Never query inside a loop over rows. Load relations in one query (`populate`,
+  `where: { id: { $in: ids } }`, a join), then map in memory. List endpoints use a fixed number of queries
+  regardless of page size; add an integration test that counts queries for any new list or report endpoint.
+- **Never trust the client.** Validate every input on the server (body, query, params, headers, webhook
+  payloads) with a named schema before use, even if the frontend already validates. Recompute anything
+  derived on the server: prices, totals, discounts, availability, permissions, branch scope, status
+  transitions. Ignore client-sent fields the server owns (amount, status, ids of other users' records).
+- Reject unknown fields and enforce size limits on public routes; return a stable error code, not a stack trace.
+
+## React UI rules (Admin plugins, owner decision 2026-10-11)
+
+Applies to all React code in this repo, including `src/plugins/*/admin` and `src/admin`.
+
+- Never use `var`, explicit `any`, or `unknown`. Name every type (props, state, hook returns, API payloads);
+  narrow untrusted JSON through a named envelope and type guards.
+- A `.tsx` file stays at or under **250 lines**, uses at most **3** `useState` and **1** `useEffect`. Move
+  extra logic to `use{Name}.ts`. Server state uses **TanStack React Query** (installing it is pre-approved by
+  the owner when needed).
+- Folder shape: `{Name}/{Name}.tsx` (markup), `use{Name}.ts` (logic), `{Name}.helper.ts` (pure helpers),
+  `{Name}.types.ts` (types); child sections in `{Name}/components/{Child}/{Child}.tsx` with the same files.
+- Ordering staff screens must stay simple for part-time staff: one main action per order, plain wording.
+
 ## Commands and verification
 
 Install from the committed lockfile:
