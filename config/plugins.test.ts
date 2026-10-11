@@ -1,6 +1,8 @@
 import type { Core } from '@strapi/strapi';
 import { describe, expect, it } from 'vitest';
 
+import { SEPAY_TEST_SETTINGS } from '../src/plugins/ordering/server/src/providers/sepay/testing';
+
 import config, {
   orderingPluginPath,
   resolveAuthCookieConfig,
@@ -288,6 +290,7 @@ describe('ordering plugin configuration', () => {
         catalog: { adapter: 'test-catalog' },
         jobs: { enabled: false },
         storefront: { captchaProvider: 'test-captcha' },
+        providers: { payment: { sepay: SEPAY_TEST_SETTINGS } },
         notifications: {
           email: { enabled: true },
           orderLinkTemplate: 'http://localhost:3000/don-hang#t={token}',

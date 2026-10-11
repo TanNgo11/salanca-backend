@@ -55,6 +55,7 @@ export default {
       publicRoute('GET', '/orders/payment', 'storefront.payment'),
       publicRoute('POST', '/orders/cancel', 'storefront.cancel'),
       publicRoute('POST', '/orders/lookup', 'storefront.lookup'),
+      publicRoute('POST', '/webhooks/:providerCode', 'webhook.receive'),
     ],
   },
   admin: {

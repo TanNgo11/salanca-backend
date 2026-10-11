@@ -11,8 +11,14 @@ describe('ordering plugin config validator', () => {
 
   it('accepts providers keyed by code', () => {
     const value = valid();
-    value.providers.payment = { sepay: { enabled: true, webhookSecret: 'x' }, cash: { enabled: true } } as never;
+    value.providers.payment = { cash: { enabled: true } };
     expect(() => config.validator(value)).not.toThrow();
+  });
+
+  it('rejects an enabled SePay config that cannot verify webhooks', () => {
+    const value = valid();
+    value.providers.payment = { sepay: { enabled: true, webhookSecret: 'x' } } as never;
+    expect(() => config.validator(value)).toThrow(/providers\.payment\.sepay/);
   });
 
   it('rejects a currency other than VND with the field path', () => {

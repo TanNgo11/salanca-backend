@@ -19,6 +19,7 @@ import { testFoodProductType } from './domain/product-types/test-food';
 import { testServiceProductType } from './domain/product-types/test-service';
 import { builtinWorkflows } from './domain/workflow/definitions';
 import { createCashPaymentProvider } from './providers/cash';
+import { createSepayPaymentProvider, sepaySettingsFromConfig } from './providers/sepay/provider';
 import {
   createCaptureNotificationProvider,
   createEmailNotificationProvider,
@@ -84,6 +85,18 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
   registry.registerCatalogAdapter(createOrderingCatalogAdapter({ strapi }));
   registry.registerProductType(foodProductType);
   registry.registerPaymentProvider(createCashPaymentProvider());
+  const sepaySettings = sepaySettingsFromConfig(config.providers.payment);
+  if (sepaySettings) {
+    registry.registerPaymentProvider(
+      createSepayPaymentProvider({
+        settings: () =>
+          sepaySettingsFromConfig(
+            (strapi.config.get('plugin::ordering') as OrderingConfig).providers.payment,
+          ),
+        qr: config.testing.builtins ? 'svg' : 'remote',
+      }),
+    );
+  }
   // Tests capture emails in memory; everything else goes through the app's email plugin.
   registry.registerNotificationProvider(
     'email',

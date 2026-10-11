@@ -141,7 +141,8 @@ const paymentService = ({ strapi }: { strapi: Core.Strapi }) => {
         rawPayload?: Record<string, unknown>;
         paymentId?: number;
         reviewStatus?: 'auto-matched' | 'needs-review' | 'matched-manually' | 'refund-due' | 'ignored';
-        reviewReason?: string;
+        /** `null` stores no reason (money-out). Omitted means the unmatched default. */
+        reviewReason?: string | null;
         receivedAt?: Date;
       },
       ctx: ServiceContext,
@@ -164,7 +165,8 @@ const paymentService = ({ strapi }: { strapi: Core.Strapi }) => {
               rawPayload: input.rawPayload ?? null,
               receivedAt: input.receivedAt ?? nowOf(ctx),
               reviewStatus: input.reviewStatus ?? (unmatched ? 'needs-review' : 'auto-matched'),
-              reviewReason: input.reviewReason ?? (unmatched ? 'order-not-found' : null),
+              reviewReason:
+                input.reviewReason !== undefined ? input.reviewReason : unmatched ? 'order-not-found' : null,
             },
           });
           await outbox.enqueue(

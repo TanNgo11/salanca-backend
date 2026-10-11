@@ -36,6 +36,7 @@ const scripts = [
   'sla-alerts.mjs',
   'lookup-drafts.mjs',
   'stream.mjs',
+  'sepay-webhook.mjs',
 ];
 
 const results = [];

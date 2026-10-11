@@ -1,5 +1,7 @@
 import { z } from '@strapi/utils';
 
+import { parseSepaySettings } from '../providers/sepay/config';
+
 /** Settings of one registered provider. Provider-specific keys are validated by the provider itself. */
 const providerSettings = z.looseObject({ enabled: z.boolean() });
 
@@ -147,5 +149,7 @@ export default {
         result.error.issues.map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`).join('; '),
       );
     }
+    // SePay is optional. When it is enabled the provider schema is strict (secret, accounts).
+    parseSepaySettings(result.data.providers.payment.sepay);
   },
 };

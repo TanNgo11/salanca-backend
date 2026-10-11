@@ -26,6 +26,7 @@ import notification from './notification';
 import alert from './alert';
 import orderStream from './order-stream';
 import staffScope from './staff-scope';
+import webhook from './webhook';
 
 export default {
   registry,
@@ -53,6 +54,7 @@ export default {
   alert,
   'order-stream': orderStream,
   'staff-scope': staffScope,
+  webhook,
   migrations: ({ strapi }: { strapi: Core.Strapi }) => ({
     run: (migrations: OrderingMigration[]) => runOrderingMigrations(strapi, migrations),
   }),

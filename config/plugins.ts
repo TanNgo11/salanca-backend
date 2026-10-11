@@ -3,6 +3,8 @@ import path from 'node:path';
 
 import type { Core } from '@strapi/strapi';
 
+import { SEPAY_TEST_SETTINGS } from '../src/plugins/ordering/server/src/providers/sepay/testing';
+
 import { resolveRestApiPrefix } from './api-prefix.helper';
 import {
   assertProductionMediaStorage,
@@ -98,6 +100,29 @@ export const resolveOrderingPluginConfig = (
   serverEntryExists: (relativePath: string) => boolean = (relativePath) =>
     fs.existsSync(path.resolve(process.cwd(), relativePath)),
 ) => {
+  const sepayFromEnv = (): Record<string, unknown> | null => {
+    const webhookSecret = env('SEPAY_WEBHOOK_SECRET', '');
+    if (!webhookSecret) return null;
+    const accountsRaw = env('SEPAY_ACCOUNTS', '');
+    let accounts: unknown = {};
+    if (accountsRaw) {
+      try {
+        accounts = JSON.parse(accountsRaw);
+      } catch {
+        throw new Error('SEPAY_ACCOUNTS must be a JSON object keyed by account id');
+      }
+    }
+    return {
+      enabled: true,
+      webhookSecret,
+      apiToken: env('SEPAY_API_TOKEN', ''),
+      memoTemplate: env('SEPAY_MEMO_TEMPLATE', 'SLC{orderCode}'),
+      captureMode: env('SEPAY_CAPTURE_MODE', 'auto'),
+      amountTolerance: Number(env('SEPAY_AMOUNT_TOLERANCE', '0')),
+      accounts,
+    };
+  };
+
   const enabled = env.bool('ORDERING_ENABLED', false);
   // Strapi silently skips a plugin whose server entry is missing; fail loudly instead.
   if (enabled && !serverEntryExists(path.join(orderingPluginPath, orderingServerEntry))) {
@@ -105,6 +130,16 @@ export const resolveOrderingPluginConfig = (
       `ORDERING_ENABLED=true but ${orderingPluginPath}/${orderingServerEntry} is missing; run pnpm run build:ordering.`,
     );
   }
+  const builtins = env.bool('ORDERING_TEST_BUILTINS', false);
+  const turnstileSecret = env('TURNSTILE_SECRET_KEY', '');
+  // Builtins always use the fixture so a developer's real SePay secret never reaches tests.
+  const sepay = builtins ? SEPAY_TEST_SETTINGS : sepayFromEnv();
+  const providers = {
+    ...(sepay ? { payment: { sepay } } : {}),
+    ...(turnstileSecret
+      ? { captcha: { turnstile: { enabled: true, secretKey: turnstileSecret } } }
+      : {}),
+  };
   return {
     enabled,
     resolve: orderingPluginPath,
@@ -118,33 +153,28 @@ export const resolveOrderingPluginConfig = (
       },
       encryptionKey: env('ORDERING_ENCRYPTION_KEY', ''),
       // Order emails use the same SMTP as form notifications; the link carries the token after '#'.
-      notifications: {
-        email: { enabled: isTransactionalEmailConfigured(env) },
-        orderLinkTemplate: env(
-          'ORDERING_ORDER_LINK_TEMPLATE',
-          `${(env('FRONTEND_URLS', 'http://localhost:3000').split(',')[0] ?? '').trim()}/don-hang#t={token}`,
-        ),
-      },
-      // Turnstile guards order creation and lookup when the app has a secret (same key as forms).
-      ...(env('TURNSTILE_SECRET_KEY', '')
+      notifications: builtins
         ? {
-            providers: {
-              captcha: { turnstile: { enabled: true, secretKey: env('TURNSTILE_SECRET_KEY') } },
-            },
-            storefront: { captchaProvider: 'turnstile' },
+            email: { enabled: true },
+            orderLinkTemplate: 'http://localhost:3000/don-hang#t={token}',
           }
-        : {}),
-      ...(env.bool('ORDERING_TEST_BUILTINS', false)
+        : {
+            email: { enabled: isTransactionalEmailConfigured(env) },
+            orderLinkTemplate: env(
+              'ORDERING_ORDER_LINK_TEMPLATE',
+              `${(env('FRONTEND_URLS', 'http://localhost:3000').split(',')[0] ?? '').trim()}/don-hang#t={token}`,
+            ),
+          },
+      // Turnstile guards order creation and lookup when the app has a secret (same key as forms).
+      // Builtins replace it with the in-memory captcha. SePay and captcha share `providers`.
+      ...(Object.keys(providers).length > 0 ? { providers } : {}),
+      ...(turnstileSecret && !builtins ? { storefront: { captchaProvider: 'turnstile' } } : {}),
+      ...(builtins
         ? {
             testing: { builtins: true },
             catalog: { adapter: 'test-catalog' },
             jobs: { enabled: false },
             storefront: { captchaProvider: 'test-captcha' },
-            // Builtins swap the email provider for an in-memory capture; nothing is sent.
-            notifications: {
-              email: { enabled: true },
-              orderLinkTemplate: 'http://localhost:3000/don-hang#t={token}',
-            },
           }
         : {}),
     },

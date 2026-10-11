@@ -5,6 +5,7 @@ import availability from './availability';
 import catalog from './catalog';
 import categories from './categories';
 import storefront from './storefront';
+import webhook from './webhook';
 
 export default {
   'admin-branches': adminBranches,
@@ -14,4 +15,5 @@ export default {
   catalog,
   categories,
   storefront,
+  webhook,
 };
