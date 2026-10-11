@@ -130,7 +130,7 @@ soát bù; workflow `prepay` và `accept-then-pay` chạy trọn.
 
 ## Completion record
 
-Đang làm trên `feat/ordering-o4` (từ `feat/ordering-o3`, chưa push, chưa merge). Cổng cuối và `docs/STATUS.md` ghi khi xong O4.
+Automated verification passed on `feat/ordering-o4` (từ `feat/ordering-o3`; chưa push, chưa merge). Thực hiện 2026-10-11.
 
 | Bước | Commit | Kết quả |
 | --- | --- | --- |
@@ -146,7 +146,12 @@ soát bù; workflow `prepay` và `accept-then-pay` chạy trọn.
 | 10 hoàn chuyển khoản | `496e16c` | phiếu `pending` chưa đổi `paymentStatus`; settle ghi mã rồi mới cộng sổ |
 | 11 cảnh báo thanh toán | `cb9016e` | một cảnh báo mỗi khóa; webhook lỗi 5 lần, tiền không khớp, ghi tay quá 24 giờ, đối soát không ghi được |
 | 12 smoke + tài liệu | `9b66325` | webhook ký giả khớp đơn trên DB test; env, runbook, contract |
-| 13 link + hủy một phần | commit này | token `#p=` chỉ mở QR; hủy một phần chuyển khoản chờ settle |
+| 13 link + hủy một phần | `0fc6254` | token `#p=` chỉ mở QR; hủy một phần chuyển khoản chờ settle |
+
+**Gates (2026-10-11, số thật):** `lint` ✓, `typecheck` ✓, `test` 155 file / 1066 test ✓, `check:ordering`
+38/38 ✓, `check:phase3` trên `salanca_ordering_test` với `ORDERING_ENABLED=false` ✓ và `true` ✓,
+`smoke:reservation-form` trên `salanca_ordering_test` ✓, `smoke:ordering-pickup` ✓,
+`node scripts/smoke-ordering-sepay.mjs` ✓. `strapi build` với `ORDERING_ENABLED=true` ✓ và `false` ✓.
 
 **Quyết định bước 7:** mã ngân hàng là `providerTransactionId` của event `kind=manual`. Webhook cùng `referenceCode` và cùng số tiền chỉ đặt `confirmed`. Khác số tiền thì lưu `needs-review`, không ghi thêm. Ghi chú nhân viên nằm ở change log (`reason`). `rawPayload` không có nội dung chuyển khoản hay số tài khoản. Đơn ngoài scope trả 404. Event ghi tay không vào hàng duyệt.
 
@@ -161,3 +166,10 @@ soát bù; workflow `prepay` và `accept-then-pay` chạy trọn.
 **Quyết định bước 12:** URL khai cho SePay là `https://<domain cms>/api/v1/ordering/webhooks/sepay`. Provider chỉ đăng ký khi có `SEPAY_WEBHOOK_SECRET`; boot từ chối nếu thiếu token hoặc tài khoản. Smoke `scripts/smoke-ordering-sepay.mjs` ký bằng secret giả trên `salanca_ordering_test`, không gọi SePay.
 
 **Quyết định bước 13:** Link thanh toán là token thứ hai trong `strapi.store` (`payment-token:<hash>`, `payment-link:<orderId>` giữ ciphertext). Chỉ `GET /orders/payment` nhận token này; URL dùng `#p=`. Hạn token là `paymentTimeoutMinutes`. Tạo link mới ghi `payment-deadline:<orderId>` bằng thời điểm muộn hơn giữa hạn tính từ đơn và hạn link; job hết hạn và QR tôn trọng mốc đó. Link còn hạn thì bấm lại trả cùng URL, không kéo thêm. Hủy một phần đơn đã chuyển khoản trừ các phiếu `pending` khi chọn số còn hoàn; nếu tiền đã giữ hết thì vẫn hủy món và ghi `refundShortfall`. `paymentStatus` chỉ đổi khi settle. Không thêm cột, không migration.
+
+**Chưa làm / còn mở:**
+
+- **UAT SePay thật chưa làm.** Chưa có tài khoản thử của chủ dự án. `scripts/ordering/uat-server.mjs` đã đặt Q3 ở `prepay` + provider `sepay` và quyền `payment.review`; server chưa khởi chạy.
+- Nút "Sao chép link thanh toán" trên Admin chưa bấm trên Chrome.
+- `feat/ordering-o3` local vẫn `1ab64a3`, không có commit mới để merge. Remote không có nhánh `feat/ordering-o3`.
+- Push và merge chờ chủ dự án.

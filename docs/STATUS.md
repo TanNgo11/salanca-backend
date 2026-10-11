@@ -2,6 +2,17 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
+2026-10-11: **Ordering O4 (SePay chuyển khoản) — automated verification passed** trên
+`feat/ordering-o4` (chưa push/merge). Webhook SePay ký HMAC và ACK `{success:true}`; luật khớp đủ 7 lý do;
+khớp đủ thì chuyển workflow. Màn duyệt theo chi nhánh, một người thắng. Ghi tay và webhook cùng mã ngân hàng
+cùng số tiền gắn một event. Đối soát hai process ghi một lần. Hết hạn thì đơn `expired`. Hoàn chuyển khoản ở
+`pending` đến khi ghi mã. Cảnh báo khi webhook, khớp hoặc đối soát lỗi. Link thanh toán `#p=` chỉ mở trang QR
+và có thể kéo hạn thanh toán. Hủy một phần tạo phiếu hoàn `pending` đến khi settle. Gates: lint, typecheck,
+test 155 file / 1066, `check:ordering` 38/38, `check:phase3` plugin off/on, `smoke:reservation-form`,
+`smoke:ordering-pickup` và `node scripts/smoke-ordering-sepay.mjs` trên `salanca_ordering_test`; `strapi build`
+bật và tắt plugin. **Open:** chưa UAT SePay thật (chưa có tài khoản thử), nút sao chép link trên Admin chưa
+kiểm trên Chrome, quyết định push/merge. Plan: [`plans/ordering-o4-sepay.md`](plans/ordering-o4-sepay.md).
+
 2026-10-11: **Ordering O3 (tự lấy + tiền mặt + hộp đơn) — automated verification passed** trên
 `feat/ordering-o3` (chưa push/merge). API storefront công khai (chi nhánh, cấu hình, slot, quote, tạo đơn có
 Idempotency-Key + Turnstile + đồng ý dữ liệu, đọc/hủy bằng `X-Order-Token`, tra cứu mã + SĐT không lộ dữ liệu);
