@@ -4,6 +4,7 @@
 // builtins), captcha accepts the token "pass". Never run against the dev or production database.
 import { randomUUID } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
+import { hostname } from 'node:os';
 
 import { bootOrderingTestApp, resetOrderingTables, seedBranches } from './_harness.mjs';
 
@@ -82,6 +83,20 @@ for (const [name, scope] of [
 // Credentials stay in a local file outside the repo; never printed.
 const credFile = process.env.UAT_CRED_FILE;
 if (credFile) writeFileSync(credFile, JSON.stringify({ password, accounts }, null, 2));
+
+// ORDERING_TEST_BUILTINS turns cron off so integration scripts dispatch by hand. This server
+// still has to deliver captured emails, so it pumps the outbox itself (same service the cron uses).
+const dispatcherOwner = `uat:${hostname()}:${process.pid}`;
+const pumpOutbox = () =>
+  app
+    .plugin('ordering')
+    .service('outbox')
+    .dispatch({ owner: dispatcherOwner })
+    .catch((error) => {
+      console.error('[ordering-uat] outbox dispatch failed:', error?.message ?? error);
+    });
+setInterval(pumpOutbox, 2000);
+await pumpOutbox();
 
 await app.listen();
 console.log(`[ordering-uat] ready on http://127.0.0.1:${process.env.PORT}/admin (salanca_ordering_test)`);
