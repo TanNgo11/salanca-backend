@@ -91,7 +91,7 @@ export const resolveAuthCookieConfig = (env: Core.Config.Shared.ConfigParams['en
 
 /** Local generic ordering plugin (docs/plans/ordering-roadmap.md). Off unless ORDERING_ENABLED=true. */
 export const orderingPluginPath = './src/plugins/ordering';
-const orderingServerEntry = 'dist/server/index.js';
+const orderingServerEntry = 'dist/server/src/index.js';
 
 export const resolveOrderingPluginConfig = (
   env: Core.Config.Shared.ConfigParams['env'],

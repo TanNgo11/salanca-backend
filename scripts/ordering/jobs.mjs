@@ -2,9 +2,9 @@
 import assert from 'node:assert/strict';
 import { hostname } from 'node:os';
 
-import { runHoldExpiry } from '../../src/plugins/ordering/dist/server/jobs/hold-expiry.js';
-import { runIdempotencyCleanup } from '../../src/plugins/ordering/dist/server/jobs/idempotency-cleanup.js';
-import { runOutboxDispatcher } from '../../src/plugins/ordering/dist/server/jobs/outbox-dispatcher.js';
+import { runHoldExpiry } from '../../src/plugins/ordering/dist/server/src/jobs/hold-expiry.js';
+import { runIdempotencyCleanup } from '../../src/plugins/ordering/dist/server/src/jobs/idempotency-cleanup.js';
+import { runOutboxDispatcher } from '../../src/plugins/ordering/dist/server/src/jobs/outbox-dispatcher.js';
 import {
   basicOrderInput,
   seedBranches,

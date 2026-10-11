@@ -11,8 +11,9 @@ riêng mình vào registry khi `register()`.
 ## Bật plugin
 
 - `ORDERING_ENABLED=true` (xem `config/plugins.ts` — app map env vào `plugin::ordering`).
-- `pnpm run build:ordering` biên dịch `server/tsconfig.json` ra `dist/server` (được chạy
-  kèm trong `pnpm run build`/`dev`).
+- `pnpm run build:ordering` biên dịch `server/tsconfig.json` (gồm `shared/`) ra `dist/`, giữ nguyên cấu
+  trúc thư mục: entry là `dist/server/src/index.js`, code dùng chung ở `dist/shared/` (được chạy kèm trong
+  `pnpm run build`/`dev`). `check:ordering` kiểm mọi import tương đối trong `dist` trỏ tới file có thật.
 - Migration của plugin chạy trong `bootstrap()` (`runOrderingMigrations`), tạo index và
   sequence `plugins_ordering_order_code_seq`; content type do Strapi sync theo schema.
 

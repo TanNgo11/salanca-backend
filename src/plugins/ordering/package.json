@@ -12,7 +12,7 @@
   },
   "exports": {
     "./strapi-server": {
-      "require": "./dist/server/index.js"
+      "require": "./dist/server/src/index.js"
     },
     "./strapi-admin": {
       "import": "./admin/src/index.ts"
