@@ -93,6 +93,7 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
     onOrderPlaced: (event: never) => Promise<void>;
     onOrderTransitioned: (event: never) => Promise<void>;
     onGroupTransitioned: (event: never) => Promise<void>;
+    onAlertOpened: (event: never) => Promise<void>;
   };
   const notifications = () => strapi.plugin('ordering').service('notification') as NotificationService;
   registry.registerOutboxConsumer('order.created', (event) => notifications().onOrderPlaced(event as never));
@@ -101,6 +102,9 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
   );
   registry.registerOutboxConsumer('fulfillment-group.transitioned', (event) =>
     notifications().onGroupTransitioned(event as never),
+  );
+  registry.registerOutboxConsumer('ops-alert.opened', (event) =>
+    notifications().onAlertOpened(event as never),
   );
   registry.registerCaptchaProvider(
     createTurnstileCaptchaProvider({

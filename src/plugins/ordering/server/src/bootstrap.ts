@@ -6,6 +6,7 @@ import type { OrderingConfig } from './config';
 import { runHoldExpiry } from './jobs/hold-expiry';
 import { runIdempotencyCleanup } from './jobs/idempotency-cleanup';
 import { runOutboxDispatcher } from './jobs/outbox-dispatcher';
+import { runSlaCheck } from './jobs/sla-check';
 import { orderingMigrations } from './migrations';
 import { persistOrderingTables } from './migrations/persisted-tables';
 import { runOrderingMigrations } from './migrations/runner';
@@ -72,6 +73,10 @@ const bootstrap = async ({ strapi }: { strapi: Core.Strapi }) => {
       'ordering.idempotency-cleanup': {
         task: wrap('idempotency-cleanup', () => runIdempotencyCleanup(strapi, { owner })),
         options: { rule: config.jobs.idempotencyCleanupCron },
+      },
+      'ordering.sla-check': {
+        task: wrap('sla-check', () => runSlaCheck(strapi, { owner })),
+        options: { rule: config.jobs.slaCheckCron },
       },
     });
     strapi.log.info(`[ordering] jobs scheduled as ${owner}`);

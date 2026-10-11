@@ -50,6 +50,7 @@ export const configSchema = z.object({
     outboxCron: z.string().min(1),
     holdExpiryCron: z.string().min(1),
     idempotencyCleanupCron: z.string().min(1),
+    slaCheckCron: z.string().min(1),
   }),
   /** Trusted visitor-IP forwarding for rate limits / captcha (domain/client-ip.ts). */
   clientIp: z.object({
@@ -120,6 +121,7 @@ export default {
       outboxCron: '*/10 * * * * *',
       holdExpiryCron: '*/30 * * * * *',
       idempotencyCleanupCron: '0 */15 * * * *',
+      slaCheckCron: '0 * * * * *',
     },
     clientIp: { secretHeader: 'x-ordering-client-secret', ipHeader: 'x-ordering-client-ip' },
     notifications: { email: { enabled: false }, orderLinkTemplate: '' },

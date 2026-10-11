@@ -5,6 +5,7 @@
  */
 export type TemplateCode =
   | 'staff.order-created'
+  | 'staff.order-overdue'
   | 'customer.order-placed'
   | 'customer.order-accepted'
   | 'customer.order-delayed'
@@ -52,6 +53,10 @@ const copy: Record<TemplateCode, Record<Locale, { subject: string; lead: string 
   'staff.order-created': {
     vi: { subject: 'Đơn mới {code} · {branch}', lead: 'Có đơn mới cần nhận.' },
     en: { subject: 'New order {code} · {branch}', lead: 'A new order is waiting for acceptance.' },
+  },
+  'staff.order-overdue': {
+    vi: { subject: 'Đơn {code} đang chờ nhận quá lâu', lead: 'Đơn tại {branch} chưa được nhận, khách đang chờ.' },
+    en: { subject: 'Order {code} is waiting too long', lead: 'An order at {branch} has not been accepted yet.' },
   },
   'customer.order-placed': {
     vi: { subject: 'Đã nhận đơn {code}', lead: 'Cảm ơn bạn! {branch} đã nhận đơn và sẽ xác nhận sớm.' },

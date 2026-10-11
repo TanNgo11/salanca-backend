@@ -23,6 +23,7 @@ import storefront from './storefront';
 import adminOrders from './admin-orders';
 import orderingSettings from './ordering-settings';
 import notification from './notification';
+import alert from './alert';
 
 export default {
   registry,
@@ -47,6 +48,7 @@ export default {
   'admin-orders': adminOrders,
   'ordering-settings': orderingSettings,
   notification,
+  alert,
   migrations: ({ strapi }: { strapi: Core.Strapi }) => ({
     run: (migrations: OrderingMigration[]) => runOrderingMigrations(strapi, migrations),
   }),

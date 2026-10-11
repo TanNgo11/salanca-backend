@@ -33,6 +33,7 @@ const scripts = [
   'storefront.mjs',
   'admin-orders.mjs',
   'notifications.mjs',
+  'sla-alerts.mjs',
 ];
 
 const results = [];

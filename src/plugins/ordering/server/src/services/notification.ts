@@ -163,6 +163,27 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
       }
     },
 
+    /** `ops-alert.opened` for an overdue order: email the branch once per alert. */
+    async onAlertOpened(event: OutboxEvent): Promise<void> {
+      if (event.payload.alertCode !== 'order-awaiting-acceptance') return;
+      const ref = /^order:(\d+)$/.exec(String(event.payload.aggregateRef ?? ''));
+      if (!ref) return;
+      const orderId = Number(ref[1]);
+      const aggregate = await repo.loadOrderAggregate(orderId);
+      if (!aggregate) return;
+      const { branch, data } = await baseData(aggregate);
+      if (!branch?.email) return;
+      await deliver({
+        event,
+        template: 'staff.order-overdue',
+        email: branch.email,
+        role: 'staff',
+        orderId,
+        locale: 'vi',
+        data,
+      });
+    },
+
     /** `order.transitioned` from draft = staff confirmed a phone order. */
     async onOrderTransitioned(event: OutboxEvent): Promise<void> {
       if (event.payload.from !== 'draft') return;
