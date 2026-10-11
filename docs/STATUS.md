@@ -2,6 +2,13 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
+2026-10-12: **Ordering O4 — sửa sau review** (7 commit `fix(ordering)`, `1555fe2`…`67c1b15`): đơn đã trả đủ
+không còn bị hết hạn; ghi tay mã mà SePay đã gửi trả 409 `PAYMENT_ALREADY_RECEIVED`; màn duyệt lọc trạng thái
+trong DB và định vị giao dịch đối soát; gán vào đơn đã đóng trả 409 `ORDER_CLOSED`; mở lại đơn ghi bước như
+transition; webhook/đối soát không có mã tham chiếu vẫn chống trùng; ASAP 24/7 không còn lỗi trước nửa đêm (lỗi O3).
+Gates chạy lại đủ: lint, typecheck, test 155 file / 1067, `check:ordering` 38/38, `check:phase3` off/on,
+`smoke:reservation-form`, `smoke:ordering-pickup`, smoke SePay, `strapi build` bật/tắt. Vẫn chưa UAT SePay thật.
+
 2026-10-11: **Ordering O4 (SePay chuyển khoản) — automated verification passed** trên
 `feat/ordering-o4` (chưa push/merge). Webhook SePay ký HMAC và ACK `{success:true}`; luật khớp đủ 7 lý do;
 khớp đủ thì chuyển workflow. Màn duyệt theo chi nhánh, một người thắng. Ghi tay và webhook cùng mã ngân hàng

@@ -167,6 +167,22 @@ Automated verification passed on `feat/ordering-o4` (từ `feat/ordering-o3`; ch
 
 **Quyết định bước 13:** Link thanh toán là token thứ hai trong `strapi.store` (`payment-token:<hash>`, `payment-link:<orderId>` giữ ciphertext). Chỉ `GET /orders/payment` nhận token này; URL dùng `#p=`. Hạn token là `paymentTimeoutMinutes`. Tạo link mới ghi `payment-deadline:<orderId>` bằng thời điểm muộn hơn giữa hạn tính từ đơn và hạn link; job hết hạn và QR tôn trọng mốc đó. Link còn hạn thì bấm lại trả cùng URL, không kéo thêm. Hủy một phần đơn đã chuyển khoản trừ các phiếu `pending` khi chọn số còn hoàn; nếu tiền đã giữ hết thì vẫn hủy món và ghi `refundShortfall`. `paymentStatus` chỉ đổi khi settle. Không thêm cột, không migration.
 
+**Sửa sau review (2026-10-12):**
+
+| Commit | Sửa |
+| --- | --- |
+| `1555fe2` | accept-then-pay trả trước khi quán nhận: nhận đơn thì chạy tiếp; job hết hạn đẩy group đã trả đủ thay vì `expired`; quét group cũ trước |
+| `ec9c93e` | ghi tay một mã ngân hàng SePay đã gửi (webhook/đối soát, không phân biệt hoa thường) → 409 `PAYMENT_ALREADY_RECEIVED`; cùng advisory lock với ingest |
+| `c2c9171` | màn duyệt lọc `reviewStatus` trong DB (mọi mục mở, 1000 mục đã xử lý mới nhất); event đối soát lưu `accountKey` + `memoCode` (không lưu số tài khoản/nội dung) để định vị chi nhánh và gợi ý đơn |
+| `08c06ac` | gán vào đơn đã đóng → 409 `ORDER_CLOSED`; mở lại đơn khóa group, ghi timeline + outbox như transition (cửa sổ thanh toán tính lại) |
+| `7729d23` | không có `referenceCode`: cùng số tiền + `transactionDate` + tài khoản + mã đơn là một giao dịch; `raw_payload` qua `db.raw` là chuỗi JSON, nay parse (trước đó xác nhận dòng ghi tay làm mất `transferredAt`) |
+| `b29c0cb` | change log "cần hoàn" ghi `refundId` |
+| `67c1b15` | lỗi O3: ASAP của chi nhánh 24/7 bị từ chối trong lead time trước nửa đêm; khoảng giờ liền nhau được nối qua ngày |
+
+Gates chạy lại sau các commit trên (2026-10-12): `lint` ✓, `typecheck` ✓, `test` 155 file / 1067 test ✓,
+`check:ordering` 38/38 ✓, `check:phase3` off ✓ / on ✓, `smoke:reservation-form` ✓, `smoke:ordering-pickup` ✓,
+`node scripts/smoke-ordering-sepay.mjs` ✓, `strapi build` bật ✓ / tắt ✓ (trên `salanca_ordering_test`).
+
 **Chưa làm / còn mở:**
 
 - **UAT SePay thật chưa làm.** Chưa có tài khoản thử của chủ dự án. `scripts/ordering/uat-server.mjs` đã đặt Q3 ở `prepay` + provider `sepay` và quyền `payment.review`; server chưa khởi chạy.
