@@ -140,6 +140,9 @@ soát bù; workflow `prepay` và `accept-then-pay` chạy trọn.
 | 4 luật khớp | `97bfcbd` | đủ 7 `reviewReason`, không đổi đơn |
 | 5 áp khớp | `2d8eebd` | khớp đủ thì chuyển workflow; thiếu không tự ghi; bù phần còn thì khớp |
 | 6 duyệt chuyển khoản | `81e6392` | scope chi nhánh, một người thắng, refund-due, mở lại đơn, change log |
-| 7 ghi nhận thủ công | commit này | cùng mã ngân hàng và cùng số tiền thì gắn vào event ghi tay, không ghi sổ lần hai |
+| 7 ghi nhận thủ công | `ab3df61` | cùng mã ngân hàng và cùng số tiền thì gắn vào event ghi tay, không ghi sổ lần hai |
+| 8 đối soát | commit này | client giả, 2 process ghi một lần; UUID và webhook cùng mã không ghi sổ lần hai |
 
 **Quyết định bước 7:** mã ngân hàng là `providerTransactionId` của event `kind=manual`. Webhook cùng `referenceCode` và cùng số tiền chỉ đặt `confirmed`. Khác số tiền thì lưu `needs-review`, không ghi thêm. Ghi chú nhân viên nằm ở change log (`reason`). `rawPayload` không có nội dung chuyển khoản hay số tài khoản. Đơn ngoài scope trả 404. Event ghi tay không vào hàng duyệt.
+
+**Quyết định bước 8:** `since_id` lưu trong `strapi.store` theo số tài khoản (`sepay-since:<account>`). API v2 trả `id` UUID, webhook trả `id` số — cùng một chuyển khoản. Ingest coi cùng `referenceCode` và cùng số tiền là một event, không ghi thêm. Cursor chỉ tiến sau khi cả trang ingest xong. `rawPayload` đối soát chỉ có `source`, `referenceCode`, `transactionDate`, `transferType`. Test đọc file `SEPAY_TEST_TRANSACTIONS_FILE`, không gọi mạng. Cron `jobs.reconciliationCron` mặc định `0 0 * * * *`.

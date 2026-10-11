@@ -6,6 +6,7 @@ import type { OrderingConfig } from './config';
 import { runHoldExpiry } from './jobs/hold-expiry';
 import { runIdempotencyCleanup } from './jobs/idempotency-cleanup';
 import { runOutboxDispatcher } from './jobs/outbox-dispatcher';
+import { runSepayReconciliation } from './jobs/reconciliation';
 import { runSlaCheck } from './jobs/sla-check';
 import { orderingMigrations } from './migrations';
 import { persistOrderingTables } from './migrations/persisted-tables';
@@ -87,6 +88,10 @@ const bootstrap = async ({ strapi }: { strapi: Core.Strapi }) => {
       'ordering.sla-check': {
         task: wrap('sla-check', () => runSlaCheck(strapi, { owner })),
         options: { rule: config.jobs.slaCheckCron },
+      },
+      'ordering.sepay-reconciliation': {
+        task: wrap('sepay-reconciliation', () => runSepayReconciliation(strapi, { owner })),
+        options: { rule: config.jobs.reconciliationCron },
       },
     });
     strapi.log.info(`[ordering] jobs scheduled as ${owner}`);

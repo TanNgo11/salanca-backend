@@ -32,6 +32,54 @@ const isUniqueViolation = (error: unknown): boolean =>
   (error as { code?: string }).code === '23505' ||
   (error as { cause?: { code?: string } }).cause?.code === '23505';
 
+type ReferenceRow = { id: number; kind: string | null; amount: string | number; rawPayload: unknown };
+
+type ReferenceDb = {
+  raw: (sql: string, bindings: readonly unknown[]) => Promise<{ rows?: ReferenceRow[] }>;
+};
+
+/** Other rows that share this bank reference: the manual id, or `rawPayload.referenceCode`. */
+const referenceRows = async (
+  db: ReferenceDb,
+  input: { providerCode: string; providerTransactionId: string; reference: string },
+): Promise<ReferenceRow[]> => {
+  const { rows } = await db.raw(
+    `SELECT id, kind, amount, raw_payload AS "rawPayload"
+       FROM plugins_ordering_payment_event
+      WHERE provider_code = ?
+        AND provider_transaction_id <> ?
+        AND (
+          provider_transaction_id = ?
+          OR COALESCE(raw_payload->>'referenceCode', '') = ?
+        )
+      LIMIT 20`,
+    [input.providerCode, input.providerTransactionId, input.reference, input.reference],
+  );
+  return rows ?? [];
+};
+
+type ReferenceHit =
+  | { kind: 'confirm-manual'; row: ReferenceRow }
+  | { kind: 'review-manual'; reason: 'underpaid' | 'overpaid' }
+  | { kind: 'duplicate' }
+  | { kind: 'continue' };
+
+/**
+ * Same bank reference and same amount is one transfer, whether the other row is a manual
+ * record, a webhook integer id, or a reconciliation UUID. A manual row with a different
+ * amount stays unconfirmed and is reviewed. Anything else continues into matching.
+ */
+const referenceHit = (rows: ReferenceRow[], amount: number): ReferenceHit => {
+  const manual = rows.find((row) => row.kind === 'manual');
+  if (manual) {
+    const manualAmount = amountFromDb(manual.amount);
+    if (manualAmount === amount) return { kind: 'confirm-manual', row: manual };
+    return { kind: 'review-manual', reason: amount < manualAmount ? 'underpaid' : 'overpaid' };
+  }
+  if (rows.some((row) => amountFromDb(row.amount) === amount)) return { kind: 'duplicate' };
+  return { kind: 'continue' };
+};
+
 /** The non-terminal edge out of `awaiting-payment` (acceptance, or start preparing). */
 const paymentSuccessState = (definition: WorkflowDefinition): string | null => {
   const next = definition.states['awaiting-payment']?.next ?? [];
@@ -218,8 +266,8 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
   return {
     /**
      * Stores one inbound or outbound transfer. `duplicate` means this provider id was already
-     * stored, or it confirmed a manual row with the same bank reference and amount, and the
-     * ledger was not touched again.
+     * stored, or the same bank reference and amount already confirmed a manual row or another
+     * SePay id (webhook integer vs reconciliation UUID), and the ledger was not touched again.
      */
     async ingest(
       input: { event: NormalizedPaymentEvent; rawPayload: Record<string, unknown> },
@@ -271,26 +319,45 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
         return { duplicate: true, decision: { outcome: 'ignored' } };
       }
 
-      // The bank reference (referenceCode) is not the SePay id. Same amount attaches to the
-      // manual row. A different amount is stored for review and does not capture.
       const bankReference = event.reference;
-      if (event.transferType !== 'out' && bankReference && bankReference !== event.providerTransactionId) {
-        const manual = (await events().findOne({
-          where: { providerCode: event.providerCode, providerTransactionId: bankReference, kind: 'manual' },
-        })) as StoredEvent | null;
-        if (manual) {
-          const manualAmount = amountFromDb(manual.amount);
-          if (manualAmount === event.amount.amount) {
-            await confirmManualRow(manual, event.providerTransactionId, ctx);
-            return { duplicate: true, decision: { outcome: 'ignored' } };
-          }
-          return remember({
-            outcome: 'needs-review',
-            reviewReason: event.amount.amount < manualAmount ? 'underpaid' : 'overpaid',
-            orderCode: null,
-            dueAmount: null,
-          });
+      const applyReference = async (
+        rows: ReferenceRow[],
+        mode: 'remember' | 'insert',
+      ): Promise<{ duplicate: boolean; decision: MatchDecision } | null> => {
+        const hit = referenceHit(rows, event.amount.amount);
+        if (hit.kind === 'continue') return null;
+        if (hit.kind === 'confirm-manual') {
+          await confirmManualRow(hit.row, event.providerTransactionId, ctx);
+          return { duplicate: true, decision: { outcome: 'ignored' } };
         }
+        if (hit.kind === 'duplicate') return { duplicate: true, decision: { outcome: 'ignored' } };
+        const decision: MatchDecision = {
+          outcome: 'needs-review',
+          reviewReason: hit.reason,
+          orderCode: null,
+          dueAmount: null,
+        };
+        if (mode === 'remember') return remember(decision);
+        await insertEvent(
+          { ...base, reviewStatus: 'needs-review', reviewReason: hit.reason },
+          ctx,
+        );
+        return { duplicate: false, decision };
+      };
+
+      // The bank reference is not the SePay id. Same amount attaches to a manual row, or is a
+      // duplicate of a webhook/reconciliation row. A different amount on a manual row is stored
+      // for review and does not capture. `out` never confirms a manual row.
+      if (event.transferType !== 'out' && bankReference) {
+        const applied = await applyReference(
+          await referenceRows(strapi.db.connection, {
+            providerCode: event.providerCode,
+            providerTransactionId: event.providerTransactionId,
+            reference: bankReference,
+          }),
+          'remember',
+        );
+        if (applied) return applied;
       }
 
       if (event.transferType === 'out') return remember({ outcome: 'ignored' });
@@ -317,6 +384,20 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
       const { order } = services();
       try {
         return await strapi.db.transaction(async ({ trx }) => {
+          if (event.transferType !== 'out' && bankReference) {
+            await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [
+              `sepay-ref:${event.providerCode}:${bankReference}`,
+            ]);
+            const applied = await applyReference(
+              await referenceRows(trx, {
+                providerCode: event.providerCode,
+                providerTransactionId: event.providerTransactionId,
+                reference: bankReference,
+              }),
+              'insert',
+            );
+            if (applied) return applied;
+          }
           const first = await order.getOrder(orderRow.id, ctx);
           await lockGroups(trx, first);
           const aggregate = await order.getOrder(orderRow.id, ctx);

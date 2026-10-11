@@ -1,5 +1,6 @@
 import type { PaymentProvider, WebhookProcessingResult } from '../../contracts/payment';
 import { OrderingError } from '../../domain/errors';
+import type { SepayTransactionClient, SepayTransactionPage } from './client';
 import type { SepaySettings } from './config';
 import { parseSepaySettings } from './config';
 import { parseSepayPayload } from './parse';
@@ -20,7 +21,15 @@ export const createSepayPaymentProvider = (deps: {
   settings: () => SepaySettings | null;
   now?: () => Date;
   qr?: 'svg' | 'remote';
-}): PaymentProvider => ({
+  client?: SepayTransactionClient;
+}): PaymentProvider & {
+  listTransactionPage(input: { cursor?: string }): Promise<SepayTransactionPage>;
+} => {
+  const listTransactionPage = async (input: { cursor?: string }): Promise<SepayTransactionPage> => {
+    if (!deps.client) return { rows: [], lastId: null, fetched: 0 };
+    return deps.client.listPage({ sinceId: input.cursor, perPage: 100 });
+  };
+  return {
   code: 'sepay',
   capabilities: ['online', 'signed-webhook', 'transfer', 'refund'],
   webhookAckMode: 'immediate',
@@ -73,10 +82,14 @@ export const createSepayPaymentProvider = (deps: {
     return { status: 200, body: { success: true } };
   },
 
-  async listTransactions() {
-    return [];
+  async listTransactions(input) {
+    const page = await listTransactionPage({ cursor: input.cursor });
+    return page.rows.flatMap((row) => (row.event ? [row.event] : []));
   },
-});
+
+  listTransactionPage,
+  };
+};
 
 export const sepaySettingsFromConfig = (paymentProviders: unknown): SepaySettings | null => {
   const sepay = (paymentProviders as { sepay?: unknown } | undefined)?.sepay;

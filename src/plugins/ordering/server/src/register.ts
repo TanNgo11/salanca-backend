@@ -19,6 +19,7 @@ import { testFoodProductType } from './domain/product-types/test-food';
 import { testServiceProductType } from './domain/product-types/test-service';
 import { builtinWorkflows } from './domain/workflow/definitions';
 import { createCashPaymentProvider } from './providers/cash';
+import { createFixtureSepayClient, createSepayTransactionClient } from './providers/sepay/client';
 import { createSepayPaymentProvider, sepaySettingsFromConfig } from './providers/sepay/provider';
 import {
   createCaptureNotificationProvider,
@@ -87,13 +88,18 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
   registry.registerPaymentProvider(createCashPaymentProvider());
   const sepaySettings = sepaySettingsFromConfig(config.providers.payment);
   if (sepaySettings) {
+    const currentSepay = () =>
+      sepaySettingsFromConfig((strapi.config.get('plugin::ordering') as OrderingConfig).providers.payment);
     registry.registerPaymentProvider(
       createSepayPaymentProvider({
-        settings: () =>
-          sepaySettingsFromConfig(
-            (strapi.config.get('plugin::ordering') as OrderingConfig).providers.payment,
-          ),
+        settings: currentSepay,
         qr: config.testing.builtins ? 'svg' : 'remote',
+        client: config.testing.builtins
+          ? createFixtureSepayClient()
+          : createSepayTransactionClient({
+              apiBaseUrl: () => currentSepay()?.apiBaseUrl ?? sepaySettings.apiBaseUrl,
+              apiToken: () => currentSepay()?.apiToken ?? sepaySettings.apiToken,
+            }),
       }),
     );
   }

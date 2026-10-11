@@ -40,6 +40,7 @@ const scripts = [
   'sepay-match.mjs',
   'sepay-review.mjs',
   'sepay-manual.mjs',
+  'sepay-reconcile.mjs',
 ];
 
 const results = [];
