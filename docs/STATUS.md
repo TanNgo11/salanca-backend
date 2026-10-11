@@ -2,6 +2,17 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
+2026-10-11: **Ordering O3 (tự lấy + tiền mặt + hộp đơn) — automated verification passed** trên
+`feat/ordering-o3` (chưa push/merge). API storefront công khai (chi nhánh, cấu hình, slot, quote, tạo đơn có
+Idempotency-Key + Turnstile + đồng ý dữ liệu, đọc/hủy bằng `X-Order-Token`, tra cứu mã + SĐT không lộ dữ liệu);
+slot có sức chứa khóa theo slot; 3 workflow tự lấy; "Thu tiền và giao" một transaction; hủy món hoàn đúng số
+đã chia; email VI/EN từ outbox không gửi trùng; cảnh báo đơn chờ nhận; SSE realtime theo scope; màn Admin S1–S9
+(hộp đơn, hộp thoại đơn mới ở mọi trang, chi tiết, tạo đơn hộ, chi nhánh, nhân viên, cài đặt). Gates: lint,
+typecheck, test 147 file / 1021, `check:ordering` 29/29, `check:phase3` plugin off/on, `smoke:reservation-form`
+và `smoke:ordering-pickup` trên `salanca_ordering_test`. **Open:** UAT Admin thủ công, chọn biến thể khi đặt,
+quyết định push/merge. Plan: [`plans/ordering-o3-pickup-cash.md`](plans/ordering-o3-pickup-cash.md); API:
+[`ordering-api-contract.md`](ordering-api-contract.md); nhân viên: [`ordering-staff-guide.md`](ordering-staff-guide.md).
+
 2026-10-10: **Ordering O2 (module catalog) — automated verification passed sau review fix** trên
 `feat/ordering-o2` (chưa merge/push). Catalog plugin
 hoàn chỉnh: 9 content type `plugins_ordering_catalog_*` (danh mục cây, sản phẩm, biến

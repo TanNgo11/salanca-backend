@@ -37,13 +37,25 @@ Các khóa `plugin::ordering` (mặc định trong `server/src/config/index.ts`)
 | `outbox.maxAttempts` | `10` | Quá số lần → `failed_at` |
 | `outbox.baseBackoffSeconds` / `maxBackoffSeconds` | `30` / `3600` | Backoff mũ `base*2^(n-1)` |
 | `jobs.enabled` | `true` | Bật cron (test tắt qua builtins) |
-| `jobs.outboxCron` / `holdExpiryCron` / `idempotencyCleanupCron` | `*/10s` / `*/30s` / `*/15m` | Lịch 3 job |
+| `jobs.outboxCron` / `holdExpiryCron` / `idempotencyCleanupCron` / `slaCheckCron` | `*/10s` / `*/30s` / `*/15m` / mỗi phút | Lịch 4 job (`sla-check` mở cảnh báo đơn chờ nhận quá `slaMinutes`) |
 | `clientIp.secretHeader` / `ipHeader` / `sharedSecret` | `x-ordering-client-secret` / `x-ordering-client-ip` / không | Chỉ tin IP khách do server web chuyển tiếp khi secret khớp (so sánh timing-safe); ngược lại dùng `ctx.request.ip`. Salanca dùng `x-salanca-intake-secret` + `x-salanca-visitor-ip` + `FORM_INTAKE_SHARED_SECRET` |
 | `encryptionKey` | không | AES-256-GCM, 32 byte base64 (`ORDERING_ENCRYPTION_KEY`). Bắt buộc khi `NODE_ENV=production`; nơi khác thiếu thì cảnh báo và không tạo được đơn |
 | `storefront.captchaProvider` | `''` | Code `CaptchaProvider` cho tạo đơn/tra cứu; rỗng = tắt (chỉ dev/test) |
 | `storefront.rateLimits.*` | xem `config/index.ts` | Cửa sổ cố định trong process theo IP (và theo mã đơn cho tra cứu) |
+| `notifications.email.enabled` | `false` | Gửi email qua plugin email của app; tắt thì nhật ký ghi `skipped`. Salanca bật khi có `EMAIL_SMTP_HOST` |
+| `notifications.orderLinkTemplate` | `''` | Link đơn cho khách, `{token}` đặt sau `#` (`ORDERING_ORDER_LINK_TEMPLATE` hoặc `FRONTEND_URLS` đầu + `/don-hang#t={token}`) |
 | `testing.builtins` | `false` | Catalog/provider consumer test; cấm khi `NODE_ENV=production` |
 | `productTypes`, `providers.*` | `{}` | Map bật/tắt theo code (`{enabled}`); validate qua zod ở `validator` |
+
+## O3: đặt món tự lấy
+
+- API storefront công khai: [`docs/ordering-api-contract.md`](../../../docs/ordering-api-contract.md).
+- Màn Admin: Đơn hàng (hộp đơn, chi tiết, tạo đơn hộ), Chi nhánh, Nhân viên bán hàng, Settings → Bán hàng.
+  Hộp thoại đơn mới cần app chủ bọc router bằng `OrderingInboxProvider`
+  (`admin/src/inbox/OrderingInboxProvider.tsx`; Salanca làm ở `src/admin/app.tsx`).
+- Realtime (SSE) và rate limit nằm trong process: chỉ đúng khi chạy **1 instance**.
+- Hướng dẫn nhân viên: [`docs/ordering-staff-guide.md`](../../../docs/ordering-staff-guide.md); vai trò:
+  [`docs/admin-roles.md`](../../../docs/admin-roles.md).
 
 ## Cấu trúc mã
 

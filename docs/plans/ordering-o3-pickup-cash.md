@@ -154,4 +154,49 @@ khi giao, khách nhận email.
 
 ## Completion record
 
-- Chưa bắt đầu.
+Automated verification passed on `feat/ordering-o3` (từ `feat/ordering-o2` + merge `docs/ordering-ui-o3`;
+chưa push, chưa merge). Thực hiện 2026-10-11.
+
+| Bước | Commit | Kết quả |
+| --- | --- | --- |
+| 0 nhánh + tài liệu UI | `6697431`, `c04acac` | merge không conflict |
+| 0b build server | `b44f208` | tsc giữ cấu trúc `dist/server/src` + `dist/shared`; `check-dist-imports.mjs` |
+| IP khách, khóa mã hóa, SĐT | `9222725` | `resolveClientIp` (secret timing-safe), AES-256-GCM `v1:`, chuẩn hóa SĐT VN dùng chung |
+| 1 chi nhánh | `a69fb9d` | setting có default + validate theo field; route admin + `GET /branches` công khai |
+| 2 slot | `9224f51` | slot qua nửa đêm, lead time, sức chứa; khóa advisory → tranh slot cuối: đúng 1 `SLOT_FULL` |
+| 3 workflow | `556fd70` | thêm `pickup-accept-then-pay@1`; map `paymentTiming` |
+| 4 captcha | `57f9a2f` | Turnstile fail-closed; `test-captcha` cho test |
+| 5 API storefront | `8c01479` | quote/tạo đơn/đọc/hủy; replay trả **cùng** token (lưu mã hóa) |
+| 6 CORS | (có từ O0) | test middleware sẵn |
+| 7 route Admin | `39e2531` | scope 404 trên mọi route; nhận đồng thời 200/409; thu tiền và giao lỗi giữa chừng không để lại gì; hủy món 87.940 |
+| 11 email | `e74ed24` | outbox → email VI/EN; không gửi trùng; nhật ký chỉ có hash |
+| 12 cảnh báo | `9271796` | `order-awaiting-acceptance` mở 1 lần, gộp đếm, tự đóng |
+| 14 tra cứu + đơn hộ | `20826b7` | lỗi chung `ORDER_LOOKUP_FAILED`; 5 lần/15 phút/mã; đơn nháp → xác nhận |
+| 8 realtime (server) | `7e14c4c` | SSE theo scope, chỉ phát sau commit |
+| smoke | `b21e57a` | `pnpm run smoke:ordering-pickup` |
+| 9 (server) | `f452c82` | staff scopes, `orders/branches`, settings trong summary |
+| 9, 15 UI | `aec0cda` | màn S1–S9, hộp thoại đơn mới toàn Admin |
+| 10, 13 tài liệu | commit tài liệu | `admin-roles.md`, `ordering-api-contract.md`, `ordering-staff-guide.md`, README, STATUS |
+
+**Gates (2026-10-11, số thật):** `lint` ✓, `typecheck` ✓, `test` 147 file / 1021 test ✓, `check:ordering`
+29/29 ✓, `check:phase3` trên `salanca_ordering_test` với `ORDERING_ENABLED=false` ✓ và `true` ✓,
+`smoke:reservation-form` trên `salanca_ordering_test` ✓, `smoke:ordering-pickup` ✓. Admin build bật và tắt plugin ✓.
+
+**Quyết định trong lúc code:**
+
+- Khóa mã hóa: bắt buộc khi `NODE_ENV=production`; nơi khác cảnh báo và `POST /orders` trả `CONFIG_INVALID`
+  (contracts 21.10 đã ghi).
+- Route Admin không có đoạn `/admin` (giống O2); `PUT` thêm cho cập nhật chi nhánh. Đặc tả màn hình ghi mục "Đã đổi
+  khi code O3".
+- Email chỉ dùng token còn trong bản ghi idempotency (24 giờ); hết hạn thì email hướng dẫn tra cứu bằng mã + SĐT.
+- Field `order.placedLocale` (không dùng tên `locale` vì Strapi dành cho i18n).
+
+**Chưa làm / còn mở:**
+
+- **UAT thủ công chưa làm** (Chrome extension không kết nối): hộp thoại đơn mới ở mọi trang, hai tab, hai chi
+  nhánh, Mailpit VI/EN, đổi lead time chỉ ảnh hưởng đơn mới, 5 trạng thái các màn. Danh sách ở spec O3.
+- Chọn biến thể món khi đặt: catalog O2 luôn tính theo biến thể mặc định — cần sửa ở adapter trước OW.
+- Web phải gửi `x-salanca-intake-secret` + `x-salanca-visitor-ip` khi gọi API ordering từ server (OW).
+- `ops.read`, `payment.review`, `report.read`, `export`, `payment.raw-read` đã đăng ký, màn ở O4/O6.
+- Lỗi typecheck admin có từ trước ở màn O2 (`Availability`, `Categories`) và `src/admin/app.tsx` dòng 130; admin
+  typecheck không phải gate, chưa sửa.

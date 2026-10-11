@@ -84,6 +84,44 @@ Bootstrap grants both to Super Admin. Other roles default to deny. Grant
 `catalog.toggle-availability` (+ a `staff-location-scope` row) to branch staff, and
 `catalog.manage` to the `Quản lý` role.
 
+## Ordering plugin order permissions (O3, 2026-10-11)
+
+Fourteen more actions live under **Settings → Roles → Plugins → Ordering** (contracts §19.2, §21.3,
+§21.5). Each admin route checks its action with `admin::hasPermissions`; every service call then
+limits the staff member to their branches (`staff-location-scope`) — an order or branch outside the
+scope answers 404, a staff member with no scope row sees nothing (403 `SCOPE_REQUIRED`).
+
+| Action | Screens / routes |
+| --- | --- |
+| `order.read` | Đơn hàng inbox, detail, summary, realtime stream (`/ordering/orders*` GET) |
+| `order.process` | Accept / reject / next steps, internal notes, the new-order dialog |
+| `order.cancel` | Staff cancel (refunds held cash in the same transaction) |
+| `order.create` | Tạo đơn hộ (phone orders, `/ordering/drafts*`) |
+| `order.edit-lines` | Hủy món (line cancel + preview) |
+| `payment.record-cash` | Thu tiền và giao (cash handover) |
+| `refund.manage` | Manual cash refund |
+| `settings.manage` | Chi nhánh screen (`/ordering/branches*`), Settings → Bán hàng |
+| `scope.manage` | Nhân viên bán hàng (`/ordering/staff-scopes*`) |
+| `payment.review`, `payment.raw-read`, `report.read`, `export`, `ops.read` | Registered now; screens arrive in O4 (bank transfer review) and O6 (reports, ops) |
+
+Bootstrap grants every action to Super Admin; other roles default to deny. Plugins never create
+roles — create these five in **Settings → Roles** and grant the actions (plus the two catalog actions
+above where noted). Then assign each person's branches in **Nhân viên bán hàng**.
+
+| Role | Branch scope | Actions |
+| --- | --- | --- |
+| Nhân viên chi nhánh | assigned branches | `order.read`, `order.process`, `order.create`, `payment.record-cash`, `catalog.toggle-availability` |
+| Quản lý chi nhánh | assigned branches | the above + `order.cancel`, `order.edit-lines`, `payment.review`, `refund.manage`, `report.read` |
+| Kế toán | all branches | `order.read`, `payment.review`, `refund.manage`, `payment.raw-read`, `report.read`, `export` |
+| Quản trị chuỗi | all branches | every ordering action except `ops.read`, plus `catalog.manage` |
+| Super Admin (kỹ thuật) | all branches (built in) | every action |
+
+- `scope.manage` belongs to Quản trị chuỗi and Super Admin. The service also refuses to grant a branch
+  outside the granter's own scope, and only an all-branches granter can give "all branches".
+- A person may work at several branches (several codes in their scope row).
+- Branch, settings and scope changes write `admin-change-log` rows; order actions write the order's
+  timeline.
+
 ## Manual UAT checklist
 
 - [ ] Editor cannot open API Tokens, Transfer Tokens, or plugin marketplace settings.
@@ -103,6 +141,10 @@ Bootstrap grants both to Super Admin. Other roles default to deny. Grant
 - [ ] A role without `catalog.manage` does not see the `Danh mục` screen and gets 403 on `/ordering/categories`.
 - [ ] A staff member with `catalog.toggle-availability` scoped to Q1 sees only Q1 in the branch select and gets 403 toggling at another branch.
 - [ ] Marking a product "Hết ngày kinh doanh" hides it from the public catalog until the configured day-close; toggling "Còn" restores it immediately and writes a change-log row.
+- [ ] Nhân viên chi nhánh scoped to Q1 sees only Q1 orders and branches; opening a Q3 order URL shows "Không tìm thấy đơn".
+- [ ] A role without `order.process` sees the inbox but no step buttons and no new-order dialog.
+- [ ] A role without `settings.manage` does not see `Chi nhánh` or Settings → Bán hàng and gets 403 on `/ordering/branches`.
+- [ ] A role without `scope.manage` does not see `Nhân viên bán hàng`; a Q1 manager with it cannot grant Q3.
 
 ## API tokens (server-to-server)
 

@@ -1,6 +1,6 @@
 # Phase O3 — Đặt hàng tự đến lấy, trả tiền mặt
 
-Trạng thái: spec chờ duyệt (2026-10-10). Roadmap: [`plans/ordering-roadmap.md`](../plans/ordering-roadmap.md).
+Trạng thái: đã code, automated verification passed 2026-10-11 (UAT thủ công còn mở; xem Completion record của kế hoạch). Roadmap: [`plans/ordering-roadmap.md`](../plans/ordering-roadmap.md).
 Mockup: [`plans/mockups/ordering-o3-pickup-cash.html`](../plans/mockups/ordering-o3-pickup-cash.html).
 **Đặc tả màn hình (bắt buộc khi code UI):** [`plans/ordering-o3-screens.md`](../plans/ordering-o3-screens.md).
 Kế hoạch thực hiện: [`plans/ordering-o3-pickup-cash.md`](../plans/ordering-o3-pickup-cash.md).
