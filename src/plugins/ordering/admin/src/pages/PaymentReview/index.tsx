@@ -316,6 +316,149 @@ const ReviewDialog = ({ row, onClose, onDone }: { row: ReviewRow; onClose: () =>
   );
 };
 
+const ManualRecordDialog = ({ onClose, onDone }: { onClose: () => void; onDone: () => void }) => {
+  const t = useT();
+  const { get, post } = useFetchClient();
+  const { toggleNotification } = useNotification();
+  const toastError = useErrorToast();
+  const [query, setQuery] = useState('');
+  const [found, setFound] = useState<Suggested[]>([]);
+  const [searched, setSearched] = useState(false);
+  const [picked, setPicked] = useState<Suggested | null>(null);
+  const [reference, setReference] = useState('');
+  const [amountText, setAmountText] = useState('');
+  const [when, setWhen] = useState('');
+  const [note, setNote] = useState('');
+  const [saving, setSaving] = useState(false);
+  const amount = Number(amountText);
+  const whenOk = when === '' || !Number.isNaN(new Date(when).getTime());
+  const referenceOk = /^[A-Za-z0-9][A-Za-z0-9-]{3,40}$/.test(reference.trim());
+  const blocked = saving || !picked || !referenceOk || !Number.isSafeInteger(amount) || amount <= 0 || !whenOk;
+
+  const search = async () => {
+    setSearched(true);
+    try {
+      const { data } = await get(`/ordering/payment-reviews/orders?q=${encodeURIComponent(query.trim())}`);
+      setFound((data as { results: Suggested[] }).results);
+    } catch (error) {
+      toastError(error);
+    }
+  };
+
+  const choose = (item: Suggested) => {
+    setPicked(item);
+    if (item.due !== null && item.due > 0) setAmountText(String(item.due));
+  };
+
+  const submit = async () => {
+    if (!picked) return;
+    setSaving(true);
+    try {
+      await post(`/ordering/orders/${picked.id}/manual-payments`, {
+        reference: reference.trim(),
+        amount,
+        ...(when ? { transferredAt: new Date(when).toISOString() } : {}),
+        ...(note.trim() ? { note: note.trim() } : {}),
+      });
+      toggleNotification({ type: 'success', message: t('manual.saved') });
+      onDone();
+    } catch (error) {
+      toastError(error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal.Root open onOpenChange={(open: boolean) => (!open && !saving ? onClose() : undefined)}>
+      <Modal.Content>
+        <Modal.Header>
+          <Modal.Title>{t('manual.title')}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Flex direction="column" alignItems="stretch" gap={4}>
+            <Field.Root>
+              <Field.Label>{t('review.field.order')}</Field.Label>
+              <Flex gap={2}>
+                <Box minWidth="220px" grow={1}>
+                  <TextInput
+                    name="manual-order-search"
+                    placeholder={t('review.field.search')}
+                    value={query}
+                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => setQuery(event.target.value)}
+                  />
+                </Box>
+                <Button variant="secondary" onClick={() => void search()}>
+                  {t('review.search.go')}
+                </Button>
+              </Flex>
+            </Field.Root>
+            <Flex gap={2} wrap="wrap">
+              {found.map((item) => (
+                <Button
+                  key={item.id}
+                  size="S"
+                  variant={picked?.id === item.id ? 'default' : 'secondary'}
+                  onClick={() => choose(item)}
+                >
+                  {item.code} · {t('review.due', { amount: formatMoney(item.due ?? 0) })}
+                </Button>
+              ))}
+            </Flex>
+            {searched && found.length === 0 ? (
+              <Typography variant="pi" textColor="neutral600">
+                {t('review.search.empty')}
+              </Typography>
+            ) : null}
+            <Field.Root required>
+              <Field.Label>{t('manual.reference')}</Field.Label>
+              <TextInput
+                name="manual-reference"
+                value={reference}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => setReference(event.target.value)}
+              />
+            </Field.Root>
+            <Field.Root required>
+              <Field.Label>{t('manual.amount')}</Field.Label>
+              <TextInput
+                name="manual-amount"
+                type="number"
+                value={amountText}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => setAmountText(event.target.value)}
+              />
+            </Field.Root>
+            <Field.Root>
+              <Field.Label>{t('manual.when')}</Field.Label>
+              <TextInput
+                name="manual-when"
+                type="datetime-local"
+                value={when}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => setWhen(event.target.value)}
+              />
+            </Field.Root>
+            <Field.Root>
+              <Field.Label>{t('manual.note')}</Field.Label>
+              <Textarea
+                name="manual-note"
+                value={note}
+                onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setNote(event.target.value.slice(0, 500))}
+              />
+            </Field.Root>
+          </Flex>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="tertiary" disabled={saving} onClick={onClose}>
+            {t('common.cancel')}
+          </Button>
+          <Button loading={saving} disabled={blocked} onClick={() => void submit()}>
+            {t('manual.submit')}
+          </Button>
+        </Modal.Footer>
+      </Modal.Content>
+    </Modal.Root>
+  );
+};
+
 const PaymentReviewPage = () => {
   const t = useT();
   const { get } = useFetchClient();
@@ -330,6 +473,7 @@ const PaymentReviewPage = () => {
   const [body, setBody] = useState<ListBody | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error' | 'scope'>('loading');
   const [active, setActive] = useState<ReviewRow | null>(null);
+  const [recording, setRecording] = useState(false);
 
   const load = useCallback(async () => {
     const params = new URLSearchParams({ status: tab, page: String(page), pageSize: '25' });
@@ -362,7 +506,7 @@ const PaymentReviewPage = () => {
         <Layouts.Header
           title={t('review.title')}
           subtitle={t('review.subtitle')}
-          primaryAction={<Button disabled>{t('review.manual')}</Button>}
+          primaryAction={<Button onClick={() => setRecording(true)}>{t('review.manual')}</Button>}
         />
         <Layouts.Content>
           <Flex gap={3} wrap="wrap" alignItems="flex-end" paddingBottom={4}>
@@ -597,6 +741,15 @@ const PaymentReviewPage = () => {
               onClose={() => setActive(null)}
               onDone={() => {
                 setActive(null);
+                void load();
+              }}
+            />
+          ) : null}
+          {recording ? (
+            <ManualRecordDialog
+              onClose={() => setRecording(false)}
+              onDone={() => {
+                setRecording(false);
                 void load();
               }}
             />

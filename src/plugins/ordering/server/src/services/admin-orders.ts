@@ -6,6 +6,7 @@ import { maskPhone, normalizeVietnamesePhone } from '../../../shared/contact/pho
 import type { WorkflowDefinition } from '../contracts/workflow';
 import { businessDate as businessDateOf } from '../domain/business-date';
 import { OrderingError } from '../domain/errors';
+import { amountFromDb } from '../domain/money';
 import { parseCartRequest, parseOrderRequest } from '../domain/storefront/parse';
 import { paidAmounts, type SelectedOptionSnapshot } from '../domain/storefront/serialize';
 import { isTerminal } from '../domain/workflow/transition';
@@ -39,6 +40,21 @@ const tabOf = (definition: WorkflowDefinition, status: string): Exclude<Tab, 'al
 };
 
 const MAX_NOTE = 1000;
+
+/** Bank reference shown to staff: short codes keep the first two characters, longer codes keep both ends. */
+const maskReference = (value: string): string =>
+  value.length <= 8 ? `${value.slice(0, 2)}•••` : `${value.slice(0, 4)}•••${value.slice(-4)}`;
+
+const eventConfirmed = (kind: string | null, reviewStatus: string, rawPayload: unknown): boolean => {
+  if (kind === 'manual') {
+    const raw =
+      rawPayload !== null && typeof rawPayload === 'object' && !Array.isArray(rawPayload)
+        ? (rawPayload as Record<string, unknown>)
+        : {};
+    return raw.confirmed === true;
+  }
+  return reviewStatus === 'auto-matched';
+};
 const SUCCESS_REQUIRES_PAYMENT = 'cash';
 
 export type NextTransition = {
@@ -282,6 +298,34 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
       const settings = s.branch().pickupSettings(branch ?? { fulfillment: null });
       const money = paidAmounts(aggregate);
       const group = liveGroup(aggregate);
+      const paymentEvents = (
+        await Promise.all(
+          aggregate.payments.map(async (payment) => {
+            const rows = (await strapi.db.query('plugin::ordering.payment-event').findMany({
+              where: { payment: payment.id },
+              orderBy: { receivedAt: 'asc' },
+            })) as Array<{
+              id: number;
+              kind: string | null;
+              amount: string | number;
+              providerTransactionId: string;
+              reviewStatus: string;
+              rawPayload: unknown;
+              receivedAt: string;
+            }>;
+            return rows.map((row) => ({
+              id: row.id,
+              paymentId: payment.id,
+              kind: row.kind,
+              amount: amountFromDb(row.amount),
+              referenceMasked: maskReference(row.providerTransactionId),
+              reviewStatus: row.reviewStatus,
+              confirmed: eventConfirmed(row.kind, row.reviewStatus, row.rawPayload),
+              receivedAt: row.receivedAt,
+            }));
+          }),
+        )
+      ).flat();
       const actorIds = [
         ...new Set(
           events
@@ -377,6 +421,7 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
           actorName: nameOf.get(payment.actorRef ?? '') ?? null,
           capturedAt: payment.capturedAt,
         })),
+        paymentEvents,
         refunds: aggregate.refunds.map((refund) => ({
           id: refund.id,
           amount: refund.amount,

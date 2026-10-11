@@ -88,6 +88,16 @@ export type OrderDetail = {
     actorName: string | null;
     capturedAt: string | null;
   }>;
+  paymentEvents: Array<{
+    id: number;
+    paymentId: number;
+    kind: string | null;
+    amount: number;
+    referenceMasked: string;
+    reviewStatus: string;
+    confirmed: boolean;
+    receivedAt: string;
+  }>;
   refunds: Array<{ id: number; amount: number; reason: string; status: string; actorName: string | null; settledAt: string | null }>;
   timeline: Array<{
     id: number;

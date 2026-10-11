@@ -28,7 +28,7 @@ const DYNAMIC: Record<string, string[]> = {
   'branch.paymentTiming': ['prepay', 'accept-then-pay', 'pay-on-pickup'],
   day: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
   consent: ['web-checkout', 'phone-staff'],
-  method: ['cash'],
+  method: ['cash', 'sepay'],
 };
 
 describe('O3 admin translations', () => {

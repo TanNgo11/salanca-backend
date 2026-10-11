@@ -10,6 +10,7 @@ import {
   SingleSelectOption,
   Switch,
   Textarea,
+  TextInput,
   Typography,
 } from '@strapi/design-system';
 
@@ -354,6 +355,87 @@ export const RefundDialog = ({
       <Field.Root required>
         <Field.Label>{t('dialog.reason')}</Field.Label>
         <Textarea value={reason} onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setReason(event.target.value)} />
+      </Field.Root>
+    </Frame>
+  );
+};
+
+const REFERENCE = /^[A-Za-z0-9][A-Za-z0-9-]{3,40}$/;
+
+/** Manual bank transfer (screens P4). Text fields only — a dropdown inside Modal freezes the page. */
+export const ManualPaymentDialog = ({
+  due,
+  busy,
+  onClose,
+  onSubmit,
+}: {
+  due: number;
+  busy: boolean;
+  onClose: () => void;
+  onSubmit: (body: { reference: string; amount: number; transferredAt?: string; note?: string }) => void;
+}) => {
+  const t = useT();
+  const [reference, setReference] = useState('');
+  const [amountText, setAmountText] = useState(due > 0 ? String(due) : '');
+  const [when, setWhen] = useState('');
+  const [note, setNote] = useState('');
+  const amount = Number(amountText);
+  const whenOk = when === '' || !Number.isNaN(new Date(when).getTime());
+  const valid = REFERENCE.test(reference.trim()) && Number.isSafeInteger(amount) && amount > 0 && whenOk;
+  return (
+    <Frame
+      title={t('manual.title')}
+      onClose={onClose}
+      action={
+        <Button
+          loading={busy}
+          disabled={!valid}
+          onClick={() =>
+            onSubmit({
+              reference: reference.trim(),
+              amount,
+              ...(when ? { transferredAt: new Date(when).toISOString() } : {}),
+              ...(note.trim() ? { note: note.trim() } : {}),
+            })
+          }
+        >
+          {t('manual.submit')}
+        </Button>
+      }
+    >
+      <Field.Root required>
+        <Field.Label>{t('manual.reference')}</Field.Label>
+        <TextInput
+          name="manual-reference"
+          value={reference}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => setReference(event.target.value)}
+        />
+      </Field.Root>
+      <Field.Root required>
+        <Field.Label>{t('manual.amount')}</Field.Label>
+        <TextInput
+          name="manual-amount"
+          type="number"
+          value={amountText}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => setAmountText(event.target.value)}
+        />
+      </Field.Root>
+      <Field.Root>
+        <Field.Label>{t('manual.when')}</Field.Label>
+        <TextInput
+          name="manual-when"
+          type="datetime-local"
+          value={when}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => setWhen(event.target.value)}
+        />
+      </Field.Root>
+      <Field.Root>
+        <Field.Label>{t('manual.note')}</Field.Label>
+        <Textarea
+          name="manual-note"
+          value={note}
+          onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setNote(event.target.value.slice(0, 500))}
+        />
       </Field.Root>
     </Frame>
   );

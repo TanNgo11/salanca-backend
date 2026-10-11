@@ -29,6 +29,7 @@ type EventRow = {
   reviewedBy: string | null;
   reviewedAt: string | null;
   transferType: string | null;
+  kind: string | null;
 };
 
 const OPEN = 'needs-review';
@@ -146,6 +147,7 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
         limit: 500,
       })) as EventRow[];
       const located = rows
+        .filter((row) => row.kind !== 'manual')
         .map((row) => ({ row, location: locationOf(row, settings) }))
         .filter((item) => visible(staffScope, item.location));
       const openCount = located.filter((item) => item.row.reviewStatus === OPEN).length;

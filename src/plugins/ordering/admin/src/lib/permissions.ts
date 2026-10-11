@@ -27,6 +27,7 @@ export const ORDER_RBAC = {
   editLines: PERMISSIONS.editLines,
   recordCash: PERMISSIONS.recordCash,
   refund: PERMISSIONS.refund,
+  review: PERMISSIONS.review,
 };
 
 export const RBAC_DETAIL = Object.values(ORDER_RBAC).flat();

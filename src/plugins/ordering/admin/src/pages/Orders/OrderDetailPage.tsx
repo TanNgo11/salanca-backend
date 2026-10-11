@@ -37,6 +37,7 @@ import {
   CancelDialog,
   CashHandoverDialog,
   LineCancelDialog,
+  ManualPaymentDialog,
   RefundDialog,
   RejectDialog,
   TransitionDialog,
@@ -49,6 +50,7 @@ type Dialog =
   | { kind: 'cash' }
   | { kind: 'line'; lineId: number }
   | { kind: 'refund' }
+  | { kind: 'manual' }
   | null;
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
@@ -136,6 +138,20 @@ export const OrderDetailPage = () => {
     if (next) setDetail(next);
     else void load();
   });
+  const [manualBusy, setManualBusy] = useState(false);
+  const recordManual = async (body: { reference: string; amount: number; transferredAt?: string; note?: string }) => {
+    setManualBusy(true);
+    try {
+      await post(`/ordering/orders/${orderId}/manual-payments`, body);
+      toggleNotification({ type: 'success', message: t('manual.saved') });
+      setDialog(null);
+      await load();
+    } catch (error) {
+      toastError(error);
+    } finally {
+      setManualBusy(false);
+    }
+  };
 
   if (status === 'loading') {
     return (
@@ -202,6 +218,7 @@ export const OrderDetailPage = () => {
         : null}
       <SimpleMenu label="…" variant="tertiary">
         {can.canCancel && !closed ? <MenuItem onSelect={() => setDialog({ kind: 'cancel' })}>{t('detail.cancelOrder')}</MenuItem> : null}
+        {can.canReview ? <MenuItem onSelect={() => setDialog({ kind: 'manual' })}>{t('review.manual')}</MenuItem> : null}
         {can.canManage && cashHeld > 0 ? <MenuItem onSelect={() => setDialog({ kind: 'refund' })}>{t('detail.refund')}</MenuItem> : null}
         <MenuItem
           onSelect={() => {
@@ -316,6 +333,21 @@ export const OrderDetailPage = () => {
                       label={`${t(`method.${payment.providerCode}`)} · ${payment.actorName ?? '—'} · ${formatDateTime(payment.capturedAt, timezone)}`}
                       value={formatMoney(payment.capturedAmount)}
                     />
+                  ))}
+                  {detail.paymentEvents.map((event) => (
+                    <Flex key={`e${event.id}`} justifyContent="space-between" alignItems="center" paddingBottom={1} gap={2}>
+                      <Typography textColor="neutral600">
+                        {eventKindLabel(t, event.kind)} · {event.referenceMasked}
+                      </Typography>
+                      <Flex gap={2} alignItems="center">
+                        {event.kind === 'manual' ? (
+                          <Badge>
+                            {event.confirmed ? t('manual.badge.confirmed') : t('manual.badge.pending')}
+                          </Badge>
+                        ) : null}
+                        <Typography>{formatMoney(event.amount)}</Typography>
+                      </Flex>
+                    </Flex>
                   ))}
                   {detail.refunds.map((refund) => (
                     <Row
@@ -450,9 +482,28 @@ export const OrderDetailPage = () => {
         {dialog?.kind === 'refund' ? (
           <RefundDialog max={cashHeld} busy={actions.busy !== null} onClose={() => setDialog(null)} onSubmit={(amount, reason) => void actions.refund(order.id, amount, reason)} />
         ) : null}
+        {dialog?.kind === 'manual' ? (
+          <ManualPaymentDialog
+            due={totals.due}
+            busy={manualBusy}
+            onClose={() => setDialog(null)}
+            onSubmit={(body) => void recordManual(body)}
+          />
+        ) : null}
       </Layouts.Content>
     </>
   );
+};
+
+const eventKindLabel = (t: ReturnType<typeof useT>, kind: string | null): string => {
+  switch (kind) {
+    case 'manual':
+      return t('manual.kind.manual');
+    case 'transfer':
+      return t('manual.kind.transfer');
+    default:
+      return kind ?? '—';
+  }
 };
 
 /** One line of history text per event type; unknown types fall back to the raw type. */

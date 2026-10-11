@@ -64,6 +64,35 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
 
   const text = (value: unknown): string | null => (typeof value === 'string' ? value : null);
 
+  /**
+   * A staff manual row is confirmed by the SePay id. Existing keys stay; the webhook body
+   * (sender, account, raw content) is not copied onto the row.
+   */
+  const confirmManualRow = async (
+    row: { id: number; rawPayload: unknown },
+    sepayTransactionId: string,
+    ctx: ServiceContext,
+  ) => {
+    const raw =
+      row.rawPayload !== null && typeof row.rawPayload === 'object' && !Array.isArray(row.rawPayload)
+        ? (row.rawPayload as Record<string, unknown>)
+        : {};
+    if (raw.confirmed === true) return;
+    const transferredAt = typeof raw.transferredAt === 'string' ? raw.transferredAt : undefined;
+    await events().update({
+      where: { id: row.id },
+      data: {
+        rawPayload: {
+          manual: true,
+          confirmed: true,
+          confirmedAt: nowOf(ctx).toISOString(),
+          ...(transferredAt ? { transferredAt } : {}),
+          sepayTransactionId,
+        },
+      },
+    });
+  };
+
   const insertEvent = async (
     input: {
       providerCode: string;
@@ -189,17 +218,18 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
   return {
     /**
      * Stores one inbound or outbound transfer. `duplicate` means this provider id was already
-     * stored and the ledger was not touched again.
+     * stored, or it confirmed a manual row with the same bank reference and amount, and the
+     * ledger was not touched again.
      */
     async ingest(
       input: { event: NormalizedPaymentEvent; rawPayload: Record<string, unknown> },
       ctx: ServiceContext,
     ): Promise<{ duplicate: boolean; decision: MatchDecision }> {
       const event = input.event;
-      const prior = await events().findOne({
+      type StoredEvent = { id: number; kind: string | null; amount: string | number; rawPayload: unknown };
+      const prior = (await events().findOne({
         where: { providerCode: event.providerCode, providerTransactionId: event.providerTransactionId },
-      });
-      if (prior) return { duplicate: true, decision: { outcome: 'ignored' } };
+      })) as StoredEvent | null;
 
       const base = {
         providerCode: event.providerCode,
@@ -227,6 +257,41 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
           return { duplicate: true, decision: { outcome: 'ignored' } };
         }
       };
+
+      // Staff may have typed the SePay id itself. Same amount confirms that row; a different
+      // amount cannot insert a second row under the same id, so it stays unconfirmed.
+      if (prior) {
+        if (
+          event.transferType !== 'out' &&
+          prior.kind === 'manual' &&
+          amountFromDb(prior.amount) === event.amount.amount
+        ) {
+          await confirmManualRow(prior, event.providerTransactionId, ctx);
+        }
+        return { duplicate: true, decision: { outcome: 'ignored' } };
+      }
+
+      // The bank reference (referenceCode) is not the SePay id. Same amount attaches to the
+      // manual row. A different amount is stored for review and does not capture.
+      const bankReference = event.reference;
+      if (event.transferType !== 'out' && bankReference && bankReference !== event.providerTransactionId) {
+        const manual = (await events().findOne({
+          where: { providerCode: event.providerCode, providerTransactionId: bankReference, kind: 'manual' },
+        })) as StoredEvent | null;
+        if (manual) {
+          const manualAmount = amountFromDb(manual.amount);
+          if (manualAmount === event.amount.amount) {
+            await confirmManualRow(manual, event.providerTransactionId, ctx);
+            return { duplicate: true, decision: { outcome: 'ignored' } };
+          }
+          return remember({
+            outcome: 'needs-review',
+            reviewReason: event.amount.amount < manualAmount ? 'underpaid' : 'overpaid',
+            orderCode: null,
+            dueAmount: null,
+          });
+        }
+      }
 
       if (event.transferType === 'out') return remember({ outcome: 'ignored' });
 
@@ -395,6 +460,74 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
           applied: true,
           capturedAmount: after.payments.reduce((sum, row) => sum + row.capturedAmount, 0),
         };
+      });
+    },
+
+    /**
+     * Captures a transfer the staff already saw. The bank reference is `providerTransactionId`.
+     * Covering the due moves `awaiting-payment` forward. A short payment stays pending.
+     * More than the due is still captured and marked `refund-due` (no refund row).
+     */
+    async recordManual(
+      input: { orderId: number; reference: string; amount: number; currency: string; transferredAt: string },
+      ctx: ServiceContext,
+    ): Promise<{ eventId: number; paymentId: number; reviewStatus: 'matched-manually' | 'refund-due' }> {
+      const { order } = services();
+      return strapi.db.transaction(async ({ trx }) => {
+        const first = await order.getOrder(input.orderId, ctx);
+        await lockGroups(trx, first);
+        const aggregate = await order.getOrder(input.orderId, ctx);
+        const existing = await events().findOne({
+          where: { providerCode: 'sepay', providerTransactionId: input.reference },
+        });
+        if (existing) {
+          throw new OrderingError('VALIDATION_ERROR', 'bank reference already recorded', {
+            details: { field: 'reference' },
+          });
+        }
+        const capturedBefore = aggregate.payments.reduce((sum, payment) => sum + payment.capturedAmount, 0);
+        const due = Math.max(0, aggregate.order.totalAmount - capturedBefore);
+        const tolerance = settingsOf()?.amountTolerance ?? 0;
+        const covers = input.amount >= due - tolerance && input.amount <= due + tolerance;
+        const over = input.amount > due + tolerance;
+        const payment = await addCapture(
+          {
+            orderId: input.orderId,
+            amount: input.amount,
+            currency: input.currency || aggregate.order.currency,
+            businessDate: aggregate.order.businessDate,
+            settles: covers,
+          },
+          ctx,
+        );
+        await order.recomputeProjection(input.orderId);
+        const reviewStatus: 'matched-manually' | 'refund-due' = over ? 'refund-due' : 'matched-manually';
+        const event = await insertEvent(
+          {
+            providerCode: 'sepay',
+            providerTransactionId: input.reference,
+            kind: 'manual',
+            amount: input.amount,
+            currency: input.currency || aggregate.order.currency,
+            transferType: 'in',
+            rawPayload: { manual: true, confirmed: false, transferredAt: input.transferredAt },
+            paymentId: payment.id,
+            reviewStatus,
+            reviewReason: null,
+          },
+          ctx,
+        );
+        await services().timeline.record(
+          {
+            orderId: input.orderId,
+            type: 'payment.captured',
+            isPublic: true,
+            payload: { providerCode: 'sepay', amount: input.amount, paymentId: payment.id, manual: true },
+          },
+          ctx,
+        );
+        if (covers) await transitionIfPayable(aggregate, ctx);
+        return { eventId: event.id, paymentId: payment.id, reviewStatus };
       });
     },
   };

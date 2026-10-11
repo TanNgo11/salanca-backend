@@ -17,12 +17,12 @@ bản dịch, 5 trạng thái, định dạng tiền/giờ, component) như mụ
 
 Theo Saleor `OrderTransactionTile`.
 
-- Mỗi `payment` là một `Card`: tiêu đề "Chuyển khoản SePay · <ngày giờ>" hoặc "Tiền mặt"; dòng tổng: Cần thu · Đã thu ·
-  Đã hoàn · Còn thiếu (đỏ khi > 0).
-- Bảng sự kiện bên trong: thời gian, loại (Tiền vào / Ghi tay / Hoàn / Bỏ qua), số tiền, mã giao dịch ngân hàng (che
-  bớt giữa), người ghi (hoặc "SePay tự động"), `Badge` kết quả. Trống: "Chưa có giao dịch nào".
-- Thao tác (`SimpleMenu` của khối): **Ghi nhận chuyển khoản thủ công** (P4), **Hoàn tiền** (P5), **Sao chép link
-  thanh toán** (P6, chỉ khi còn thiếu và đơn chưa hủy).
+- Mỗi `payment` là một dòng (tiêu đề phương thức · người ghi · giờ, số đã thu). Card đủ "Cần thu · Đã thu · Đã hoàn ·
+  Còn thiếu" chưa làm.
+- Dưới dòng payment: sự kiện (`paymentEvents`) — loại, mã giao dịch đã che, số tiền. Ghi tay có badge "Chờ đối soát" /
+  "Đã đối soát". API không trả mã đầy đủ và không trả payload gốc.
+- Thao tác ghi tay nằm ở menu header của trang (ngoài modal), quyền `payment.review`. Hoàn tiền (P5) và sao chép link
+  (P6) làm ở bước sau.
 - Quyền xem payload gốc (`payment.raw-read`): nút "Xem dữ liệu gốc" mở `Modal` JSON chỉ đọc; không có quyền thì ẩn.
 
 ## P2. Duyệt chuyển khoản (danh sách)
@@ -33,7 +33,7 @@ Theo Saleor `OrderTransactionTile`.
 - API: `GET /ordering/payment-reviews?status=open|resolved&reason=&branch=&from=&to=&q=&page=`
   → `{ results, pagination, counts }`.
 
-Bố cục: header + nút **Ghi nhận chuyển khoản thủ công** (tắt đến khi có API P4); hai nút Chờ xử lý (n) · Đã xử lý; lọc lý do, chi nhánh,
+Bố cục: header + nút **Ghi nhận chuyển khoản thủ công** (mở P4); hai nút Chờ xử lý (n) · Đã xử lý; lọc lý do, chi nhánh,
 khoảng ngày, tìm theo nội dung/mã giao dịch/số tiền.
 
 | Cột | Nội dung |
@@ -68,7 +68,7 @@ Theo Vendure `add-manual-payment-dialog` + Saleor "Manual transaction".
 
 | Field | Kiểu | Quy tắc |
 | --- | --- | --- |
-| Đơn | `Combobox` (điền sẵn khi mở từ P1) | trong scope |
+| Đơn | ô chữ + nút kết quả (điền sẵn khi mở từ P1; không dùng Combobox trong modal) | trong scope |
 | Mã giao dịch ngân hàng * | `TextInput` | unique trong hệ thống |
 | Số tiền * | `NumberInput` đ | > 0 |
 | Thời điểm chuyển | `DateTimePicker` | mặc định bây giờ |

@@ -130,4 +130,16 @@ soát bù; workflow `prepay` và `accept-then-pay` chạy trọn.
 
 ## Completion record
 
-- Chưa bắt đầu.
+Đang làm trên `feat/ordering-o4` (từ `feat/ordering-o3`, chưa push, chưa merge). Cổng cuối và `docs/STATUS.md` ghi khi xong O4.
+
+| Bước | Commit | Kết quả |
+| --- | --- | --- |
+| 1 raw body | `6b620ea` | bootstrap báo lỗi khi provider cần chữ ký mà không có body gốc |
+| 2 config + QR | `8da487b` | cấu hình SePay, QR giả trong test, `presentation` trên GET payment |
+| 3 chữ ký webhook | `2970467` | HMAC, ACK `{success:true}`, trùng `id`, `transferType=out` |
+| 4 luật khớp | `97bfcbd` | đủ 7 `reviewReason`, không đổi đơn |
+| 5 áp khớp | `2d8eebd` | khớp đủ thì chuyển workflow; thiếu không tự ghi; bù phần còn thì khớp |
+| 6 duyệt chuyển khoản | `81e6392` | scope chi nhánh, một người thắng, refund-due, mở lại đơn, change log |
+| 7 ghi nhận thủ công | commit này | cùng mã ngân hàng và cùng số tiền thì gắn vào event ghi tay, không ghi sổ lần hai |
+
+**Quyết định bước 7:** mã ngân hàng là `providerTransactionId` của event `kind=manual`. Webhook cùng `referenceCode` và cùng số tiền chỉ đặt `confirmed`. Khác số tiền thì lưu `needs-review`, không ghi thêm. Ghi chú nhân viên nằm ở change log (`reason`). `rawPayload` không có nội dung chuyển khoản hay số tài khoản. Đơn ngoài scope trả 404. Event ghi tay không vào hàng duyệt.
