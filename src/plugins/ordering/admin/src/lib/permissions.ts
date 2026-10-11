@@ -13,6 +13,10 @@ export const PERMISSIONS = {
   scope: action('scope.manage'),
 } as const;
 
+/** Stable arrays for `useRBAC` (a new array each render makes it re-check every time). */
+export const RBAC_INBOX = [...PERMISSIONS.read, ...PERMISSIONS.process];
+export const RBAC_LIST = [...PERMISSIONS.create, ...PERMISSIONS.process];
+
 /** `useRBAC` input: one key per capability → `allowedActions.canRead`, `canProcess`, … */
 export const ORDER_RBAC = {
   read: PERMISSIONS.read,
@@ -23,3 +27,5 @@ export const ORDER_RBAC = {
   recordCash: PERMISSIONS.recordCash,
   refund: PERMISSIONS.refund,
 };
+
+export const RBAC_DETAIL = Object.values(ORDER_RBAC).flat();

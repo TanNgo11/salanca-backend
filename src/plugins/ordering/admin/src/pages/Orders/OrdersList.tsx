@@ -30,8 +30,9 @@ import { useNavigate } from 'react-router-dom';
 import { PaymentBadge, StateBadge } from '../../components/orders/StatusBadges';
 import { useOrderingInbox } from '../../inbox/OrderingInboxProvider';
 import { formatBusinessDate, formatMoney, formatTime, localized } from '../../lib/format';
+import { httpStatusOf } from '../../lib/api';
 import { useLocale, useT } from '../../lib/i18n';
-import { PERMISSIONS } from '../../lib/permissions';
+import { RBAC_LIST } from '../../lib/permissions';
 import type { OrderRow } from '../../lib/types';
 import { useOrderActions } from '../../lib/useOrderActions';
 import { OrderPreviewModal } from './OrderPreviewModal';
@@ -66,7 +67,7 @@ export const OrdersList = () => {
   const navigate = useNavigate();
   const { get } = useFetchClient();
   const inbox = useOrderingInbox();
-  const { allowedActions } = useRBAC([...PERMISSIONS.create, ...PERMISSIONS.process]);
+  const { allowedActions } = useRBAC(RBAC_LIST);
 
   const [branches, setBranches] = useState<StaffBranch[] | null>(null);
   const [branch, setBranch] = useState('');
@@ -96,7 +97,7 @@ export const OrdersList = () => {
           setStatus('ready');
         }
       } catch (error) {
-        const code = (error as { response?: { status?: number } })?.response?.status;
+        const code = httpStatusOf(error);
         setStatus(code === 403 ? 'forbidden' : 'error');
       }
     })();
@@ -114,7 +115,7 @@ export const OrdersList = () => {
       setData(response as ListResponse);
       setStatus('ready');
     } catch (error) {
-      const code = (error as { response?: { status?: number } })?.response?.status;
+      const code = httpStatusOf(error);
       setStatus(code === 403 ? 'forbidden' : 'error');
     }
   }, [branch, businessDate, get, origin, page, payment, search, tab]);

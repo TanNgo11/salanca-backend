@@ -11,6 +11,12 @@ export const apiErrorOf = (error: unknown): ApiError => {
   return body ?? {};
 };
 
+/** HTTP status of a failed admin fetch (Strapi's FetchError keeps it on `status`). */
+export const httpStatusOf = (error: unknown): number | undefined => {
+  const value = error as { status?: number; response?: { status?: number } };
+  return value?.status ?? value?.response?.status;
+};
+
 /** Field-addressed validation issues (`details.issues[{ path, message }]`) by path. */
 export const fieldErrors = (error: unknown): Record<string, string> => {
   const issues = apiErrorOf(error).details?.issues;

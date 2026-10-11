@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Box,
   Button,
@@ -268,16 +268,21 @@ export const LineCancelDialog = ({
   const [quantity, setQuantity] = useState(1);
   const [reason, setReason] = useState('');
   const [preview, setPreview] = useState<{ refundAmount: number; refundShortfall: number } | null>(null);
+  // The parent passes a fresh callback each render; keep the latest in a ref so the preview only
+  // refetches when the quantity changes (depending on the callback looped forever).
+  const previewRef = useRef(onPreview);
+  previewRef.current = onPreview;
   useEffect(() => {
     let active = true;
     setPreview(null);
-    onPreview(quantity)
+    previewRef
+      .current(quantity)
       .then((value) => active && setPreview(value))
       .catch(() => active && setPreview(null));
     return () => {
       active = false;
     };
-  }, [onPreview, quantity]);
+  }, [quantity]);
   return (
     <Frame
       title={t('dialog.line.title', { title: line.title })}

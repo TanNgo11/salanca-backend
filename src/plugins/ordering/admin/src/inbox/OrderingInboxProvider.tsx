@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useAuth, useFetchClient, useRBAC } from '@strapi/strapi/admin';
 
-import { PERMISSIONS } from '../lib/permissions';
+import { RBAC_INBOX } from '../lib/permissions';
 import type { InboxSettings, OrderDetail } from '../lib/types';
 import { NewOrderDialog } from './NewOrderDialog';
 
@@ -87,7 +87,7 @@ export const OrderingInboxProvider = ({ children }: { children: ReactNode }) => 
 const InboxRuntime = ({ children }: { children: ReactNode }) => {
   const { get } = useFetchClient();
   const token = useAuth('OrderingInbox', (state) => state.token);
-  const { allowedActions, isLoading } = useRBAC([...PERMISSIONS.read, ...PERMISSIONS.process]);
+  const { allowedActions, isLoading } = useRBAC(RBAC_INBOX);
   const canRead = !isLoading && allowedActions.canRead === true;
   const canProcess = !isLoading && allowedActions.canProcess === true;
 
@@ -112,7 +112,12 @@ const InboxRuntime = ({ children }: { children: ReactNode }) => {
       try {
         const { data } = await get(`/${PLUGIN}/orders/${orderId}`);
         const detail = data as OrderDetail;
-        if (detail.group?.status !== 'awaiting-acceptance') return;
+        // Drafts (phone orders not yet confirmed) and handled orders never pop up; a draft is
+        // queued again when its confirmation streams as `order.updated` → `open`.
+        if (detail.order.status !== 'open' || detail.group?.status !== 'awaiting-acceptance') {
+          seen.current.delete(orderId);
+          return;
+        }
         setQueue((current) => [...current, detail]);
         if (soundRef.current) chime();
       } catch {
@@ -182,6 +187,9 @@ const InboxRuntime = ({ children }: { children: ReactNode }) => {
               if (event.type === 'order.created') {
                 setAwaiting((count) => count + 1);
                 void enqueue(event.orderId);
+              } else if ((event as { to?: string }).to === 'open') {
+                void enqueue(event.orderId);
+                void refreshSummary().catch(() => {});
               } else {
                 void refreshSummary().catch(() => {});
               }

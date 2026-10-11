@@ -19,6 +19,7 @@ import { Layouts, Page, useFetchClient } from '@strapi/strapi/admin';
 import { Route, Routes, useNavigate } from 'react-router-dom';
 
 import { localized } from '../../lib/format';
+import { httpStatusOf } from '../../lib/api';
 import { useLocale, useT } from '../../lib/i18n';
 import { PERMISSIONS } from '../../lib/permissions';
 import { BranchEditor } from './BranchEditor';
@@ -45,7 +46,7 @@ const BranchList = () => {
       setRows((data as { results: Row[] }).results);
       setStatus('ready');
     } catch (error) {
-      setStatus((error as { response?: { status?: number } })?.response?.status === 403 ? 'scope' : 'error');
+      setStatus(httpStatusOf(error) === 403 ? 'scope' : 'error');
     }
   }, [get]);
 

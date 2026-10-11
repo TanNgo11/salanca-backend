@@ -27,10 +27,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import { PaymentBadge, StateBadge } from '../../components/orders/StatusBadges';
 import { useOrderingInbox } from '../../inbox/OrderingInboxProvider';
-import { useErrorToast } from '../../lib/api';
+import { useErrorToast, httpStatusOf } from '../../lib/api';
 import { formatDateTime, formatMoney, formatTime, localized, minutesSince } from '../../lib/format';
 import { useLocale, useT } from '../../lib/i18n';
-import { ORDER_RBAC } from '../../lib/permissions';
+import { RBAC_DETAIL } from '../../lib/permissions';
 import type { InboxSettings, NextTransition, OrderDetail } from '../../lib/types';
 import { useOrderActions } from '../../lib/useOrderActions';
 import {
@@ -80,7 +80,7 @@ export const OrderDetailPage = () => {
   const { get } = useFetchClient();
   const { toggleNotification } = useNotification();
   const inbox = useOrderingInbox();
-  const { allowedActions: can } = useRBAC(Object.values(ORDER_RBAC).flat());
+  const { allowedActions: can } = useRBAC(RBAC_DETAIL);
 
   const [detail, setDetail] = useState<OrderDetail | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error' | 'missing'>('loading');
@@ -94,7 +94,7 @@ export const OrderDetailPage = () => {
       setDetail(data as OrderDetail);
       setStatus('ready');
     } catch (error) {
-      setStatus((error as { response?: { status?: number } })?.response?.status === 404 ? 'missing' : 'error');
+      setStatus(httpStatusOf(error) === 404 ? 'missing' : 'error');
     }
   }, [get, orderId]);
 
@@ -282,7 +282,7 @@ export const OrderDetailPage = () => {
                         <Typography>{formatMoney(line.lineTotalAmount)}</Typography>
                       </Td>
                       <Td>
-                        {can.canEditLines && !closed && line.quantity - line.canceledQuantity > 0 ? (
+                        {can.canEditLines && order.status !== 'canceled' && line.quantity - line.canceledQuantity > 0 ? (
                           <IconButton label={t('detail.cancelLine')} variant="ghost" onClick={() => setDialog({ kind: 'line', lineId: line.id })}>
                             <Trash />
                           </IconButton>
@@ -474,6 +474,13 @@ const timelineText = (
     }
     case 'note':
       return t('history.note', { text: String(payload.text ?? '') });
+    case 'order.line.canceled':
+      return [
+        t('history.order.line.canceled'),
+        typeof payload.reason === 'string' ? t('history.reason', { reason: payload.reason }) : null,
+      ]
+        .filter(Boolean)
+        .join(' · ');
     case 'payment.captured':
       return t('history.paid', { amount: formatMoney(Number(payload.amount ?? 0)) });
     default:
