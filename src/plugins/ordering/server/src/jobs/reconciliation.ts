@@ -4,6 +4,7 @@ import type { OrderingConfig } from '../config';
 import type { NormalizedPaymentEvent } from '../contracts/payment';
 import type { SepayTransactionPage } from '../providers/sepay/client';
 import { sepaySettingsFromConfig } from '../providers/sepay/provider';
+import type alertFactory from '../services/alert';
 import type { ServiceContext } from '../services/context';
 import type jobLockFactory from '../services/job-lock';
 import type paymentMatchingFactory from '../services/payment-matching';
@@ -49,6 +50,7 @@ export const runSepayReconciliation = async (
 
   const jobLock = plugin.service('job-lock') as ReturnType<typeof jobLockFactory>;
   const matching = plugin.service('payment-matching') as ReturnType<typeof paymentMatchingFactory>;
+  const alertService = plugin.service('alert') as ReturnType<typeof alertFactory>;
   const provider = registry.paymentProvider('sepay') as unknown as PageLister;
   const now = options.now ?? new Date();
   const ctx: ServiceContext = { actor: { kind: 'system', actorRef: 'job:sepay-reconciliation' }, now };
@@ -74,7 +76,18 @@ export const runSepayReconciliation = async (
               ctx,
             );
             if (saved.duplicate) duplicates += 1;
-            else ingested += 1;
+            else {
+              ingested += 1;
+              if (saved.decision.outcome === 'needs-review') {
+                await alertService.noteReconciliationMismatch(
+                  {
+                    providerCode: row.event.providerCode,
+                    providerTransactionId: row.event.providerTransactionId,
+                  },
+                  ctx,
+                );
+              }
+            }
           }
           await store.set({ key: storeKey, value: listed.lastId });
           if (listed.fetched < PER_PAGE) break;

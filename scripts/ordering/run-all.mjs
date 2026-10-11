@@ -43,6 +43,7 @@ const scripts = [
   'sepay-reconcile.mjs',
   'sepay-expiry.mjs',
   'sepay-refund.mjs',
+  'sepay-alerts.mjs',
 ];
 
 const results = [];

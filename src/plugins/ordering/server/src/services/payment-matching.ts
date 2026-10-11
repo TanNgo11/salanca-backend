@@ -12,6 +12,7 @@ import { accountScope, type SepaySettings } from '../providers/sepay/config';
 import { sepaySettingsFromConfig } from '../providers/sepay/provider';
 import orderRepository from '../repositories/order';
 import type { OrderAggregate, PaymentRow } from '../repositories/types';
+import type alertFactory from './alert';
 import type { ServiceContext } from './context';
 import { actorRefOf, nowOf } from './context';
 import type orderServiceFactory from './order';
@@ -109,6 +110,7 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
   const orders = () => strapi.db.query('plugin::ordering.order');
   const settingsOf = (): SepaySettings | null =>
     sepaySettingsFromConfig((strapi.config.get('plugin::ordering') as OrderingConfig).providers.payment);
+  const alerts = () => strapi.plugin('ordering').service('alert') as ReturnType<typeof alertFactory>;
 
   const text = (value: unknown): string | null => (typeof value === 'string' ? value : null);
 
@@ -274,6 +276,17 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
       ctx: ServiceContext,
     ): Promise<{ duplicate: boolean; decision: MatchDecision }> {
       const event = input.event;
+      // Alert after the insert commits. Opening one inside the ingest transaction would
+      // share that transaction, and a concurrent alert insert (23505) would roll the payment back.
+      const flagUnmatched = async (result: {
+        duplicate: boolean;
+        decision: MatchDecision;
+      }): Promise<{ duplicate: boolean; decision: MatchDecision }> => {
+        if (!result.duplicate && result.decision.outcome === 'needs-review') {
+          await alerts().noteUnmatched(event.providerCode, ctx);
+        }
+        return result;
+      };
       type StoredEvent = { id: number; kind: string | null; amount: string | number; rawPayload: unknown };
       const prior = (await events().findOne({
         where: { providerCode: event.providerCode, providerTransactionId: event.providerTransactionId },
@@ -357,33 +370,37 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
           }),
           'remember',
         );
-        if (applied) return applied;
+        if (applied) return flagUnmatched(applied);
       }
 
-      if (event.transferType === 'out') return remember({ outcome: 'ignored' });
+      if (event.transferType === 'out') return flagUnmatched(await remember({ outcome: 'ignored' }));
 
       const settings = settingsOf();
       const content = text(event.metadata?.content);
       const orderCode = settings ? extractOrderCode(settings.memoTemplate, content) : null;
       if (!orderCode) {
-        return remember({ outcome: 'needs-review', reviewReason: 'no-code', orderCode: null, dueAmount: null });
+        return flagUnmatched(
+          await remember({ outcome: 'needs-review', reviewReason: 'no-code', orderCode: null, dueAmount: null }),
+        );
       }
 
       const orderRow = (await orders().findOne({ where: { code: orderCode }, select: ['id'] })) as {
         id: number;
       } | null;
       if (!orderRow) {
-        return remember({
-          outcome: 'needs-review',
-          reviewReason: 'order-not-found',
-          orderCode,
-          dueAmount: null,
-        });
+        return flagUnmatched(
+          await remember({
+            outcome: 'needs-review',
+            reviewReason: 'order-not-found',
+            orderCode,
+            dueAmount: null,
+          }),
+        );
       }
 
       const { order } = services();
       try {
-        return await strapi.db.transaction(async ({ trx }) => {
+        const saved = await strapi.db.transaction(async ({ trx }) => {
           if (event.transferType !== 'out' && bankReference) {
             await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [
               `sepay-ref:${event.providerCode}:${bankReference}`,
@@ -463,6 +480,7 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
           await transitionIfPayable(aggregate, ctx);
           return { duplicate: false, decision };
         });
+        return flagUnmatched(saved);
       } catch (error) {
         if (!isUniqueViolation(error)) throw error;
         return { duplicate: true, decision: { outcome: 'ignored' } };

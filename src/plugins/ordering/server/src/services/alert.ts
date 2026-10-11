@@ -93,7 +93,80 @@ const alert = ({ strapi }: { strapi: Core.Strapi }) => {
       return count > 0;
     },
   };
-  return service;
+
+  const store = () => strapi.store({ type: 'plugin', name: 'ordering' });
+  const failureCount = (value: unknown): number => {
+    const parsed = typeof value === 'number' ? value : Number(value);
+    return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : 0;
+  };
+
+  /** Five bad signatures in a row open `webhook-failing:<provider>`. A good webhook resets it. */
+  const noteWebhookFailure = async (
+    providerCode: string,
+    ctx: ServiceContext,
+  ): Promise<{ failures: number; opened: boolean }> => {
+    const storeKey = `webhook-failures:${providerCode}`;
+    const failures = failureCount(await store().get({ key: storeKey })) + 1;
+    await store().set({ key: storeKey, value: String(failures) });
+    if (failures < 5) return { failures, opened: false };
+    const severity = failures >= 20 ? 'critical' : 'warning';
+    const result = await service.open(
+      {
+        alertCode: 'webhook-failing',
+        dedupeKey: `webhook-failing:${providerCode}`,
+        severity,
+        aggregateRef: `provider:${providerCode}`,
+      },
+      ctx,
+    );
+    if (severity === 'critical') {
+      await alerts().update({ where: { id: result.id }, data: { severity: 'critical' } });
+    }
+    return { failures, opened: result.opened };
+  };
+
+  const noteWebhookSuccess = async (providerCode: string, ctx: ServiceContext): Promise<void> => {
+    await store().set({ key: `webhook-failures:${providerCode}`, value: '0' });
+    await service.resolve(`webhook-failing:${providerCode}`, ctx);
+  };
+
+  /** One open alert per provider while unmatched transfers keep arriving. */
+  const noteUnmatched = async (
+    providerCode: string,
+    ctx: ServiceContext,
+  ): Promise<{ id: number; opened: boolean }> =>
+    service.open(
+      {
+        alertCode: 'payment-unmatched',
+        dedupeKey: `payment-unmatched:${providerCode}`,
+        severity: 'warning',
+        aggregateRef: `provider:${providerCode}`,
+      },
+      ctx,
+    );
+
+  /** One open alert per provider transaction the reconciliation could not apply. */
+  const noteReconciliationMismatch = async (
+    input: { providerCode: string; providerTransactionId: string },
+    ctx: ServiceContext,
+  ): Promise<{ id: number; opened: boolean }> =>
+    service.open(
+      {
+        alertCode: 'reconciliation-mismatch',
+        dedupeKey: `reconciliation-mismatch:${input.providerCode}:${input.providerTransactionId}`,
+        severity: 'warning',
+        aggregateRef: `provider:${input.providerCode}`,
+      },
+      ctx,
+    );
+
+  return {
+    ...service,
+    noteWebhookFailure,
+    noteWebhookSuccess,
+    noteUnmatched,
+    noteReconciliationMismatch,
+  };
 };
 
 export default alert;

@@ -4,6 +4,7 @@ import type { WebhookProcessingResult } from '../contracts/payment';
 import { OrderingError } from '../domain/errors';
 import { readUnparsedBody } from '../domain/raw-body';
 import { webhookResultForError } from '../providers/sepay/provider';
+import type alertFactory from './alert';
 import type { ServiceContext } from './context';
 import { nowOf } from './context';
 import type paymentMatchingFactory from './payment-matching';
@@ -26,6 +27,7 @@ const asObject = (value: unknown): Record<string, unknown> =>
 const webhook = ({ strapi }: { strapi: Core.Strapi }) => {
   const registry = () => strapi.plugin('ordering').service('registry') as OrderingRegistry;
   const matching = () => strapi.plugin('ordering').service('payment-matching') as MatchingService;
+  const alerts = () => strapi.plugin('ordering').service('alert') as ReturnType<typeof alertFactory>;
 
   return {
     async receive(
@@ -43,6 +45,7 @@ const webhook = ({ strapi }: { strapi: Core.Strapi }) => {
 
       if (provider.capabilities.includes('signed-webhook') && rawBody === null) {
         strapi.log.warn(`[ordering] webhook ${input.providerCode} rejected: raw body unavailable`);
+        await alerts().noteWebhookFailure(input.providerCode, ctx);
         throw new OrderingError(
           'RAW_BODY_UNAVAILABLE',
           'the original request body is not available; signature checks are refused',
@@ -60,7 +63,11 @@ const webhook = ({ strapi }: { strapi: Core.Strapi }) => {
         }
       } catch (error) {
         const mapped = webhookResultForError(error);
-        if (!mapped) throw error;
+        if (!mapped) {
+          await alerts().noteWebhookFailure(input.providerCode, ctx);
+          throw error;
+        }
+        await alerts().noteWebhookFailure(input.providerCode, ctx);
         if (mapped === 'invalid-signature') {
           const reason =
             error instanceof OrderingError && typeof error.details?.reason === 'string'
@@ -71,6 +78,7 @@ const webhook = ({ strapi }: { strapi: Core.Strapi }) => {
         return provider.webhookResponse({ raw, result: mapped });
       }
 
+      await alerts().noteWebhookSuccess(input.providerCode, ctx);
       if (provider.webhookAckMode === 'immediate') {
         // SePay retries anything other than success. The event is already stored.
         return provider.webhookResponse({ raw, result: 'accepted' });
