@@ -18,6 +18,7 @@ import type { ServiceContext } from './context';
 import { nowOf } from './context';
 import type lineCancelFactory from './line-cancel';
 import type paymentLinkFactory from './payment-link';
+import type paymentMatchingFactory from './payment-matching';
 import type orderServiceFactory from './order';
 import type orderingSettingsFactory from './ordering-settings';
 import type paymentFactory from './payment';
@@ -89,6 +90,7 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
     refund: () => plugin().service('refund') as ReturnType<typeof refundFactory>,
     lineCancel: () => plugin().service('line-cancel') as ReturnType<typeof lineCancelFactory>,
     paymentLink: () => plugin().service('payment-link') as ReturnType<typeof paymentLinkFactory>,
+    matching: () => plugin().service('payment-matching') as ReturnType<typeof paymentMatchingFactory>,
     timeline: () => plugin().service('timeline') as ReturnType<typeof timelineFactory>,
     scope: () => plugin().service('scope') as ReturnType<typeof scopeFactory>,
     branch: () => plugin().service('branch') as ReturnType<typeof branchFactory>,
@@ -543,6 +545,8 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
           },
           ctx,
         );
+        // Accept-then-pay paid before acceptance: nothing is owed, so do not wait for a transfer.
+        if (result.to === 'awaiting-payment') await s.matching().advanceIfPaid(orderId, ctx);
         return { from: result.from, to: result.to, detail: await service.detail(orderId, ctx) };
       });
     },

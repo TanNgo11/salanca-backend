@@ -267,6 +267,28 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
 
   return {
     /**
+     * Moves `awaiting-payment` groups forward when nothing is due. A transfer can be captured
+     * before the group reaches that state (accept-then-pay paid before acceptance); without this
+     * the group would wait there with nothing owed and the payment-expiry job would expire it.
+     * Returns whether a group moved. Runs inside the caller's transaction when there is one.
+     */
+    async advanceIfPaid(orderId: number, ctx: ServiceContext): Promise<boolean> {
+      const { order } = services();
+      return strapi.db.transaction(async ({ trx }) => {
+        const first = await order.getOrder(orderId, ctx);
+        if (!first.groups.some((group) => group.status === 'awaiting-payment')) return false;
+        await lockGroups(trx, first);
+        const aggregate = await order.getOrder(orderId, ctx);
+        const captured = aggregate.payments.reduce((sum, payment) => sum + payment.capturedAmount, 0);
+        // Same tolerance as an auto-match: a transfer short by at most this much settles.
+        if (aggregate.order.totalAmount - captured > (settingsOf()?.amountTolerance ?? 0)) return false;
+        if (!aggregate.groups.some((group) => group.status === 'awaiting-payment')) return false;
+        await transitionIfPayable(aggregate, ctx);
+        return true;
+      });
+    },
+
+    /**
      * Stores one inbound or outbound transfer. `duplicate` means this provider id was already
      * stored, or the same bank reference and amount already confirmed a manual row or another
      * SePay id (webhook integer vs reconciliation UUID), and the ledger was not touched again.

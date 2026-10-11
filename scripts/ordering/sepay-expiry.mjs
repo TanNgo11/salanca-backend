@@ -1,6 +1,7 @@
 // O4 step 9: a prepay order past paymentTimeoutMinutes expires and releases its hold.
 // Money that arrives after that is order-closed and is not captured. Accept-then-pay
-// starts the clock when the group enters awaiting-payment, not at placement.
+// starts the clock when the group enters awaiting-payment, not at placement. A group paid
+// before it reached awaiting-payment moves on instead of expiring.
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 
@@ -149,5 +150,55 @@ withApp(async (app) => {
   assert.equal(later.expired, 1);
   assert.equal((await load(acceptedId)).groups[0].status, 'expired');
 
-  console.log('[ordering-test] sepay expiry: prepay, late money, accept-then-pay');
+  // Paid before acceptance: the transfer is captured while the group waits for the branch.
+  // Accepting then has nothing to wait for, and the expiry job never expires a paid group.
+  const postTransfer = async (id, code, amount) => {
+    const transfer = JSON.stringify({
+      id,
+      gateway: 'MBBank',
+      transactionDate: '2026-10-11 12:30:00',
+      accountNumber: '0123456789',
+      content: `SLC${code}`,
+      transferType: 'in',
+      transferAmount: amount,
+      referenceCode: `FTEXP${id}`,
+    });
+    const at = String(Math.floor(Date.now() / 1000));
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-SePay-Timestamp': at,
+        'X-SePay-Signature': `sha256=${sign(secret, at, transfer)}`,
+      },
+      body: transfer,
+    });
+    assert.equal(response.status, 200);
+  };
+  const adminOrders = app.plugin('ordering').service('admin-orders');
+
+  const early = await place();
+  const earlyId = early.order.order.id;
+  await postTransfer(97002, early.order.order.code, early.order.order.totalAmount);
+  const earlyPaid = await load(earlyId);
+  assert.equal(earlyPaid.groups[0].status, 'awaiting-acceptance');
+  assert.equal(capturedOf(earlyPaid), early.order.order.totalAmount);
+  await adminOrders.transition(earlyId, { to: 'awaiting-payment' }, systemCtx);
+  assert.equal((await load(earlyId)).groups[0].status, 'preparing', 'accepting a paid order moves on');
+
+  const earlyJob = await place();
+  const earlyJobId = earlyJob.order.order.id;
+  await postTransfer(97003, earlyJob.order.order.code, earlyJob.order.order.totalAmount);
+  await transition.transitionGroup(
+    { orderId: earlyJobId, groupId: earlyJob.order.groups[0].id, to: 'awaiting-payment' },
+    systemCtx,
+  );
+  const paidSweep = await runPaymentExpiry(app, {
+    owner: 'expiry-paid',
+    now: new Date(Date.now() + 16 * MINUTE),
+  });
+  assert.equal(paidSweep.expired, 0);
+  assert.equal((await load(earlyJobId)).groups[0].status, 'preparing', 'a paid group is never expired');
+
+  console.log('[ordering-test] sepay expiry: prepay, late money, accept-then-pay, paid before acceptance');
 });
