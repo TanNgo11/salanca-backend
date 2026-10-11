@@ -127,6 +127,8 @@ const transition = ({ strapi }: { strapi: Core.Strapi }) => {
               actorRef: actorRefOf(ctx),
               isPublic: isPublicState(definition, input.to),
               notifyCustomer: input.notifyCustomer ?? isPublicState(definition, input.to),
+              delayed: Boolean(input.payload?.delayMinutes),
+              ...(input.reason ? { reasonCode: input.reason } : {}),
             },
             uniqueKey: `fgt:${input.groupId}:${from}>${input.to}:${randomUUID()}`,
           },

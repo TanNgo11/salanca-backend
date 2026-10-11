@@ -20,6 +20,7 @@ import fulfillmentGroup from './fulfillment-group';
 import fulfillmentLine from './fulfillment-line';
 import hold from './hold';
 import idempotencyKey from './idempotency-key';
+import notificationDelivery from './notification-delivery';
 import opsAlert from './ops-alert';
 import order from './order';
 import orderAdjustment from './order-adjustment';
@@ -51,6 +52,7 @@ export default {
   'fulfillment-line': fulfillmentLine,
   hold,
   'idempotency-key': idempotencyKey,
+  'notification-delivery': notificationDelivery,
   'ops-alert': opsAlert,
   order,
   'order-adjustment': orderAdjustment,

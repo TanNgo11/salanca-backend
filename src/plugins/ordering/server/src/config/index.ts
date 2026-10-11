@@ -59,6 +59,12 @@ export const configSchema = z.object({
   }),
   /** AES-256-GCM key (32 bytes, base64) for secrets read back later (contracts §21.10). */
   encryptionKey: z.string().optional(),
+  notifications: z.object({
+    /** Sends through the app's Strapi email plugin; off = deliveries are logged as skipped. */
+    email: z.object({ enabled: z.boolean() }),
+    /** Customer order link; `{token}` is replaced (put it after `#`, contracts §11). */
+    orderLinkTemplate: z.string(),
+  }),
   storefront: z.object({
     /** Registered CaptchaProvider code; empty string disables captcha (dev/test only). */
     captchaProvider: z.string(),
@@ -116,6 +122,7 @@ export default {
       idempotencyCleanupCron: '0 */15 * * * *',
     },
     clientIp: { secretHeader: 'x-ordering-client-secret', ipHeader: 'x-ordering-client-ip' },
+    notifications: { email: { enabled: false }, orderLinkTemplate: '' },
     storefront: {
       captchaProvider: '',
       rateLimits: {

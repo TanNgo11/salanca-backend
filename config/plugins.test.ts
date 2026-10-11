@@ -238,6 +238,10 @@ describe('ordering plugin configuration', () => {
       ipHeader: 'x-salanca-visitor-ip',
     },
     encryptionKey: '',
+    notifications: {
+      email: { enabled: false },
+      orderLinkTemplate: 'http://localhost:3000/don-hang#t={token}',
+    },
   };
 
   it('declares the local plugin but keeps it disabled by default', () => {
@@ -284,6 +288,10 @@ describe('ordering plugin configuration', () => {
         catalog: { adapter: 'test-catalog' },
         jobs: { enabled: false },
         storefront: { captchaProvider: 'test-captcha' },
+        notifications: {
+          email: { enabled: true },
+          orderLinkTemplate: 'http://localhost:3000/don-hang#t={token}',
+        },
       },
     });
   });

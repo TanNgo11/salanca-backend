@@ -1,0 +1,203 @@
+import type { Core } from '@strapi/strapi';
+
+import type { OrderingConfig } from '../config';
+import type { OutboxEvent } from '../contracts';
+import { sha256Hex } from '../domain/hashing';
+import {
+  customerTemplateFor,
+  formatLocalTime,
+  renderTemplate,
+  type TemplateCode,
+  type TemplateData,
+} from '../domain/notifications/templates';
+import orderRepository from '../repositories/order';
+import type { OrderAggregate } from '../repositories/types';
+import type branchFactory from './branch';
+import type idempotencyFactory from './idempotency';
+import type orderingSettingsFactory from './ordering-settings';
+import type { OrderingRegistry } from './registry';
+
+const isUniqueViolation = (error: unknown): boolean =>
+  (error as { code?: string }).code === '23505' ||
+  (error as { cause?: { code?: string } }).cause?.code === '23505';
+
+/**
+ * Email notifications driven by outbox events (contracts §12, §14; plan step 11):
+ * staff get "đơn mới" at the branch email; customers who left an email get each public step in the
+ * language they ordered in. Each (event, template, recipient) has one delivery-log row keyed by
+ * the recipient's hash, so a dispatcher re-run (or a retried event) never sends twice. Addresses
+ * never reach logs or the delivery table.
+ */
+const notification = ({ strapi }: { strapi: Core.Strapi }) => {
+  const plugin = () => strapi.plugin('ordering');
+  const deliveries = () => strapi.db.query('plugin::ordering.notification-delivery');
+  const config = () => strapi.config.get('plugin::ordering') as OrderingConfig;
+  const registry = () => plugin().service('registry') as OrderingRegistry;
+  const branches = () => plugin().service('branch') as ReturnType<typeof branchFactory>;
+  const idempotency = () => plugin().service('idempotency') as ReturnType<typeof idempotencyFactory>;
+  const settings = () => plugin().service('ordering-settings') as ReturnType<typeof orderingSettingsFactory>;
+  const repo = orderRepository({ strapi });
+
+  const deliver = async (input: {
+    event: OutboxEvent;
+    template: TemplateCode;
+    email: string;
+    role: 'staff' | 'customer';
+    orderId: number;
+    locale: string;
+    data: TemplateData;
+  }) => {
+    const recipientHash = sha256Hex(input.email.trim().toLowerCase());
+    const key = { eventId: String(input.event.id), template: input.template, recipientHash };
+    let row = (await deliveries().findOne({ where: key })) as {
+      id: number;
+      status: string;
+      attempts: number;
+    } | null;
+    if (row && (row.status === 'sent' || row.status === 'skipped')) return;
+    if (!row) {
+      try {
+        row = (await deliveries().create({
+          data: {
+            ...key,
+            channel: 'email',
+            recipientRole: input.role,
+            orderId: input.orderId,
+            messageLocale: input.locale,
+            status: 'pending',
+            attempts: 0,
+          },
+        })) as { id: number; status: string; attempts: number };
+      } catch (error) {
+        if (!isUniqueViolation(error)) throw error;
+        row = (await deliveries().findOne({ where: key })) as typeof row;
+        if (!row || row.status === 'sent' || row.status === 'skipped') return;
+      }
+    }
+    if (!config().notifications.email.enabled) {
+      await deliveries().update({ where: { id: row.id }, data: { status: 'skipped' } });
+      return;
+    }
+    const rendered = renderTemplate(input.template, input.locale, input.data);
+    try {
+      await registry()
+        .notificationProvider('email')
+        .send({ recipient: { email: input.email }, template: input.template, data: rendered });
+      await deliveries().update({
+        where: { id: row.id },
+        data: { status: 'sent', sentAt: new Date(), attempts: row.attempts + 1, lastError: null },
+      });
+    } catch (error) {
+      await deliveries().update({
+        where: { id: row.id },
+        data: {
+          status: 'failed',
+          attempts: row.attempts + 1,
+          lastError: String((error as Error)?.message ?? error).slice(0, 500),
+        },
+      });
+      throw error; // the outbox retries with backoff
+    }
+  };
+
+  const baseData = async (aggregate: OrderAggregate) => {
+    const branch = await branches().findByCode(aggregate.order.locationRef);
+    const timezone = branch?.timezone ?? 'Asia/Ho_Chi_Minh';
+    const locale = aggregate.order.placedLocale === 'en' ? 'en' : 'vi';
+    const name = (branch?.name ?? {}) as Record<string, string>;
+    const receive = aggregate.order.receiveMethod as {
+      timing?: { mode?: string; slot?: { startsAt?: string } };
+    };
+    const group = aggregate.groups[0];
+    const token = await idempotency().revealSecret('order.create', `order:${aggregate.order.id}`);
+    const template = config().notifications.orderLinkTemplate;
+    const data: TemplateData = {
+      code: aggregate.order.code,
+      branchName: name[locale] ?? name.vi ?? aggregate.order.locationRef,
+      total: aggregate.order.totalAmount,
+      items: aggregate.lines.map((line) => ({
+        title: line.titleSnapshot,
+        quantity: line.quantity - line.canceledQuantity,
+      })),
+      pickupLabel: receive.timing?.slot?.startsAt
+        ? formatLocalTime(receive.timing.slot.startsAt, timezone)
+        : receive.timing?.mode === 'asap'
+          ? 'ASAP'
+          : undefined,
+      readyLabel: group?.estimatedReadyAt ? formatLocalTime(group.estimatedReadyAt, timezone) : undefined,
+      link: token && template.includes('{token}') ? template.replace('{token}', token) : undefined,
+    };
+    return { branch, locale, data };
+  };
+
+  const customerEmail = (aggregate: OrderAggregate): string | undefined => {
+    const email = (aggregate.order.contactSnapshot as { email?: string }).email;
+    return typeof email === 'string' && email.includes('@') ? email : undefined;
+  };
+
+  const service = {
+    /** `order.created` (and a confirmed staff draft): staff alert + customer receipt. */
+    async onOrderPlaced(event: OutboxEvent): Promise<void> {
+      const orderId = Number(event.payload.orderId);
+      const aggregate = await repo.loadOrderAggregate(orderId);
+      if (!aggregate || aggregate.order.status === 'draft') return;
+      const { branch, locale, data } = await baseData(aggregate);
+      if (branch?.email) {
+        await deliver({
+          event,
+          template: 'staff.order-created',
+          email: branch.email,
+          role: 'staff',
+          orderId,
+          locale: 'vi',
+          data: {
+            ...data,
+            customerName: (aggregate.order.contactSnapshot as { name?: string }).name,
+            note: aggregate.order.customerNote ?? undefined,
+          },
+        });
+      }
+      const email = customerEmail(aggregate);
+      if (email && aggregate.order.origin.kind === 'storefront') {
+        await deliver({ event, template: 'customer.order-placed', email, role: 'customer', orderId, locale, data });
+      }
+    },
+
+    /** `order.transitioned` from draft = staff confirmed a phone order. */
+    async onOrderTransitioned(event: OutboxEvent): Promise<void> {
+      if (event.payload.from !== 'draft') return;
+      await service.onOrderPlaced(event);
+    },
+
+    /** `fulfillment-group.transitioned`: customer email for public steps when staff chose to notify. */
+    async onGroupTransitioned(event: OutboxEvent): Promise<void> {
+      if (event.payload.notifyCustomer === false || event.payload.isPublic === false) return;
+      const template = customerTemplateFor(String(event.payload.to), event.payload.delayed === true);
+      if (!template) return;
+      const orderId = Number(event.payload.orderId);
+      const aggregate = await repo.loadOrderAggregate(orderId);
+      if (!aggregate) return;
+      const email = customerEmail(aggregate);
+      if (!email) return;
+      const { locale, data } = await baseData(aggregate);
+      let reason: string | undefined;
+      const reasonCode = event.payload.reasonCode;
+      if (typeof reasonCode === 'string' && template === 'customer.order-rejected') {
+        const found = (await settings().get()).rejectReasons.find((item) => item.code === reasonCode);
+        reason = found ? (found.label[locale] ?? found.label.vi) : undefined;
+      }
+      await deliver({
+        event,
+        template,
+        email,
+        role: 'customer',
+        orderId,
+        locale,
+        data: { ...data, ...(reason ? { reason } : {}) },
+      });
+    },
+  };
+  return service;
+};
+
+export default notification;

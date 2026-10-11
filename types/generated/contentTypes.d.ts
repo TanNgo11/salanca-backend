@@ -3842,6 +3842,62 @@ export interface PluginOrderingIdempotencyKey
   };
 }
 
+export interface PluginOrderingNotificationDelivery
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_notification_delivery';
+  info: {
+    displayName: 'Nh\u1EADt k\u00FD g\u1EEDi th\u00F4ng b\u00E1o';
+    pluralName: 'notification-deliverys';
+    singularName: 'notification-delivery';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    attempts: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    channel: Schema.Attribute.String & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    eventId: Schema.Attribute.String & Schema.Attribute.Required;
+    lastError: Schema.Attribute.Text;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.notification-delivery'
+    > &
+      Schema.Attribute.Private;
+    messageLocale: Schema.Attribute.String;
+    orderId: Schema.Attribute.Integer;
+    publishedAt: Schema.Attribute.DateTime;
+    recipientHash: Schema.Attribute.String & Schema.Attribute.Required;
+    recipientRole: Schema.Attribute.String;
+    sentAt: Schema.Attribute.DateTime;
+    status: Schema.Attribute.Enumeration<
+      ['pending', 'sent', 'failed', 'skipped']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'pending'>;
+    template: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface PluginOrderingOpsAlert extends Struct.CollectionTypeSchema {
   collectionName: 'plugins_ordering_ops_alert';
   info: {
@@ -4988,6 +5044,7 @@ declare module '@strapi/strapi' {
       'plugin::ordering.fulfillment-line': PluginOrderingFulfillmentLine;
       'plugin::ordering.hold': PluginOrderingHold;
       'plugin::ordering.idempotency-key': PluginOrderingIdempotencyKey;
+      'plugin::ordering.notification-delivery': PluginOrderingNotificationDelivery;
       'plugin::ordering.ops-alert': PluginOrderingOpsAlert;
       'plugin::ordering.order': PluginOrderingOrder;
       'plugin::ordering.order-adjustment': PluginOrderingOrderAdjustment;

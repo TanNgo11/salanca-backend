@@ -117,6 +117,14 @@ export const resolveOrderingPluginConfig = (
         ipHeader: 'x-salanca-visitor-ip',
       },
       encryptionKey: env('ORDERING_ENCRYPTION_KEY', ''),
+      // Order emails use the same SMTP as form notifications; the link carries the token after '#'.
+      notifications: {
+        email: { enabled: isTransactionalEmailConfigured(env) },
+        orderLinkTemplate: env(
+          'ORDERING_ORDER_LINK_TEMPLATE',
+          `${(env('FRONTEND_URLS', 'http://localhost:3000').split(',')[0] ?? '').trim()}/don-hang#t={token}`,
+        ),
+      },
       // Turnstile guards order creation and lookup when the app has a secret (same key as forms).
       ...(env('TURNSTILE_SECRET_KEY', '')
         ? {
@@ -132,6 +140,11 @@ export const resolveOrderingPluginConfig = (
             catalog: { adapter: 'test-catalog' },
             jobs: { enabled: false },
             storefront: { captchaProvider: 'test-captcha' },
+            // Builtins swap the email provider for an in-memory capture; nothing is sent.
+            notifications: {
+              email: { enabled: true },
+              orderLinkTemplate: 'http://localhost:3000/don-hang#t={token}',
+            },
           }
         : {}),
     },

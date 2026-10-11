@@ -100,6 +100,25 @@ const idempotency = ({ strapi }: { strapi: Core.Strapi }) => {
   return {
     begin,
     complete,
+    /**
+     * The sealed secret of a completed row by its response ref (e.g. the order token for
+     * `order:<id>` while the key is still within its TTL), or null. Used to put the order link in
+     * notification emails without ever storing the token in plaintext.
+     */
+    async revealSecret(scope: string, responseRef: string): Promise<string | null> {
+      const row = await query().findOne({
+        where: { scope, responseRef, status: 'completed' },
+        select: ['resultCipher'],
+      });
+      const sealed = (row as { resultCipher?: string | null } | null)?.resultCipher;
+      if (!sealed) return null;
+      try {
+        return decryptSecret(sealed, encryptionKey());
+      } catch {
+        return null;
+      }
+    },
+
     /** Throws CONFIG_INVALID early when a caller that seals secrets has no key configured. */
     assertSealingConfigured(): void {
       encryptionKey();

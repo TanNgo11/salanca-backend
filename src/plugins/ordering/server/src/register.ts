@@ -19,6 +19,10 @@ import { testFoodProductType } from './domain/product-types/test-food';
 import { testServiceProductType } from './domain/product-types/test-service';
 import { builtinWorkflows } from './domain/workflow/definitions';
 import { createCashPaymentProvider } from './providers/cash';
+import {
+  createCaptureNotificationProvider,
+  createEmailNotificationProvider,
+} from './providers/email-notification';
 import { createOrderingCatalogAdapter } from './providers/ordering-catalog/adapter';
 import {
   createTestCaptchaProvider,
@@ -80,6 +84,24 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
   registry.registerCatalogAdapter(createOrderingCatalogAdapter({ strapi }));
   registry.registerProductType(foodProductType);
   registry.registerPaymentProvider(createCashPaymentProvider());
+  // Tests capture emails in memory; everything else goes through the app's email plugin.
+  registry.registerNotificationProvider(
+    'email',
+    config.testing.builtins ? createCaptureNotificationProvider() : createEmailNotificationProvider(strapi),
+  );
+  type NotificationService = {
+    onOrderPlaced: (event: never) => Promise<void>;
+    onOrderTransitioned: (event: never) => Promise<void>;
+    onGroupTransitioned: (event: never) => Promise<void>;
+  };
+  const notifications = () => strapi.plugin('ordering').service('notification') as NotificationService;
+  registry.registerOutboxConsumer('order.created', (event) => notifications().onOrderPlaced(event as never));
+  registry.registerOutboxConsumer('order.transitioned', (event) =>
+    notifications().onOrderTransitioned(event as never),
+  );
+  registry.registerOutboxConsumer('fulfillment-group.transitioned', (event) =>
+    notifications().onGroupTransitioned(event as never),
+  );
   registry.registerCaptchaProvider(
     createTurnstileCaptchaProvider({
       secretKey: () =>
