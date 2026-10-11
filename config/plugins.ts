@@ -117,8 +117,22 @@ export const resolveOrderingPluginConfig = (
         ipHeader: 'x-salanca-visitor-ip',
       },
       encryptionKey: env('ORDERING_ENCRYPTION_KEY', ''),
+      // Turnstile guards order creation and lookup when the app has a secret (same key as forms).
+      ...(env('TURNSTILE_SECRET_KEY', '')
+        ? {
+            providers: {
+              captcha: { turnstile: { enabled: true, secretKey: env('TURNSTILE_SECRET_KEY') } },
+            },
+            storefront: { captchaProvider: 'turnstile' },
+          }
+        : {}),
       ...(env.bool('ORDERING_TEST_BUILTINS', false)
-        ? { testing: { builtins: true }, catalog: { adapter: 'test-catalog' }, jobs: { enabled: false } }
+        ? {
+            testing: { builtins: true },
+            catalog: { adapter: 'test-catalog' },
+            jobs: { enabled: false },
+            storefront: { captchaProvider: 'test-captcha' },
+          }
         : {}),
     },
   };

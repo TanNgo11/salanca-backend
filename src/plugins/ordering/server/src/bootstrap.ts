@@ -19,6 +19,14 @@ const bootstrap = async ({ strapi }: { strapi: Core.Strapi }) => {
   // The validator runs before any register(), so code references can only be checked here.
   assertEnabledCodesRegistered(config, registry);
 
+  const captcha = config.storefront.captchaProvider;
+  if (captcha && !registry.hasCaptchaProvider(captcha)) {
+    throw new Error(`[ordering] storefront.captchaProvider "${captcha}" is not registered`);
+  }
+  if (!captcha && process.env.NODE_ENV === 'production') {
+    strapi.log.warn('[ordering] storefront captcha is disabled; order creation and lookup are bot-exposed');
+  }
+
   // contracts §21.10: the order token is kept encrypted for idempotent replays. Production must
   // boot with a valid key; elsewhere a missing key only warns and order creation refuses.
   const key = parseEncryptionKey(config.encryptionKey);

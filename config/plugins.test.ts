@@ -230,11 +230,21 @@ describe('email plugin configuration', () => {
 });
 
 describe('ordering plugin configuration', () => {
+  const baseConfig = {
+    orderCode: { prefix: 'SLC' },
+    clientIp: {
+      sharedSecret: '',
+      secretHeader: 'x-salanca-intake-secret',
+      ipHeader: 'x-salanca-visitor-ip',
+    },
+    encryptionKey: '',
+  };
+
   it('declares the local plugin but keeps it disabled by default', () => {
     expect(config(createParams(s3Environment)).ordering).toEqual({
       enabled: false,
       resolve: orderingPluginPath,
-      config: { orderCode: { prefix: 'SLC' } },
+      config: baseConfig,
     });
   });
 
@@ -243,7 +253,23 @@ describe('ordering plugin configuration', () => {
     expect(resolveOrderingPluginConfig(env, () => true)).toEqual({
       enabled: true,
       resolve: orderingPluginPath,
-      config: { orderCode: { prefix: 'SLC' } },
+      config: baseConfig,
+    });
+  });
+
+  it('maps the form-intake secret, encryption key and Turnstile secret', () => {
+    const env = createEnv({
+      ORDERING_ENABLED: 'true',
+      FORM_INTAKE_SHARED_SECRET: 'web-secret',
+      ORDERING_ENCRYPTION_KEY: 'key',
+      TURNSTILE_SECRET_KEY: 'turnstile-secret',
+    });
+    expect(resolveOrderingPluginConfig(env, () => true).config).toEqual({
+      ...baseConfig,
+      clientIp: { ...baseConfig.clientIp, sharedSecret: 'web-secret' },
+      encryptionKey: 'key',
+      providers: { captcha: { turnstile: { enabled: true, secretKey: 'turnstile-secret' } } },
+      storefront: { captchaProvider: 'turnstile' },
     });
   });
 
@@ -253,10 +279,11 @@ describe('ordering plugin configuration', () => {
       enabled: true,
       resolve: orderingPluginPath,
       config: {
-        orderCode: { prefix: 'SLC' },
+        ...baseConfig,
         testing: { builtins: true },
         catalog: { adapter: 'test-catalog' },
         jobs: { enabled: false },
+        storefront: { captchaProvider: 'test-captcha' },
       },
     });
   });

@@ -20,6 +20,10 @@ import { testServiceProductType } from './domain/product-types/test-service';
 import { builtinWorkflows } from './domain/workflow/definitions';
 import { createCashPaymentProvider } from './providers/cash';
 import { createOrderingCatalogAdapter } from './providers/ordering-catalog/adapter';
+import {
+  createTestCaptchaProvider,
+  createTurnstileCaptchaProvider,
+} from './providers/turnstile-captcha';
 import { createTestCatalogAdapter } from './providers/test-catalog';
 import { createTestPaymentProvider } from './providers/test-payment';
 import type catalogSlugFactory from './services/catalog-slug';
@@ -76,6 +80,12 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
   registry.registerCatalogAdapter(createOrderingCatalogAdapter({ strapi }));
   registry.registerProductType(foodProductType);
   registry.registerPaymentProvider(createCashPaymentProvider());
+  registry.registerCaptchaProvider(
+    createTurnstileCaptchaProvider({
+      secretKey: () =>
+        (config.providers.captcha.turnstile as { secretKey?: string } | undefined)?.secretKey,
+    }),
+  );
   for (const workflow of builtinWorkflows) {
     registry.registerWorkflow(workflow);
   }
@@ -84,6 +94,7 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
     registry.registerProductType(testFoodProductType);
     registry.registerProductType(testServiceProductType);
     registry.registerPaymentProvider(createTestPaymentProvider());
+    registry.registerCaptchaProvider(createTestCaptchaProvider());
     // test.ping appends to the delivery log (idempotent by event id — ON CONFLICT DO NOTHING);
     // test.fail always throws for the backoff path. Both exist only under testing.builtins.
     let deliveryTable: Promise<unknown> | null = null;
