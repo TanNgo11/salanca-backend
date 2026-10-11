@@ -1,6 +1,6 @@
 import { Cog, ShoppingCart } from '@strapi/icons';
 
-import { o3Translations } from './lib/i18n';
+import { o3Translations, o4Translations } from './lib/i18n';
 import { PERMISSIONS, RBAC_ANY_ORDERING } from './lib/permissions';
 
 import { PLUGIN_ID } from './pluginId';
@@ -55,7 +55,7 @@ export default {
   },
   async registerTrads({ locales }: { locales: string[] }) {
     return locales.map((locale) => ({
-      data: { ...(translationData[locale] ?? {}), ...o3Translations(locale) },
+      data: { ...(translationData[locale] ?? {}), ...o3Translations(locale), ...o4Translations(locale) },
       locale,
     }));
   },

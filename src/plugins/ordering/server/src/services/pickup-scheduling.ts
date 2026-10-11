@@ -143,7 +143,7 @@ const pickupScheduling = ({ strapi }: { strapi: Core.Strapi }) => {
      */
     async reserveInTransaction(
       trx: TransactionClient,
-      input: { orderId: number; groupId?: number; locationRef: string; slot: Slot; capacity: number },
+      input: { orderId: number; groupId?: number; locationRef: string; slot: { startsAt: string; endsAt: string }; capacity: number },
       ctx: ServiceContext,
     ): Promise<void> {
       const resourceRef = slotResourceRef(input.locationRef, input.slot.startsAt);

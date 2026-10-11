@@ -38,6 +38,7 @@ const scripts = [
   'stream.mjs',
   'sepay-webhook.mjs',
   'sepay-match.mjs',
+  'sepay-review.mjs',
 ];
 
 const results = [];

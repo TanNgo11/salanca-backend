@@ -187,6 +187,13 @@ export default {
       ),
       adminRoute('POST', '/orders/:id/lines/:lineId/cancel', 'admin-orders.cancelLine', 'order.edit-lines'),
       adminRoute('POST', '/orders/:id/refunds', 'admin-orders.refund', 'refund.manage'),
+      // "Duyệt chuyển khoản" (screens P2–P3). Scope is enforced in the review service.
+      adminRoute('GET', '/payment-reviews', 'payment-review.list', 'payment.review'),
+      adminRoute('GET', '/payment-reviews/orders', 'payment-review.searchOrders', 'payment.review'),
+      adminRoute('POST', '/payment-reviews/:id/assign', 'payment-review.assign', 'payment.review'),
+      adminRoute('POST', '/payment-reviews/:id/refund-due', 'payment-review.refundDue', 'payment.review'),
+      adminRoute('POST', '/payment-reviews/:id/reopen', 'payment-review.reopen', 'payment.review'),
+      adminRoute('POST', '/payment-reviews/:id/ignore', 'payment-review.ignore', 'payment.review'),
       // Staff phone orders (screens S6).
       adminRoute('POST', '/drafts/quote', 'admin-orders.quoteDraft', 'order.create'),
       adminRoute('POST', '/drafts', 'admin-orders.createDraft', 'order.create'),

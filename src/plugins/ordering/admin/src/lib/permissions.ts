@@ -11,6 +11,7 @@ export const PERMISSIONS = {
   refund: action('refund.manage'),
   settings: action('settings.manage'),
   scope: action('scope.manage'),
+  review: action('payment.review'),
 } as const;
 
 /** Stable arrays for `useRBAC` (a new array each render makes it re-check every time). */
@@ -37,10 +38,12 @@ export const RBAC_CATALOG_MANAGE = catalog('manage');
 export const RBAC_CATALOG_ACCESS = [...catalog('manage'), ...catalog('toggle-availability')];
 export const RBAC_SETTINGS = [...PERMISSIONS.settings];
 export const RBAC_SCOPE = [...PERMISSIONS.scope];
+export const RBAC_PAYMENT_REVIEW = [...PERMISSIONS.review];
 /** Anyone holding one of these sees the "Bán hàng" menu entry. */
 export const RBAC_ANY_ORDERING = [
   ...RBAC_ORDERS_READ,
   ...RBAC_CATALOG_ACCESS,
   ...RBAC_SETTINGS,
   ...RBAC_SCOPE,
+  ...RBAC_PAYMENT_REVIEW,
 ];

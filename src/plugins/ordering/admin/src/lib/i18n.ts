@@ -3,6 +3,9 @@ import { useIntl } from 'react-intl';
 
 import { PLUGIN_ID } from '../pluginId';
 import { o3Messages } from '../translations/o3';
+import { o4Messages } from '../translations/o4';
+
+const messagesOf = (key: string): [string, string] | undefined => o3Messages[key] ?? o4Messages[key];
 
 export type Translate = (
   key: string,
@@ -18,18 +21,23 @@ export const useT = (): Translate => {
   const { formatMessage } = useIntl();
   return useCallback(
     (key, values, fallback) => {
-      const defaultMessage = o3Messages[key]?.[0] ?? fallback ?? key;
-      if (!o3Messages[key] && fallback !== undefined) return fallback;
+      const entry = messagesOf(key);
+      const defaultMessage = entry?.[0] ?? fallback ?? key;
+      if (!entry && fallback !== undefined) return fallback;
       return formatMessage({ id: `${PLUGIN_ID}.${key}`, defaultMessage }, values);
     },
     [formatMessage],
   );
 };
 
-export const o3Translations = (locale: string): Record<string, string> =>
+const pack = (messages: Record<string, [string, string]>, locale: string): Record<string, string> =>
   Object.fromEntries(
-    Object.entries(o3Messages).map(([key, [vi, en]]) => [`${PLUGIN_ID}.${key}`, locale === 'en' ? en : vi]),
+    Object.entries(messages).map(([key, [vi, en]]) => [`${PLUGIN_ID}.${key}`, locale === 'en' ? en : vi]),
   );
+
+export const o3Translations = (locale: string): Record<string, string> => pack(o3Messages, locale);
+
+export const o4Translations = (locale: string): Record<string, string> => pack(o4Messages, locale);
 
 /** Admin interface language ('vi' | 'en'), for picking `{ vi, en }` catalog/branch names. */
 export const useLocale = (): string => {

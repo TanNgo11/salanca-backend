@@ -4,6 +4,7 @@ import adminStream from './admin-stream';
 import availability from './availability';
 import catalog from './catalog';
 import categories from './categories';
+import paymentReview from './payment-review';
 import storefront from './storefront';
 import webhook from './webhook';
 
@@ -16,4 +17,5 @@ export default {
   categories,
   storefront,
   webhook,
+  'payment-review': paymentReview,
 };

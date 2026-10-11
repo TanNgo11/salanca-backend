@@ -1,6 +1,6 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Flex, Loader, SubNav, SubNavHeader, SubNavLink, SubNavSection, SubNavSections } from '@strapi/design-system';
-import { Layouts, useRBAC } from '@strapi/strapi/admin';
+import { Layouts, useFetchClient, useRBAC } from '@strapi/strapi/admin';
 import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 
 import { OrderingInboxProvider, useOrderingInbox } from '../inbox/OrderingInboxProvider';
@@ -9,27 +9,49 @@ import {
   RBAC_CATALOG_ACCESS,
   RBAC_CATALOG_MANAGE,
   RBAC_ORDERS_READ,
+  RBAC_PAYMENT_REVIEW,
   RBAC_SCOPE,
   RBAC_SETTINGS,
 } from '../lib/permissions';
 
 const OrdersPage = lazy(() => import('./Orders'));
+const PaymentReviewPage = lazy(() => import('./PaymentReview'));
 const BranchesPage = lazy(() => import('./Branches'));
 const StaffPage = lazy(() => import('./Staff'));
 const CategoriesPage = lazy(() => import('./Categories'));
 const AvailabilityPage = lazy(() => import('./Availability'));
 
-type Section = 'orders' | 'categories' | 'availability' | 'branches' | 'staff';
+type Section = 'orders' | 'payment-review' | 'categories' | 'availability' | 'branches' | 'staff';
 
 /**
  * One "Bán hàng" entry in the main menu; every ordering screen lives under it with its own
  * sub-navigation (the Content Manager pattern), grouped as Vận hành / Món / Cấu hình. Links only
  * show for the actions the user holds; the routes still check permissions themselves.
  */
-const SideNav = ({ visible }: { visible: Record<Section, boolean> & { settings: boolean } }) => {
+const SideNav = ({
+  visible,
+  showReviews,
+}: {
+  visible: Record<Section, boolean> & { settings: boolean };
+  showReviews: boolean;
+}) => {
   const t = useT();
   const { pathname } = useLocation();
   const inbox = useOrderingInbox();
+  const { get } = useFetchClient();
+  const [openReviews, setOpenReviews] = useState(0);
+  useEffect(() => {
+    if (!showReviews) return undefined;
+    let live = true;
+    void get('/ordering/payment-reviews?status=open&pageSize=1')
+      .then(({ data }) => {
+        if (live) setOpenReviews((data as { counts?: { open?: number } }).counts?.open ?? 0);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [get, showReviews]);
   const link = (to: Section, label: string, badge?: number) => (
     <SubNavLink
       tag={NavLink}
@@ -43,9 +65,10 @@ const SideNav = ({ visible }: { visible: Record<Section, boolean> & { settings: 
     <SubNav aria-label={t('nav.title')}>
       <SubNavHeader label={t('nav.title')} />
       <SubNavSections>
-        {visible.orders ? (
+        {visible.orders || visible['payment-review'] ? (
           <SubNavSection label={t('nav.operations')}>
-            {link('orders', t('nav.orders'), inbox?.awaiting)}
+            {visible.orders ? link('orders', t('nav.orders'), inbox?.awaiting) : null}
+            {visible['payment-review'] ? link('payment-review', t('nav.paymentReview'), openReviews) : null}
           </SubNavSection>
         ) : null}
         {visible.categories || visible.availability ? (
@@ -72,11 +95,12 @@ const SideNav = ({ visible }: { visible: Record<Section, boolean> & { settings: 
 
 const OrderingApp = () => {
   const orders = useRBAC(RBAC_ORDERS_READ);
+  const reviews = useRBAC(RBAC_PAYMENT_REVIEW);
   const catalogManage = useRBAC(RBAC_CATALOG_MANAGE);
   const catalogAccess = useRBAC(RBAC_CATALOG_ACCESS);
   const settings = useRBAC(RBAC_SETTINGS);
   const scope = useRBAC(RBAC_SCOPE);
-  const loading = [orders, catalogManage, catalogAccess, settings, scope].some((item) => item.isLoading);
+  const loading = [orders, reviews, catalogManage, catalogAccess, settings, scope].some((item) => item.isLoading);
   if (loading) {
     return (
       <Flex justifyContent="center" padding={10}>
@@ -87,17 +111,20 @@ const OrderingApp = () => {
   const any = (actions: Record<string, boolean>) => Object.values(actions).some(Boolean);
   const visible = {
     orders: any(orders.allowedActions),
+    'payment-review': any(reviews.allowedActions),
     categories: any(catalogManage.allowedActions),
     availability: any(catalogAccess.allowedActions),
     branches: any(settings.allowedActions),
     staff: any(scope.allowedActions),
     settings: any(settings.allowedActions),
   };
-  const first = (['orders', 'categories', 'availability', 'branches', 'staff'] as Section[]).find((key) => visible[key]);
+  const first = (
+    ['orders', 'payment-review', 'categories', 'availability', 'branches', 'staff'] as Section[]
+  ).find((key) => visible[key]);
 
   return (
     <OrderingInboxProvider>
-      <Layouts.Root sideNav={<SideNav visible={visible} />}>
+      <Layouts.Root sideNav={<SideNav visible={visible} showReviews={visible['payment-review']} />}>
         <Suspense
           fallback={
             <Flex justifyContent="center" padding={10}>
@@ -108,6 +135,7 @@ const OrderingApp = () => {
           <Routes>
             <Route index element={first ? <Navigate to={first} replace /> : null} />
             <Route path="orders/*" element={<OrdersPage />} />
+            <Route path="payment-review/*" element={<PaymentReviewPage />} />
             <Route path="categories/*" element={<CategoriesPage />} />
             <Route path="availability/*" element={<AvailabilityPage />} />
             <Route path="branches/*" element={<BranchesPage />} />

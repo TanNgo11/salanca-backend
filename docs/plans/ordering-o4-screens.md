@@ -6,6 +6,13 @@ Nghiên cứu: [`ordering-reference.md` mục U4](ordering-reference.md). **Quy 
 bản dịch, 5 trạng thái, định dạng tiền/giờ, component) như mục đầu của
 [`ordering-o3-screens.md`](ordering-o3-screens.md).
 
+Đổi khi code O4:
+
+- Route Admin không có đoạn `/admin` (giống O3): `/ordering/payment-reviews`.
+- Chuỗi mới nằm trong `admin/src/translations/o4.ts` (`[vi, en]`), gộp lúc `registerTrads`.
+- Trong `Modal` không dùng `Combobox`, `SingleSelect` hay `SimpleMenu` (O3: dropdown trong modal làm treo trang).
+  P3 chọn cách xử lý và đơn bằng nút + ô chữ. Lọc ở danh sách (ngoài modal) vẫn dùng `SingleSelect`.
+
 ## P1. Khối thanh toán trong chi tiết đơn (mở rộng S4 của O3)
 
 Theo Saleor `OrderTransactionTile`.
@@ -23,10 +30,10 @@ Theo Saleor `OrderTransactionTile`.
 - Route: `/plugins/ordering/payment-review`; menu "Bán hàng" thêm mục "Duyệt chuyển khoản" có badge số chờ.
 - Quyền: `payment.review`. Lọc theo scope: tiền vào tài khoản của chi nhánh trong scope; tiền không xác định chi nhánh
   chỉ hiện với `allLocations`.
-- API: `GET /ordering/admin/payment-reviews?status=open|resolved&reason=&branch=&from=&to=&q=&page=`
+- API: `GET /ordering/payment-reviews?status=open|resolved&reason=&branch=&from=&to=&q=&page=`
   → `{ results, pagination, counts }`.
 
-Bố cục: header + nút **Ghi nhận chuyển khoản thủ công**; `Tabs` Chờ xử lý (n) · Đã xử lý; lọc lý do, chi nhánh,
+Bố cục: header + nút **Ghi nhận chuyển khoản thủ công** (tắt đến khi có API P4); hai nút Chờ xử lý (n) · Đã xử lý; lọc lý do, chi nhánh,
 khoảng ngày, tìm theo nội dung/mã giao dịch/số tiền.
 
 | Cột | Nội dung |
@@ -43,11 +50,11 @@ Tab Đã xử lý thêm cột: cách xử lý, người xử lý, lý do ghi, th
 
 ## P3. Hộp thoại xử lý một giao dịch
 
-`Modal` lớn. Đầu hộp thoại: số tiền, nội dung, thời gian, mã giao dịch, lý do vào hàng duyệt. `Tabs` theo cách xử lý:
+`Modal` lớn. Đầu hộp thoại: số tiền, nội dung, thời gian, mã giao dịch, lý do vào hàng duyệt. Bốn nút chọn cách xử lý (không dùng tab/dropdown trong modal):
 
 | Tab | Field | API | Quy tắc |
 | --- | --- | --- | --- |
-| Gán vào đơn | `Combobox` tìm đơn (mã, SĐT), hiện cần thu; xem trước kết quả: "Ghi nhận X đ, còn thiếu Y đ" hoặc "Dư Z đ → cần hoàn" | `POST /ordering/admin/payment-reviews/:id/assign { orderId, reason }` | đủ tiền thì đơn chạy bước tiếp như tự động |
+| Gán vào đơn | ô chữ + nút kết quả tìm đơn (mã hoặc SĐT đủ), hiện cần thu; xem trước: "Ghi nhận X đ, còn thiếu Y đ" hoặc "Dư Z đ → cần hoàn" | `POST /ordering/payment-reviews/:id/assign { orderId, reason }` | đủ tiền thì đơn chạy bước tiếp như tự động |
 | Cần hoàn tiền | số tiền hoàn (mặc định toàn bộ), lý do | `.../refund-due { amount, reason }` | tạo refund thủ công chờ ghi mã (P5b) |
 | Mở lại đơn | đơn đã hủy được gợi ý; kiểm còn hàng/slot | `.../reopen { orderId, reason }` | chỉ với lý do "Đơn đã hủy"; hết hàng thì nút disabled kèm lý do |
 | Bỏ qua | lý do (vd. chuyển khoản nội bộ) | `.../ignore { reason }` | |
@@ -67,7 +74,7 @@ Theo Vendure `add-manual-payment-dialog` + Saleor "Manual transaction".
 | Thời điểm chuyển | `DateTimePicker` | mặc định bây giờ |
 | Ghi chú | `Textarea` | |
 
-API `POST /ordering/admin/orders/:id/manual-payments`. Sau khi lưu, sự kiện hiện badge "Chờ đối soát" tới khi SePay
+API `POST /ordering/orders/:id/manual-payments`. Sau khi lưu, sự kiện hiện badge "Chờ đối soát" tới khi SePay
 gửi giao dịch cùng mã (khi đó badge thành "Đã đối soát").
 
 ## P5. Hoàn tiền (chuyển khoản)
@@ -75,15 +82,15 @@ gửi giao dịch cùng mã (khi đó badge thành "Đã đối soát").
 Theo TastyIgniter refund + Vendure `settle-refund-dialog`.
 
 - P5a tạo: `Toggle` Toàn phần / Một phần; số tiền (khi một phần, hiện "tối đa X đ"); lý do *; API
-  `POST /ordering/admin/orders/:id/refunds { method: 'bank', amount, reason }` → refund trạng thái "Chờ chuyển".
-- P5b ghi nhận đã chuyển: mã giao dịch hoàn *, thời điểm; API `POST /ordering/admin/refunds/:id/settle`. Refund chưa
+  `POST /ordering/orders/:id/refunds { method: 'bank', amount, reason }` → refund trạng thái "Chờ chuyển".
+- P5b ghi nhận đã chuyển: mã giao dịch hoàn *, thời điểm; API `POST /ordering/refunds/:id/settle`. Refund chưa
   ghi mã hiện trong P1 với nút "Ghi nhận đã hoàn".
 
 ## P6. Sao chép link thanh toán
 
 Theo Medusa `copy-payment-link`. Nút trong P1 và trong chi tiết đơn nháp đã xác nhận. Bấm → copy link, đổi chữ thành
 "Đã sao chép" 2 giây. Link hết hạn theo `paymentTimeoutMinutes`; nút hiện "Hết hạn — tạo link mới" khi quá hạn
-(`POST /ordering/admin/orders/:id/payment-link`).
+(`POST /ordering/orders/:id/payment-link`).
 
 ## P7. Trang QR phía khách
 
