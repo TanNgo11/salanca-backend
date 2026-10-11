@@ -29,6 +29,7 @@ const scripts = [
   'catalog-extension.mjs',
   'review-additions.mjs',
   'branches.mjs',
+  'pickup-slots.mjs',
 ];
 
 const results = [];
