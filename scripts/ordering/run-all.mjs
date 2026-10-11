@@ -31,6 +31,7 @@ const scripts = [
   'branches.mjs',
   'pickup-slots.mjs',
   'storefront.mjs',
+  'admin-orders.mjs',
 ];
 
 const results = [];

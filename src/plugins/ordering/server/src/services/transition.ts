@@ -61,6 +61,8 @@ const transition = ({ strapi }: { strapi: Core.Strapi }) => {
         to: string;
         reason?: string;
         payload?: Record<string, unknown>;
+        /** Customer email for this step; defaults to the state's `isPublic`. */
+        notifyCustomer?: boolean;
       },
       ctx: ServiceContext,
     ): Promise<{ from: string; to: string; order: OrderAggregate }> {
@@ -124,6 +126,7 @@ const transition = ({ strapi }: { strapi: Core.Strapi }) => {
               workflowVersion: group.workflowVersion,
               actorRef: actorRefOf(ctx),
               isPublic: isPublicState(definition, input.to),
+              notifyCustomer: input.notifyCustomer ?? isPublicState(definition, input.to),
             },
             uniqueKey: `fgt:${input.groupId}:${from}>${input.to}:${randomUUID()}`,
           },

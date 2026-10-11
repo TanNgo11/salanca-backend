@@ -20,6 +20,8 @@ import jobLock from './job-lock';
 import lineCancel from './line-cancel';
 import pickupScheduling from './pickup-scheduling';
 import storefront from './storefront';
+import adminOrders from './admin-orders';
+import orderingSettings from './ordering-settings';
 
 export default {
   registry,
@@ -41,6 +43,8 @@ export default {
   'line-cancel': lineCancel,
   'pickup-scheduling': pickupScheduling,
   storefront,
+  'admin-orders': adminOrders,
+  'ordering-settings': orderingSettings,
   migrations: ({ strapi }: { strapi: Core.Strapi }) => ({
     run: (migrations: OrderingMigration[]) => runOrderingMigrations(strapi, migrations),
   }),

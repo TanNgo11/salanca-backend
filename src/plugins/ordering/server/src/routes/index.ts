@@ -163,6 +163,25 @@ export default {
       adminRoute('POST', '/branches', 'admin-branches.create', 'settings.manage'),
       adminRoute('GET', '/branches/:code', 'admin-branches.get', 'settings.manage'),
       adminRoute('PATCH', '/branches/:code', 'admin-branches.update', 'settings.manage'),
+      // Order inbox and actions (screens S1–S5).
+      adminRoute('GET', '/orders', 'admin-orders.list', 'order.read'),
+      adminRoute('GET', '/orders/summary', 'admin-orders.summary', 'order.read'),
+      adminRoute('GET', '/orders/:id', 'admin-orders.detail', 'order.read'),
+      adminRoute('POST', '/orders/:id/transition', 'admin-orders.transition', 'order.process'),
+      adminRoute('POST', '/orders/:id/notes', 'admin-orders.addNote', 'order.process'),
+      adminRoute('POST', '/orders/:id/cash-handover', 'admin-orders.cashHandover', 'payment.record-cash'),
+      adminRoute('POST', '/orders/:id/cancel', 'admin-orders.cancel', 'order.cancel'),
+      adminRoute(
+        'GET',
+        '/orders/:id/lines/:lineId/cancel-preview',
+        'admin-orders.lineCancelPreview',
+        'order.edit-lines',
+      ),
+      adminRoute('POST', '/orders/:id/lines/:lineId/cancel', 'admin-orders.cancelLine', 'order.edit-lines'),
+      adminRoute('POST', '/orders/:id/refunds', 'admin-orders.refund', 'refund.manage'),
+      // General sales settings (screens S9).
+      adminRoute('GET', '/settings', 'admin-orders.getSettings', 'settings.manage'),
+      adminRoute('PUT', '/settings', 'admin-orders.putSettings', 'settings.manage'),
     ],
   },
 };

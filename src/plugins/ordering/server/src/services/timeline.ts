@@ -33,6 +33,11 @@ const timeline = ({ strapi }: { strapi: Core.Strapi }) => {
       });
     },
 
+    /** Staff view: every event, newest first (screens S4b). */
+    async listAll(orderId: number) {
+      return events().findMany({ where: { order: orderId }, orderBy: { occurredAt: 'desc' } });
+    },
+
     async listPublic(orderId: number) {
       return events().findMany({
         where: { order: orderId, isPublic: true },
