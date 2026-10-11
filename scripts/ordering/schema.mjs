@@ -22,6 +22,7 @@ const EXPECTED_TABLES = [
   'plugins_ordering_fulfillment_line',
   'plugins_ordering_hold',
   'plugins_ordering_idempotency_key',
+  'plugins_ordering_notification_delivery',
   'plugins_ordering_ops_alert',
   'plugins_ordering_order',
   'plugins_ordering_order_adjustment',
@@ -56,6 +57,9 @@ const EXPECTED_INDEXES = [
   'plugins_ordering_catalog_location_state_uq',
   'plugins_ordering_catalog_variant_sku_uq',
   'plugins_ordering_catalog_product_online_idx',
+  'plugins_ordering_notification_delivery_uq',
+  'plugins_ordering_fulfillment_group_status_idx',
+  'plugins_ordering_hold_resource_open_idx',
 ];
 
 // Catalog types staff edit in Content Manager (O2 step 1).
@@ -75,7 +79,7 @@ const CM_HIDDEN_CATALOG_UIDS = [
   'plugin::ordering.catalog-location-state',
 ];
 
-// Every manyToOne owner side produces one link table (28 relations across the 29 types).
+// Every manyToOne owner side produces one link table (28 relations across the 30 types).
 const MIN_LINK_TABLES = 28;
 
 await withApp(async (app) => {
@@ -125,7 +129,7 @@ await withApp(async (app) => {
     .connection('plugins_ordering_migrations')
     .select('name')
     .orderBy('name');
-  for (const migration of ['0001-o1-core', '0002-o2-catalog']) {
+  for (const migration of ['0001-o1-core', '0002-o2-catalog', '0003-o3-pickup']) {
     assert.ok(
       applied.some((row) => row.name === migration),
       `migration ${migration} is not recorded`,
@@ -136,7 +140,7 @@ await withApp(async (app) => {
   const orderingUids = Object.keys(app.contentTypes).filter((uid) =>
     uid.startsWith('plugin::ordering.'),
   );
-  assert.equal(orderingUids.length, EXPECTED_TABLES.length, 'expected 29 plugin content types');
+  assert.equal(orderingUids.length, EXPECTED_TABLES.length, `expected ${EXPECTED_TABLES.length} plugin content types`);
   for (const uid of orderingUids) {
     const contentType = app.contentTypes[uid];
     const pluginOptions = contentType.pluginOptions ?? contentType.schema?.pluginOptions ?? {};

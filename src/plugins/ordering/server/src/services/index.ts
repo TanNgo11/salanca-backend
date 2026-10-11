@@ -25,6 +25,7 @@ import orderingSettings from './ordering-settings';
 import notification from './notification';
 import alert from './alert';
 import orderStream from './order-stream';
+import staffScope from './staff-scope';
 
 export default {
   registry,
@@ -51,6 +52,7 @@ export default {
   notification,
   alert,
   'order-stream': orderStream,
+  'staff-scope': staffScope,
   migrations: ({ strapi }: { strapi: Core.Strapi }) => ({
     run: (migrations: OrderingMigration[]) => runOrderingMigrations(strapi, migrations),
   }),

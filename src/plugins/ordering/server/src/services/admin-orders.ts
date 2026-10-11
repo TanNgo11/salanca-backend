@@ -263,7 +263,8 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
           if (Number.isFinite(sinceMs) && new Date(row.placedAt).getTime() > sinceMs) fresh.push(row);
         }
       }
-      return { awaiting, newOrders: fresh, at: new Date().toISOString() };
+      // Staff without settings.manage still need the inbox options (dialog, sound, reasons, delays).
+      return { awaiting, newOrders: fresh, at: new Date().toISOString(), settings: await s.settings().get() };
     },
 
     /** GET /orders/:id — everything S4 shows plus valid next steps. */
@@ -715,6 +716,25 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
       }
       await s.transition().cancelOrder({ orderId, reason: 'draft-deleted' }, ctx);
       return { deleted: true };
+    },
+
+    /** GET /orders/branches — the viewer's branches with today's business date (inbox filter). */
+    async branchesForStaff(ctx: ServiceContext) {
+      const staffScope = await s.scope().loadScope(ctx);
+      if (staffScope === null) throw new OrderingError('SCOPE_REQUIRED', 'staff member has no location scope');
+      const rows = await s.branch().list();
+      return rows
+        .filter((row) => row.isActive && (staffScope.allLocations || staffScope.locationRefs.includes(row.code)))
+        .map((row) => {
+          const settings = s.branch().pickupSettings(row);
+          return {
+            code: row.code,
+            name: row.name ?? {},
+            timezone: row.timezone,
+            onlineOrdering: row.onlineOrdering,
+            businessDate: businessDateOf(new Date(), row.timezone, settings.schedule.businessDayPolicy.cutoffLocalTime),
+          };
+        });
     },
 
     /** Business date "today" for a branch — the inbox default (screens S1). */

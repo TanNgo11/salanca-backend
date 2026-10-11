@@ -208,11 +208,14 @@ withApp(async (app) => {
     assert.equal(canceled.body.detail.order.status, 'canceled');
 
     // --- Settings ------------------------------------------------------------------------------
+    // The core store survives table truncation; start from defaults and leave them behind.
+    await app.store({ type: 'plugin', name: 'ordering', key: 'settings' }).delete();
     const settings = await chain('GET', '/settings');
     assert.deepEqual(settings.body.settings.delayMinutes, [10, 20, 30]);
     const put = await chain('PUT', '/settings', { ...settings.body.settings, delayMinutes: [15, 45] });
     assert.deepEqual(put.body.settings.delayMinutes, [15, 45]);
     assert.equal((await readOnly.as.viewer('GET', '/settings')).status, 403);
+    await app.store({ type: 'plugin', name: 'ordering', key: 'settings' }).delete();
     console.log('[ordering-test] admin-orders: scope on all routes, accept race, handover rollback, 87.940 cancel, refunds, settings verified');
   } finally {
     await http.cleanup();

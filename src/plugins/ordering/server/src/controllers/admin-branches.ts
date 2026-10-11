@@ -1,9 +1,11 @@
 import type { Core } from '@strapi/strapi';
 
 import type branchFactory from '../services/branch';
+import type staffScopeFactory from '../services/staff-scope';
 import { adminAction } from './http';
 
 type BranchService = ReturnType<typeof branchFactory>;
+type StaffScopeService = ReturnType<typeof staffScopeFactory>;
 
 /**
  * "Chi nhánh" screen API (screens S7). Routes require `plugin::ordering.settings.manage`; the
@@ -11,6 +13,7 @@ type BranchService = ReturnType<typeof branchFactory>;
  */
 export default ({ strapi }: { strapi: Core.Strapi }) => {
   const service = () => strapi.plugin('ordering').service('branch') as BranchService;
+  const staff = () => strapi.plugin('ordering').service('staff-scope') as StaffScopeService;
 
   return {
     list: adminAction(strapi, async (_ctx, serviceCtx) => ({
@@ -25,6 +28,11 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     })),
     update: adminAction(strapi, async (ctx, serviceCtx) => ({
       item: await service().updateBranch(ctx.params.code ?? '', ctx.request.body ?? {}, serviceCtx),
+    })),
+    // "Nhân viên và chi nhánh" (screens S8).
+    staffList: adminAction(strapi, async (_ctx, serviceCtx) => ({ results: await staff().list(serviceCtx) })),
+    staffPut: adminAction(strapi, async (ctx, serviceCtx) => ({
+      item: await staff().put(Number(ctx.params.adminUserId), (ctx.request.body ?? {}) as Record<string, unknown>, serviceCtx),
     })),
   };
 };

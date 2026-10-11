@@ -40,6 +40,9 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
         serviceCtx,
       ),
     ),
+    branches: adminAction(strapi, async (_ctx, serviceCtx) => ({
+      results: await service().branchesForStaff(serviceCtx),
+    })),
     summary: adminAction(strapi, async (ctx, serviceCtx) =>
       service().summary(text(ctx.query.since), serviceCtx),
     ),

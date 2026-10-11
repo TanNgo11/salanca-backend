@@ -164,9 +164,12 @@ export default {
       adminRoute('POST', '/branches', 'admin-branches.create', 'settings.manage'),
       adminRoute('GET', '/branches/:code', 'admin-branches.get', 'settings.manage'),
       adminRoute('PATCH', '/branches/:code', 'admin-branches.update', 'settings.manage'),
+      adminRoute('GET', '/staff-scopes', 'admin-branches.staffList', 'scope.manage'),
+      adminRoute('PUT', '/staff-scopes/:adminUserId', 'admin-branches.staffPut', 'scope.manage'),
       // Order inbox and actions (screens S1–S5).
       adminRoute('GET', '/orders', 'admin-orders.list', 'order.read'),
       adminRoute('GET', '/orders/summary', 'admin-orders.summary', 'order.read'),
+      adminRoute('GET', '/orders/branches', 'admin-orders.branches', 'order.read'),
       adminRoute('GET', '/orders/stream', 'admin-stream.stream', 'order.read'),
       adminRoute('GET', '/orders/:id', 'admin-orders.detail', 'order.read'),
       adminRoute('POST', '/orders/:id/transition', 'admin-orders.transition', 'order.process'),

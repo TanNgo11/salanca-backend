@@ -134,7 +134,41 @@ withApp(async (app) => {
     assert.deepEqual(items.find((row) => row.code === 'Q1').receiveMethods, [
       { kind: 'pickup', orderTiming: 'both' },
     ]);
-    console.log('[ordering-test] branches: scope, validation, change-log, public list verified');
+    // --- Staff scopes (screens S8) ------------------------------------------------------------
+    const scoped = await seedAdminHttpStaff(app, {
+      actions: ['scope.manage', 'order.read'],
+      scopes: { boss: { allLocations: true, locationRefs: [] }, q1boss: { allLocations: false, locationRefs: ['Q1'] }, newbie: null },
+    });
+    try {
+      const list = await scoped.as.boss('GET', '/staff-scopes');
+      assert.equal(list.status, 200);
+      const newbie = list.body.results.find((row) => row.adminUserId === scoped.users.newbie.id);
+      assert.equal(newbie.assigned, false, 'unassigned staff are flagged');
+      assert.equal(list.body.results[0].assigned, false, 'unassigned staff sort first');
+      assert.equal(
+        (await scoped.as.q1boss('PUT', `/staff-scopes/${scoped.users.newbie.id}`, { allLocations: true })).status,
+        403,
+        'only an all-branches manager grants every branch',
+      );
+      assert.equal(
+        (await scoped.as.q1boss('PUT', `/staff-scopes/${scoped.users.newbie.id}`, { locationRefs: ['Q3'] })).status,
+        403,
+        'a Q1 manager cannot grant Q3',
+      );
+      const granted = await scoped.as.q1boss('PUT', `/staff-scopes/${scoped.users.newbie.id}`, { locationRefs: ['Q1'] });
+      assert.equal(granted.status, 200, JSON.stringify(granted.body));
+      assert.deepEqual(granted.body.item.locationRefs, ['Q1']);
+      assert.equal(
+        (await scoped.as.boss('PUT', `/staff-scopes/${scoped.users.newbie.id}`, { locationRefs: ['NOPE'] })).body.error.details.field,
+        'locationRefs',
+      );
+      assert.equal((await noSettings.as.reader('GET', '/staff-scopes')).status, 403, 'scope.manage is required');
+      const logs = await app.db.query('plugin::ordering.admin-change-log').findMany({ where: { action: 'scope.update' } });
+      assert.ok(logs.length >= 1, 'scope changes are change-logged');
+    } finally {
+      await scoped.cleanup();
+    }
+    console.log('[ordering-test] branches: scope, validation, change-log, public list, staff scopes verified');
   } finally {
     await http.cleanup();
     await noSettings.cleanup();
