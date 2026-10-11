@@ -35,7 +35,7 @@ withApp(async (app) => {
     gateway: 'MBBank',
     transactionDate: '2026-10-11 19:00:00',
     accountNumber: '0123456789',
-    content: 'SLCSLC-000124',
+    content: 'chuyen khoan',
     transferType: 'in',
     transferAmount: 175000,
     referenceCode: 'FT42',

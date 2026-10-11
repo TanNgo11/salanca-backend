@@ -37,6 +37,7 @@ const scripts = [
   'lookup-drafts.mjs',
   'stream.mjs',
   'sepay-webhook.mjs',
+  'sepay-match.mjs',
 ];
 
 const results = [];

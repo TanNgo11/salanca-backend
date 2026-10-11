@@ -6,10 +6,10 @@ import { readUnparsedBody } from '../domain/raw-body';
 import { webhookResultForError } from '../providers/sepay/provider';
 import type { ServiceContext } from './context';
 import { nowOf } from './context';
-import type paymentFactory from './payment';
+import type paymentMatchingFactory from './payment-matching';
 import type { OrderingRegistry } from './registry';
 
-type PaymentService = ReturnType<typeof paymentFactory>;
+type MatchingService = ReturnType<typeof paymentMatchingFactory>;
 
 const asObject = (value: unknown): Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -25,7 +25,7 @@ const asObject = (value: unknown): Record<string, unknown> =>
  */
 const webhook = ({ strapi }: { strapi: Core.Strapi }) => {
   const registry = () => strapi.plugin('ordering').service('registry') as OrderingRegistry;
-  const payments = () => strapi.plugin('ordering').service('payment') as PaymentService;
+  const matching = () => strapi.plugin('ordering').service('payment-matching') as MatchingService;
 
   return {
     async receive(
@@ -52,27 +52,11 @@ const webhook = ({ strapi }: { strapi: Core.Strapi }) => {
       let result: WebhookProcessingResult = 'accepted';
       try {
         const events = await provider.parseWebhook(raw);
+        const rawPayload = asObject(rawBody ? JSON.parse(rawBody) : {});
         for (const event of events) {
-          const saved = await payments().recordPaymentEvent(
-            {
-              providerCode: event.providerCode,
-              providerTransactionId: event.providerTransactionId,
-              kind: event.kind,
-              amount: event.amount.amount,
-              currency: event.amount.currency,
-              transferType: event.transferType,
-              rawPayload: asObject(rawBody ? JSON.parse(rawBody) : {}),
-              reviewStatus: event.transferType === 'out' ? 'ignored' : 'needs-review',
-              reviewReason: event.transferType === 'out' ? null : 'no-code',
-              receivedAt: nowOf(ctx),
-            },
-            ctx,
-          );
-          if (event.transferType === 'out') {
-            result = saved.duplicate ? 'duplicate' : 'ignored-money-out';
-          } else if (saved.duplicate) {
-            result = 'duplicate';
-          }
+          const saved = await matching().ingest({ event, rawPayload }, ctx);
+          if (saved.duplicate) result = 'duplicate';
+          else if (saved.decision.outcome === 'ignored') result = 'ignored-money-out';
         }
       } catch (error) {
         const mapped = webhookResultForError(error);

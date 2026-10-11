@@ -25,5 +25,12 @@ export const SEPAY_TEST_SETTINGS = {
       accountName: 'CONG TY SALANCA',
       locationRefs: 'all' as const,
     },
+    q3: {
+      accountNumber: '333000111222',
+      bankCode: 'ACB',
+      bankName: 'ACB',
+      accountName: 'CONG TY SALANCA',
+      locationRefs: ['Q3'],
+    },
   },
 };

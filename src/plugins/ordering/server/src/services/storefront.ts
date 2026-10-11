@@ -12,6 +12,7 @@ import {
   lookupOrderView,
   tokenOrderView,
 } from '../domain/storefront/serialize';
+import { isOnlinePaymentProvider } from '../providers/cash';
 import orderRepository from '../repositories/order';
 import type { OrderAggregate } from '../repositories/types';
 import type branchFactory from './branch';
@@ -89,20 +90,42 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
     async paymentByToken(token: unknown) {
       const aggregate = await service.aggregateByToken(token);
       const captured = aggregate.payments.reduce((sum, payment) => sum + payment.capturedAmount, 0);
+      const due = Math.max(0, aggregate.order.totalAmount - captured);
       const receive = aggregate.order.receiveMethod as { kind?: string };
       const branch = await branches().findByCode(aggregate.order.locationRef);
       const settings =
         receive.kind === 'pickup' ? branches().pickupSettings(branch ?? { fulfillment: null }) : null;
+      const awaitingPayment = aggregate.groups.some((group) => group.status === 'awaiting-payment');
+      let presentation: Record<string, unknown> | null = null;
+      if (awaitingPayment && due > 0 && settings) {
+        const online = settings.paymentProviders.find((code) => {
+          if (!registry().hasPaymentProvider(code)) return false;
+          return isOnlinePaymentProvider(registry().paymentProvider(code));
+        });
+        if (online) {
+          const expiresAt = new Date(
+            new Date(aggregate.order.placedAt).getTime() + settings.paymentTimeoutMinutes * 60_000,
+          ).toISOString();
+          const built = await registry().paymentProvider(online).getPresentation({
+            order: {
+              code: aggregate.order.code,
+              locationRef: aggregate.order.locationRef,
+            } as never,
+            amount: { amount: due, currency: aggregate.order.currency },
+            metadata: { expiresAt },
+          });
+          presentation = built.memo || built.qr ? { ...built } : null;
+        }
+      }
       return {
         code: aggregate.order.code,
         paymentStatus: aggregate.order.paymentStatus,
         currency: aggregate.order.currency,
         total: aggregate.order.totalAmount,
-        due: Math.max(0, aggregate.order.totalAmount - captured),
+        due,
         paymentTiming: settings?.paymentTiming ?? null,
         methods: settings?.paymentProviders ?? [],
-        // Online providers add a presentation (QR, bank account, memo, expiry) in O4.
-        presentation: null,
+        presentation,
       };
     },
 

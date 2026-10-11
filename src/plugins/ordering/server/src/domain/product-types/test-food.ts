@@ -12,10 +12,11 @@ export const testFoodProductType: ProductTypeDefinition = {
   selectWorkflow({ receiveMethod, paymentTiming }) {
     switch (receiveMethod.kind) {
       case 'pickup':
-        // O1 treats "accept then pay" as prepay; the dedicated workflow arrives with it.
-        return paymentTiming === 'prepay'
-          ? { name: 'pickup-prepay', version: '1' }
-          : { name: 'pickup-pay-on-pickup', version: '1' };
+        if (paymentTiming === 'prepay') return { name: 'pickup-prepay', version: '1' };
+        if (paymentTiming === 'accept-then-pay') {
+          return { name: 'pickup-accept-then-pay', version: '1' };
+        }
+        return { name: 'pickup-pay-on-pickup', version: '1' };
       case 'delivery':
         // O5 adds the delivery workflows; O1 reuses the pickup happy path for tests.
         return { name: 'pickup-pay-on-pickup', version: '1' };

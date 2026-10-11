@@ -27,6 +27,7 @@ import alert from './alert';
 import orderStream from './order-stream';
 import staffScope from './staff-scope';
 import webhook from './webhook';
+import paymentMatching from './payment-matching';
 
 export default {
   registry,
@@ -55,6 +56,7 @@ export default {
   'order-stream': orderStream,
   'staff-scope': staffScope,
   webhook,
+  'payment-matching': paymentMatching,
   migrations: ({ strapi }: { strapi: Core.Strapi }) => ({
     run: (migrations: OrderingMigration[]) => runOrderingMigrations(strapi, migrations),
   }),
