@@ -18,8 +18,10 @@ await withApp(async (app) => {
   assert.ok(registry.hasCatalogAdapter('test-catalog'), 'test-catalog adapter missing');
   assert.ok(registry.hasCatalogAdapter('ordering-catalog'), 'ordering-catalog stub missing');
   assert.equal(registry.catalogAdapter('test-catalog').code, 'test-catalog');
-  assert.equal(registry.workflows().length, 3, 'expected 3 built-in workflows');
+  assert.equal(registry.workflows().length, 4, 'expected 4 built-in workflows (3 pickup + test-service)');
   assert.ok(registry.workflow('pickup-pay-on-pickup', '1'));
+  assert.ok(registry.workflow('pickup-accept-then-pay', '1'));
+  assert.ok(registry.hasPaymentProvider('cash'), 'built-in cash provider missing');
   assert.equal(registry.outboxConsumers('test.ping').length, 1, 'test.ping consumer missing');
 
   console.log('[ordering-test] product types:', registry.productTypeCodes().join(', '));
