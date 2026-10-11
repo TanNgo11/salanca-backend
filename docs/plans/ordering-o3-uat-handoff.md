@@ -71,6 +71,11 @@ sửa ở trên. Nếu còn treo: ghi lại đúng chuỗi thao tác, kiểm con
 
 ## Còn phải UAT
 
+- [ ] Điều hướng mới (commit gom menu): sidebar chính chỉ có "Bán hàng"; menu con Vận hành / Món / Cấu hình; link ẩn
+      theo quyền (vd. role không có `catalog.manage` không thấy "Danh mục"); số đơn chờ nhận cạnh "Đơn hàng".
+- [ ] Tab bị treo sau khi server UAT bị tắt rồi bật lại (gặp 1 lần, 2026-10-11): kiểm vòng kết nối lại SSE/polling của
+      `OrderingInboxProvider` khi server chết; nếu tái hiện được thì sửa.
+
 - [ ] Từ chối có lý do có sẵn và "Lý do khác…"; đơn sang "Đã hủy"; email khách (kiểm `notification-delivery`).
 - [ ] Hai tab/hai nhân viên cùng bấm Nhận → người sau thấy "Đơn đã được người khác xử lý".
 - [ ] Đăng nhập `quan-ly-chuoi`: thấy cả Q1, Q3; tạo chi nhánh mới; gán `lan-q1` thêm Q3 ở Nhân viên bán hàng.

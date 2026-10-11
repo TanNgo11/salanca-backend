@@ -1,7 +1,7 @@
-import { Cog, Folder, House, ShoppingCart, Store, User } from '@strapi/icons';
+import { Cog, ShoppingCart } from '@strapi/icons';
 
 import { o3Translations } from './lib/i18n';
-import { PERMISSIONS } from './lib/permissions';
+import { PERMISSIONS, RBAC_ANY_ORDERING } from './lib/permissions';
 
 import { PLUGIN_ID } from './pluginId';
 import en from './translations/en.json';
@@ -33,40 +33,13 @@ export default {
       intlDescription: { id: `${PLUGIN_ID}.bundle-slots.description`, defaultMessage: 'Choice groups inside this combo (JSON)' },
       components: { Input: () => import('./custom-fields/bundle-slots/Input') },
     });
+    // One main-menu entry; every ordering screen sits under it with its own sub-navigation.
     app.addMenuLink({
-      to: `/plugins/${PLUGIN_ID}/orders`,
+      to: `/plugins/${PLUGIN_ID}`,
       icon: ShoppingCart,
       intlLabel: { id: `${PLUGIN_ID}.menu.title`, defaultMessage: 'Bán hàng' },
-      Component: () => import('./pages/Orders'),
-      permissions: PERMISSIONS.read,
-    });
-    app.addMenuLink({
-      to: `/plugins/${PLUGIN_ID}/branches`,
-      icon: House,
-      intlLabel: { id: `${PLUGIN_ID}.menu.branches`, defaultMessage: 'Chi nhánh' },
-      Component: () => import('./pages/Branches'),
-      permissions: PERMISSIONS.settings,
-    });
-    app.addMenuLink({
-      to: `/plugins/${PLUGIN_ID}/staff`,
-      icon: User,
-      intlLabel: { id: `${PLUGIN_ID}.menu.staff`, defaultMessage: 'Nhân viên bán hàng' },
-      Component: () => import('./pages/Staff'),
-      permissions: PERMISSIONS.scope,
-    });
-    app.addMenuLink({
-      to: `/plugins/${PLUGIN_ID}/categories`,
-      icon: Folder,
-      intlLabel: { id: `${PLUGIN_ID}.menu.categories`, defaultMessage: 'Categories' },
-      Component: () => import('./pages/Categories'),
-      permissions: [],
-    });
-    app.addMenuLink({
-      to: `/plugins/${PLUGIN_ID}/availability`,
-      icon: Store,
-      intlLabel: { id: `${PLUGIN_ID}.menu.availability`, defaultMessage: 'Temporarily out' },
-      Component: () => import('./pages/Availability'),
-      permissions: [],
+      Component: () => import('./pages/App'),
+      permissions: RBAC_ANY_ORDERING,
     });
     app.registerPlugin({ id: PLUGIN_ID, name: 'Ordering' });
   },

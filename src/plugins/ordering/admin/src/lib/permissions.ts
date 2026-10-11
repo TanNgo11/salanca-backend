@@ -29,3 +29,18 @@ export const ORDER_RBAC = {
 };
 
 export const RBAC_DETAIL = Object.values(ORDER_RBAC).flat();
+
+/** Main-menu entry and sub-navigation gates (pages/App.tsx). */
+const catalog = (name: string) => [{ action: `plugin::ordering.catalog.${name}`, subject: null }];
+export const RBAC_ORDERS_READ = [...PERMISSIONS.read];
+export const RBAC_CATALOG_MANAGE = catalog('manage');
+export const RBAC_CATALOG_ACCESS = [...catalog('manage'), ...catalog('toggle-availability')];
+export const RBAC_SETTINGS = [...PERMISSIONS.settings];
+export const RBAC_SCOPE = [...PERMISSIONS.scope];
+/** Anyone holding one of these sees the "Bán hàng" menu entry. */
+export const RBAC_ANY_ORDERING = [
+  ...RBAC_ORDERS_READ,
+  ...RBAC_CATALOG_ACCESS,
+  ...RBAC_SETTINGS,
+  ...RBAC_SCOPE,
+];

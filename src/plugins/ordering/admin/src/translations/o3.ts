@@ -22,6 +22,16 @@ export const o3Messages: Record<string, [string, string]> = {
   'menu.branches': ['Chi nhánh', 'Branches'],
   'menu.staff': ['Nhân viên bán hàng', 'Sales staff'],
   'settings.title': ['Bán hàng', 'Sales'],
+  'nav.title': ['Bán hàng', 'Sales'],
+  'nav.operations': ['Vận hành', 'Operations'],
+  'nav.orders': ['Đơn hàng', 'Orders'],
+  'nav.catalog': ['Món', 'Catalog'],
+  'nav.categories': ['Danh mục', 'Categories'],
+  'nav.availability': ['Tạm hết món', 'Temporarily out'],
+  'nav.setup': ['Cấu hình', 'Setup'],
+  'nav.branches': ['Chi nhánh', 'Branches'],
+  'nav.staff': ['Nhân viên bán hàng', 'Sales staff'],
+  'nav.settings': ['Cài đặt bán hàng', 'Sales settings'],
 
   // Errors (server codes)
   'error.generic': ['Thao tác thất bại, thử lại sau', 'The action failed, please try again'],

@@ -35,7 +35,11 @@ Quy ước cho người code:
   đọc được. SSE: `GET /ordering/orders/stream`, đọc bằng `fetch` + `Authorization: Bearer`.
 - S4: route `/plugins/ordering/orders/:id` (id số, không phải mã đơn). Đơn nháp có nút "Xác nhận đơn" / "Xóa nháp".
 - S7: cập nhật chi nhánh có thêm `PUT /ordering/branches/:code` (client fetch của Admin không có PATCH).
-- S8: menu riêng "Nhân viên bán hàng" (`/plugins/ordering/staff`).
+- Điều hướng (chủ dự án yêu cầu 2026-10-11): sidebar chính chỉ có **một** mục "Bán hàng" (`/plugins/ordering`); mọi
+  màn nằm trong menu con của nó (kiểu Content Manager, `SubNav`): **Vận hành** — Đơn hàng (kèm số đơn chờ nhận);
+  **Món** — Danh mục, Tạm hết món; **Cấu hình** — Chi nhánh, Nhân viên bán hàng, Cài đặt bán hàng (link sang Settings).
+  Mỗi link chỉ hiện khi có quyền; mục chính hiện khi có ít nhất một quyền ordering.
+- S8: "Nhân viên bán hàng" ở `/plugins/ordering/staff` (trong menu con).
 - S9: link Settings ở mục chung (`global`) với id `ordering-settings`.
 - Chưa có ở O3: chọn biến thể món khi đặt (catalog O2 luôn tính theo biến thể mặc định); để O2/OW xử lý.
 
