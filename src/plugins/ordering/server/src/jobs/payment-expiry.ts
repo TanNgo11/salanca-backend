@@ -1,10 +1,11 @@
 import type { Core } from '@strapi/strapi';
 
 import { OrderingError } from '../domain/errors';
-import { paymentDeadline, paymentWindowStart } from '../domain/payments/deadline';
+import { paymentWindowStart } from '../domain/payments/deadline';
 import type branchFactory from '../services/branch';
 import type { ServiceContext } from '../services/context';
 import type jobLockFactory from '../services/job-lock';
+import type paymentLinkFactory from '../services/payment-link';
 import type transitionFactory from '../services/transition';
 
 type WaitingGroup = {
@@ -13,7 +14,8 @@ type WaitingGroup = {
 };
 
 /**
- * Expires groups still in `awaiting-payment` after the branch payment window. The transition
+ * Expires groups still in `awaiting-payment` after the branch payment window. A stored
+ * payment-link extension wins when it is later than that window. The transition
  * to `expired` is a cancel terminal, so the group's holds are released with it. A transfer
  * that arrives afterwards is `order-closed` and is not captured.
  */
@@ -25,6 +27,7 @@ export const runPaymentExpiry = async (
   const jobLock = plugin.service('job-lock') as ReturnType<typeof jobLockFactory>;
   const transition = plugin.service('transition') as ReturnType<typeof transitionFactory>;
   const branches = plugin.service('branch') as ReturnType<typeof branchFactory>;
+  const links = plugin.service('payment-link') as ReturnType<typeof paymentLinkFactory>;
   const now = options.now ?? new Date();
   const ctx: ServiceContext = { actor: { kind: 'system', actorRef: 'job:payment-expiry' }, now };
   const events = () => strapi.db.query('plugin::ordering.order-event');
@@ -51,7 +54,8 @@ export const runPaymentExpiry = async (
           groupId: group.id,
           events: history.map((row) => ({ ...row, type: 'fulfillment-group.transitioned' })),
         });
-        if (now.getTime() < paymentDeadline(start, timeout).getTime()) continue;
+        const deadline = await links.effectiveDeadline(order.id, start, timeout);
+        if (now.getTime() < deadline.getTime()) continue;
         try {
           await transition.transitionGroup(
             { orderId: order.id, groupId: group.id, to: 'expired', reason: 'payment-timeout' },

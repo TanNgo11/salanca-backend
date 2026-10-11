@@ -121,6 +121,13 @@ the payment window has already passed. SePay fills it while the window is open:
 production. Tests embed an SVG data URL and never call SePay. The account number is the branch account
 from `SEPAY_ACCOUNTS` (a branch-specific account wins over one with `locationRefs: "all"`).
 
+A staff payment link is a second bearer. `POST /ordering/orders/:id/payment-link` (admin, `order.read`)
+returns `{ url, expiresAt, replayed }`. The url is `notifications.orderLinkTemplate` with `#t=` replaced
+by `#p=`. That token is accepted only by this GET. `GET /orders` and `POST /orders/cancel` still require
+the order token and reject the payment token with 401 `ORDER_TOKEN_INVALID`. While the link is unexpired,
+a second create returns the same url. A new link extends the order's payment deadline to at least
+`expiresAt`. The order detail returns `paymentLink: { expiresAt } | null` and never the token.
+
 ### `POST /orders/cancel` (`X-Order-Token`)
 
 Body `{ "reason"?: "≤ 200" }`. Allowed while every live step is customer-cancellable (waiting for the

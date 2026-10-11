@@ -82,6 +82,30 @@ Public routes (`auth:false`, under `/api/v1/ordering`): `GET /branches`, `GET /c
   `timingSafeEqual`; an unknown code, a draft and a wrong phone return the same `ORDER_LOOKUP_FAILED` after the
   same work. The status-only view opens no action (no cancel, no payment QR).
 
+## Ordering SePay webhook and payment link (O4)
+
+Public `POST /api/v1/ordering/webhooks/sepay` is `auth: false`. It is not a users-permissions route and
+it is not covered by the storefront rate limits. Authentication is HMAC-SHA256 of
+`{X-SePay-Timestamp}.{raw body}` in `X-SePay-Signature: sha256=<hex>`, skew at most 300 seconds. A bad
+signature is 401 `{ "success": false }`. A payload that does not match the contract is 400
+`{ "success": false }`. After the raw event is stored, every other case is 200 `{ "success": true }`.
+
+`SEPAY_WEBHOOK_SECRET` and `SEPAY_API_TOKEN` come only from the environment. They are not shown in
+Admin and are not written to logs. Logs do not include the sender name, the full account number, or
+the raw transfer content.
+
+The global JSON body limit is 256 KB, and `strapi::body` keeps the raw body (`includeUnparsed: true`)
+when `ORDERING_ENABLED=true`. Storefront routes are separately capped at 32 KB. The webhook is not
+under that 32 KB cap.
+
+Cloudflare must not cache or challenge `/api/v1/ordering/webhooks/sepay`. Reconciliation calls
+`GET https://userapi.sepay.vn/v2/transactions` with the bearer token and refuses redirects.
+
+A staff payment link is a second bearer (fragment `#p=`). It is accepted only by `GET /orders/payment`.
+It does not open the order view or cancel. The plaintext is sealed with `ORDERING_ENCRYPTION_KEY`; the
+store keeps the SHA-256. Creating a new link can extend the payment window. The customer's original
+order token is unchanged.
+
 ## Form intake rate limiting
 
 Contact and reservation intake are rate limited in-process per client IP (default 5 per 10 minutes).

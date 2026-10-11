@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Badge,
@@ -118,6 +118,33 @@ export const OrderDetailPage = () => {
   const { post, del } = useFetchClient();
   const toastError = useErrorToast();
   const [draftBusy, setDraftBusy] = useState<'confirm' | 'delete' | null>(null);
+  const [linkBusy, setLinkBusy] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const linkTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (linkTimer.current) clearTimeout(linkTimer.current);
+    },
+    [],
+  );
+  const copyPaymentLink = async () => {
+    setLinkBusy(true);
+    try {
+      const { data } = await post(`/ordering/orders/${orderId}/payment-link`);
+      const url = (data as { url?: unknown }).url;
+      if (typeof url === 'string' && url && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      }
+      setLinkCopied(true);
+      if (linkTimer.current) clearTimeout(linkTimer.current);
+      linkTimer.current = setTimeout(() => setLinkCopied(false), 2000);
+      await load();
+    } catch (error) {
+      toastError(error);
+    } finally {
+      setLinkBusy(false);
+    }
+  };
   const draftAction = async (kind: 'confirm' | 'delete') => {
     setDraftBusy(kind);
     try {
@@ -338,6 +365,23 @@ export const OrderDetailPage = () => {
               <Row label={t('detail.due')} value={formatMoney(totals.due)} strong />
             </Section>
             <Section title={t('detail.payments')}>
+              {group?.status === 'awaiting-payment' && can.canRead ? (
+                <Box paddingBottom={2}>
+                  <Button
+                    size="S"
+                    variant="secondary"
+                    loading={linkBusy}
+                    onClick={() => void copyPaymentLink()}
+                  >
+                    {linkCopied
+                      ? t('detail.paymentLinkCopied')
+                      : detail.paymentLink?.expiresAt &&
+                          new Date(detail.paymentLink.expiresAt).getTime() <= Date.now()
+                        ? t('detail.paymentLinkExpired')
+                        : t('detail.paymentLink')}
+                  </Button>
+                </Box>
+              ) : null}
               {detail.payments.length === 0 && detail.refunds.length === 0 ? (
                 <Typography textColor="neutral600">{t('detail.noPayments')}</Typography>
               ) : (

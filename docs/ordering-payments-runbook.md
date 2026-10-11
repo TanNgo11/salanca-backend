@@ -75,6 +75,10 @@ không mở cảnh báo đó.
 Đơn `prepay` quá `paymentTimeoutMinutes` thì job hết hạn (mỗi 30 giây) chuyển `expired` và nhả chỗ.
 Tiền tới sau không ghi sổ. QR ẩn khi đã quá hạn dù job chưa chạy.
 
+Nhân viên bấm "Sao chép link thanh toán" trên đơn đang chờ chuyển khoản. Link chỉ mở trang QR (`#p=`),
+hết hạn theo cửa sổ thanh toán; tạo link mới thì kéo hạn đơn. Hủy một phần món trên đơn đã chuyển khoản
+tạo phiếu hoàn chờ; `paymentStatus` đổi khi ghi mã ngân hàng.
+
 ## Hoàn tiền
 
 SePay không hoàn qua API. Nhân viên chuyển trả ngoài hệ thống rồi ghi mã trên đơn. Phiếu hoàn ở trạng

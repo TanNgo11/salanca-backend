@@ -17,6 +17,7 @@ import type branchFactory from './branch';
 import type { ServiceContext } from './context';
 import { nowOf } from './context';
 import type lineCancelFactory from './line-cancel';
+import type paymentLinkFactory from './payment-link';
 import type orderServiceFactory from './order';
 import type orderingSettingsFactory from './ordering-settings';
 import type paymentFactory from './payment';
@@ -87,6 +88,7 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
     payment: () => plugin().service('payment') as ReturnType<typeof paymentFactory>,
     refund: () => plugin().service('refund') as ReturnType<typeof refundFactory>,
     lineCancel: () => plugin().service('line-cancel') as ReturnType<typeof lineCancelFactory>,
+    paymentLink: () => plugin().service('payment-link') as ReturnType<typeof paymentLinkFactory>,
     timeline: () => plugin().service('timeline') as ReturnType<typeof timelineFactory>,
     scope: () => plugin().service('scope') as ReturnType<typeof scopeFactory>,
     branch: () => plugin().service('branch') as ReturnType<typeof branchFactory>,
@@ -453,6 +455,7 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
           occurredAt: event.occurredAt,
         })),
         nextTransitions: nextTransitions(aggregate),
+        paymentLink: await s.paymentLink().summary(aggregate.order.id),
         settings: { delayMinutes: (await s.settings().get()).delayMinutes },
       };
     },
@@ -666,7 +669,7 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
       return preview as unknown as { refundAmount: number; refundShortfall: number };
     },
 
-    /** POST /orders/:id/lines/:lineId/cancel — partial cancel with cash refund (contracts §21.5). */
+    /** POST /orders/:id/lines/:lineId/cancel — partial cancel. Cash settles now; a transfer stays pending. */
     async cancelLine(
       orderId: number,
       lineId: number,

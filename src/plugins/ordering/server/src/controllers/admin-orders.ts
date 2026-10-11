@@ -2,12 +2,14 @@ import type { Core } from '@strapi/strapi';
 
 import type adminOrdersFactory from '../services/admin-orders';
 import type manualPaymentFactory from '../services/manual-payment';
+import type paymentLinkFactory from '../services/payment-link';
 import type orderingSettingsFactory from '../services/ordering-settings';
 import { adminAction, positiveInt, text } from './http';
 
 type AdminOrders = ReturnType<typeof adminOrdersFactory>;
 type Settings = ReturnType<typeof orderingSettingsFactory>;
 type ManualPayment = ReturnType<typeof manualPaymentFactory>;
+type PaymentLink = ReturnType<typeof paymentLinkFactory>;
 
 const body = (value: unknown): Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -25,6 +27,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
   const service = () => strapi.plugin('ordering').service('admin-orders') as AdminOrders;
   const settings = () => strapi.plugin('ordering').service('ordering-settings') as Settings;
   const manual = () => strapi.plugin('ordering').service('manual-payment') as ManualPayment;
+  const links = () => strapi.plugin('ordering').service('payment-link') as PaymentLink;
   const id = (value: string | undefined) => positiveInt(value) ?? 0;
 
   return {
@@ -120,6 +123,9 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
         serviceCtx,
       );
     }),
+    paymentLink: adminAction(strapi, async (ctx, serviceCtx) =>
+      links().issue(id(ctx.params.id), serviceCtx),
+    ),
     recordManual: adminAction(strapi, async (ctx, serviceCtx) => {
       const input = body(ctx.request.body);
       return manual().record(

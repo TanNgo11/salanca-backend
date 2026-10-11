@@ -92,16 +92,33 @@ Theo TastyIgniter refund + Vendure `settle-refund-dialog`.
 
 ## P6. Sao chép link thanh toán
 
-Theo Medusa `copy-payment-link`. Nút trong P1 và trong chi tiết đơn nháp đã xác nhận. Bấm → copy link, đổi chữ thành
-"Đã sao chép" 2 giây. Link hết hạn theo `paymentTimeoutMinutes`; nút hiện "Hết hạn — tạo link mới" khi quá hạn
-(`POST /ordering/orders/:id/payment-link`).
+Theo Medusa `copy-payment-link`. Nút trong khối thanh toán P1 khi group đang `awaiting-payment` (đơn nháp
+chưa xác nhận không ở trạng thái này). Quyền `order.read`. Bấm gọi
+`POST /ordering/orders/:id/payment-link` → `{ url, expiresAt, replayed }`, copy `url`, chữ nút thành
+"Đã sao chép" 2 giây. Link còn hạn thì lần bấm sau trả cùng `url` (`replayed: true`) và không kéo dài thêm.
+Hết hạn hoặc chưa có link thì tạo token mới và kéo hạn thanh toán của đơn đến ít nhất `expiresAt`. Nút hiện
+"Hết hạn — tạo link mới" khi `paymentLink.expiresAt` đã qua. Chi tiết đơn chỉ trả
+`paymentLink: { expiresAt } | null`, không trả token.
+
+Token là bearer thứ hai, chỉ `GET /api/v1/ordering/orders/payment` chấp nhận (fragment `#p=`).
+`GET /orders` và `POST /orders/cancel` với token này là 401 `ORDER_TOKEN_INVALID`. Token đơn gốc (`#t=`)
+vẫn xem, hủy và mở QR.
 
 ## P7. Trang QR phía khách
 
-Thuộc web (OW) nhưng dữ liệu do O4 cung cấp: `GET /api/v1/ordering/orders/payment` (header `X-Order-Token`) →
-`{ qrUrl, bankName, accountNumber, accountName, amount, memo, expiresAt, status }`. Trang hiện QR, số tiền, nội dung
-chuyển khoản (nút sao chép từng dòng), đồng hồ đếm ngược, trạng thái tự cập nhật (polling có backoff 3 → 5 → 10 giây,
-dừng khi đã trả hoặc hết hạn). Hết hạn: "Đơn đã hết hạn thanh toán", không còn QR.
+Thuộc web (OW) nhưng dữ liệu do O4 cung cấp. `GET /api/v1/ordering/orders/payment` (header `X-Order-Token`,
+token đơn hoặc token link thanh toán) trả
+
+`{ payment: { code, paymentStatus, currency, total, due, paymentTiming, methods, presentation } }`.
+
+`presentation` là `null` khi không chờ thanh toán, không còn nợ, không có provider online, hoặc đã quá hạn.
+Khi có: `{ qr, bankAccount: { bankCode, bankName, accountNumber, accountName }, memo, expiresAt }`. `qr` là
+URL ảnh SePay. Test nhúng SVG (`data:image/svg+xml,...`) và không gọi SePay. `memo` là mẫu `SLC{orderCode}`
+đã thay (đơn `SLC-000124` thì nội dung chuyển khoản chứa `SLCSLC-000124`).
+
+Trang hiện QR, số tiền, nội dung chuyển khoản (nút sao chép từng dòng), đồng hồ đếm ngược tới `expiresAt`,
+trạng thái tự cập nhật (polling có backoff 3 → 5 → 10 giây, dừng khi đã trả hoặc hết hạn). Hết hạn:
+"Đơn đã hết hạn thanh toán", không còn QR.
 
 ## P8. Cấu hình SePay theo chi nhánh
 

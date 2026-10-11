@@ -145,7 +145,8 @@ soát bù; workflow `prepay` và `accept-then-pay` chạy trọn.
 | 9 hết hạn thanh toán | `65125b7` | prepay quá hạn thì `expired` và nhả hold; tiền tới sau là `order-closed` |
 | 10 hoàn chuyển khoản | `496e16c` | phiếu `pending` chưa đổi `paymentStatus`; settle ghi mã rồi mới cộng sổ |
 | 11 cảnh báo thanh toán | `cb9016e` | một cảnh báo mỗi khóa; webhook lỗi 5 lần, tiền không khớp, ghi tay quá 24 giờ, đối soát không ghi được |
-| 12 smoke + tài liệu | commit này | webhook ký giả khớp đơn trên DB test; env, runbook, contract |
+| 12 smoke + tài liệu | `9b66325` | webhook ký giả khớp đơn trên DB test; env, runbook, contract |
+| 13 link + hủy một phần | commit này | token `#p=` chỉ mở QR; hủy một phần chuyển khoản chờ settle |
 
 **Quyết định bước 7:** mã ngân hàng là `providerTransactionId` của event `kind=manual`. Webhook cùng `referenceCode` và cùng số tiền chỉ đặt `confirmed`. Khác số tiền thì lưu `needs-review`, không ghi thêm. Ghi chú nhân viên nằm ở change log (`reason`). `rawPayload` không có nội dung chuyển khoản hay số tài khoản. Đơn ngoài scope trả 404. Event ghi tay không vào hàng duyệt.
 
@@ -158,3 +159,5 @@ soát bù; workflow `prepay` và `accept-then-pay` chạy trọn.
 **Quyết định bước 11:** năm lần chữ ký hoặc xử lý webhook lỗi liên tiếp mở `webhook-failing:<provider>`, lần 20 thành `critical`, webhook hợp lệ thì xóa bộ đếm và đóng cảnh báo. Tiền không khớp là một cảnh báo đang mở cho mỗi provider. Chuyển khoản ghi tay quá 24 giờ mà SePay chưa xác nhận là một cảnh báo theo id event, đóng khi đã `confirmed`. Đối soát mở một cảnh báo cho mỗi giao dịch provider không ghi được vào sổ. Cron `jobs.manualConfirmCron` mặc định `0 15 * * * *`. Không có màn trạng thái vận hành.
 
 **Quyết định bước 12:** URL khai cho SePay là `https://<domain cms>/api/v1/ordering/webhooks/sepay`. Provider chỉ đăng ký khi có `SEPAY_WEBHOOK_SECRET`; boot từ chối nếu thiếu token hoặc tài khoản. Smoke `scripts/smoke-ordering-sepay.mjs` ký bằng secret giả trên `salanca_ordering_test`, không gọi SePay.
+
+**Quyết định bước 13:** Link thanh toán là token thứ hai trong `strapi.store` (`payment-token:<hash>`, `payment-link:<orderId>` giữ ciphertext). Chỉ `GET /orders/payment` nhận token này; URL dùng `#p=`. Hạn token là `paymentTimeoutMinutes`. Tạo link mới ghi `payment-deadline:<orderId>` bằng thời điểm muộn hơn giữa hạn tính từ đơn và hạn link; job hết hạn và QR tôn trọng mốc đó. Link còn hạn thì bấm lại trả cùng URL, không kéo thêm. Hủy một phần đơn đã chuyển khoản trừ các phiếu `pending` khi chọn số còn hoàn; nếu tiền đã giữ hết thì vẫn hủy món và ghi `refundShortfall`. `paymentStatus` chỉ đổi khi settle. Không thêm cột, không migration.

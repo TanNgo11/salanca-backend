@@ -35,9 +35,12 @@ type LineRow = {
  * Cancels units of one order line ("hủy một phần món"). The units land in `canceledQuantity`
  * whether or not money was captured; when captured funds remain, the matching telescoped
  * amount is refunded through the refund core with `countsAs: 'canceled'` (so no quantity
- * column is bumped twice). The order's `totalAmount` is immutable — the refund is the
- * money-back record. The fulfillment group is NOT auto-transitioned: staff close the group
- * explicitly so partially-canceled orders keep moving through the kitchen.
+ * column is bumped twice). Pending refunds already reserve captured money, so they shrink
+ * the cap; when nothing is left the units still cancel and `refundShortfall` records the gap.
+ * Cash settles inside the refund. A bank transfer stays pending until its reference is
+ * recorded. The order's `totalAmount` is immutable — the refund is the money-back record.
+ * The fulfillment group is NOT auto-transitioned: staff close the group explicitly so
+ * partially-canceled orders keep moving through the kitchen.
  */
 const lineCancel = ({ strapi }: { strapi: Core.Strapi }) => {
   const services = (): Services => {
@@ -107,13 +110,35 @@ const lineCancel = ({ strapi }: { strapi: Core.Strapi }) => {
           );
 
         // Refund against the payment with the largest captured remainder, capped at it.
+        // Pending rows already reserve that remainder (refund.ts checks the same sum).
         const orderPayments = (await payments().findMany({
           where: { order: input.orderId },
         })) as Array<{ id: number; capturedAmount: string | number; refundedAmount: string | number }>;
+        const pendingByPayment = new Map<number, number>();
+        if (orderPayments.length > 0) {
+          const pendingRows = (await trx('plugins_ordering_refund as refund')
+            .join('plugins_ordering_refund_payment_lnk as link', 'link.refund_id', 'refund.id')
+            .whereIn(
+              'link.payment_id',
+              orderPayments.map((payment) => payment.id),
+            )
+            .where('refund.status', 'pending')
+            .select('link.payment_id', 'refund.amount')) as Array<{
+            payment_id: number;
+            amount: string | number;
+          }>;
+          for (const row of pendingRows) {
+            const id = Number(row.payment_id);
+            pendingByPayment.set(id, (pendingByPayment.get(id) ?? 0) + amountFromDb(row.amount));
+          }
+        }
         const candidates = orderPayments
           .map((payment) => ({
             id: payment.id,
-            remaining: amountFromDb(payment.capturedAmount) - amountFromDb(payment.refundedAmount),
+            remaining:
+              amountFromDb(payment.capturedAmount) -
+              amountFromDb(payment.refundedAmount) -
+              (pendingByPayment.get(payment.id) ?? 0),
           }))
           .filter((payment) => payment.remaining > 0)
           .sort((a, b) => b.remaining - a.remaining);

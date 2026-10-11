@@ -175,6 +175,7 @@ export default {
       adminRoute('GET', '/orders/branches', 'admin-orders.branches', 'order.read'),
       adminRoute('GET', '/orders/stream', 'admin-stream.stream', 'order.read'),
       adminRoute('GET', '/orders/:id', 'admin-orders.detail', 'order.read'),
+      adminRoute('POST', '/orders/:id/payment-link', 'admin-orders.paymentLink', 'order.read'),
       adminRoute('POST', '/orders/:id/transition', 'admin-orders.transition', 'order.process'),
       adminRoute('POST', '/orders/:id/notes', 'admin-orders.addNote', 'order.process'),
       adminRoute('POST', '/orders/:id/cash-handover', 'admin-orders.cashHandover', 'payment.record-cash'),

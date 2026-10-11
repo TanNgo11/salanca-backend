@@ -26,3 +26,14 @@ export const paymentWindowStart = (input: {
 
 export const paymentDeadline = (start: Date, timeoutMinutes: number): Date =>
   new Date(start.getTime() + timeoutMinutes * 60_000);
+
+/** A staff payment link may push the window past the clock that started at placement. */
+export const paymentDeadlineStoreKey = (orderId: number): string => `payment-deadline:${orderId}`;
+
+/** Later of the computed window and a stored ISO extension. A bad stored value is ignored. */
+export const laterDeadline = (computed: Date, stored: string | null | undefined): Date => {
+  if (typeof stored !== 'string' || stored === '') return computed;
+  const parsed = new Date(stored).getTime();
+  if (!Number.isFinite(parsed) || parsed <= computed.getTime()) return computed;
+  return new Date(parsed);
+};

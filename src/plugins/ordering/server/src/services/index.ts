@@ -30,6 +30,7 @@ import webhook from './webhook';
 import paymentMatching from './payment-matching';
 import paymentReview from './payment-review';
 import manualPayment from './manual-payment';
+import paymentLink from './payment-link';
 
 export default {
   registry,
@@ -61,6 +62,7 @@ export default {
   'payment-matching': paymentMatching,
   'payment-review': paymentReview,
   'manual-payment': manualPayment,
+  'payment-link': paymentLink,
   migrations: ({ strapi }: { strapi: Core.Strapi }) => ({
     run: (migrations: OrderingMigration[]) => runOrderingMigrations(strapi, migrations),
   }),

@@ -102,4 +102,7 @@ export const o4Messages: Record<string, [string, string]> = {
   'action.refundPending': ['Đã tạo phiếu hoàn, chờ chuyển', 'Refund is waiting to be transferred'],
   'action.refundSettled': ['Đã ghi nhận hoàn tiền', 'Refund recorded'],
   'error.REFUND_NOT_FOUND': ['Không tìm thấy phiếu hoàn', 'Refund not found'],
+  'detail.paymentLink': ['Sao chép link thanh toán', 'Copy payment link'],
+  'detail.paymentLinkCopied': ['Đã sao chép', 'Copied'],
+  'detail.paymentLinkExpired': ['Hết hạn — tạo link mới', 'Expired — create a new link'],
 };

@@ -5,7 +5,7 @@ import { timingSafeEqual } from 'node:crypto';
 
 import { normalizeVietnamesePhone } from '../../../shared/contact/phone';
 import { OrderingError, isOrderingError } from '../domain/errors';
-import { paymentDeadline, paymentWindowStart } from '../domain/payments/deadline';
+import { paymentWindowStart } from '../domain/payments/deadline';
 import { sha256Hex } from '../domain/hashing';
 import { asapReadyAt, bookingWindow, isOpenAt } from '../domain/scheduling/slots';
 import {
@@ -20,6 +20,7 @@ import type branchFactory from './branch';
 import type { ServiceContext } from './context';
 import { nowOf } from './context';
 import type orderServiceFactory from './order';
+import type paymentLinkFactory from './payment-link';
 import type pickupSchedulingFactory from './pickup-scheduling';
 import type { OrderingRegistry } from './registry';
 import type timelineFactory from './timeline';
@@ -42,6 +43,7 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
   const timeline = () => plugin().service('timeline') as ReturnType<typeof timelineFactory>;
   const transitions = () => plugin().service('transition') as ReturnType<typeof transitionFactory>;
   const registry = () => plugin().service('registry') as OrderingRegistry;
+  const links = () => plugin().service('payment-link') as ReturnType<typeof paymentLinkFactory>;
   const config = () => strapi.config.get('plugin::ordering') as OrderingConfig;
   const repo = orderRepository({ strapi });
 
@@ -87,9 +89,19 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
       });
     },
 
-    /** GET /orders/payment — what is owed and how (cash in O3; QR/link providers in O4). */
+    /** GET /orders/payment — order token, or a staff payment link that opens only this page. */
     async paymentByToken(token: unknown) {
-      const aggregate = await service.aggregateByToken(token);
+      let aggregate: OrderAggregate;
+      try {
+        aggregate = await service.aggregateByToken(token);
+      } catch (error) {
+        if (!isOrderingError(error) || error.code !== 'ORDER_TOKEN_INVALID') throw error;
+        const orderId = await links().resolve(token, new Date());
+        if (orderId === null) throw error;
+        const loaded = await repo.loadOrderAggregate(orderId);
+        if (!loaded || loaded.order.status === 'draft') throw invalidToken();
+        aggregate = loaded;
+      }
       const captured = aggregate.payments.reduce((sum, payment) => sum + payment.capturedAmount, 0);
       const due = Math.max(0, aggregate.order.totalAmount - captured);
       const receive = aggregate.order.receiveMethod as { kind?: string };
@@ -117,7 +129,11 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
                 events: history.map((row) => ({ ...row, type: 'fulfillment-group.transitioned' })),
               })
             : new Date(aggregate.order.placedAt);
-          const deadline = paymentDeadline(start, settings.paymentTimeoutMinutes);
+          const deadline = await links().effectiveDeadline(
+            aggregate.order.id,
+            start,
+            settings.paymentTimeoutMinutes,
+          );
           if (deadline.getTime() <= Date.now()) {
             presentation = null;
           } else {

@@ -118,6 +118,7 @@ export type OrderDetail = {
     occurredAt: string;
   }>;
   nextTransitions: NextTransition[];
+  paymentLink: { expiresAt: string } | null;
   settings: { delayMinutes: number[] };
 };
 

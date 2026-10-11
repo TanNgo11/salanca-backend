@@ -1,7 +1,9 @@
-// Manual UAT server for O3 on the ordering TEST database only: resets the plugin tables, seeds two
+// Manual UAT server on the ordering TEST database only: resets the plugin tables, seeds two
 // branches (24/7 pickup, short lead time), a small real catalog and two staff users (Q1 staff,
-// chain manager), then keeps Strapi running until Ctrl+C. Emails are captured in memory (test
-// builtins), captcha accepts the token "pass". Never run against the dev or production database.
+// chain manager), then keeps Strapi running until Ctrl+C. Q1 stays cash pay-on-pickup. Q3 is
+// pickup prepay with the test SePay provider so the payment link and review screens can open.
+// Emails are captured in memory (test builtins), captcha accepts the token "pass". Never run
+// against the dev or production database. Real SePay transfers are not seeded.
 import { randomUUID } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { hostname } from 'node:os';
@@ -17,6 +19,7 @@ app.config.set('plugin::ordering.catalog.adapter', 'ordering-catalog');
 const branches = app.db.query('plugin::ordering.branch');
 for (const code of ['Q1', 'Q3']) {
   const row = await branches.findOne({ where: { code } });
+  const prepay = code === 'Q3';
   await branches.update({
     where: { id: row.id },
     data: {
@@ -24,8 +27,9 @@ for (const code of ['Q1', 'Q3']) {
       fulfillment: {
         pickup: {
           enabled: true,
-          paymentTiming: 'pay-on-pickup',
-          paymentProviders: ['cash'],
+          paymentTiming: prepay ? 'prepay' : 'pay-on-pickup',
+          paymentProviders: prepay ? ['sepay'] : ['cash'],
+          ...(prepay ? { paymentTimeoutMinutes: 15 } : {}),
           slaMinutes: 10,
           schedule: { leadTimeMinutes: 30, slotLengthMinutes: 30, capacity: 4, openingHours: { mode: '24_7' } },
         },
@@ -58,10 +62,10 @@ await doc('catalog-product').update({
 });
 
 // Staff: a non-super-admin role with every order action; Q1 staff and a chain manager.
-const role = await app.admin.services.role.create({ name: `UAT ordering ${randomUUID().slice(0, 6)}`, description: 'O3 UAT' });
+const role = await app.admin.services.role.create({ name: `UAT ordering ${randomUUID().slice(0, 6)}`, description: 'ordering UAT' });
 const actions = [
   'order.read', 'order.process', 'order.cancel', 'order.create', 'order.edit-lines', 'payment.record-cash',
-  'refund.manage', 'settings.manage', 'scope.manage', 'catalog.toggle-availability',
+  'payment.review', 'refund.manage', 'settings.manage', 'scope.manage', 'catalog.toggle-availability',
 ];
 await app.admin.services.role.assignPermissions(
   role.id,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { paymentDeadline, paymentWindowStart } from './deadline';
+import { laterDeadline, paymentDeadline, paymentWindowStart } from './deadline';
 
 const placedAt = new Date('2026-10-11T10:00:00.000Z');
 
@@ -34,5 +34,17 @@ describe('payment window', () => {
       ],
     });
     expect(start.toISOString()).toBe('2026-10-11T11:30:00.000Z');
+  });
+
+  it('keeps a stored extension when it is later than the computed window', () => {
+    const computed = paymentDeadline(placedAt, 15);
+    expect(laterDeadline(computed, null).toISOString()).toBe('2026-10-11T10:15:00.000Z');
+    expect(laterDeadline(computed, 'not-a-date').toISOString()).toBe('2026-10-11T10:15:00.000Z');
+    expect(laterDeadline(computed, '2026-10-11T10:10:00.000Z').toISOString()).toBe(
+      '2026-10-11T10:15:00.000Z',
+    );
+    expect(laterDeadline(computed, '2026-10-11T12:00:00.000Z').toISOString()).toBe(
+      '2026-10-11T12:00:00.000Z',
+    );
   });
 });

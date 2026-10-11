@@ -44,6 +44,7 @@ const scripts = [
   'sepay-expiry.mjs',
   'sepay-refund.mjs',
   'sepay-alerts.mjs',
+  'sepay-link.mjs',
 ];
 
 const results = [];
