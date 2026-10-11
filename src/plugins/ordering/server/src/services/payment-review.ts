@@ -5,6 +5,7 @@ import type { OrderingConfig } from '../config';
 import { OrderingError } from '../domain/errors';
 import type { LocationScope } from '../domain/scope';
 import { amountFromDb } from '../domain/money';
+import { CLOSED_GROUP_STATUSES } from '../domain/payments/match';
 import { extractOrderCode } from '../domain/payments/memo';
 import type { TransactionClient } from '../migrations/runner';
 import { accountScope, type SepaySettings } from '../providers/sepay/config';
@@ -12,9 +13,12 @@ import { sepaySettingsFromConfig } from '../providers/sepay/provider';
 import type { ServiceContext } from './context';
 import { actorRefOf, nowOf } from './context';
 import type changeLogFactory from './change-log';
+import type orderServiceFactory from './order';
+import type outboxFactory from './outbox';
 import type paymentMatchingFactory from './payment-matching';
 import type pickupSchedulingFactory from './pickup-scheduling';
 import type scopeFactory from './scope';
+import type timelineFactory from './timeline';
 
 type EventRow = {
   id: number;
@@ -67,6 +71,9 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
   const matching = () => plugin().service('payment-matching') as ReturnType<typeof paymentMatchingFactory>;
   const changeLog = () => plugin().service('change-log') as ReturnType<typeof changeLogFactory>;
   const scheduling = () => plugin().service('pickup-scheduling') as ReturnType<typeof pickupSchedulingFactory>;
+  const timeline = () => plugin().service('timeline') as ReturnType<typeof timelineFactory>;
+  const outbox = () => plugin().service('outbox') as ReturnType<typeof outboxFactory>;
+  const orderService = () => plugin().service('order') as ReturnType<typeof orderServiceFactory>;
   const events = () => strapi.db.query('plugin::ordering.payment-event');
   const orders = () => strapi.db.query('plugin::ordering.order');
   const groups = () => strapi.db.query('plugin::ordering.fulfillment-group');
@@ -314,6 +321,15 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
         if (!order || !visible(staffScope, [order.locationRef])) {
           throw new OrderingError('ORDER_NOT_FOUND', 'order not found');
         }
+        // Money on a canceled order would sit in the ledger with nothing to deliver. A closed
+        // order goes through reopen, which checks the slot and restarts the payment window.
+        const orderGroups = (await groups().findMany({ where: { order: orderId } })) as Array<{ status: string }>;
+        const live = orderGroups.filter(
+          (group) => !(CLOSED_GROUP_STATUSES as readonly string[]).includes(group.status),
+        );
+        if (live.length === 0) {
+          throw new OrderingError('ORDER_CLOSED', 'the order is closed; reopen it instead');
+        }
         const applied = await matching().assignEvent(
           { providerCode: row.providerCode, providerTransactionId: row.providerTransactionId, orderId },
           ctx,
@@ -406,10 +422,16 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
             details: { field: 'orderId' },
           });
         }
-        const group = (await groups().findOne({ where: { order: orderId } })) as {
-          id: number;
-          status: string;
-        } | null;
+        const found = (await groups().findOne({ where: { order: orderId } })) as { id: number } | null;
+        if (found) await trx('plugins_ordering_fulfillment_group').where({ id: found.id }).forUpdate().first();
+        const group = found
+          ? ((await groups().findOne({ where: { id: found.id } })) as {
+              id: number;
+              status: string;
+              workflowName: string;
+              workflowVersion: string;
+            })
+          : null;
         if (!group || (group.status !== 'canceled' && group.status !== 'expired')) {
           throw new OrderingError('REOPEN_UNAVAILABLE', 'the order is not closed');
         }
@@ -435,7 +457,59 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
             throw error;
           }
         }
+        // Terminal states have no outgoing edge, so reopening is written here rather than through
+        // the transition service. It still records the step like a transition: the timeline entry
+        // restarts the payment window (paymentWindowStart), and the outbox feeds the inbox stream.
         await groups().update({ where: { id: group.id }, data: { status: 'awaiting-payment' } });
+        const transitionPayload = {
+          groupId: group.id,
+          from: group.status,
+          to: 'awaiting-payment',
+          workflowName: group.workflowName,
+          workflowVersion: group.workflowVersion,
+          reason: 'payment-review-reopen',
+        };
+        await timeline().record(
+          { orderId, type: 'fulfillment-group.transitioned', isPublic: true, payload: transitionPayload },
+          ctx,
+        );
+        const projection = await orderService().recomputeProjection(orderId);
+        if (projection.before.status !== projection.after.status) {
+          await outbox().enqueue(
+            {
+              type: 'order.transitioned',
+              aggregateType: 'order',
+              aggregateId: String(orderId),
+              payload: {
+                orderId,
+                from: projection.before.status,
+                to: projection.after.status,
+                actorRef: actorRefOf(ctx),
+                locationRef: order.locationRef,
+              },
+              uniqueKey: `order-reopen:${orderId}:${row.id}`,
+            },
+            ctx,
+          );
+        }
+        await outbox().enqueue(
+          {
+            type: 'fulfillment-group.transitioned',
+            aggregateType: 'fulfillment-group',
+            aggregateId: String(group.id),
+            payload: {
+              orderId,
+              ...transitionPayload,
+              actorRef: actorRefOf(ctx),
+              isPublic: true,
+              notifyCustomer: false,
+              locationRef: order.locationRef,
+              reasonCode: 'payment-review-reopen',
+            },
+            uniqueKey: `fgt:${group.id}:${group.status}>awaiting-payment:reopen:${row.id}`,
+          },
+          ctx,
+        );
         const applied = await matching().assignEvent(
           { providerCode: row.providerCode, providerTransactionId: row.providerTransactionId, orderId },
           ctx,

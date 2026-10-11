@@ -267,6 +267,21 @@ withApp(async (app) => {
     const tiny = await http.as.lan('GET', '/payment-reviews/orders?q=x');
     assert.deepEqual(tiny.body.results, []);
 
+    // Assigning to a canceled order is refused; reopen is the way back.
+    const strayTxn = seq + 1;
+    await transfer('0123456789', 20_000, 'khong co ma');
+    const strayAssign = await http.as.lan('POST', `/payment-reviews/${(await eventOf(strayTxn)).id}/assign`, {
+      orderId: closed.order.order.id,
+      reason: 'gán nhầm vào đơn đã hủy',
+    });
+    assert.equal(strayAssign.status, 409, JSON.stringify(strayAssign.body));
+    assert.equal(strayAssign.body.error.code, 'ORDER_CLOSED');
+    assert.equal((await eventOf(strayTxn)).reviewStatus, 'needs-review');
+    assert.equal(
+      (await load(closed.order.order.id)).payments.reduce((sum, payment) => sum + payment.capturedAmount, 0),
+      0,
+    );
+
     const reopened = await http.as.lan('POST', `/payment-reviews/${closedEvent.id}/reopen`, {
       orderId: closed.order.order.id,
       reason: 'khách chuyển sau khi hủy',
@@ -275,12 +290,19 @@ withApp(async (app) => {
     agg = await load(closed.order.order.id);
     assert.equal(agg.groups[0].status, 'awaiting-acceptance');
     assert.equal(agg.order.paymentStatus, 'paid');
+    const reopenSteps = await app.db.query('plugin::ordering.order-event').findMany({
+      where: { order: closed.order.order.id, type: 'fulfillment-group.transitioned' },
+    });
+    const reopenStep = reopenSteps.find((step) => step.payload.reason === 'payment-review-reopen');
+    assert.ok(reopenStep, 'reopen is recorded like a transition');
+    assert.equal(reopenStep.payload.from, 'canceled');
+    assert.equal(reopenStep.payload.to, 'awaiting-payment');
     const reopenLog = await app.db.query('plugin::ordering.admin-change-log').findMany({
       where: { action: 'payment-review.reopen', entityId: String(closedEvent.id) },
     });
     assert.equal(reopenLog.length, 1);
 
-    console.log('[ordering-test] sepay review: scope, race, ignore, refund-due, reopen');
+    console.log('[ordering-test] sepay review: scope, race, ignore, refund-due, closed assign, reopen');
   } finally {
     await http.cleanup();
   }

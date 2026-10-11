@@ -54,7 +54,7 @@ Tab Đã xử lý thêm cột: cách xử lý, người xử lý, lý do ghi, th
 
 | Tab | Field | API | Quy tắc |
 | --- | --- | --- | --- |
-| Gán vào đơn | ô chữ + nút kết quả tìm đơn (mã hoặc SĐT đủ), hiện cần thu; xem trước: "Ghi nhận X đ, còn thiếu Y đ" hoặc "Dư Z đ → cần hoàn" | `POST /ordering/payment-reviews/:id/assign { orderId, reason }` | đủ tiền thì đơn chạy bước tiếp như tự động |
+| Gán vào đơn | ô chữ + nút kết quả tìm đơn (mã hoặc SĐT đủ), hiện cần thu; xem trước: "Ghi nhận X đ, còn thiếu Y đ" hoặc "Dư Z đ → cần hoàn" | `POST /ordering/payment-reviews/:id/assign { orderId, reason }` | đủ tiền thì đơn chạy bước tiếp như tự động; đơn đã đóng → 409 `ORDER_CLOSED` (dùng Mở lại đơn) |
 | Cần hoàn tiền | số tiền hoàn (mặc định toàn bộ), lý do | `.../refund-due { amount, reason }` | tạo refund thủ công chờ ghi mã (P5b) |
 | Mở lại đơn | đơn đã hủy được gợi ý; kiểm còn hàng/slot | `.../reopen { orderId, reason }` | chỉ với lý do "Đơn đã hủy"; hết hàng thì nút disabled kèm lý do |
 | Bỏ qua | lý do (vd. chuyển khoản nội bộ) | `.../ignore { reason }` | |
