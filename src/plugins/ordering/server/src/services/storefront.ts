@@ -1,10 +1,17 @@
 import type { Core } from '@strapi/strapi';
 
 import type { OrderingConfig } from '../config';
+import { timingSafeEqual } from 'node:crypto';
+
+import { normalizeVietnamesePhone } from '../../../shared/contact/phone';
 import { OrderingError, isOrderingError } from '../domain/errors';
 import { sha256Hex } from '../domain/hashing';
 import { asapReadyAt, bookingWindow, isOpenAt } from '../domain/scheduling/slots';
-import { customerCancellableNow, tokenOrderView } from '../domain/storefront/serialize';
+import {
+  customerCancellableNow,
+  lookupOrderView,
+  tokenOrderView,
+} from '../domain/storefront/serialize';
 import orderRepository from '../repositories/order';
 import type { OrderAggregate } from '../repositories/types';
 import type branchFactory from './branch';
@@ -119,6 +126,34 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
         throw error;
       }
       return service.viewByToken(token, ctx);
+    },
+
+    /**
+     * POST /orders/lookup (contracts §21.2): code + phone open a status-only view. A missing order,
+     * a draft and a wrong phone all fail with the same ORDER_LOOKUP_FAILED after the same work
+     * (a hash comparison against a dummy when there is no order), so codes cannot be probed.
+     */
+    async lookup(input: { code: string; phone: string }) {
+      const failed = () => new OrderingError('ORDER_LOOKUP_FAILED', 'no order matches this code and phone');
+      const phone = normalizeVietnamesePhone(input.phone);
+      const code = input.code.trim().toUpperCase();
+      const row = /^[A-Z0-9-]{1,40}$/.test(code)
+        ? ((await strapi.db
+            .query('plugin::ordering.order')
+            .findOne({ where: { code }, select: ['id', 'status', 'contactSnapshot'] })) as {
+            id: number;
+            status: string;
+            contactSnapshot: { phone?: string };
+          } | null)
+        : null;
+      const expected = Buffer.from(sha256Hex(row?.contactSnapshot?.phone ?? 'no-order'), 'hex');
+      const given = Buffer.from(sha256Hex(phone.valid ? phone.e164 : 'invalid-phone'), 'hex');
+      const matches = timingSafeEqual(expected, given);
+      if (!row || row.status === 'draft' || !phone.valid || !matches) throw failed();
+      const aggregate = await repo.loadOrderAggregate(row.id);
+      if (!aggregate) throw failed();
+      const events = (await timeline().listPublic(row.id)) as Parameters<typeof lookupOrderView>[1];
+      return lookupOrderView(aggregate, events);
     },
 
     /** GET /config — what the storefront needs to render checkout for one branch. */

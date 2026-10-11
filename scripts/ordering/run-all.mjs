@@ -34,6 +34,7 @@ const scripts = [
   'admin-orders.mjs',
   'notifications.mjs',
   'sla-alerts.mjs',
+  'lookup-drafts.mjs',
 ];
 
 const results = [];

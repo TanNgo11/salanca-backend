@@ -105,6 +105,14 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
         serviceCtx,
       );
     }),
+    quoteDraft: adminAction(strapi, async (ctx, serviceCtx) => service().quoteDraft(ctx.request.body, serviceCtx)),
+    createDraft: adminAction(strapi, async (ctx, serviceCtx) => service().createDraft(ctx.request.body, serviceCtx)),
+    confirmDraft: adminAction(strapi, async (ctx, serviceCtx) =>
+      service().confirmDraft(id(ctx.params.id), serviceCtx),
+    ),
+    deleteDraft: adminAction(strapi, async (ctx, serviceCtx) =>
+      service().deleteDraft(id(ctx.params.id), serviceCtx),
+    ),
     getSettings: adminAction(strapi, async () => ({ settings: await settings().get() })),
     putSettings: adminAction(strapi, async (ctx, serviceCtx) => ({
       settings: await settings().put(ctx.request.body ?? {}, serviceCtx),

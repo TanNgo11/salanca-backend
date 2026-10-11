@@ -58,7 +58,8 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
             'send the order token in the X-Order-Token header, never in the URL',
           );
         }
-        ctx.body = await run(ctx, serviceCtx);
+        const result = await run(ctx, serviceCtx);
+        if (result !== undefined) ctx.body = result;
       } catch (error) {
         sendError(ctx, error, serviceCtx.requestId);
       }
@@ -151,6 +152,17 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     payment: action('read', async (ctx) => ({
       payment: await storefront().paymentByToken(orderToken(ctx)),
     })),
+
+    /** POST /orders/lookup — { code, phone, captchaToken }; status-only, no PII, no actions. */
+    lookup: action('lookup', async (ctx) => {
+      const input = (ctx.request.body ?? {}) as Record<string, unknown>;
+      const code = typeof input.code === 'string' ? input.code.slice(0, 40) : '';
+      const phone = typeof input.phone === 'string' ? input.phone.slice(0, 32) : '';
+      // Per-code limit on top of the per-IP bucket: 5 tries / 15 minutes for one order code.
+      if (rateLimited(strapi, ctx, 'lookupPerCode', code.trim().toUpperCase() || 'empty')) return undefined;
+      await verifyCaptcha(ctx, typeof input.captchaToken === 'string' ? input.captchaToken : undefined, 'order-lookup');
+      return { order: await storefront().lookup({ code, phone }) };
+    }),
 
     /** POST /orders/cancel — X-Order-Token; only while customer-cancellable. */
     cancel: action('create', async (ctx, serviceCtx) => {

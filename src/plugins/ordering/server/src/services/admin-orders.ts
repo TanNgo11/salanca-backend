@@ -6,6 +6,7 @@ import { maskPhone, normalizeVietnamesePhone } from '../../../shared/contact/pho
 import type { WorkflowDefinition } from '../contracts/workflow';
 import { businessDate as businessDateOf } from '../domain/business-date';
 import { OrderingError } from '../domain/errors';
+import { parseCartRequest, parseOrderRequest } from '../domain/storefront/parse';
 import { paidAmounts, type SelectedOptionSnapshot } from '../domain/storefront/serialize';
 import { isTerminal } from '../domain/workflow/transition';
 import type { TransactionClient } from '../migrations/runner';
@@ -25,7 +26,7 @@ import type timelineFactory from './timeline';
 import type transitionFactory from './transition';
 
 /** Inbox tabs group workflow states (screens S1); a tab is not a single state. */
-export const TABS = ['awaiting', 'preparing', 'ready', 'done', 'canceled', 'all'] as const;
+export const TABS = ['awaiting', 'preparing', 'ready', 'done', 'canceled', 'all', 'drafts'] as const;
 export type Tab = (typeof TABS)[number];
 
 const tabOf = (definition: WorkflowDefinition, status: string): Exclude<Tab, 'all'> => {
@@ -187,7 +188,8 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
         conditions.push({ businessDate: filters.businessDate });
       }
       if (filters.payment) conditions.push({ paymentStatus: filters.payment });
-      conditions.push({ status: { $ne: 'draft' } });
+      // Drafts (staff phone orders not yet confirmed) only show in their own tab.
+      conditions.push(tab === 'drafts' ? { status: 'draft' } : { status: { $ne: 'draft' } });
       const rows = (await strapi.db.query('plugin::ordering.order').findMany({
         where: { $and: conditions },
         orderBy: { placedAt: 'desc' },
@@ -203,6 +205,7 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
         done: 0,
         canceled: 0,
         all: 0,
+        drafts: 0,
       };
       const items: ReturnType<typeof rowOf>[] = [];
       for (const { id } of rows) {
@@ -212,9 +215,13 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
         const group = liveGroup(aggregate);
         if (!group) continue;
         const rowTab = tabOf(workflowOf(group), group.status);
-        counts[rowTab] += 1;
-        counts.all += 1;
-        if (tab !== 'all' && tab !== rowTab) continue;
+        if (tab === 'drafts') {
+          counts.drafts += 1;
+        } else {
+          counts[rowTab] += 1;
+          counts.all += 1;
+          if (tab !== 'all' && tab !== rowTab) continue;
+        }
         let sla = branchSla.get(aggregate.order.locationRef);
         if (sla === undefined) {
           const branch = await s.branch().findByCode(aggregate.order.locationRef);
@@ -648,6 +655,66 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
         ctx,
       );
       return service.detail(orderId, ctx);
+    },
+
+    /**
+     * Staff phone orders (contracts §21.3; screens S6). The page keeps the cart; the server prices
+     * it (`quoteDraft`), saves it as a draft order that already holds its pickup slot
+     * (`createDraft`, origin staff-draft, consent channel phone-staff), and `confirmDraft` releases
+     * it into the live flow. Prices come from the catalog pipeline — no manual price in v1.
+     */
+    async quoteDraft(body: unknown, ctx: ServiceContext) {
+      const cart = parseCartRequest(body);
+      return s.order().quote(
+        {
+          ...cart,
+          contact: { phone: '' },
+          consent: { policyVersion: '', channel: 'phone-staff' },
+          origin: { kind: 'staff-draft', actorRef: ctx.actor.actorRef },
+        },
+        ctx,
+      );
+    },
+
+    async createDraft(body: unknown, ctx: ServiceContext) {
+      const request = parseOrderRequest(body);
+      const raw = (body ?? {}) as { idempotencyKey?: unknown };
+      const idempotencyKey =
+        typeof raw.idempotencyKey === 'string' && /^[A-Za-z0-9_:.-]{8,128}$/.test(raw.idempotencyKey)
+          ? raw.idempotencyKey
+          : undefined;
+      if (!idempotencyKey) {
+        throw new OrderingError('VALIDATION_ERROR', 'idempotencyKey is required', {
+          details: { field: 'idempotencyKey' },
+        });
+      }
+      const { captchaToken: _captcha, ...input } = request;
+      const result = await s.order().createOrder(
+        {
+          ...input,
+          idempotencyKey,
+          consent: { ...input.consent, channel: 'phone-staff' },
+          origin: { kind: 'staff-draft', actorRef: ctx.actor.actorRef },
+        },
+        ctx,
+      );
+      return service.detail(result.order.order.id, ctx);
+    },
+
+    async confirmDraft(orderId: number, ctx: ServiceContext) {
+      await s.order().confirmDraft(orderId, ctx); // scope + draft checks inside
+      return service.detail(orderId, ctx);
+    },
+
+    async deleteDraft(orderId: number, ctx: ServiceContext) {
+      const aggregate = await loadScoped(orderId, ctx);
+      if (aggregate.order.status !== 'draft') {
+        throw new OrderingError('VALIDATION_ERROR', 'only drafts can be deleted', {
+          details: { status: aggregate.order.status },
+        });
+      }
+      await s.transition().cancelOrder({ orderId, reason: 'draft-deleted' }, ctx);
+      return { deleted: true };
     },
 
     /** Business date "today" for a branch — the inbox default (screens S1). */

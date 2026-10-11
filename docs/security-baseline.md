@@ -60,8 +60,8 @@ consumption: `GET /api/v1/ordering/catalog/categories`, `/catalog/products`,
 ## Ordering storefront API (O3)
 
 Public routes (`auth:false`, under `/api/v1/ordering`): `GET /branches`, `GET /config`, `GET /slots`,
-`POST /quote`, `POST /orders`, `GET /orders`, `GET /orders/payment`, `POST /orders/cancel`
-(`POST /orders/lookup` is added with O3 step 14).
+`POST /quote`, `POST /orders`, `GET /orders`, `GET /orders/payment`, `POST /orders/cancel`,
+`POST /orders/lookup`.
 
 - Rate limits: in-process fixed windows per trusted client IP (`storefront.rateLimits`: read 120/min,
   quote 60/min, create and cancel 10 per 10 min). Single instance only (contracts §21.9).
@@ -76,7 +76,11 @@ Public routes (`auth:false`, under `/api/v1/ordering`): `GET /branches`, `GET /c
   `X-Order-Token` header — a token in the query string is refused (`ORDER_TOKEN_INVALID`) so it never reaches
   access logs. Customer links put it in the URL fragment (`#t=`).
 - Responses use allowlist serializers: the token view has the customer's name but not phone/email; the
-  lookup view (step 14) has no personal data. `Cache-Control: no-store` on order routes.
+  lookup view has no personal data. `Cache-Control: no-store` on order routes.
+- `POST /orders/lookup` (code + phone, contracts §21.2): captcha required; rate limited per IP (20 / 15 min)
+  **and** per order code (5 / 15 min, the 6th try is 429); phones compared as E.164 hashes with
+  `timingSafeEqual`; an unknown code, a draft and a wrong phone return the same `ORDER_LOOKUP_FAILED` after the
+  same work. The status-only view opens no action (no cancel, no payment QR).
 
 ## Form intake rate limiting
 

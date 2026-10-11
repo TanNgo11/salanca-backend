@@ -141,9 +141,11 @@ Theo Saleor `OrderDraftPage` + Vendure draft.
 
 - Route: `/plugins/ordering/orders/new` (tạo nháp ngay khi mở) và danh sách nháp ở tab "Nháp" của S1.
 - Quyền: `order.create`. Chi nhánh chỉ trong scope.
-- API: `POST /ordering/admin/drafts` → nháp; `PATCH /ordering/admin/drafts/:id` (lines, contact, receive, consent);
-  `POST /ordering/admin/drafts/:id/quote` → giá; `POST /ordering/admin/drafts/:id/confirm` → đơn thật;
-  `DELETE /ordering/admin/drafts/:id`.
+- API (**đổi khi code O3**: trang giữ giỏ trong state; không có `PATCH`, muốn sửa nháp thì xóa rồi lưu lại):
+  `POST /ordering/drafts/quote` (giỏ + chi nhánh + cách nhận → giá do server tính, không ghi gì);
+  `POST /ordering/drafts` (lưu nháp: giỏ, khách, slot hoặc ASAP, `consent: { policyVersion, accepted: true }`,
+  `idempotencyKey`; nháp đã giữ chỗ slot) → chi tiết đơn `status: draft`; `POST /ordering/drafts/:id/confirm` → đơn
+  vào hộp đơn; `DELETE /ordering/drafts/:id` (chỉ nháp). Danh sách nháp: `GET /ordering/orders?tab=drafts`.
 
 Bố cục hai cột:
 

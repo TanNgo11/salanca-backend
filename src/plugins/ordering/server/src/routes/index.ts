@@ -54,6 +54,7 @@ export default {
       publicRoute('GET', '/orders', 'storefront.show'),
       publicRoute('GET', '/orders/payment', 'storefront.payment'),
       publicRoute('POST', '/orders/cancel', 'storefront.cancel'),
+      publicRoute('POST', '/orders/lookup', 'storefront.lookup'),
     ],
   },
   admin: {
@@ -179,6 +180,11 @@ export default {
       ),
       adminRoute('POST', '/orders/:id/lines/:lineId/cancel', 'admin-orders.cancelLine', 'order.edit-lines'),
       adminRoute('POST', '/orders/:id/refunds', 'admin-orders.refund', 'refund.manage'),
+      // Staff phone orders (screens S6).
+      adminRoute('POST', '/drafts/quote', 'admin-orders.quoteDraft', 'order.create'),
+      adminRoute('POST', '/drafts', 'admin-orders.createDraft', 'order.create'),
+      adminRoute('POST', '/drafts/:id/confirm', 'admin-orders.confirmDraft', 'order.create'),
+      adminRoute('DELETE', '/drafts/:id', 'admin-orders.deleteDraft', 'order.create'),
       // General sales settings (screens S9).
       adminRoute('GET', '/settings', 'admin-orders.getSettings', 'settings.manage'),
       adminRoute('PUT', '/settings', 'admin-orders.putSettings', 'settings.manage'),
