@@ -4,6 +4,7 @@ import type { AdapterContext, Sellable } from '../contracts';
 import type { OrderingConfig } from '../config';
 import type { AvailabilityInput } from '../domain/catalog/availability';
 import { serializeCategoryTree, serializeProduct } from '../domain/catalog/serialize';
+import { resolveClientIp } from '../domain/client-ip';
 import { getCatalogRateLimit } from '../domain/rate-limit';
 import type { OrderingRegistry } from '../services/registry';
 
@@ -12,7 +13,7 @@ interface PublicCtx {
   query: Record<string, unknown>;
   params: Record<string, string | undefined>;
   ip?: string;
-  request: { ip?: string };
+  request: { ip?: string; headers?: Record<string, string | string[] | undefined> };
   status: number;
   body: unknown;
   set(field: string, value: string): void;
@@ -49,7 +50,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
 
   /** Fixed-window per-IP limit — read traffic is cheap but unauthenticated. */
   const rateLimited = (ctx: PublicCtx): boolean => {
-    const ip = ctx.request.ip ?? ctx.ip ?? 'unknown';
+    const ip = resolveClientIp(ctx, config().clientIp);
     const rate = getCatalogRateLimit().tryConsume(`catalog:${ip}`);
     if (rate.allowed) return false;
     ctx.set('Retry-After', String(Math.ceil(rate.retryAfterMs / 1000) || 1));

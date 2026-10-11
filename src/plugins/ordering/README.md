@@ -38,6 +38,10 @@ Các khóa `plugin::ordering` (mặc định trong `server/src/config/index.ts`)
 | `outbox.baseBackoffSeconds` / `maxBackoffSeconds` | `30` / `3600` | Backoff mũ `base*2^(n-1)` |
 | `jobs.enabled` | `true` | Bật cron (test tắt qua builtins) |
 | `jobs.outboxCron` / `holdExpiryCron` / `idempotencyCleanupCron` | `*/10s` / `*/30s` / `*/15m` | Lịch 3 job |
+| `clientIp.secretHeader` / `ipHeader` / `sharedSecret` | `x-ordering-client-secret` / `x-ordering-client-ip` / không | Chỉ tin IP khách do server web chuyển tiếp khi secret khớp (so sánh timing-safe); ngược lại dùng `ctx.request.ip`. Salanca dùng `x-salanca-intake-secret` + `x-salanca-visitor-ip` + `FORM_INTAKE_SHARED_SECRET` |
+| `encryptionKey` | không | AES-256-GCM, 32 byte base64 (`ORDERING_ENCRYPTION_KEY`). Bắt buộc khi `NODE_ENV=production`; nơi khác thiếu thì cảnh báo và không tạo được đơn |
+| `storefront.captchaProvider` | `''` | Code `CaptchaProvider` cho tạo đơn/tra cứu; rỗng = tắt (chỉ dev/test) |
+| `storefront.rateLimits.*` | xem `config/index.ts` | Cửa sổ cố định trong process theo IP (và theo mã đơn cho tra cứu) |
 | `testing.builtins` | `false` | Catalog/provider consumer test; cấm khi `NODE_ENV=production` |
 | `productTypes`, `providers.*` | `{}` | Map bật/tắt theo code (`{enabled}`); validate qua zod ở `validator` |
 

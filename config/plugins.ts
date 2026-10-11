@@ -110,6 +110,13 @@ export const resolveOrderingPluginConfig = (
     resolve: orderingPluginPath,
     config: {
       orderCode: { prefix: 'SLC' },
+      // Same trusted-forwarding headers and secret the web already sends for form intake.
+      clientIp: {
+        sharedSecret: env('FORM_INTAKE_SHARED_SECRET', ''),
+        secretHeader: 'x-salanca-intake-secret',
+        ipHeader: 'x-salanca-visitor-ip',
+      },
+      encryptionKey: env('ORDERING_ENCRYPTION_KEY', ''),
       ...(env.bool('ORDERING_TEST_BUILTINS', false)
         ? { testing: { builtins: true }, catalog: { adapter: 'test-catalog' }, jobs: { enabled: false } }
         : {}),

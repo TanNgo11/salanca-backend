@@ -43,8 +43,13 @@ consumption: `GET /api/v1/ordering/catalog/categories`, `/catalog/products`,
 - Read-only: only GET routes; serializer returns whitelisted fields (names, slugs,
   prices, availability) — internal ids, ranks, `isInternal` categories and inactive /
   non-`sellOnline` products are filtered out before serialization.
-- Rate limit: in-process per client IP (`X-Forwarded-For` honored only with
-  `TRUST_PROXY=true`, same model as form intake); 429 beyond the configured window.
+- Rate limit: in-process per client IP; 429 beyond the configured window. The client IP comes
+  from `resolveClientIp` (plugin `clientIp` config): the visitor IP forwarded by salanca-web in
+  `x-salanca-visitor-ip` is trusted only when `x-salanca-intake-secret` matches
+  `FORM_INTAKE_SHARED_SECRET` (constant-time compare, junk IPs ignored); otherwise the socket IP
+  (`X-Forwarded-For` only with `TRUST_PROXY=true`). Same model as form intake. **Open for OW:**
+  salanca-web must send both headers on its server-side calls to `/api/v1/ordering/*`, or all
+  visitors share the web server's bucket.
 - Response size: short `Cache-Control` TTL; product list is paginated — no unbounded
   dump endpoint.
 - Admin routes (`/ordering/categories*`, `/ordering/availability*`) require

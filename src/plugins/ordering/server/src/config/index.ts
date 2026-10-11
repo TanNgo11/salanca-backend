@@ -3,6 +3,11 @@ import { z } from '@strapi/utils';
 /** Settings of one registered provider. Provider-specific keys are validated by the provider itself. */
 const providerSettings = z.looseObject({ enabled: z.boolean() });
 
+const rateWindow = z.object({
+  max: z.number().int().positive(),
+  windowMs: z.number().int().positive(),
+});
+
 const taxRate = z.object({
   ratePercent: z.number().min(0),
   validFrom: z.string().min(1),
@@ -45,6 +50,25 @@ export const configSchema = z.object({
     outboxCron: z.string().min(1),
     holdExpiryCron: z.string().min(1),
     idempotencyCleanupCron: z.string().min(1),
+  }),
+  /** Trusted visitor-IP forwarding for rate limits / captcha (domain/client-ip.ts). */
+  clientIp: z.object({
+    sharedSecret: z.string().optional(),
+    secretHeader: z.string().min(1),
+    ipHeader: z.string().min(1),
+  }),
+  /** AES-256-GCM key (32 bytes, base64) for secrets read back later (contracts §21.10). */
+  encryptionKey: z.string().optional(),
+  storefront: z.object({
+    /** Registered CaptchaProvider code; empty string disables captcha (dev/test only). */
+    captchaProvider: z.string(),
+    rateLimits: z.object({
+      read: rateWindow,
+      quote: rateWindow,
+      create: rateWindow,
+      lookup: rateWindow,
+      lookupPerCode: rateWindow,
+    }),
   }),
   testing: z.object({ builtins: z.boolean() }).refine(
     (value) => !value.builtins || process.env.NODE_ENV !== 'production',
@@ -90,6 +114,17 @@ export default {
       outboxCron: '*/10 * * * * *',
       holdExpiryCron: '*/30 * * * * *',
       idempotencyCleanupCron: '0 */15 * * * *',
+    },
+    clientIp: { secretHeader: 'x-ordering-client-secret', ipHeader: 'x-ordering-client-ip' },
+    storefront: {
+      captchaProvider: '',
+      rateLimits: {
+        read: { max: 120, windowMs: 60_000 },
+        quote: { max: 60, windowMs: 60_000 },
+        create: { max: 10, windowMs: 600_000 },
+        lookup: { max: 20, windowMs: 900_000 },
+        lookupPerCode: { max: 5, windowMs: 900_000 },
+      },
     },
     testing: { builtins: false },
     productTypes: {},

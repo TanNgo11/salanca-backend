@@ -29,6 +29,9 @@ export function configureTestEnvironment(enabled = true) {
     delete process.env.ORDERING_TEST_BUILTINS;
   }
   process.env.AUDIT_IDENTIFIER_HASH_SECRET ??= randomBytes(32).toString('hex');
+  // Fixed test-only key so order creation (token sealing, contracts §21.10) works on machines
+  // without ORDERING_ENCRYPTION_KEY; never used outside the ordering test database.
+  process.env.ORDERING_ENCRYPTION_KEY ||= 'b3JkZXJpbmctdGVzdC1rZXktMzItYnl0ZXMtbG9uZyE=';
   process.env.S3_BUCKET = '';
   process.env.EMAIL_SMTP_HOST = '';
   process.env.CMS_WEBHOOK_URL = '';

@@ -37,6 +37,7 @@ export type OrderingErrorCode =
   | 'CATEGORY_HAS_PRODUCTS'
   | 'CATEGORY_MOVE_CYCLE'
   | 'VALIDATION_ERROR'
+  | 'CONFIG_INVALID'
   | 'INTERNAL';
 
 const defaultStatus: Record<OrderingErrorCode, number> = {
@@ -73,6 +74,7 @@ const defaultStatus: Record<OrderingErrorCode, number> = {
   CATEGORY_HAS_PRODUCTS: 409,
   CATEGORY_MOVE_CYCLE: 409,
   VALIDATION_ERROR: 400,
+  CONFIG_INVALID: 500,
   INTERNAL: 500,
 };
 

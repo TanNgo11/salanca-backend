@@ -9,6 +9,7 @@ import { runOutboxDispatcher } from './jobs/outbox-dispatcher';
 import { orderingMigrations } from './migrations';
 import { persistOrderingTables } from './migrations/persisted-tables';
 import { runOrderingMigrations } from './migrations/runner';
+import { parseEncryptionKey } from './domain/token-cipher';
 import { assertEnabledCodesRegistered, type OrderingRegistry } from './services/registry';
 
 const bootstrap = async ({ strapi }: { strapi: Core.Strapi }) => {
@@ -17,6 +18,15 @@ const bootstrap = async ({ strapi }: { strapi: Core.Strapi }) => {
 
   // The validator runs before any register(), so code references can only be checked here.
   assertEnabledCodesRegistered(config, registry);
+
+  // contracts §21.10: the order token is kept encrypted for idempotent replays. Production must
+  // boot with a valid key; elsewhere a missing key only warns and order creation refuses.
+  const key = parseEncryptionKey(config.encryptionKey);
+  if (!key.valid) {
+    const message = `[ordering] encryptionKey ${key.reason === 'missing' ? 'is not set' : 'must be 32 bytes, base64'} (ORDERING_ENCRYPTION_KEY)`;
+    if (process.env.NODE_ENV === 'production') throw new Error(message);
+    strapi.log.warn(`${message}; order creation is disabled until it is configured`);
+  }
 
   // Reserve ordering tables in the core store BEFORE migrations run — otherwise a later
   // boot with ORDERING_ENABLED=false would drop every plugins_ordering_* table (schema

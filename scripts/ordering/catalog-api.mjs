@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 // the small limit exercises the 429 path without hundreds of requests.
 process.env.TRUST_PROXY = 'true';
 process.env.ORDERING_CATALOG_RATE_LIMIT_MAX = '3';
+// Trusted visitor-IP forwarding (plugin clientIp config, mapped from FORM_INTAKE_SHARED_SECRET).
+process.env.FORM_INTAKE_SHARED_SECRET = 'catalog-api-test-secret';
 
 import { seedBranches, withApp } from './_harness.mjs';
 
@@ -201,5 +203,30 @@ withApp(async (app) => {
     if (expected === 429) assert.ok(res.headers.get('retry-after'));
   }
 
-  console.log('[ordering-test] catalog-api: public routes, sanitization, availability, rate limit verified');
+  // --- Trusted forwarding: one socket IP, two visitors -> two buckets -------------------
+  // Same x-forwarded-for for every call (one "web server"); the visitor IP rides in
+  // x-salanca-visitor-ip and only counts when the shared secret matches.
+  const web = { 'x-forwarded-for': '198.51.100.7' };
+  const visitor = (ipAddress, secret = 'catalog-api-test-secret') => ({
+    ...web,
+    'x-salanca-intake-secret': secret,
+    'x-salanca-visitor-ip': ipAddress,
+  });
+  for (const expected of [200, 200, 200, 429]) {
+    assert.equal((await get('/catalog/categories', visitor('192.0.2.10'))).status, expected);
+  }
+  assert.equal(
+    (await get('/catalog/categories', visitor('192.0.2.11'))).status,
+    200,
+    'a second visitor behind the same web server gets its own bucket',
+  );
+  // A wrong secret falls back to the socket IP (the web server's bucket), never an error.
+  for (const expected of [200, 200, 200, 429]) {
+    assert.equal(
+      (await get('/catalog/categories', visitor('192.0.2.12', 'wrong'))).status,
+      expected,
+    );
+  }
+
+  console.log('[ordering-test] catalog-api: public routes, sanitization, availability, rate limit, trusted client IP verified');
 });
