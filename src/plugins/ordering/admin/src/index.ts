@@ -1,4 +1,7 @@
-import { Folder, ShoppingCart, Store } from '@strapi/icons';
+import { Cog, Folder, House, ShoppingCart, Store, User } from '@strapi/icons';
+
+import { o3Translations } from './lib/i18n';
+import { PERMISSIONS } from './lib/permissions';
 
 import { PLUGIN_ID } from './pluginId';
 import en from './translations/en.json';
@@ -31,11 +34,25 @@ export default {
       components: { Input: () => import('./custom-fields/bundle-slots/Input') },
     });
     app.addMenuLink({
-      to: `/plugins/${PLUGIN_ID}`,
+      to: `/plugins/${PLUGIN_ID}/orders`,
       icon: ShoppingCart,
-      intlLabel: { id: `${PLUGIN_ID}.menu.title`, defaultMessage: 'Ordering' },
-      Component: () => import('./pages/HomePage'),
-      permissions: [],
+      intlLabel: { id: `${PLUGIN_ID}.menu.title`, defaultMessage: 'Bán hàng' },
+      Component: () => import('./pages/Orders'),
+      permissions: PERMISSIONS.read,
+    });
+    app.addMenuLink({
+      to: `/plugins/${PLUGIN_ID}/branches`,
+      icon: House,
+      intlLabel: { id: `${PLUGIN_ID}.menu.branches`, defaultMessage: 'Chi nhánh' },
+      Component: () => import('./pages/Branches'),
+      permissions: PERMISSIONS.settings,
+    });
+    app.addMenuLink({
+      to: `/plugins/${PLUGIN_ID}/staff`,
+      icon: User,
+      intlLabel: { id: `${PLUGIN_ID}.menu.staff`, defaultMessage: 'Nhân viên bán hàng' },
+      Component: () => import('./pages/Staff'),
+      permissions: PERMISSIONS.scope,
     });
     app.addMenuLink({
       to: `/plugins/${PLUGIN_ID}/categories`,
@@ -53,7 +70,20 @@ export default {
     });
     app.registerPlugin({ id: PLUGIN_ID, name: 'Ordering' });
   },
+  bootstrap(app: { addSettingsLink: (section: string | Record<string, unknown>, link: Record<string, unknown>) => void }) {
+    app.addSettingsLink('global', {
+      id: `${PLUGIN_ID}-settings`,
+      to: `${PLUGIN_ID}`,
+      icon: Cog,
+      intlLabel: { id: `${PLUGIN_ID}.settings.title`, defaultMessage: 'Bán hàng' },
+      Component: () => import('./pages/Settings'),
+      permissions: PERMISSIONS.settings,
+    });
+  },
   async registerTrads({ locales }: { locales: string[] }) {
-    return locales.map((locale) => ({ data: translationData[locale] ?? {}, locale }));
+    return locales.map((locale) => ({
+      data: { ...(translationData[locale] ?? {}), ...o3Translations(locale) },
+      locale,
+    }));
   },
 };

@@ -23,6 +23,22 @@ Quy ước cho người code:
   dẫn), **lỗi** (`Alert` + nút thử lại), **không có quyền** (trang 403 của Strapi), **đang lưu** (nút `loading`,
   chặn bấm lại).
 
+## Đã đổi khi code O3 (2026-10-11)
+
+- Route Admin của plugin: `/ordering/...` (không có `/admin`), xem quy ước ở trên.
+- S1: ô "Ngày kinh doanh" dùng `TextInput type="date"` thay `DatePicker` (giá trị là ngày `YYYY-MM-DD` theo giờ chốt
+  của chi nhánh, không qua múi giờ máy). Danh sách chi nhánh cho bộ lọc: `GET /ordering/orders/branches`
+  (`order.read`, kèm ngày kinh doanh hôm nay). Phân trang bằng nút Trước/Sau.
+- S2: plugin xuất `OrderingInboxProvider`; app chủ gắn nó ở cấp router (Salanca: `src/admin/app.tsx`, bọc cùng
+  hộp thư đặt bàn) nên hộp thoại hiện ở mọi trang. Trang của plugin tự gắn nếu app chủ chưa gắn. Cài đặt hộp thoại
+  (bật, âm báo, lý do, số phút lùi) đi kèm `GET /ordering/orders/summary` để nhân viên không có `settings.manage` vẫn
+  đọc được. SSE: `GET /ordering/orders/stream`, đọc bằng `fetch` + `Authorization: Bearer`.
+- S4: route `/plugins/ordering/orders/:id` (id số, không phải mã đơn). Đơn nháp có nút "Xác nhận đơn" / "Xóa nháp".
+- S7: cập nhật chi nhánh có thêm `PUT /ordering/branches/:code` (client fetch của Admin không có PATCH).
+- S8: menu riêng "Nhân viên bán hàng" (`/plugins/ordering/staff`).
+- S9: link Settings ở mục chung (`global`) với id `ordering-settings`.
+- Chưa có ở O3: chọn biến thể món khi đặt (catalog O2 luôn tính theo biến thể mặc định); để O2/OW xử lý.
+
 ## S1. Hộp đơn (danh sách)
 
 - Route Admin: `/plugins/ordering/orders`. Menu "Bán hàng" có badge số đơn chờ nhận.

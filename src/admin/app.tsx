@@ -4,6 +4,9 @@ import { Outlet } from 'react-router-dom';
 
 import { hideDeveloperOnlyAdminPermissions } from './admin-navigation-visibility.helper';
 import { ReservationInboxProvider } from './reservation-inbox/ReservationInboxProvider';
+// Ordering plugin inbox (new-order dialog on every page). Renders nothing without its permissions,
+// so it is inert when ORDERING_ENABLED=false.
+import { OrderingInboxProvider } from '../plugins/ordering/admin/src/inbox/OrderingInboxProvider';
 import {
   getReservationInboxTranslationId,
   reservationInboxPermissions,
@@ -204,7 +207,9 @@ export default {
       {
         element: (
           <ReservationInboxProvider>
-            <Outlet />
+            <OrderingInboxProvider>
+              <Outlet />
+            </OrderingInboxProvider>
           </ReservationInboxProvider>
         ),
         children: routes,

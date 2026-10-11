@@ -1,0 +1,355 @@
+import { useEffect, useState, type ReactNode } from 'react';
+import {
+  Box,
+  Button,
+  Field,
+  Flex,
+  Modal,
+  NumberInput,
+  SingleSelect,
+  SingleSelectOption,
+  Switch,
+  Textarea,
+  Typography,
+} from '@strapi/design-system';
+
+import { formatMoney, localized } from '../../lib/format';
+import { useLocale, useT } from '../../lib/i18n';
+import type { InboxSettings, OrderDetail } from '../../lib/types';
+
+/** Shared frame: "Hủy bỏ" left, the main action right (danger for destructive steps). */
+const Frame = ({
+  title,
+  children,
+  onClose,
+  action,
+}: {
+  title: string;
+  children: ReactNode;
+  onClose: () => void;
+  action: ReactNode;
+}) => {
+  const t = useT();
+  return (
+    <Modal.Root open onOpenChange={(open: boolean) => (!open ? onClose() : undefined)}>
+      <Modal.Content>
+        <Modal.Header>
+          <Modal.Title>{title}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Flex direction="column" alignItems="stretch" gap={4}>
+            {children}
+          </Flex>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="tertiary" onClick={onClose}>
+            {t('common.cancel')}
+          </Button>
+          {action}
+        </Modal.Footer>
+      </Modal.Content>
+    </Modal.Root>
+  );
+};
+
+const ReasonPicker = ({
+  reasons,
+  value,
+  onChange,
+  note,
+  onNote,
+}: {
+  reasons: InboxSettings['rejectReasons'];
+  value: string;
+  onChange: (value: string) => void;
+  note: string;
+  onNote: (value: string) => void;
+}) => {
+  const t = useT();
+  const locale = useLocale();
+  return (
+    <>
+      <Field.Root required>
+        <Field.Label>{t('dialog.reason')}</Field.Label>
+        <SingleSelect value={value} onChange={(next: string | number) => onChange(String(next))} placeholder={t('dialog.reason.pick')}>
+          {reasons.map((reason) => (
+            <SingleSelectOption key={reason.code} value={reason.code}>
+              {localized(reason.label, locale)}
+            </SingleSelectOption>
+          ))}
+          <SingleSelectOption value="other">{t('dialog.reject.other')}</SingleSelectOption>
+        </SingleSelect>
+      </Field.Root>
+      <Field.Root required={value === 'other'}>
+        <Field.Label>{t('dialog.note')}</Field.Label>
+        <Textarea value={note} onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => onNote(event.target.value)} />
+      </Field.Root>
+    </>
+  );
+};
+
+const reasonReady = (code: string, note: string) => (code === 'other' ? note.trim().length >= 3 : code !== '');
+
+/** Step with a note and the "Báo khách" switch (TastyIgniter orderstatus). */
+export const TransitionDialog = ({
+  to,
+  isPublic,
+  busy,
+  onClose,
+  onSubmit,
+}: {
+  to: string;
+  isPublic: boolean;
+  busy: boolean;
+  onClose: () => void;
+  onSubmit: (body: { note?: string; notifyCustomer: boolean }) => void;
+}) => {
+  const t = useT();
+  const [note, setNote] = useState('');
+  const [notify, setNotify] = useState(isPublic);
+  return (
+    <Frame
+      title={t(`transition.${to}`)}
+      onClose={onClose}
+      action={
+        <Button loading={busy} onClick={() => onSubmit({ note: note.trim() || undefined, notifyCustomer: notify })}>
+          {t(`transition.${to}`)}
+        </Button>
+      }
+    >
+      <Field.Root>
+        <Field.Label>{t('dialog.note')}</Field.Label>
+        <Textarea value={note} onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setNote(event.target.value)} />
+      </Field.Root>
+      <Flex gap={2}>
+        <Switch checked={notify} onCheckedChange={setNotify} />
+        <Typography>{t('dialog.notifyCustomer')}</Typography>
+      </Flex>
+    </Frame>
+  );
+};
+
+export const RejectDialog = ({
+  to,
+  reasons,
+  busy,
+  onClose,
+  onSubmit,
+}: {
+  to: string;
+  reasons: InboxSettings['rejectReasons'];
+  busy: boolean;
+  onClose: () => void;
+  onSubmit: (body: { to: string; reasonCode: string; note?: string }) => void;
+}) => {
+  const t = useT();
+  const [code, setCode] = useState('');
+  const [note, setNote] = useState('');
+  return (
+    <Frame
+      title={t('dialog.reject.title')}
+      onClose={onClose}
+      action={
+        <Button
+          variant="danger"
+          loading={busy}
+          disabled={!reasonReady(code, note)}
+          onClick={() => onSubmit({ to, reasonCode: code, note: note.trim() || undefined })}
+        >
+          {t('dialog.reject.confirm')}
+        </Button>
+      }
+    >
+      <ReasonPicker reasons={reasons} value={code} onChange={setCode} note={note} onNote={setNote} />
+    </Frame>
+  );
+};
+
+export const CancelDialog = ({
+  detail,
+  reasons,
+  busy,
+  onClose,
+  onSubmit,
+}: {
+  detail: OrderDetail;
+  reasons: InboxSettings['rejectReasons'];
+  busy: boolean;
+  onClose: () => void;
+  onSubmit: (body: { reasonCode: string; note?: string }) => void;
+}) => {
+  const t = useT();
+  const [code, setCode] = useState('');
+  const [note, setNote] = useState('');
+  const held = detail.payments
+    .filter((payment) => payment.providerCode === 'cash')
+    .reduce((sum, payment) => sum + payment.capturedAmount - payment.refundedAmount, 0);
+  return (
+    <Frame
+      title={t('dialog.cancel.title', { code: detail.order.code })}
+      onClose={onClose}
+      action={
+        <Button
+          variant="danger"
+          loading={busy}
+          disabled={!reasonReady(code, note)}
+          onClick={() => onSubmit({ reasonCode: code, note: note.trim() || undefined })}
+        >
+          {t('dialog.cancel.confirm')}
+        </Button>
+      }
+    >
+      <ReasonPicker reasons={reasons} value={code} onChange={setCode} note={note} onNote={setNote} />
+      {held > 0 ? <Typography textColor="danger600">{t('dialog.cancel.refund', { amount: formatMoney(held) })}</Typography> : null}
+    </Frame>
+  );
+};
+
+/** "Thu tiền và giao" (contracts §19.3): one transaction, nothing changes on failure. */
+export const CashHandoverDialog = ({
+  detail,
+  busy,
+  onClose,
+  onSubmit,
+}: {
+  detail: OrderDetail;
+  busy: boolean;
+  onClose: () => void;
+  onSubmit: () => void;
+}) => {
+  const t = useT();
+  return (
+    <Frame
+      title={t('dialog.cash.title')}
+      onClose={onClose}
+      action={
+        <Button loading={busy} onClick={onSubmit}>
+          {t('dialog.cash.confirm', { amount: formatMoney(detail.totals.due) })}
+        </Button>
+      }
+    >
+      <Flex justifyContent="space-between">
+        <Typography>{t('dialog.cash.due')}</Typography>
+        <Typography variant="beta">{formatMoney(detail.totals.due)}</Typography>
+      </Flex>
+      <Field.Root hint={t('dialog.cash.transferLater')}>
+        <Field.Label>{t('dialog.cash.method')}</Field.Label>
+        <SingleSelect value="cash" onChange={() => undefined}>
+          <SingleSelectOption value="cash">{t('method.cash')}</SingleSelectOption>
+          <SingleSelectOption value="bank-counter" disabled>
+            {t('method.bank-counter')}
+          </SingleSelectOption>
+        </SingleSelect>
+        <Field.Hint />
+      </Field.Root>
+      <Typography variant="pi" textColor="neutral600">
+        {t('dialog.cash.atomic')}
+      </Typography>
+    </Frame>
+  );
+};
+
+/** "Hủy món": the refund shown comes from the server preview (same number the write uses). */
+export const LineCancelDialog = ({
+  line,
+  busy,
+  onClose,
+  onPreview,
+  onSubmit,
+}: {
+  line: OrderDetail['lines'][number];
+  busy: boolean;
+  onClose: () => void;
+  onPreview: (quantity: number) => Promise<{ refundAmount: number; refundShortfall: number }>;
+  onSubmit: (quantity: number, reason: string) => void;
+}) => {
+  const t = useT();
+  const remaining = line.quantity - line.canceledQuantity;
+  const [quantity, setQuantity] = useState(1);
+  const [reason, setReason] = useState('');
+  const [preview, setPreview] = useState<{ refundAmount: number; refundShortfall: number } | null>(null);
+  useEffect(() => {
+    let active = true;
+    setPreview(null);
+    onPreview(quantity)
+      .then((value) => active && setPreview(value))
+      .catch(() => active && setPreview(null));
+    return () => {
+      active = false;
+    };
+  }, [onPreview, quantity]);
+  return (
+    <Frame
+      title={t('dialog.line.title', { title: line.title })}
+      onClose={onClose}
+      action={
+        <Button
+          variant="danger"
+          loading={busy}
+          disabled={reason.trim().length < 3 || quantity < 1 || quantity > remaining}
+          onClick={() => onSubmit(quantity, reason.trim())}
+        >
+          {t('dialog.line.confirm')}
+        </Button>
+      }
+    >
+      <Field.Root required hint={t('dialog.line.of', { remaining })}>
+        <Field.Label>{t('dialog.line.quantity')}</Field.Label>
+        <NumberInput value={quantity} onValueChange={(value?: number) => setQuantity(Math.max(1, Math.min(remaining, value ?? 1)))} />
+        <Field.Hint />
+      </Field.Root>
+      <Field.Root required>
+        <Field.Label>{t('dialog.reason')}</Field.Label>
+        <Textarea value={reason} onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setReason(event.target.value)} />
+      </Field.Root>
+      <Box>
+        <Typography>
+          {preview
+            ? preview.refundAmount > 0
+              ? t('dialog.line.refund', { amount: formatMoney(preview.refundAmount) })
+              : t('dialog.line.noRefund')
+            : t('common.loading')}
+        </Typography>
+      </Box>
+    </Frame>
+  );
+};
+
+/** Cash refund up to what the cash payments still hold (Vendure refund-order dialog). */
+export const RefundDialog = ({
+  max,
+  busy,
+  onClose,
+  onSubmit,
+}: {
+  max: number;
+  busy: boolean;
+  onClose: () => void;
+  onSubmit: (amount: number, reason: string) => void;
+}) => {
+  const t = useT();
+  const [amount, setAmount] = useState<number | undefined>(max);
+  const [reason, setReason] = useState('');
+  const valid = amount !== undefined && amount > 0 && amount <= max && reason.trim().length >= 3;
+  return (
+    <Frame
+      title={t('dialog.refund.title')}
+      onClose={onClose}
+      action={
+        <Button variant="danger" loading={busy} disabled={!valid} onClick={() => onSubmit(amount ?? 0, reason.trim())}>
+          {t('dialog.refund.confirm')}
+        </Button>
+      }
+    >
+      <Field.Root required hint={t('dialog.refund.max', { amount: formatMoney(max) })}>
+        <Field.Label>{t('dialog.refund.amount')}</Field.Label>
+        <NumberInput value={amount} onValueChange={setAmount} />
+        <Field.Hint />
+      </Field.Root>
+      <Field.Root required>
+        <Field.Label>{t('dialog.reason')}</Field.Label>
+        <Textarea value={reason} onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setReason(event.target.value)} />
+      </Field.Root>
+    </Frame>
+  );
+};
