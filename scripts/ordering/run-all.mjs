@@ -41,6 +41,7 @@ const scripts = [
   'sepay-review.mjs',
   'sepay-manual.mjs',
   'sepay-reconcile.mjs',
+  'sepay-expiry.mjs',
 ];
 
 const results = [];

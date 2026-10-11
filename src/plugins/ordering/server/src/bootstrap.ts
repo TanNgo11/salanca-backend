@@ -6,6 +6,7 @@ import type { OrderingConfig } from './config';
 import { runHoldExpiry } from './jobs/hold-expiry';
 import { runIdempotencyCleanup } from './jobs/idempotency-cleanup';
 import { runOutboxDispatcher } from './jobs/outbox-dispatcher';
+import { runPaymentExpiry } from './jobs/payment-expiry';
 import { runSepayReconciliation } from './jobs/reconciliation';
 import { runSlaCheck } from './jobs/sla-check';
 import { orderingMigrations } from './migrations';
@@ -92,6 +93,10 @@ const bootstrap = async ({ strapi }: { strapi: Core.Strapi }) => {
       'ordering.sepay-reconciliation': {
         task: wrap('sepay-reconciliation', () => runSepayReconciliation(strapi, { owner })),
         options: { rule: config.jobs.reconciliationCron },
+      },
+      'ordering.payment-expiry': {
+        task: wrap('payment-expiry', () => runPaymentExpiry(strapi, { owner })),
+        options: { rule: config.jobs.paymentExpiryCron },
       },
     });
     strapi.log.info(`[ordering] jobs scheduled as ${owner}`);

@@ -5,6 +5,7 @@ import { timingSafeEqual } from 'node:crypto';
 
 import { normalizeVietnamesePhone } from '../../../shared/contact/phone';
 import { OrderingError, isOrderingError } from '../domain/errors';
+import { paymentDeadline, paymentWindowStart } from '../domain/payments/deadline';
 import { sha256Hex } from '../domain/hashing';
 import { asapReadyAt, bookingWindow, isOpenAt } from '../domain/scheduling/slots';
 import {
@@ -103,18 +104,34 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
           return isOnlinePaymentProvider(registry().paymentProvider(code));
         });
         if (online) {
-          const expiresAt = new Date(
-            new Date(aggregate.order.placedAt).getTime() + settings.paymentTimeoutMinutes * 60_000,
-          ).toISOString();
-          const built = await registry().paymentProvider(online).getPresentation({
-            order: {
-              code: aggregate.order.code,
-              locationRef: aggregate.order.locationRef,
-            } as never,
-            amount: { amount: due, currency: aggregate.order.currency },
-            metadata: { expiresAt },
-          });
-          presentation = built.memo || built.qr ? { ...built } : null;
+          const waiting = aggregate.groups.find((group) => group.status === 'awaiting-payment');
+          const history = waiting
+            ? ((await strapi.db.query('plugin::ordering.order-event').findMany({
+                where: { order: aggregate.order.id, type: 'fulfillment-group.transitioned' },
+              })) as Array<{ occurredAt: string; payload: { groupId?: unknown; to?: unknown } | null }>)
+            : [];
+          const start = waiting
+            ? paymentWindowStart({
+                placedAt: new Date(aggregate.order.placedAt),
+                groupId: waiting.id,
+                events: history.map((row) => ({ ...row, type: 'fulfillment-group.transitioned' })),
+              })
+            : new Date(aggregate.order.placedAt);
+          const deadline = paymentDeadline(start, settings.paymentTimeoutMinutes);
+          if (deadline.getTime() <= Date.now()) {
+            presentation = null;
+          } else {
+            const expiresAt = deadline.toISOString();
+            const built = await registry().paymentProvider(online).getPresentation({
+              order: {
+                code: aggregate.order.code,
+                locationRef: aggregate.order.locationRef,
+              } as never,
+              amount: { amount: due, currency: aggregate.order.currency },
+              metadata: { expiresAt },
+            });
+            presentation = built.memo || built.qr ? { ...built } : null;
+          }
         }
       }
       return {
