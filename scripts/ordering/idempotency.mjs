@@ -24,8 +24,16 @@ withApp(async (app) => {
   const second = await order.createOrder({ ...input, idempotencyKey: key }, systemCtx);
   assert.equal(second.replayed, true);
   assert.equal(second.order.order.id, first.order.order.id);
-  assert.equal(second.publicToken, null);
-  console.log('[ordering-test] replay returns order', second.order.order.code, 'without token');
+  // contracts §21.10: the replay returns the SAME token (sealed on the idempotency row), so a
+  // customer who lost the first response still gets a working link; no plaintext is stored.
+  assert.equal(second.publicToken, first.publicToken);
+  const row = await app.db.query('plugin::ordering.idempotency-key').findOne({
+    where: { scope: 'order.create', key },
+  });
+  assert.ok(row.resultCipher.startsWith('v1:'), 'token is stored sealed');
+  assert.ok(!row.resultCipher.includes(first.publicToken), 'never in plaintext');
+  assert.ok(!JSON.stringify(row.responseSnapshot).includes(first.publicToken));
+  console.log('[ordering-test] replay returns order', second.order.order.code, 'with the same sealed token');
 
   await assert.rejects(
     order.createOrder(

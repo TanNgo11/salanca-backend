@@ -153,28 +153,37 @@ const transition = ({ strapi }: { strapi: Core.Strapi }) => {
 
     /** Cancels every non-terminal group to its workflow's cancelState, then releases holds. */
     async cancelOrder(
-      input: { orderId: number; reason: string },
+      input: { orderId: number; reason: string; payload?: Record<string, unknown> },
       ctx: ServiceContext,
     ): Promise<OrderAggregate> {
       if (!input.reason?.trim()) {
         throw new OrderingError('VALIDATION_ERROR', 'cancel reason is required');
       }
       const { order, hold } = services();
-      const aggregate = await order.getOrder(input.orderId, ctx);
-      for (const group of aggregate.groups) {
-        const definition = (services().registry as OrderingRegistry).workflow(
-          group.workflowName,
-          group.workflowVersion,
-        );
-        if (isTerminal(definition, group.status) !== null) continue;
-        await service.transitionGroup(
-          { orderId: input.orderId, groupId: group.id, to: definition.cancelState, reason: input.reason },
-          ctx,
-        );
-      }
-      await hold.releaseForOrder(input.orderId, 'order-canceled', ctx);
-      const result = await order.getOrder(input.orderId, ctx);
-      return result;
+      // One outer transaction: every group cancels and the holds release together, or nothing
+      // changes (nested strapi.db.transaction calls reuse it).
+      return strapi.db.transaction(async () => {
+        const aggregate = await order.getOrder(input.orderId, ctx);
+        for (const group of aggregate.groups) {
+          const definition = (services().registry as OrderingRegistry).workflow(
+            group.workflowName,
+            group.workflowVersion,
+          );
+          if (isTerminal(definition, group.status) !== null) continue;
+          await service.transitionGroup(
+            {
+              orderId: input.orderId,
+              groupId: group.id,
+              to: definition.cancelState,
+              reason: input.reason,
+              payload: input.payload,
+            },
+            ctx,
+          );
+        }
+        await hold.releaseForOrder(input.orderId, 'order-canceled', ctx);
+        return order.getOrder(input.orderId, ctx);
+      });
     },
 
     /** Customer cancel: only while every non-terminal group is `customerCancellable`. */

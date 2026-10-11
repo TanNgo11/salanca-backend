@@ -3431,7 +3431,8 @@ export interface PluginOrderingCatalogProduct
       'oneToMany',
       'plugin::ordering.catalog-availability-window'
     >;
-    bundleSlots: Schema.Attribute.JSON;
+    bundleSlots: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::ordering.bundle-slots'>;
     categories: Schema.Attribute.Relation<
       'manyToMany',
       'plugin::ordering.catalog-category'
@@ -3443,6 +3444,7 @@ export interface PluginOrderingCatalogProduct
       Schema.Attribute.CustomField<'plugin::ordering.localized-text'>;
     fulfillmentKinds: Schema.Attribute.JSON;
     image: Schema.Attribute.Media<'images'>;
+    isFeatured: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -3451,7 +3453,8 @@ export interface PluginOrderingCatalogProduct
       Schema.Attribute.Private;
     metadata: Schema.Attribute.JSON;
     minQuantity: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<1>;
-    modifierGroups: Schema.Attribute.JSON;
+    modifierGroups: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::ordering.modifier-groups'>;
     name: Schema.Attribute.JSON &
       Schema.Attribute.Required &
       Schema.Attribute.CustomField<'plugin::ordering.localized-text'>;
@@ -3664,6 +3667,7 @@ export interface PluginOrderingFulfillmentGroup
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    estimatedReadyAt: Schema.Attribute.DateTime;
     fulfillmentAmount: Schema.Attribute.BigInteger &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<0>;
@@ -3827,6 +3831,7 @@ export interface PluginOrderingIdempotencyKey
     requestHash: Schema.Attribute.String & Schema.Attribute.Required;
     responseRef: Schema.Attribute.String;
     responseSnapshot: Schema.Attribute.JSON;
+    resultCipher: Schema.Attribute.Text;
     scope: Schema.Attribute.String & Schema.Attribute.Required;
     status: Schema.Attribute.Enumeration<['in-progress', 'completed']> &
       Schema.Attribute.Required &
@@ -3981,6 +3986,7 @@ export interface PluginOrderingOrder extends Struct.CollectionTypeSchema {
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'unpaid'>;
     placedAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    placedLocale: Schema.Attribute.String;
     publicTokenHash: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.Unique;

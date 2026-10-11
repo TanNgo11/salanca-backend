@@ -40,6 +40,9 @@ export default collection(
     contactSnapshot: { type: 'json', required: true },
     consentSnapshot: { type: 'json', required: true },
     customerNote: { type: 'text' },
+    // Locale at placement: customer emails and the public order view use it. Not named `locale`
+    // (Strapi reserves it for i18n).
+    placedLocale: { type: 'string' },
     branch: {
       type: 'relation',
       relation: 'manyToOne',

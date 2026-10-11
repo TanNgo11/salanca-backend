@@ -30,6 +30,7 @@ const scripts = [
   'review-additions.mjs',
   'branches.mjs',
   'pickup-slots.mjs',
+  'storefront.mjs',
 ];
 
 const results = [];

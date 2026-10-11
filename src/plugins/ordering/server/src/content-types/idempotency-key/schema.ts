@@ -14,6 +14,8 @@ export default collection(
     },
     responseRef: { type: 'string' },
     responseSnapshot: { type: 'json' },
+    // AES-256-GCM sealed secret returned again on replay (contracts §21.10); never plaintext.
+    resultCipher: { type: 'text' },
     expiresAt: { type: 'datetime', required: true },
   },
   { displayName: 'Khóa idempotency' },

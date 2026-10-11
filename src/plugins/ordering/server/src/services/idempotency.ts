@@ -3,6 +3,7 @@ import type { Core } from '@strapi/strapi';
 import type { JsonObject } from '../contracts/common';
 import { OrderingError } from '../domain/errors';
 import { hashPayload } from '../domain/hashing';
+import { decryptSecret, encryptSecret, parseEncryptionKey } from '../domain/token-cipher';
 import type { OrderingConfig } from '../config';
 import type { ServiceContext } from './context';
 import { nowOf } from './context';
@@ -30,12 +31,14 @@ const isUniqueViolation = (error: unknown): boolean => {
 
 export type IdempotencyRunResult<T> =
   | { result: T; replayed: false }
-  | { result: JsonObject; replayed: true };
+  | { result: JsonObject; replayed: true; secret?: string };
 
 /**
  * Idempotent command wrapper. `run` opens the business transaction, claims (scope, key) with
  * status `in-progress`, executes `work`, then marks the row completed with a redaction-safe
- * response snapshot (never store tokens or contact data). On a unique-conflict it re-reads the
+ * response snapshot (never store tokens or contact data in it). A `secret` the work returns is
+ * stored only AES-256-GCM sealed in `resultCipher` and handed back on replay; expired rows (and
+ * their ciphertext) are deleted by the cleanup job. On a unique-conflict it re-reads the
  * row after rollback: a different payload hash → IDEMPOTENCY_PAYLOAD_MISMATCH, a still-open row
  * → IDEMPOTENCY_IN_PROGRESS, a completed row → the stored snapshot replayed.
  */
@@ -66,12 +69,21 @@ const idempotency = ({ strapi }: { strapi: Core.Strapi }) => {
     }
   };
 
+  const encryptionKey = (): Buffer => {
+    const parsed = parseEncryptionKey(config().encryptionKey);
+    if (!parsed.valid) {
+      throw new OrderingError('CONFIG_INVALID', 'ORDERING_ENCRYPTION_KEY is not configured');
+    }
+    return parsed.key;
+  };
+
   /** Marks the claimed row completed. Must run inside the same transaction. */
   const complete = async (input: {
     scope: string;
     key: string;
     responseRef: string;
     responseSnapshot: JsonObject;
+    secret?: string;
   }): Promise<void> => {
     await query().updateMany({
       where: { scope: input.scope, key: input.key },
@@ -79,6 +91,8 @@ const idempotency = ({ strapi }: { strapi: Core.Strapi }) => {
         status: 'completed',
         responseRef: input.responseRef,
         responseSnapshot: input.responseSnapshot,
+        resultCipher:
+          input.secret === undefined ? null : encryptSecret(input.secret, encryptionKey()),
       },
     });
   };
@@ -86,6 +100,10 @@ const idempotency = ({ strapi }: { strapi: Core.Strapi }) => {
   return {
     begin,
     complete,
+    /** Throws CONFIG_INVALID early when a caller that seals secrets has no key configured. */
+    assertSealingConfigured(): void {
+      encryptionKey();
+    },
 
     async run<T>(
       input: { scope: string; key: string; payload: unknown; ttlHours?: number },
@@ -94,14 +112,16 @@ const idempotency = ({ strapi }: { strapi: Core.Strapi }) => {
         result: T;
         responseRef: string;
         responseSnapshot: JsonObject;
+        /** Kept sealed on the row and returned again on replay (order token, §21.10). */
+        secret?: string;
       }>,
     ): Promise<IdempotencyRunResult<T>> {
       const requestHash = hashPayload(input.payload);
       try {
         return await strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
           await begin({ ...input }, ctx);
-          const { result, responseRef, responseSnapshot } = await work(trx);
-          await complete({ scope: input.scope, key: input.key, responseRef, responseSnapshot });
+          const { result, responseRef, responseSnapshot, secret } = await work(trx);
+          await complete({ scope: input.scope, key: input.key, responseRef, responseSnapshot, secret });
           return { result, replayed: false as const };
         });
       } catch (error) {
@@ -129,7 +149,15 @@ const idempotency = ({ strapi }: { strapi: Core.Strapi }) => {
             { details: { scope: input.scope } },
           );
         }
-        return { result: row.responseSnapshot as JsonObject, replayed: true as const };
+        const secret =
+          typeof row.resultCipher === 'string' && row.resultCipher !== ''
+            ? decryptSecret(row.resultCipher, encryptionKey())
+            : undefined;
+        return {
+          result: row.responseSnapshot as JsonObject,
+          replayed: true as const,
+          ...(secret === undefined ? {} : { secret }),
+        };
       }
     },
 

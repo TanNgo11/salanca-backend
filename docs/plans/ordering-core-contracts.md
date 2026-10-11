@@ -1835,7 +1835,10 @@ type ConsentSnapshot = {
   `ORDERING_ENCRYPTION_KEY` từ env, cùng khóa dùng cho secret do admin nhập ở mục 14). Replay đúng
   payload trong thời hạn của key trả lại **cùng** token; hết hạn thì xóa cả bản mã. Không cấp token
   mới, để link đã gửi qua email vẫn dùng được.
-- Thiếu `ORDERING_ENCRYPTION_KEY` khi bật API storefront thì bootstrap báo lỗi. Làm ở O3 bước 5.
+- Thiếu hoặc sai `ORDERING_ENCRYPTION_KEY` (32 byte, base64): bootstrap báo lỗi khi `NODE_ENV=production`;
+  môi trường khác chỉ cảnh báo và `POST /orders` trả `CONFIG_INVALID` (500), để các script kiểm `check:phase3`
+  không cần khóa. Script test ordering đặt sẵn một khóa test cố định. Bản mã có tiền tố phiên bản (`v1:`) để
+  đổi khóa về sau. Đã làm ở O3 (cột `idempotency-key.resultCipher`).
 
 ## Nguồn chính
 

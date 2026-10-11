@@ -20,6 +20,7 @@ export type OrderRow = {
   contactSnapshot: Record<string, unknown>;
   consentSnapshot: Record<string, unknown>;
   customerNote: string | null;
+  placedLocale: string | null;
   branch: number | null;
   locationRef: string;
   branchSnapshot: Record<string, unknown> | null;
@@ -73,6 +74,7 @@ export type FulfillmentGroupRow = {
   receiveMethod: Record<string, unknown>;
   status: string;
   fulfillmentAmount: number;
+  estimatedReadyAt: string | null;
 };
 
 export type AdjustmentRow = {

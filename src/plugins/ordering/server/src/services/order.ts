@@ -18,6 +18,9 @@ import { amountFromDb, sumAmounts } from '../domain/money';
 import { formatOrderCode } from '../domain/order-code';
 import { projectPaymentStatus } from '../domain/payment-status';
 import { appliesCashRounding, type CashRoundingPolicy } from '../domain/pricing/cash-rounding';
+import { normalizeVietnamesePhone } from '../../../shared/contact/phone';
+import type { PickupSettings } from '../domain/branch-settings';
+import { describeSelectedOptions } from '../domain/storefront/serialize';
 import { priceCart, type PricingAdjustmentInput } from '../domain/pricing/pipeline';
 import { scopeIncludes } from '../domain/scope';
 import {
@@ -31,7 +34,10 @@ import orderRepository from '../repositories/order';
 import type { OrderAggregate } from '../repositories/types';
 import type { ServiceContext } from './context';
 import { actorRefOf, nowOf } from './context';
+import type branchFactory from './branch';
 import type holdFactory from './hold';
+import type pickupSchedulingFactory from './pickup-scheduling';
+import type { PickupTiming, PickupTimingInput } from './pickup-scheduling';
 import type idempotencyFactory from './idempotency';
 import type outboxFactory from './outbox';
 import type scopeFactory from './scope';
@@ -67,7 +73,51 @@ export type CreateOrderInput = {
   origin: { kind: 'storefront' | 'staff-draft' | 'import'; actorRef?: string };
   holds?: Array<{ lineIndex: number; resourceRef: string; quantity: number; expiresAt: string }>;
   placedAt?: string;
+  /**
+   * Requested pickup time (`{ asap: true }` or `{ slot: { startsAt } }`). O3 storefront and staff
+   * callers always pass it, which turns on the branch receive rules (enabled, payment method,
+   * minimum order, lead time, slot capacity). Service callers without it (imports, O1 fixtures)
+   * skip those rules.
+   */
+  pickup?: PickupTimingInput;
 };
+
+export type OrderDraftInput = Omit<CreateOrderInput, 'idempotencyKey'>;
+
+type PricedLine = {
+  sellable: Sellable;
+  key: string;
+  quantity: number;
+  unitAmount: number;
+  optionAmount: number;
+  taxGroupRef?: string;
+  workflow: { name: string; version: string };
+  leadTimeMinutes: number;
+};
+
+export type PreparedOrder = {
+  branch: BranchRow;
+  pickupSettings: PickupSettings | null;
+  priced: PricedLine[];
+  pricing: ReturnType<typeof priceCart>;
+  groupsByWorkflow: Map<string, { name: string; version: string }>;
+  placedAt: Date;
+  locale: string;
+  providerCode?: string;
+  timing: PickupTiming | null;
+};
+
+/** Stored on order/group `receiveMethod.timing`; UTC instants. */
+export const timingSnapshot = (timing: PickupTiming | null) =>
+  timing === null
+    ? null
+    : timing.mode === 'asap'
+      ? { mode: 'asap' as const, requestedReadyAt: timing.readyAt.toISOString() }
+      : {
+          mode: 'scheduled' as const,
+          slot: { startsAt: timing.slot.startsAt, endsAt: timing.slot.endsAt },
+          requestedReadyAt: timing.readyAt.toISOString(),
+        };
 
 export type CreateOrderResult = {
   order: OrderAggregate;
@@ -87,6 +137,8 @@ type Services = {
   timeline: ReturnType<typeof timelineFactory>;
   hold: ReturnType<typeof holdFactory>;
   outbox: ReturnType<typeof outboxFactory>;
+  branch: ReturnType<typeof branchFactory>;
+  scheduling: ReturnType<typeof pickupSchedulingFactory>;
 };
 
 type BranchRow = {
@@ -113,6 +165,8 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
       timeline: plugin.service('timeline') as Services['timeline'],
       hold: plugin.service('hold') as Services['hold'],
       outbox: plugin.service('outbox') as Services['outbox'],
+      branch: plugin.service('branch') as Services['branch'],
+      scheduling: plugin.service('pickup-scheduling') as Services['scheduling'],
     };
   };
   const repo = orderRepository({ strapi });
@@ -189,9 +243,219 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
       return { before, after };
     },
 
+    /**
+     * Shared read-only half of quote and create: branch rules, catalog lookups, line validation,
+     * pricing, workflow selection and (when the caller passes `pickup`) pickup timing. Runs
+     * inside the create transaction so slot counts and catalog reads see the same snapshot.
+     */
+    async prepareOrder(input: OrderDraftInput, ctx: ServiceContext): Promise<PreparedOrder> {
+      const cfg = config();
+      const { registry, scope, branch: branchService, scheduling } = services();
+
+      const branch = (await strapi.db.query('plugin::ordering.branch').findOne({
+        where: { code: input.locationRef },
+      })) as BranchRow | null;
+      if (!branch || !branch.isActive) {
+        throw new OrderingError('BRANCH_NOT_FOUND', 'branch not found or inactive', {
+          details: { locationRef: input.locationRef },
+        });
+      }
+      if (ctx.actor.kind === 'staff') {
+        const staffScope = await scope.loadScope(ctx);
+        if (!scopeIncludes(staffScope, branch.code)) {
+          throw new OrderingError('BRANCH_NOT_FOUND', 'branch not found or inactive', {
+            details: { locationRef: input.locationRef },
+          });
+        }
+      }
+      if (input.origin.kind === 'storefront' && !branch.onlineOrdering) {
+        throw new OrderingError('LOCATION_UNAVAILABLE', 'this branch does not take online orders', {
+          details: { locationRef: branch.code },
+        });
+      }
+
+      const kind = input.receiveMethod.kind;
+      const pickupSettings: PickupSettings | null =
+        kind === 'pickup' ? branchService.pickupSettings(branch) : null;
+      // O3 storefront/staff callers pass `pickup`; those get the branch's receive rules.
+      const enforce = kind === 'pickup' && input.pickup !== undefined;
+      if (enforce && !pickupSettings?.enabled) {
+        throw new OrderingError('FULFILLMENT_UNAVAILABLE', 'this branch does not offer pickup', {
+          details: { kind },
+        });
+      }
+
+      const placedAt = input.placedAt ? new Date(input.placedAt) : nowOf(ctx);
+      const locale = input.locale ?? cfg.catalog.defaultLocale;
+      const adapterCtx: AdapterContext = {
+        now: nowOf(ctx).toISOString(),
+        locationRef: input.locationRef,
+      };
+      const catalog = registry.catalogAdapter(cfg.catalog.adapter);
+      const branchMethod = branch.fulfillment?.[kind] as JsonObject | undefined;
+      const paymentTiming =
+        (pickupSettings?.paymentTiming as string | undefined) ??
+        (branchMethod?.paymentTiming as string | undefined);
+
+      const priced: PricedLine[] = [];
+      for (const [index, line] of input.lines.entries()) {
+        const sellable = await catalog.getSellable(adapterCtx, { uid: line.sellableUid }, { locale });
+        if (!sellable) {
+          throw new OrderingError('SELLABLE_NOT_FOUND', 'sellable not found or inactive', {
+            details: { lineIndex: index },
+          });
+        }
+        const availability = await catalog.getAvailability(adapterCtx, sellable, line.quantity);
+        if (!availability.available) {
+          throw new OrderingError('SELLABLE_UNAVAILABLE', 'sellable is not available', {
+            details: { lineIndex: index, reason: availability.reasonCode },
+          });
+        }
+        const productType = registry.productType(sellable.productType);
+        const configuration = {
+          sellable,
+          selected: line.selected ?? [],
+          quantity: line.quantity,
+          context: { locale, locationRef: input.locationRef, at: placedAt.toISOString() },
+        };
+        const validation = productType.validateLine(configuration);
+        if (!validation.valid) {
+          throw new OrderingError('LINE_INVALID', validation.message, {
+            details: { lineIndex: index, code: validation.code },
+          });
+        }
+        const quote = await productType.quoteLine(configuration);
+        if (quote.currency !== cfg.currency) {
+          throw new OrderingError('CURRENCY_MISMATCH', 'quoted currency differs from config', {
+            details: { lineIndex: index },
+          });
+        }
+        const workflow = productType.selectWorkflow({
+          lines: [sellable],
+          receiveMethod: input.receiveMethod,
+          paymentTiming,
+        });
+        const lineLeadTime = Number(
+          (sellable.metadata as JsonObject | undefined)?.leadTimeMinutes ?? 0,
+        );
+        priced.push({
+          sellable,
+          key: String(index),
+          quantity: line.quantity,
+          unitAmount: quote.unitAmount,
+          optionAmount: quote.optionAmount,
+          taxGroupRef: quote.taxGroupRef ?? sellable.taxGroupRef,
+          workflow,
+          leadTimeMinutes: Number.isFinite(lineLeadTime) ? lineLeadTime : 0,
+        });
+      }
+
+      let providerCode = input.payment?.providerCode;
+      if (enforce && pickupSettings) {
+        providerCode ??= pickupSettings.paymentTiming === 'pay-on-pickup' ? 'cash' : undefined;
+        if (!providerCode || !pickupSettings.paymentProviders.includes(providerCode)) {
+          throw new OrderingError('VALIDATION_ERROR', 'payment method is not offered here', {
+            details: { field: 'payment.providerCode', allowed: pickupSettings.paymentProviders },
+          });
+        }
+      }
+
+      const cashRounding =
+        branch.cashRounding && appliesCashRounding(branch.cashRounding, providerCode)
+          ? { multiple: branch.cashRounding.multiple }
+          : null;
+      const pricing = priceCart({
+        currency: cfg.currency,
+        lines: priced.map((line) => ({
+          key: line.key,
+          quantity: line.quantity,
+          unitAmount: line.unitAmount,
+          optionAmount: line.optionAmount,
+          taxGroupRef: line.taxGroupRef,
+        })),
+        adjustments: input.adjustments ?? [],
+        fulfillmentAmount: input.fulfillmentAmount ?? 0,
+        tax: { ...cfg.tax, ...(branch.tax ?? {}) },
+        at: placedAt.toISOString(),
+        cashRounding,
+      });
+
+      const groupsByWorkflow = new Map<string, { name: string; version: string }>();
+      for (const line of priced) {
+        const key = `${line.workflow.name}@${line.workflow.version}`;
+        if (!groupsByWorkflow.has(key)) groupsByWorkflow.set(key, line.workflow);
+      }
+      if (groupsByWorkflow.size > 1 && !cfg.allowMixedProductTypes) {
+        throw new OrderingError('MIXED_WORKFLOW_UNSUPPORTED', 'cart mixes fulfillment workflows', {
+          details: { workflows: [...groupsByWorkflow.keys()] },
+        });
+      }
+      for (const workflow of groupsByWorkflow.values()) {
+        registry.workflow(workflow.name, workflow.version);
+      }
+
+      if (enforce && pickupSettings && pricing.totals.subtotal < pickupSettings.minOrderAmount) {
+        throw new OrderingError('MIN_ORDER_NOT_MET', 'the order is below the branch minimum', {
+          details: { minOrderAmount: pickupSettings.minOrderAmount, subtotal: pricing.totals.subtotal },
+        });
+      }
+
+      let timing: PickupTiming | null = null;
+      if (enforce && pickupSettings && input.pickup) {
+        timing = await scheduling.resolveTiming({
+          branch,
+          settings: pickupSettings,
+          request: input.pickup,
+          leadTimeMinutes: scheduling.leadTimeFor(
+            pickupSettings,
+            priced.map((line) => line.leadTimeMinutes),
+          ),
+          now: nowOf(ctx),
+        });
+      }
+
+      return {
+        branch,
+        pickupSettings,
+        priced,
+        pricing,
+        groupsByWorkflow,
+        placedAt,
+        locale,
+        providerCode,
+        timing,
+      };
+    },
+
+    /** POST /quote: server-side prices for a cart; never trusts client amounts. */
+    async quote(input: OrderDraftInput, ctx: ServiceContext) {
+      const prepared = await service.prepareOrder(input, ctx);
+      return {
+        currency: prepared.pricing.currency,
+        cartHash: prepared.pricing.cartHash,
+        lines: prepared.priced.map((line, index) => ({
+          index,
+          sellableUid: line.sellable.ref.uid,
+          title: line.sellable.title,
+          quantity: line.quantity,
+          unitAmount: prepared.pricing.lines[index].unitAmount,
+          optionAmount: prepared.pricing.lines[index].optionAmount,
+          lineTotalAmount: prepared.pricing.lines[index].lineTotalAmount,
+        })),
+        adjustments: prepared.pricing.adjustments.map((adjustment) => ({
+          kind: adjustment.kind,
+          code: adjustment.code,
+          label: adjustment.label,
+          amount: adjustment.amount,
+        })),
+        totals: prepared.pricing.totals,
+        payment: { providerCode: prepared.providerCode ?? null },
+        timing: timingSnapshot(prepared.timing),
+      };
+    },
+
     async createOrder(input: CreateOrderInput, ctx: ServiceContext): Promise<CreateOrderResult> {
       const cfg = config();
-      const { scope } = services();
 
       // Cheap validations before claiming the key; failures never consume it.
       if (input.consent.policyVersion !== cfg.consent.policyVersion) {
@@ -199,159 +463,35 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
           details: { expected: cfg.consent.policyVersion },
         });
       }
-      if (!input.contact.phone?.trim()) {
-        throw new OrderingError('VALIDATION_ERROR', 'contact.phone is required');
+      const phone = normalizeVietnamesePhone(input.contact.phone);
+      if (!phone.valid) {
+        throw new OrderingError('VALIDATION_ERROR', 'contact.phone must be a Vietnamese phone number', {
+          details: { field: 'contact.phone', reason: phone.reason },
+        });
       }
       if ((input.customerNote?.length ?? 0) > MAX_CUSTOMER_NOTE) {
         throw new OrderingError('VALIDATION_ERROR', 'customerNote is too long', {
-          details: { max: MAX_CUSTOMER_NOTE },
+          details: { field: 'customerNote', max: MAX_CUSTOMER_NOTE },
         });
       }
       if (input.lines.length === 0) {
         throw new OrderingError('VALIDATION_ERROR', 'order needs at least one line');
       }
+      // The order token is sealed on the idempotency row; refuse before claiming without a key.
+      services().idempotency.assertSealingConfigured();
 
       const { idempotencyKey, ...payload } = input;
       const outcome = await services().idempotency.run(
         { scope: 'order.create', key: idempotencyKey, payload },
         ctx,
         async (trx) => {
-          const { registry, timeline, hold, outbox } = services();
-
-          const branch = (await strapi.db.query('plugin::ordering.branch').findOne({
-            where: { code: input.locationRef },
-          })) as BranchRow | null;
-          if (!branch || !branch.isActive) {
-            throw new OrderingError('BRANCH_NOT_FOUND', 'branch not found or inactive', {
-              details: { locationRef: input.locationRef },
-            });
-          }
-          if (ctx.actor.kind === 'staff') {
-            const staffScope = await scope.loadScope(ctx);
-            if (!scopeIncludes(staffScope, branch.code)) {
-              throw new OrderingError('BRANCH_NOT_FOUND', 'branch not found or inactive', {
-                details: { locationRef: input.locationRef },
-              });
-            }
-          }
-
-          const placedAt = input.placedAt ? new Date(input.placedAt) : nowOf(ctx);
-          const locale = input.locale ?? cfg.catalog.defaultLocale;
-          const adapterCtx: AdapterContext = {
-            now: nowOf(ctx).toISOString(),
-            locationRef: input.locationRef,
-          };
-          const catalog = registry.catalogAdapter(cfg.catalog.adapter);
-
-          const priced: Array<{
-            sellable: Sellable;
-            key: string;
-            quantity: number;
-            unitAmount: number;
-            optionAmount: number;
-            taxGroupRef?: string;
-            workflow: { name: string; version: string };
-          }> = [];
-          for (const [index, line] of input.lines.entries()) {
-            const sellable = await catalog.getSellable(
-              adapterCtx,
-              { uid: line.sellableUid },
-              { locale },
-            );
-            if (!sellable) {
-              throw new OrderingError('SELLABLE_NOT_FOUND', 'sellable not found or inactive', {
-                details: { lineIndex: index },
-              });
-            }
-            const availability = await catalog.getAvailability(adapterCtx, sellable, line.quantity);
-            if (!availability.available) {
-              throw new OrderingError('SELLABLE_UNAVAILABLE', 'sellable is not available', {
-                details: { lineIndex: index },
-              });
-            }
-            const productType = registry.productType(sellable.productType);
-            const configuration = {
-              sellable,
-              selected: line.selected ?? [],
-              quantity: line.quantity,
-              context: {
-                locale,
-                locationRef: input.locationRef,
-                at: placedAt.toISOString(),
-              },
-            };
-            const validation = productType.validateLine(configuration);
-            if (!validation.valid) {
-              throw new OrderingError('LINE_INVALID', validation.message, {
-                details: { lineIndex: index, code: validation.code },
-              });
-            }
-            const quote = await productType.quoteLine(configuration);
-            if (quote.currency !== cfg.currency) {
-              throw new OrderingError('CURRENCY_MISMATCH', 'quoted currency differs from config', {
-                details: { lineIndex: index },
-              });
-            }
-            const branchMethod = branch.fulfillment?.[input.receiveMethod.kind] as
-              | JsonObject
-              | undefined;
-            const paymentTiming = branchMethod?.paymentTiming as string | undefined;
-            const workflow = productType.selectWorkflow({
-              lines: [sellable],
-              receiveMethod: input.receiveMethod,
-              paymentTiming,
-            });
-            priced.push({
-              sellable,
-              key: String(index),
-              quantity: line.quantity,
-              unitAmount: quote.unitAmount,
-              optionAmount: quote.optionAmount,
-              taxGroupRef: quote.taxGroupRef ?? sellable.taxGroupRef,
-              workflow,
-            });
-          }
-
-          const cashRounding =
-            branch.cashRounding &&
-            appliesCashRounding(branch.cashRounding, input.payment?.providerCode)
-              ? { multiple: branch.cashRounding.multiple }
-              : null;
-          const pricing = priceCart({
-            currency: cfg.currency,
-            lines: priced.map((line) => ({
-              key: line.key,
-              quantity: line.quantity,
-              unitAmount: line.unitAmount,
-              optionAmount: line.optionAmount,
-              taxGroupRef: line.taxGroupRef,
-            })),
-            adjustments: input.adjustments ?? [],
-            fulfillmentAmount: input.fulfillmentAmount ?? 0,
-            tax: { ...cfg.tax, ...(branch.tax ?? {}) },
-            at: placedAt.toISOString(),
-            cashRounding,
-          });
+          const { timeline, hold, outbox, scheduling } = services();
+          const prepared = await service.prepareOrder(payload, ctx);
+          const { branch, priced, pricing, groupsByWorkflow, placedAt, locale, timing } = prepared;
           if (input.expectedCartHash && input.expectedCartHash !== pricing.cartHash) {
             throw new OrderingError('PRICE_CHANGED', 'the quoted cart no longer matches', {
               details: { cartHash: pricing.cartHash },
             });
-          }
-
-          const groupsByWorkflow = new Map<string, { name: string; version: string }>();
-          for (const line of priced) {
-            const key = `${line.workflow.name}@${line.workflow.version}`;
-            if (!groupsByWorkflow.has(key)) groupsByWorkflow.set(key, line.workflow);
-          }
-          if (groupsByWorkflow.size > 1 && !cfg.allowMixedProductTypes) {
-            throw new OrderingError(
-              'MIXED_WORKFLOW_UNSUPPORTED',
-              'cart mixes fulfillment workflows',
-              { details: { workflows: [...groupsByWorkflow.keys()] } },
-            );
-          }
-          for (const workflow of groupsByWorkflow.values()) {
-            registry.workflow(workflow.name, workflow.version);
           }
 
           const seq = await repo.nextOrderSequence(trx as TransactionClient);
@@ -370,6 +510,11 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
           const cutoffLocalTime =
             (businessDayPolicy?.cutoffLocalTime as string | undefined) ??
             cfg.businessDay.cutoffLocalTime;
+          const receiveMethod = {
+            ...input.receiveMethod,
+            ...(kind === 'pickup' ? { locationRef: branch.code } : {}),
+            ...(timing ? { timing: timingSnapshot(timing) } : {}),
+          };
 
           const order = await strapi.db.query('plugin::ordering.order').create({
             data: {
@@ -386,8 +531,8 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
               currency: pricing.currency,
               contactSnapshot: {
                 name: input.contact.name,
-                phone: input.contact.phone,
-                email: input.contact.email,
+                phone: phone.e164,
+                email: input.contact.email || undefined,
               },
               consentSnapshot: {
                 policyVersion: input.consent.policyVersion,
@@ -398,12 +543,13 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
                 marketingOptIn: !!input.consent.marketingOptIn,
               },
               customerNote: input.customerNote ?? null,
+              placedLocale: locale,
               branch: branch.id,
               locationRef: branch.code,
               branchSnapshot: { code: branch.code, name: branch.name },
               businessDate: businessDate(placedAt, branch.timezone, cutoffLocalTime),
               placedAt,
-              receiveMethod: input.receiveMethod,
+              receiveMethod,
               origin: input.origin,
               cartHash: pricing.cartHash,
             },
@@ -413,13 +559,13 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
           const groupIds = new Map<string, number>();
           let first = true;
           for (const [key, workflow] of groupsByWorkflow) {
-            const definition = registry.workflow(workflow.name, workflow.version);
+            const definition = services().registry.workflow(workflow.name, workflow.version);
             const group = await strapi.db.query('plugin::ordering.fulfillment-group').create({
               data: {
                 order: orderId,
                 workflowName: workflow.name,
                 workflowVersion: workflow.version,
-                receiveMethod: input.receiveMethod,
+                receiveMethod,
                 status: definition.initial,
                 fulfillmentAmount: first ? pricing.totals.fulfillmentTotal : 0,
               },
@@ -445,7 +591,10 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
                 titleSnapshot: line.sellable.title,
                 descriptionSnapshot: line.sellable.description ?? null,
                 imageUrlSnapshot: line.sellable.imageUrl ?? null,
-                selectedOptionsSnapshot: input.lines[index].selected ?? [],
+                selectedOptionsSnapshot: describeSelectedOptions(
+                  line.sellable,
+                  input.lines[index].selected ?? [],
+                ),
                 componentsSnapshot: bundleComponentsFromSellable(
                   line.sellable,
                   input.lines[index].selected ?? [],
@@ -495,6 +644,20 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
                 },
               });
             }
+          }
+
+          if (timing?.mode === 'scheduled' && prepared.pickupSettings) {
+            await scheduling.reserveInTransaction(
+              trx as TransactionClient,
+              {
+                orderId,
+                groupId: groupIds.values().next().value,
+                locationRef: branch.code,
+                slot: timing.slot,
+                capacity: prepared.pickupSettings.schedule.capacity,
+              },
+              ctx,
+            );
           }
 
           for (const holdInput of input.holds ?? []) {
@@ -561,6 +724,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
               totalAmount: pricing.totals.grandTotal,
               currency: pricing.currency,
             },
+            secret: publicToken,
           };
         },
       );
@@ -572,7 +736,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         if (!aggregate) {
           throw new OrderingError('INTERNAL', 'idempotent replay lost the stored order');
         }
-        return { order: aggregate, publicToken: null, replayed: true };
+        return { order: aggregate, publicToken: outcome.secret ?? null, replayed: true };
       }
       const aggregate = await repo.loadOrderAggregate(outcome.result.orderId);
       if (!aggregate) {

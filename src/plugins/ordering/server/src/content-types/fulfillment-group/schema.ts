@@ -14,6 +14,9 @@ export default collection(
     receiveMethod: { type: 'json', required: true },
     status: { type: 'string', required: true },
     fulfillmentAmount: { type: 'biginteger', required: true, default: 0 },
+    // Set when the branch accepts (slot start, or now + preparation time for ASAP) and moved
+    // by "Nhận và lùi"; shown to the customer and in emails (screens S2/S4).
+    estimatedReadyAt: { type: 'datetime' },
     lines: {
       type: 'relation',
       relation: 'oneToMany',

@@ -57,6 +57,27 @@ consumption: `GET /api/v1/ordering/catalog/categories`, `/catalog/products`,
   `catalog.toggle-availability`, and staff scope is enforced per `locationRef` —
   unauthenticated requests return 401 before the handler runs.
 
+## Ordering storefront API (O3)
+
+Public routes (`auth:false`, under `/api/v1/ordering`): `GET /branches`, `GET /config`, `GET /slots`,
+`POST /quote`, `POST /orders`, `GET /orders`, `GET /orders/payment`, `POST /orders/cancel`
+(`POST /orders/lookup` is added with O3 step 14).
+
+- Rate limits: in-process fixed windows per trusted client IP (`storefront.rateLimits`: read 120/min,
+  quote 60/min, create and cancel 10 per 10 min). Single instance only (contracts §21.9).
+- Body: JSON only, capped at 32 KB (413 above); only allowlisted fields are read — client amounts,
+  adjustments, fees, statuses and origins are ignored, the server prices every cart.
+- `POST /orders`: `Idempotency-Key` header required; captcha through the configured `CaptchaProvider`
+  (Turnstile when `TURNSTILE_SECRET_KEY` is set; fails closed); consent `{ policyVersion, accepted: true }`
+  required (`CONSENT_REQUIRED`); phone normalized to E.164 (Vietnamese numbers only).
+- Order token: 32 random bytes, sent once in the create response (and again on an idempotent replay);
+  stored as SHA-256 on the order and AES-256-GCM sealed on the idempotency row
+  (`ORDERING_ENCRYPTION_KEY`, rows expire after `idempotency.ttlHours`). Accepted **only** in the
+  `X-Order-Token` header — a token in the query string is refused (`ORDER_TOKEN_INVALID`) so it never reaches
+  access logs. Customer links put it in the URL fragment (`#t=`).
+- Responses use allowlist serializers: the token view has the customer's name but not phone/email; the
+  lookup view (step 14) has no personal data. `Cache-Control: no-store` on order routes.
+
 ## Form intake rate limiting
 
 Contact and reservation intake are rate limited in-process per client IP (default 5 per 10 minutes).

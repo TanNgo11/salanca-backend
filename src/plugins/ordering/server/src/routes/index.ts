@@ -9,6 +9,14 @@ const can = (...actions: string[]) => ({
   ],
 });
 
+/** Public storefront route: no users-permissions auth; the controller rate-limits (§21.8). */
+const publicRoute = (method: string, path: string, handler: string) => ({
+  method,
+  path,
+  handler,
+  config: { auth: false as const, policies: [], middlewares: [] },
+});
+
 const adminRoute = (method: string, path: string, handler: string, ...actions: string[]) => ({
   method,
   path,
@@ -38,12 +46,14 @@ export default {
         handler: 'catalog.product',
         config: { auth: false, policies: [], middlewares: [] },
       },
-      {
-        method: 'GET',
-        path: '/branches',
-        handler: 'storefront.branches',
-        config: { auth: false, policies: [], middlewares: [] },
-      },
+      publicRoute('GET', '/branches', 'storefront.branches'),
+      publicRoute('GET', '/config', 'storefront.config'),
+      publicRoute('GET', '/slots', 'storefront.slots'),
+      publicRoute('POST', '/quote', 'storefront.quote'),
+      publicRoute('POST', '/orders', 'storefront.create'),
+      publicRoute('GET', '/orders', 'storefront.show'),
+      publicRoute('GET', '/orders/payment', 'storefront.payment'),
+      publicRoute('POST', '/orders/cancel', 'storefront.cancel'),
     ],
   },
   admin: {
