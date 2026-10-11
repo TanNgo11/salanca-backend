@@ -148,15 +148,25 @@ export function asapReadyAt(
   if (settings.orderTiming === 'scheduled') return null;
   const ready = earliestStart(now, leadTimeMinutes);
   const today = toLocalParts(now, timezone).date;
-  for (const date of [today, addDays(today, -1)]) {
-    const midnight = localToUtc(date, '00:00', timezone).getTime();
-    for (const range of rangesForDate(settings, date)) {
-      const from = midnight + range.from * 60_000;
-      const to = midnight + range.to * 60_000;
-      if (now.getTime() >= from && now.getTime() < to && ready.getTime() <= to) return ready;
-    }
+  // Ranges from yesterday to tomorrow as instants. A range that ends where the next begins
+  // (24/7, or 18:00–24:00 then 00:00–02:00) is one opening: ASAP ordered just before midnight
+  // must not fail because its ready time falls on the next calendar day.
+  const ranges = [addDays(today, -1), today, addDays(today, 1)]
+    .flatMap((date) => {
+      const midnight = localToUtc(date, '00:00', timezone).getTime();
+      return rangesForDate(settings, date).map((range) => ({
+        from: midnight + range.from * 60_000,
+        to: midnight + range.to * 60_000,
+      }));
+    })
+    .sort((a, b) => a.from - b.from);
+  const current = ranges.find((range) => now.getTime() >= range.from && now.getTime() < range.to);
+  if (!current) return null;
+  let closesAt = current.to;
+  for (const range of ranges) {
+    if (range.from <= closesAt && range.to > closesAt) closesAt = range.to;
   }
-  return null;
+  return ready.getTime() <= closesAt ? ready : null;
 }
 
 /** Hold resource key for a pickup slot; one advisory lock per key serializes the last seat. */

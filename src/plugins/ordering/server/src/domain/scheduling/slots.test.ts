@@ -126,4 +126,19 @@ describe('ASAP', () => {
       asapReadyAt({ ...daily, orderTiming: 'scheduled' }, TZ, localToUtc('2026-10-12', '09:00', TZ), 0),
     ).toBeNull();
   });
+
+  it('carries an opening across midnight', () => {
+    const allDay = settings({}, { openingHours: { mode: '24_7' } });
+    expect(asapReadyAt(allDay, TZ, localToUtc('2026-10-12', '23:50', TZ), 30)?.toISOString()).toBe(
+      localToUtc('2026-10-13', '00:20', TZ).toISOString(),
+    );
+    const split = settings(
+      {},
+      { openingHours: { mode: 'daily', daily: [{ start: '00:00', end: '02:00' }, { start: '18:00', end: '00:00' }] } },
+    );
+    expect(asapReadyAt(split, TZ, localToUtc('2026-10-12', '23:45', TZ), 30)?.toISOString()).toBe(
+      localToUtc('2026-10-13', '00:15', TZ).toISOString(),
+    );
+    expect(asapReadyAt(split, TZ, localToUtc('2026-10-13', '01:45', TZ), 30)).toBeNull();
+  });
 });
