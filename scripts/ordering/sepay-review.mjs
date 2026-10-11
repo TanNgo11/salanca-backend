@@ -252,6 +252,11 @@ withApp(async (app) => {
     assert.equal(refund.payment ?? null, null);
     assert.equal(refund.order ?? null, null);
     assert.equal((await eventOf(refundTxn)).reviewStatus, 'refund-due');
+    const refundLog = await app.db.query('plugin::ordering.admin-change-log').findMany({
+      where: { action: 'payment-review.refund-due', entityId: String(refundId) },
+    });
+    assert.equal(refundLog.length, 1);
+    assert.equal(refundLog[0].changes.refundId.after, refunded.body.refundId);
     agg = await load(short.order.order.id);
     assert.equal(agg.order.paymentStatus, 'partially-paid');
     const refundAgain = await http.as.minh('POST', `/payment-reviews/${refundId}/refund-due`, {

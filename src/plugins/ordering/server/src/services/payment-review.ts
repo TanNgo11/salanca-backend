@@ -374,7 +374,14 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
           where: { id: row.id },
           data: { reviewStatus: 'refund-due', reviewedBy: actorRefOf(ctx), reviewedAt: nowOf(ctx) },
         });
-        await audit('payment-review.refund-due', row, { reviewStatus: 'refund-due', reason, amount }, undefined, ctx);
+        // The refund row has no order or payment; this log entry is what ties it to the transfer.
+        await audit(
+          'payment-review.refund-due',
+          row,
+          { reviewStatus: 'refund-due', reason, amount, refundId: refund.id },
+          undefined,
+          ctx,
+        );
         return { ok: true, refundId: refund.id as number };
       });
     },
