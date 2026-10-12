@@ -90,4 +90,62 @@ xong; người giao thu tiền mặt.
 
 ## Completion record
 
-- Chưa bắt đầu.
+Trạng thái: **automated verification passed; manual UAT passed** (browser, xem mục UAT bên dưới).
+Chưa push, chưa merge — nhánh `feat/ordering-o5`.
+
+### Bước → commit
+
+| Bước | Nội dung | Commit |
+| --- | --- | --- |
+| 1 | Catalog đơn vị hành chính (loader + fixture XT) | `407aa65` |
+| 2 | Vùng giao + phí theo branch settings, quote | `b10bfa2` |
+| 3 | Provider `self-delivery`, phí vào `fulfillmentAmount` | `f313ef2` |
+| 4 | Validate + snapshot địa chỉ giao (`communeCode`, alias `wardCode`) | `9359e59` |
+| 5 | 3 workflow delivery + service `delivery-assignment` (gán/thất bại/thử lại/hoàn tất, đồng bộ group) | `33399c9` |
+| 6 | Board Đơn giao: list filters, `delivery-staff`, UI gán nhân viên quán/xe ngoài | `006b773` |
+| 7 | Email khách VI/EN với wording giao hàng (đang giao, thất bại + lý do, đã giao) | `03ef864` |
+| 8 | `smoke-ordering-delivery.mjs`, UAT server seed đơn giao, sửa `paymentByToken`/`withinCancelWindow` theo receive kind, docs | working tree |
+
+### Automated verification (tất cả exit 0)
+
+- `pnpm run lint`, `pnpm run typecheck`
+- `pnpm run test`: 159 file / 1097 test
+- `pnpm run check:ordering`: 41/41 (gồm `admin-units`, `delivery-quote`, `delivery-assignment`, `notifications`)
+- `pnpm run check:phase3` plugin tắt và bật
+- `node scripts/smoke-ordering-delivery.mjs`, `smoke:reservation-form`, `smoke:ordering-pickup`, `smoke-ordering-sepay.mjs`
+- `pnpm run build` (strapi build) bật và tắt plugin
+
+### Manual UAT — PASSED (2026-10-12, Chrome qua browse CLI)
+
+Server: `scripts/ordering/uat-server.mjs` port 1350 trên DB riêng `salanca_ordering_uat`
+(sau khi tách — xem note bên dưới). Tài khoản `quan-ly-chuoi UAT` (all locations).
+
+- Board "Đơn giao" render đúng: `Sẵn sàng giao (1)`, `Đang giao (1)`, `Giao thất bại`;
+  dòng SLC-000002 CHƯA GÁN, địa chỉ snapshot "12 Đường Bí Mật, Xã Đồng Thử", 200.000đ.
+- Gán `lan-q1 UAT` → "Bắt đầu giao": `POST /ordering/orders/2/transition 200`; đơn chuyển
+  sang Đang giao (2), cột người giao + giờ xuất phát hiện.
+- "Giao thất bại": nút "Ghi nhận thất bại" **disabled khi chưa chọn lý do**; chọn
+  "Không liên lạc được khách" → `POST .../transition 200`; đơn vào tab Giao thất bại (1).
+- "Giao lại": `POST .../transition 200`; đơn về lại Sẵn sàng giao (1).
+- "Thu tiền và giao" → "Đã thu 200.000đ": `POST /ordering/orders/3/cash-handover 200`;
+  chi tiết đơn hiện `ĐÃ GIAO` + `ĐÃ TRẢ`, `Tiền mặt · lan-q1 UAT`, `capture cash•••`,
+  chặng giao "Đã giao", địa chỉ snapshot đủ "Xã Đồng Thử, Tỉnh Thử Một".
+- Quote phí bậc thang qua public API thật: subtotal 100.000đ → `fulfillmentTotal` 15.000đ;
+  200.000đ → 0đ; xã ngoài vùng (XT02001) → `400 DELIVERY_UNAVAILABLE`
+  (`details.communeCode`, `reason: outside`).
+
+Lần chạy đầu (chung `salanca_ordering_test`) bị một process khác chạy `check:ordering`/
+`run-all.mjs` truncate giữa session — request dispatch trả 404 `ORDER_NOT_FOUND` đúng hành
+vi. Đã sửa bằng cách cho `uat-server` dùng DB riêng `salanca_ordering_uat` qua
+`ORDERING_TEST_DATABASE`; 41 script integration vẫn dùng `salanca_ordering_test`.
+
+### Open gates / notes
+
+- Danh mục hành chính vẫn là **TEST FIXTURE** (2 tỉnh `XT01`/`XT02`, 5 xã/phường); chờ chủ
+  dự án xác nhận nguồn chính thức trước khi đóng gói dữ liệu thật.
+- Vùng giao, bảng phí, đơn tối thiểu của Salanca: chờ số liệu thật từ chủ dự án (hiện là
+  fixture trong test/UAT).
+- Không tích hợp hãng giao trong O5 — chỉ metadata xe ngoài (tên hãng, mã vận đơn, URL
+  tracking tùy chọn).
+- `/slots` chỉ phục vụ pickup; đơn giao kiểm lịch trong quote/create theo `deliverySettings`.
+- Quyết định push/merge.

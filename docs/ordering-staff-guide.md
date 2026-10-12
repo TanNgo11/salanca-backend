@@ -1,7 +1,7 @@
 # Hướng dẫn xử lý đơn (nhân viên chi nhánh)
 
 Dành cho nhân viên và quản lý chi nhánh dùng Admin để nhận đơn online và đơn gọi điện (phase O3: khách tự
-đến lấy, trả tiền mặt). Hướng dẫn nhập món: `docs/ordering-catalog-guide.md`.
+đến lấy; O5: quán tự giao tận nơi). Hướng dẫn nhập món: `docs/ordering-catalog-guide.md`.
 
 ## Trước khi bắt đầu
 
@@ -49,6 +49,23 @@ Dành cho nhân viên và quản lý chi nhánh dùng Admin để nhận đơn o
 5. **Lưu nháp** (giữ chỗ khung giờ) hoặc **Xác nhận đơn** (vào hộp đơn ngay). Giá lấy từ catalog, không sửa
    tay.
 
+## Đơn giao tận nơi (Bán hàng → Đơn giao)
+
+- Đơn khách chọn "Giao hàng" chạy qua các tab: **Sẵn sàng** (đợi đi giao) · **Đang giao** · **Giao lỗi** ·
+  Tất cả. Nhận đơn, chuẩn bị và chuyển "Sẵn sàng" giống đơn lấy tại quán; từ "Sẵn sàng" trở đi dùng bảng
+  Đơn giao.
+- **Phân công**: mỗi chuyến giao cần một người phụ trách trước khi đi. Chọn **Gán người giao** rồi chọn
+  nhân viên cùng chi nhánh (danh sách chỉ gồm người trong phạm vi của bạn). Giao bằng xe ngoài thì chọn
+  **Hãng xe ngoài** và nhập tên hãng + mã vận đơn; hệ thống tự điền link tra cứu nếu hãng có mẫu URL.
+- **Đi giao**: chuyển chuyến sang "Đang giao"; khách nhận email đang trên đường giao. Đơn tiền mặt chỉ đi
+  được khi đã có người giao hoặc hãng xe.
+- **Giao lỗi**: chọn lý do (Không liên lạc được / Sai địa chỉ / Khách từ chối / Khác). Khách nhận email
+  kèm lý do. Từ "Giao lỗi" bấm **Giao lại** để đưa chuyến về "Sẵn sàng" chờ chuyến sau — khách nhận email
+  báo sẽ giao lại.
+- **Thu tiền và giao xong**: đơn tiền mặt thu tiền mặt tận nơi (ghi nhận người thu là người giao); đơn đã
+  trả trước chỉ cần xác nhận xong. Khách nhận email đã giao.
+- Cột **Người giao** lọc theo: Chưa gán · Của tôi · Người khác · một nhân viên cụ thể.
+
 ## Khách tự hủy, tra cứu
 
 - Khách tự hủy được khi đơn còn chờ quán nhận và trước mốc "Khách tự hủy trước giờ lấy" của chi nhánh. Sau
@@ -61,8 +78,15 @@ Dành cho nhân viên và quản lý chi nhánh dùng Admin để nhận đơn o
   khoảng slot, sức chứa mỗi slot, đặt trước tối đa, đơn tối thiểu, hạn khách tự hủy, cách trả, báo chậm.
   Đổi cài đặt chỉ áp dụng cho đơn mới.
 - **Cài đặt → Bán hàng**: bật hộp thoại đơn mới, âm báo mặc định, danh sách lý do từ chối, số phút lùi.
+- **Tab Giao hàng của chi nhánh**: bật giao tận nơi, thời gian chuẩn bị + đi giao tối thiểu, cách trả và
+  các **vùng giao** — mỗi vùng chọn xã/phường theo mã hành chính, phí giao theo nấc tạm tính, đơn tối
+  thiểu của vùng và thời gian cộng thêm. Vùng ưu tiên cao thắng khi địa chỉ khớp nhiều vùng. Cần có danh
+  mục đơn vị hành chính trước khi bật.
 
 ## Giới hạn hiện tại
 
 - Chạy một máy chủ (một instance): báo đơn realtime và giới hạn tần suất nằm trong bộ nhớ của tiến trình.
-- Chưa có chuyển khoản (O4), giao tận nơi (O5), chốt tiền cuối ngày và báo cáo (O6).
+- Giao tận nơi là quán **tự giao** (O5): hãng xe chỉ là thông tin kèm theo, chưa có tích hợp GHN/Ahamove/
+  Grab (dự kiến O6). Danh mục đơn vị hành chính hiện là **dữ liệu mẫu (XT…)** — cần nguồn chính thức trước
+  khi bật cho chi nhánh thật.
+- Chưa có chốt tiền cuối ngày và báo cáo (O6).

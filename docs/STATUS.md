@@ -2,6 +2,31 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
+2026-10-12: **Ordering O5 (giao tận nơi, quán tự giao) — automated + manual UAT passed** trên
+`feat/ordering-o5` (chưa push/merge; 7 commit `407aa65`…`03ef864` + tài liệu/smoke ở working tree).
+Khách chọn giao tận nơi theo mã xã/phường (`communeCode`, alias `wardCode`), phí giao tính ở server
+và nằm trong `fulfillmentAmount`; snapshot địa chỉ lưu mã + tên lúc đặt. Vùng giao cấu hình trong
+branch `deliverySettings` (match theo mã xã, rule theo giá trị đơn, ưu tiên, đơn tối thiểu, phí 0/đồng/
+unavailable). 3 workflow riêng cho đơn giao (`delivery-prepay`, `delivery-accept-then-pay`,
+`delivery-pay-on-pickup`); leg `ready → out-for-delivery → delivered`, `failed → ready` thử lại.
+Board Admin "Đơn giao": lọc sẵn sàng/đang giao/thất bại/tất cả + assignee (unassigned/mine/other/nhân
+viên), gán nhân viên quán trong scope hoặc xe ngoài (tên hãng, mã vận đơn, URL tracking), bắt đầu giao,
+báo thất bại kèm lý do bắt buộc, thử lại, thu tiền và giao (cash tại cửa). Email khách VI/EN dùng
+wording giao hàng riêng (đang giao, thất bại + lý do, đã giao). Sửa `paymentByToken` và cửa sổ hủy
+chọn settings theo receive kind (trước chỉ đọc `pickupSettings`). Gates: lint, typecheck, test
+159 file / 1097, `check:ordering` 41/41, `check:phase3` off/on, `smoke:reservation-form`,
+`smoke:ordering-pickup`, `smoke-ordering-sepay.mjs`, `node scripts/smoke-ordering-delivery.mjs` mới,
+`strapi build` bật/tắt — tất cả exit 0. **Danh mục hành chính vẫn TEST FIXTURE** (XT01/XT02, 5 xã) —
+chưa có nguồn chính thức; vùng/phí/đơn tối thiểu Salanca là fixture test. Không tích hợp hãng giao.
+`/slots` chỉ pickup. **Manual UAT browser passed** trên `salanca_ordering_uat` (DB riêng của
+uat-server — đã tách sau khi `run-all.mjs` truncate `salanca_ordering_test` giữa session): gán
+`lan-q1` → bắt đầu giao → thất bại kèm lý do (bắt buộc) → giao lại → thu tiền và giao; chi tiết
+đơn `ĐÃ GIAO`/`ĐÃ TRẢ`, tiền mặt do lan-q1 thu; quote bậc thang 15.000đ/0đ và `DELIVERY_UNAVAILABLE`
+ngoài vùng qua public API. **Open:** nguồn danh mục hành chính + bảng phí thật, quyết định push/merge.
+Plan: [`plans/ordering-o5-delivery.md`](plans/ordering-o5-delivery.md); API:
+[`ordering-api-contract.md`](ordering-api-contract.md); nhân viên:
+[`ordering-staff-guide.md`](ordering-staff-guide.md).
+
 2026-10-12: **Ordering O4 — sửa sau review** (7 commit `fix(ordering)`, `1555fe2`…`67c1b15`): đơn đã trả đủ
 không còn bị hết hạn; ghi tay mã mà SePay đã gửi trả 409 `PAYMENT_ALREADY_RECEIVED`; màn duyệt lọc trạng thái
 trong DB và định vị giao dịch đối soát; gán vào đơn đã đóng trả 409 `ORDER_CLOSED`; mở lại đơn ghi bước như

@@ -3,7 +3,10 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
-export const TEST_DATABASE = 'salanca_ordering_test';
+// Dedicated loopback database for ordering integration scripts. `ORDERING_TEST_DATABASE` can
+// point at a sibling database (e.g. the UAT server uses `salanca_ordering_uat`) so a long-lived
+// server is never truncated by a test suite sharing the same database.
+export const TEST_DATABASE = process.env.ORDERING_TEST_DATABASE ?? 'salanca_ordering_test';
 
 /**
  * Shared harness for ordering integration scripts. Boots a real Strapi against a dedicated

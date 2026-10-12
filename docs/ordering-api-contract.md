@@ -1,4 +1,4 @@
-# Ordering storefront API (O3) and SePay webhook (O4)
+# Ordering storefront API (O3), SePay webhook (O4) and self-delivery (O5)
 
 Public routes of the `ordering` plugin for the web app (phase OW). Base path with Salanca's REST prefix:
 `/api/v1/ordering`. All routes are `auth: false`; each one rate-limits by the visitor IP, caps JSON bodies
@@ -25,7 +25,8 @@ controllers/storefront.ts`, `domain/storefront/{parse,serialize}.ts`, contracts 
 | `CONSENT_REQUIRED` | 400 | `consent.accepted` not `true` or policy version not current |
 | `CAPTCHA_FAILED` | 400 | captcha token missing or rejected |
 | `LOCATION_UNAVAILABLE` | 400 | branch inactive or not selling online |
-| `FULFILLMENT_UNAVAILABLE` | 400 | the branch does not offer pickup (only pickup exists in O3) |
+| `FULFILLMENT_UNAVAILABLE` | 400 | the branch does not offer pickup |
+| `DELIVERY_UNAVAILABLE` | 400 | the branch does not deliver, or the address is outside every delivery zone / below a zone minimum |
 | `SLOT_TOO_EARLY` | 400 | slot earlier than now + lead time; `details.earliest` |
 | `SLOT_UNAVAILABLE` | 400 | not a slot of the branch (closed, misaligned, beyond max days, ASAP-only/scheduled-only) |
 | `SLOT_FULL` | 409 | the slot reached its capacity |
@@ -45,19 +46,21 @@ controllers/storefront.ts`, `domain/storefront/{parse,serialize}.ts`, contracts 
 ### `GET /branches`
 
 Active branches that sell online. `items[]`: `code`, `name { vi, en }`, `address`, `phone`, `email`,
-`timezone`, `receiveMethods: [{ kind: 'pickup', orderTiming: 'asap' | 'scheduled' | 'both' }]`.
+`timezone`, `receiveMethods: [{ kind: 'pickup' | 'delivery', orderTiming: 'asap' | 'scheduled' | 'both' }]`.
 
 ### `GET /config?branch=<code>`
 
 `{ currency, consentPolicyVersion, captcha: { provider } | null, branch }`. `branch.pickup` (null when
 pickup is off): `orderTiming`, `leadTimeMinutes`, `slotLengthMinutes`, `maxAdvanceDays`, `bookableFrom`,
 `bookableTo` (local dates), `minOrderAmount`, `paymentTiming`, `paymentMethods`, `customerCancelBeforeMinutes`,
-`openNow`, `asapReadyAt`.
+`openNow`, `asapReadyAt`. No `branch.delivery` block yet — the delivery checkout UI belongs to OW; quote
+and create already accept `kind: 'delivery'` against the branch's delivery settings.
 
 ### `GET /slots?branch=<code>&date=YYYY-MM-DD`
 
 `items[]`: `startsAt`, `endsAt`, `localStart` (`HH:mm` branch time), `available`, `reason`
-(`too-early` | `full`). Uses the branch lead time; quote/create re-check with line lead times.
+(`too-early` | `full`). Pickup only for now — it always uses the branch pickup lead time; quote/create
+re-check delivery slots against the delivery schedule themselves.
 
 ### `POST /quote`
 
@@ -71,10 +74,16 @@ pickup is off): `orderTiming`, `leadTimeMinutes`, `slotLengthMinutes`, `maxAdvan
 }
 ```
 
-No `slot` means ASAP. Any amount, adjustment or fee in the body is ignored. Response: `cartHash`,
-`lines[] { index, sellableUid, title, quantity, unitAmount, optionAmount, lineTotalAmount }`,
-`adjustments[]`, `totals { subtotal, adjustmentTotal, fulfillmentTotal, taxTotal, grandTotal, … }`,
-`payment.providerCode`, `timing { mode, slot?, requestedReadyAt }`.
+For delivery send `receiveMethod.kind: 'delivery'`, `providerCode: 'self-delivery'` and an `address`:
+`{ "communeCode": "XT01002", "line1": "12 Đường Bí Mật", "recipientName": "…", "phone": "0901…" }`
+(`wardCode` is accepted as an alias for older payloads). Commune codes come from the administrative-unit
+catalog; an unknown code or a required field fails `VALIDATION_ERROR` with `details.field`
+(`address.communeCode`, `address.line1`…). No `slot` means ASAP. Any amount, adjustment or fee in the
+body is ignored — the delivery fee always comes from the matched zone, not the request. Response:
+`cartHash`, `lines[] { index, sellableUid, title, quantity, unitAmount, optionAmount, lineTotalAmount }`,
+`adjustments[]`, `totals { subtotal, adjustmentTotal, fulfillmentTotal, taxTotal, grandTotal, … }`
+(the delivery fee is inside `fulfillmentTotal`), `payment.providerCode`,
+`timing { mode, slot?, requestedReadyAt }`.
 
 ### `POST /orders` (`Idempotency-Key` header)
 
@@ -96,7 +105,9 @@ Phone: Vietnamese numbers only (`0…`, `+84…`, `84…`), stored as E.164. `20
 ### `GET /orders` (`X-Order-Token`)
 
 Token view: `code`, `status`, `paymentStatus`, `fulfillmentStatus`, `placedAt`, `businessDate`, `locale`,
-`branch { code, name, phone, address }`, `receive { kind, mode, slot, estimatedReadyAt }`,
+`branch { code, name, phone, address }`, `receive { kind, mode, slot, estimatedReadyAt }` (`kind` is
+`pickup` or `delivery`; the delivery address is never echoed to the browser — the customer reads it in
+the confirmation email),
 `contact { name }`, `customerNote`, `lines[] { title, quantity, canceledQuantity, options[] { name, quantity },
 note, lineTotalAmount }`, `totals { currency, subtotal, adjustment, fulfillment, tax, total, paid, refunded, due }`,
 `steps { current, history[] { status, at } }` (public steps only), `canCancel`.
@@ -145,6 +156,17 @@ No name, phone, email, note or actions. Limits: per IP and 5 tries per order cod
 `placed` → `awaiting-acceptance` → `preparing` → `ready` → `delivered`; or `rejected` / `canceled`.
 Prepay and accept-then-pay add `awaiting-payment`. A SePay transfer that matches the order moves that
 step on: prepay to `awaiting-acceptance`, accept-then-pay to `preparing`.
+
+## Order steps (delivery)
+
+Delivery orders run their own workflows (`delivery-prepay`, `delivery-accept-then-pay`,
+`delivery-pay-on-pickup`) with the same public steps up to `ready`. From `ready` staff dispatch the
+courier: `ready` → `out-for-delivery` → `delivered`, or `out-for-delivery` → `failed` → back to `ready`
+for another attempt. Cash orders stay `unpaid` until the courier collects at the door. `GET
+/orders/payment` answers delivery orders with the branch's delivery `paymentTiming`/`methods`, so an
+`awaiting-payment` delivery order still shows the SePay presentation. Customer emails use delivery
+wording ("Giao lúc" not "Giờ lấy") for `out-for-delivery`, `delivered`, `failed` and a retry back to
+`ready`.
 
 ## SePay webhook
 

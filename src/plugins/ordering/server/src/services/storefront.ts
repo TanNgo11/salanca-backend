@@ -59,7 +59,11 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
     const startsAt = timing?.slot?.startsAt;
     if (!startsAt) return true;
     const branch = await branches().findByCode(aggregate.order.locationRef);
-    const settings = branches().pickupSettings(branch ?? { fulfillment: null });
+    const receive = aggregate.order.receiveMethod as { kind?: string };
+    const settings =
+      receive.kind === 'delivery'
+        ? branches().deliverySettings(branch ?? { fulfillment: null })
+        : branches().pickupSettings(branch ?? { fulfillment: null });
     return now.getTime() <= new Date(startsAt).getTime() - settings.customerCancelBeforeMinutes * 60_000;
   };
 
@@ -107,7 +111,9 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
       const receive = aggregate.order.receiveMethod as { kind?: string };
       const branch = await branches().findByCode(aggregate.order.locationRef);
       const settings =
-        receive.kind === 'pickup' ? branches().pickupSettings(branch ?? { fulfillment: null }) : null;
+        receive.kind === 'delivery'
+          ? branches().deliverySettings(branch ?? { fulfillment: null })
+          : branches().pickupSettings(branch ?? { fulfillment: null });
       const awaitingPayment = aggregate.groups.some((group) => group.status === 'awaiting-payment');
       let presentation: Record<string, unknown> | null = null;
       if (awaitingPayment && due > 0 && settings) {
