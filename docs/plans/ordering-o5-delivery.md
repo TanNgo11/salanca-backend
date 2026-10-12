@@ -111,7 +111,8 @@ Chưa push, chưa merge — nhánh `feat/ordering-o5`.
 | Finding | Sửa | Commit |
 | --- | --- | --- |
 | `POST /orders/:id/transition { to: canceled }` (quyền `order.process`) đóng đơn mà không hoàn tiền | Transition từ chối trạng thái hủy (`INVALID_TRANSITION`, `details.use: "cancel"`); hủy chỉ qua `/cancel` (`order.cancel`). Từ chối/hết hạn khi đơn đã có tiền thì hoàn trong cùng transaction: tiền mặt `settled`, chuyển khoản phiếu `pending` (contracts §19.1). Vòng hoàn tiền tách thành helper dùng chung với `cancel` | `6f68dbc` |
-| `outbox-two-process.mjs` chập chờn trong full run: A boot trước, xử lý hết 500 event trước khi B kịp nhận batch | Worker in `READY` sau boot, chờ `go` trên stdin; parent thả cả hai cùng lúc. Chạy riêng 5/5 đạt | `49d3417` |
+| (thêm khi sửa) `/cancel` đơn tự lấy đã chuyển khoản không tạo phiếu hoàn — lệch với từ chối; payment đọc trước khi khóa group | `/cancel` tạo phiếu `pending` cho mọi chuyển khoản; helper đọc lại payment sau khi đã khóa group; hộp thoại hủy hiện số hoàn chờ; test pickup trong `sepay-manual.mjs` | `8a1a8df` |
+| `outbox-two-process.mjs` chập chờn trong full run: A boot trước, xử lý hết 500 event trước khi B kịp nhận batch | Worker in `READY` sau boot, chờ `go` trên stdin; parent thả cả hai cùng lúc. Chạy riêng 5/5 đạt. Full run sau đó vẫn fail lần nữa: A chạy lâu hơn lease 3 s của B nên lấy lại batch B bỏ dở; B giờ giữ lease 600 s, parent tự cho hết hạn trong DB rồi mới cho A2 nhận lại | `49d3417`, `f9c98db` |
 | Cảnh báo `pg` "client.query() when the client is already executing a query" | Không sửa: nguồn là `@strapi/database` populate (`Promise.all` theo từng relation, `dist/query/helpers/populate/apply.js`) khi `loadOrderAggregate` populate nhiều relation trong transaction. `pg` khóa `8.20.0`; xem lại khi nâng `pg@9` hoặc Strapi | — |
 | STATUS ghi "working tree", số gate cũ | Cập nhật bên dưới và `docs/STATUS.md` | docs |
 
@@ -123,9 +124,12 @@ của chủ dự án.
 - `pnpm run lint`, `pnpm run typecheck`
 - `pnpm run test`: 159 file / 1097 test
 - `pnpm run check:ordering`: 41/41 (gồm `admin-units`, `delivery-quote`, `delivery-assignment`, `notifications`)
-- Chạy lại sau review (2026-10-12, sau `49d3417`, tuần tự): lint, typecheck, test 159 file / 1097,
-  `check:ordering` 41/41 **hai lượt liên tiếp**, `check:phase3` tắt/bật, `smoke:reservation-form`,
-  `smoke:ordering-pickup`, `smoke-ordering-sepay.mjs`, `smoke-ordering-delivery.mjs`, `strapi build` bật/tắt — tất cả exit 0
+- Chạy lại sau review (2026-10-12, tuần tự). Trên `8a1a8df`: lint, typecheck, test 159 file / 1097,
+  `check:phase3` bật, `smoke:reservation-form`, `smoke:ordering-pickup`, `smoke-ordering-sepay.mjs`,
+  `smoke-ordering-delivery.mjs`, `strapi build` bật/tắt — exit 0; `check:ordering` lượt 2 fail ở
+  `outbox-two-process.mjs` (sửa ở `f9c98db`), `check:phase3` tắt fail vì `processor.test.ts` (media của app)
+  timeout 5 s lúc máy tải nặng. Trên `f9c98db`: `check:ordering` 41/41 **hai lượt liên tiếp**, `check:phase3`
+  tắt và bật (159 file / 1097) — exit 0
 - `pnpm run check:phase3` plugin tắt và bật
 - `node scripts/smoke-ordering-delivery.mjs`, `smoke:reservation-form`, `smoke:ordering-pickup`, `smoke-ordering-sepay.mjs`
 - `pnpm run build` (strapi build) bật và tắt plugin

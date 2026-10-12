@@ -3,11 +3,11 @@
 Last reviewed against repository documentation: 2026-09-29
 
 2026-10-12: **Ordering O5 (giao tận nơi, quán tự giao) — automated + manual UAT passed** trên
-`feat/ordering-o5` (chưa push/merge; 8 commit `407aa65`…`c0695bb` + sửa sau review `6f68dbc`, `49d3417`).
+`feat/ordering-o5` (chưa push/merge; 8 commit `407aa65`…`c0695bb` + sửa sau review `6f68dbc`, `49d3417`, `8a1a8df`, `f9c98db`).
 Spec `phase-ordering-5-delivery.md` vẫn "chờ duyệt": duyệt spec/đóng phase là quyết định chủ dự án.
 **Sửa sau review:** `transition { to: canceled }` bị từ chối (hủy chỉ qua `/cancel`, quyền `order.cancel`,
-có hoàn tiền); từ chối/hết hạn khi đã có tiền thì hoàn luôn (chuyển khoản: phiếu `pending`);
-`outbox-two-process.mjs` hết chập chờn (worker chờ barrier). Cảnh báo `pg` concurrent query đến từ
+có hoàn tiền); từ chối/hết hạn/hủy khi đã có tiền thì hoàn luôn, cả đơn tự lấy (chuyển khoản: phiếu
+`pending`); `outbox-two-process.mjs` hết chập chờn (barrier + lease dài cho worker B). Cảnh báo `pg` concurrent query đến từ
 populate của `@strapi/database`, `pg` khóa 8.20.0 — nợ upstream, chưa sửa.
 Khách chọn giao tận nơi theo mã xã/phường (`communeCode`, alias `wardCode`), phí giao tính ở server
 và nằm trong `fulfillmentAmount`; snapshot địa chỉ lưu mã + tên lúc đặt. Vùng giao cấu hình trong
