@@ -115,9 +115,22 @@ Mục **Báo cáo → Báo cáo** (quyền Báo cáo) xem doanh thu theo **ngày
 
 ## Xuất CSV đơn (kế toán)
 
-Từ trang **Đơn hàng** hoặc **Báo cáo**, bấm **Tải CSV** (quyền Xuất): chọn khoảng ngày kinh doanh
-(tối đa 92 ngày, 10.000 đơn) và chi nhánh rồi tải về — mở được bằng Excel. File chứa tên và số điện
-thoại khách nên cần lưu ý bảo mật; chỉ đơn trong phạm vi chi nhánh được phân được xuất.
+Từ trang **Đơn hàng** bấm **Tải CSV**, từ trang **Báo cáo** bấm **Xuất CSV** (quyền Xuất): chọn
+khoảng ngày kinh doanh (tối đa 92 ngày, 10.000 đơn) và chi nhánh rồi tải về — mở được bằng Excel.
+File chứa tên và số điện thoại khách nên cần lưu ý bảo mật; chỉ đơn trong phạm vi chi nhánh được
+phân được xuất.
+
+## Cảnh báo (quản lý, kế toán)
+
+Mục **Vận hành → Cảnh báo** liệt kê các sự cố đang cần xử lý, chia ba tab: **Đang mở**, **Đã biết**,
+**Đã đóng**. Mỗi dòng ghi loại cảnh báo, số lần lặp lại, thời điểm gần nhất và nhóm người nhận.
+
+- Bấm **Đã biết** khi đã nhận thông tin và đang xử lý — hệ thống ngừng nhắc lại cùng mức; nếu tình
+  hình xấu hơn (đạt ngưỡng nghiêm trọng) vẫn báo tiếp.
+- Cảnh báo tự đóng khi nguyên nhân hết (ví dụ giao dịch được khớp, đơn được nhận, điều chỉnh chốt
+  tiền về đúng số); vài loại cần xử lý ở màn liên quan (Duyệt chuyển khoản, Chốt tiền mặt).
+- Mỗi loại chỉ hiện cho nhóm được phân — quản lý chi nhánh thấy cảnh báo chi nhánh mình, kế toán
+  thấy cảnh báo tiền và chốt tiền.
 
 ## Giới hạn hiện tại
 
@@ -125,4 +138,3 @@ thoại khách nên cần lưu ý bảo mật; chỉ đơn trong phạm vi chi n
 - Giao tận nơi là quán **tự giao** (O5): hãng xe chỉ là thông tin kèm theo, chưa có tích hợp GHN/Ahamove/
   Grab (dự kiến O6). Danh mục đơn vị hành chính hiện là **dữ liệu mẫu (XT…)** — cần nguồn chính thức trước
   khi bật cho chi nhánh thật.
-- Chưa có xuất CSV (O6 các bước sau).

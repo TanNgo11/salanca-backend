@@ -153,8 +153,16 @@ Related phase: [`phases/phase-ordering-6-ops-golive.md`](../phases/phase-orderin
 
 ## Completion record
 
-- Bước 1 (bộ máy cảnh báo) xong — commit `97b72ae`.
-- Bước 2 (trang vận hành + Admin V1/V2 + khối Cảnh báo trong Settings) xong — commit `d84ed09`.
+| Bước | Commit |
+| --- | --- |
+| 1 — Bộ máy cảnh báo | `97b72ae` |
+| 2 — Trang vận hành + Admin V1/V2 + khối Cảnh báo trong Settings | `d84ed09` |
+| 3 — Chốt tiền mặt | `58d3bd8` |
+| 4 — Báo cáo bán hàng | `e2f8718` |
+| 5 — Xuất CSV đơn | `26c0236` |
+| 6 — Job thời hạn lưu | `dedddfc` |
+| 8/10 — Runbook, checklist cổng go-live, UAT seed | <commit docs sắp tới> |
+
 - Bước 3 (chốt tiền mặt) xong: content type `cash-closing`, `refund.business_date`, migration
   `0004-o6-ops`, `services/cash-closing.ts`, routes `report.read`, trang Admin `CashClosing`,
   test `scripts/ordering/cash-closing.mjs`. Chọn: chốt hai lần cùng (chi nhánh, ngày, người thu) bị
@@ -168,3 +176,24 @@ Related phase: [`phases/phase-ordering-6-ops-golive.md`](../phases/phase-orderin
 - Bước 6 (thời hạn lưu) xong: config `retention` + `retentionCron`, `domain/pii.ts`
   (`RETAINED_PAYLOAD_KEYS` + `redactPayload`), `jobs/retention.ts` trong `ORDERING_JOBS`,
   test `scripts/ordering/retention.mjs`.
+
+### Lệch so với kế hoạch
+
+- Bản nháp ghi content type `cash-closing` có từ O1 — thực tế chưa có; thêm ở O6 kèm migration
+  `0004-o6-ops` (index partial cho `current`, index `payment(provider_code, business_date)` và
+  `ops-alert(status, last_seen_at)`).
+- `refund.businessDate` thêm ở O6 (ghi khi settle theo timezone + cutoff chi nhánh; backfill trong
+  `0004-o6-ops` giả định `Asia/Ho_Chi_Minh` + 04:00 vì dữ liệu cũ chỉ ở DB test).
+- Heartbeat job không phải cột bảng mà là `order-job-lock` (`lastRunAt`/`lastSuccessAt`/
+  `lastDurationMs`); dispatcher outbox không khóa mà upsert `heartbeat`.
+- `GET /cash-closing` và `GET /cash-closing/summary` cùng trỏ một handler (screens V3 ghi
+  `/summary`, handoff ghi query trực tiếp).
+
+### Chưa làm / chờ chủ dự án
+
+- Bước 7 (hạ tầng + go-live) và bước 9 (kiểm email/UAT quyết định): chủ dự án chạy theo checklist
+  trong `docs/phases/phase-ordering-6-ops-golive.md` và `docs/ordering-ops-runbook.md`.
+- UAT tay của các màn O6 (seed sẵn trong `scripts/ordering/uat-server.mjs`).
+- Quyết định kế toán (hóa đơn điện tử, VAT), pháp lý (thời hạn lưu, nội dung đồng ý),
+  SePay thật.
+- Gate: <điền sau>

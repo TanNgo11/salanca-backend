@@ -78,12 +78,34 @@ không gửi `referenceCode` thì cần trùng cả số tiền, `transactionDat
 Giao dịch đối soát không ghi được vào sổ mở một cảnh báo theo id giao dịch của SePay. Khớp được thì
 không mở cảnh báo đó.
 
+Đẩy nhanh không cần chờ giờ: trang **Tình trạng vận hành** → tab Jobs → `sepay-reconciliation` →
+**Chạy ngay** (`POST /ordering/ops/jobs/:name/run`, quyền `ops.read`). Job đang chạy trả
+`ran:false` — không phải lỗi, đợi xong rồi chạy lại.
+
 Đơn `prepay` quá `paymentTimeoutMinutes` thì job hết hạn (mỗi 30 giây) chuyển `expired` và nhả chỗ.
 Tiền tới sau không ghi sổ. QR ẩn khi đã quá hạn dù job chưa chạy.
 
 Nhân viên bấm "Sao chép link thanh toán" trên đơn đang chờ chuyển khoản. Link chỉ mở trang QR (`#p=`),
 hết hạn theo cửa sổ thanh toán; tạo link mới thì kéo hạn đơn. Hủy một phần món trên đơn đã chuyển khoản
 tạo phiếu hoàn chờ; `paymentStatus` đổi khi ghi mã ngân hàng.
+
+## Đối soát hằng ngày (kế toán)
+
+Quy trình cuối ngày kinh doanh:
+
+1. **Duyệt chuyển khoản** (`/ordering/payment-reviews`, quyền `payment.review`): hết hàng chờ —
+   mọi khoản SePay không tự khớp nằm đây (không có mã, sai số, đơn đã đóng, sai tài khoản).
+2. **Cảnh báo** (`/plugins/ordering/alerts`): không còn `reconciliation-mismatch`,
+   `payment-unmatched`, `manual-payment-unconfirmed` đang mở — xử lý từng cái theo
+   [`ordering-ops-runbook.md`](ordering-ops-runbook.md#cảnh-báo).
+3. **Báo cáo → Báo cáo** theo "Cách trả": dòng `sepay` (Đã thu) phải khớp sao kê SePay của
+   ngày đó; dòng `test`/provider khác không có trên môi trường thật.
+4. **Báo cáo → Chốt tiền mặt**: chốt từng người thu; chênh lệch ≠ 0 cần ghi chú và mở cảnh
+   báo cho kế toán.
+5. So sao kê SePay vs sổ: tổng `payment.captured` theo `business_date` (dòng `sepay` của báo
+   cáo) phải bằng tổng tiền vào các tài khoản `SEPAY_ACCOUNTS` trong ngày kinh doanh đó.
+   Lệch thường là tiền vào ngoài hệ thống (không mã) hoặc chuyển cho đơn đã hủy — tra tab Lỗi
+   và Duyệt chuyển khoản trước khi kết luận.
 
 ## Hoàn tiền
 
@@ -94,14 +116,12 @@ hoặc hoàn đủ. Cùng mã trên đúng phiếu đó không cộng lần hai.
 
 ## Cảnh báo
 
-Một dòng đang mở cho mỗi khóa. Không có màn trạng thái vận hành.
-
-| Mã | Khi nào |
-| --- | --- |
-| `webhook-failing` | 5 lần lỗi liên tiếp; lần 20 là critical |
-| `payment-unmatched` | tiền vào không tự khớp, gộp theo provider |
-| `manual-payment-unconfirmed` | ghi tay quá 24 giờ mà SePay chưa xác nhận; đóng khi đã xác nhận |
-| `reconciliation-mismatch` | đối soát không ghi được một giao dịch |
+Bốn mã liên quan thanh toán: `webhook-failing` (lỗi liên tiếp, mức critical sau ngưỡng),
+`payment-unmatched`, `manual-payment-unconfirmed` (ghi tay chưa xác nhận quá hạn),
+`reconciliation-mismatch`. Một dòng đang mở cho mỗi khóa; ngưỡng, mức critical, người nhận
+và cách xử lý từng mã — xem bảng đầy đủ ở
+[`ordering-ops-runbook.md`](ordering-ops-runbook.md#cảnh-báo). Trang **Tình trạng vận
+hành** (`ops.read`) theo dõi sức khỏe webhook và job đối soát theo thời gian thực.
 
 Log chỉ có mã cảnh báo và số đếm. Không ghi tên người chuyển, số tài khoản đầy đủ, hay nội dung
 chuyển khoản.

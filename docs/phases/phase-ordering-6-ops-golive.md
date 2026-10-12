@@ -52,6 +52,29 @@ ngày kinh doanh, xóa dữ liệu cá nhân đúng hạn; qua được cổng g
 - Cổng go-live thêm: nội dung chính sách dữ liệu cá nhân và `policyVersion` đã bật (21.4); quyết định số
   instance khi chạy thật (21.9).
 
+## Checklist cổng go-live
+
+Tick đủ mới bật bán. Chi tiết kỹ thuật: [`ordering-ops-runbook.md`](../ordering-ops-runbook.md).
+
+- [ ] Tài khoản SePay thật đã cấu hình và thử bằng một giao dịch nhỏ.
+- [ ] Kế toán xác nhận: đơn online có phải xuất hóa đơn điện tử không; giá đã gồm VAT chưa.
+- [ ] Pháp lý xác nhận: thời hạn lưu dữ liệu; nội dung đồng ý xử lý dữ liệu cá nhân ở checkout.
+- [ ] `plugin::ordering.consent.policyVersion` đặt đúng phiên bản chính sách đã duyệt (21.4) —
+  hiện chỉ chỉnh qua config/env, chưa có màn Admin.
+- [ ] Nội dung email gửi khách đã duyệt.
+- [ ] UAT tay của O3–O6 đã ghi đủ trong `docs/STATUS.md`.
+- [ ] Mọi gate O1–O6 ghi trong `docs/STATUS.md` (repo chưa có CI).
+- [ ] Quyết định số instance = 1 đã chốt (SSE và rate limit nằm trong process, 21.9).
+- [ ] Quy trình `strapi export`/`transfer` đã chốt: mã hóa file, nơi giữ, ai giữ key, xóa sau
+  dùng (21.9).
+- [ ] Cloudflare cho `POST <API_REST_PREFIX>/ordering/webhooks/sepay`: bypass cache, skip
+  challenge, không Bot Fight Mode.
+- [ ] SSE `GET /ordering/orders/stream` qua proxy không buffer, timeout đủ dài.
+- [ ] Backup DB trước go-live; env đầy đủ (`ORDERING_ENABLED`, `ORDERING_ENCRYPTION_KEY`,
+  captcha, SMTP, `TRUST_PROXY`).
+- [ ] Smoke sau bật: `/_health` 204, Admin hiện menu Bán hàng, webhook thử qua domain thật,
+  `GET <prefix>/ordering/branches`.
+
 ## Non-goals
 
 - VAT/hóa đơn điện tử, voucher, đặt lịch hẹn, tồn kho, khuyến mãi (module sau go-live).

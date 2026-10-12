@@ -68,6 +68,9 @@ are written and approved before code.
 - [`Phase OW - Ordering web (web repo)`](phases/phase-ordering-w-web.md)
 - Design: [`ordering-core-contracts.md`](plans/ordering-core-contracts.md); research:
   [`ordering-reference.md`](plans/ordering-reference.md)
+- Runbooks: staff [`ordering-staff-guide.md`](ordering-staff-guide.md), payments
+  [`ordering-payments-runbook.md`](ordering-payments-runbook.md), ops
+  [`ordering-ops-runbook.md`](ordering-ops-runbook.md)
 
 Overview: [`plans/be-pattern-lift-plan.md`](plans/be-pattern-lift-plan.md). Do not implement Phase 4+ from roadmap bullets alone; use these specs. Phase 0 must pass before Phase 4 implementation.
 

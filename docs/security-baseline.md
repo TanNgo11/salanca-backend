@@ -115,10 +115,16 @@ Job `retention` (mặc định 03:30 hằng ngày, `plugin::ordering.retention`)
 `resolved` bị xóa sau 30/90/90 ngày. Các mặc định chờ pháp lý xác nhận.
 
 `GET /ordering/orders/export` xuất CSV có tên, số điện thoại, email, địa chỉ khách — chỉ cấp cho
-quyền `export`, giới hạn 92 ngày và 10.000 đơn mỗi lần. Admin cảnh báo rõ trước khi tải.
+quyền `export`, giới hạn 92 ngày và 10.000 đơn mỗi lần. Admin cảnh báo rõ trước khi tải. Ba quyền
+mới cần kiểm khi phân vai trò: `export` (PII hàng loạt), `ops.read` (trang vận hành + "Chạy ngay"
+job + retry outbox) và `report.read` (báo cáo + chốt tiền + email cảnh báo tài chính).
 
 Log chỉ ghi số đếm (số dòng export, số bản ghi đã redact/xóa); trang vận hành và Admin không hiển thị
 raw payload webhook hay PII khách ngoài luồng đơn.
+
+Hạ tầng trước route webhook: Cloudflare phải bypass cache và skip challenge cho
+`POST /api/v1/ordering/webhooks/sepay` (prefix theo `API_REST_PREFIX`), không bật Bot Fight
+Mode trên path đó — chi tiết checklist trong [`ordering-ops-runbook.md`](ordering-ops-runbook.md).
 
 ## Form intake rate limiting
 
