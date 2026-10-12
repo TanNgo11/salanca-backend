@@ -359,7 +359,7 @@ export const OrdersList = () => {
                           <IconButton label={t('orders.preview')} variant="ghost" onClick={() => setPreview(row.id)}>
                             <Eye />
                           </IconButton>
-                          {row.next && allowedActions.canProcess && !row.next.requires.includes('cash') ? (
+                          {row.next && allowedActions.canProcess && row.next.requires.length === 0 ? (
                             <Button
                               size="S"
                               loading={actions.busy === `transition:${row.next.to}`}

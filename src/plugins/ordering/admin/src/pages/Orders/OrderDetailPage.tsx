@@ -31,8 +31,9 @@ import { useErrorToast, httpStatusOf } from '../../lib/api';
 import { formatDateTime, formatMoney, formatTime, localized, minutesSince } from '../../lib/format';
 import { useLocale, useT } from '../../lib/i18n';
 import { RBAC_DETAIL } from '../../lib/permissions';
-import type { InboxSettings, NextTransition, OrderDetail } from '../../lib/types';
+import type { DeliveryStaff, InboxSettings, NextTransition, OrderDetail } from '../../lib/types';
 import { useOrderActions } from '../../lib/useOrderActions';
+import { AssignDialog, FailDialog } from '../Deliveries/DeliveryDialogs';
 import {
   BankRefundDialog,
   CancelDialog,
@@ -48,6 +49,8 @@ import {
 type Dialog =
   | { kind: 'transition'; to: string }
   | { kind: 'reject'; to: string }
+  | { kind: 'assign' }
+  | { kind: 'fail' }
   | { kind: 'cancel' }
   | { kind: 'cash' }
   | { kind: 'line'; lineId: number }
@@ -93,6 +96,8 @@ export const OrderDetailPage = () => {
   const [dialog, setDialog] = useState<Dialog>(null);
   const [note, setNote] = useState('');
   const [reasons, setReasons] = useState<InboxSettings['rejectReasons']>(inbox?.settings?.rejectReasons ?? []);
+  const [couriers, setCouriers] = useState<DeliveryStaff[] | null>(null);
+  const [couriersLoading, setCouriersLoading] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -114,6 +119,16 @@ export const OrderDetailPage = () => {
       .then(({ data }) => setReasons((data as { settings: InboxSettings }).settings.rejectReasons))
       .catch(() => {});
   }, [get, reasons.length]);
+
+  // Couriers load when the assign dialog opens — the list is scoped to the order's branch.
+  useEffect(() => {
+    if (dialog?.kind !== 'assign' || couriers !== null || !detail) return;
+    setCouriersLoading(true);
+    void get(`/ordering/orders/delivery-staff?branch=${encodeURIComponent(detail.order.locationRef)}`)
+      .then(({ data }) => setCouriers((data as { results?: DeliveryStaff[] })?.results ?? []))
+      .catch(() => setCouriers([]))
+      .finally(() => setCouriersLoading(false));
+  }, [couriers, detail, dialog?.kind, get]);
 
   const { post, del } = useFetchClient();
   const toastError = useErrorToast();
@@ -228,6 +243,8 @@ export const OrderDetailPage = () => {
 
   const onStep = (item: NextTransition) => {
     if (item.requires.includes('cash')) return setDialog({ kind: 'cash' });
+    if (item.requires.includes('assignee')) return setDialog({ kind: 'assign' });
+    if (item.to === 'failed') return setDialog({ kind: 'fail' });
     if (item.requires.includes('reason')) return setDialog({ kind: 'reject', to: item.to });
     return setDialog({ kind: 'transition', to: item.to });
   };
@@ -462,6 +479,59 @@ export const OrderDetailPage = () => {
                 />
               ) : null}
             </Section>
+            {detail.delivery ? (
+              <Section title={t('deliveries.detail.title')}>
+                <Row
+                  label={t('deliveries.col.courier')}
+                  value={
+                    detail.delivery.assigneeName ??
+                    (detail.delivery.carrier
+                      ? `${detail.delivery.carrier}${detail.delivery.trackingNumber ? ` · ${detail.delivery.trackingNumber}` : ''}`
+                      : t('deliveries.unassigned'))
+                  }
+                />
+                {detail.delivery.trackingUrl ? (
+                  <Row label={t('deliveries.assign.trackingUrl')} value={detail.delivery.trackingUrl} />
+                ) : null}
+                {detail.delivery.address ? (
+                  <Row
+                    label={t('deliveries.col.address')}
+                    value={[
+                      detail.delivery.address.line1,
+                      detail.delivery.address.wardName,
+                      detail.delivery.address.provinceName,
+                    ]
+                      .filter(Boolean)
+                      .join(', ')}
+                  />
+                ) : null}
+                {detail.delivery.address?.recipientName ? (
+                  <Row label={t('deliveries.detail.recipient')} value={detail.delivery.address.recipientName} />
+                ) : null}
+                {detail.delivery.address?.phone ? (
+                  <Row label={t('deliveries.detail.phone')} value={detail.delivery.address.phone} />
+                ) : null}
+                <Row label={t('deliveries.detail.status')} value={detail.delivery.status ? t(`state.${detail.delivery.status}`) : '—'} />
+                {detail.delivery.shippedAt ? (
+                  <Row label={t('deliveries.col.departed')} value={formatDateTime(detail.delivery.shippedAt, timezone)} />
+                ) : null}
+                {detail.delivery.deliveredAt ? (
+                  <Row label={t('deliveries.detail.deliveredAt')} value={formatDateTime(detail.delivery.deliveredAt, timezone)} />
+                ) : null}
+                {detail.delivery.canceledAt ? (
+                  <Row label={t('deliveries.detail.canceledAt')} value={formatDateTime(detail.delivery.canceledAt, timezone)} />
+                ) : null}
+                {detail.delivery.lastFailure ? (
+                  <Row
+                    label={t('deliveries.detail.lastFailure')}
+                    value={`${t(`deliveries.failReason.${detail.delivery.lastFailure.code}`)}${detail.delivery.lastFailure.note ? ` — ${detail.delivery.lastFailure.note}` : ''}`}
+                  />
+                ) : null}
+                {detail.delivery.attempts > 0 ? (
+                  <Row label={t('deliveries.detail.attempts')} value={String(detail.delivery.attempts)} />
+                ) : null}
+              </Section>
+            ) : null}
             <Section title={t('detail.history')}>
               {can.canProcess ? (
                 <Flex direction="column" alignItems="stretch" gap={2} paddingBottom={4}>
@@ -517,6 +587,22 @@ export const OrderDetailPage = () => {
           <RejectDialog
             to={dialog.to}
             reasons={reasons}
+            busy={actions.busy !== null}
+            onClose={() => setDialog(null)}
+            onSubmit={(body) => void actions.transition(order.id, body)}
+          />
+        ) : null}
+        {dialog?.kind === 'assign' ? (
+          <AssignDialog
+            staff={couriers}
+            staffLoading={couriersLoading}
+            busy={actions.busy !== null}
+            onClose={() => setDialog(null)}
+            onSubmit={(body) => void actions.transition(order.id, body)}
+          />
+        ) : null}
+        {dialog?.kind === 'fail' ? (
+          <FailDialog
             busy={actions.busy !== null}
             onClose={() => setDialog(null)}
             onSubmit={(body) => void actions.transition(order.id, body)}

@@ -2,7 +2,7 @@
 export type NextTransition = {
   to: string;
   kind: 'primary' | 'secondary' | 'danger';
-  requires: Array<'reason' | 'cash'>;
+  requires: Array<'reason' | 'cash' | 'assignee'>;
 };
 
 export type InboxSettings = {
@@ -31,6 +31,23 @@ export type OrderRow = {
   overdue: boolean;
   origin: string;
   next: NextTransition | null;
+  /** Delivery-leg info, present on `GET /orders?receive=delivery` rows (screens D2). */
+  delivery?: {
+    status: string | null;
+    assigneeRef: string | null;
+    assigneeName: string | null;
+    carrier: string | null;
+    trackingNumber: string | null;
+    address: {
+      line1?: string;
+      wardName?: string;
+      provinceName?: string;
+      recipientName?: string;
+      phone?: string;
+    } | null;
+    shippedAt: string | null;
+    due: number;
+  };
 };
 
 export type OrderDetail = {
@@ -120,6 +137,31 @@ export type OrderDetail = {
   nextTransitions: NextTransition[];
   paymentLink: { expiresAt: string } | null;
   settings: { delayMinutes: number[] };
+  /** The delivery leg of a delivery order (O5); null for pickup orders. */
+  delivery: {
+    status: string | null;
+    assigneeRef: string | null;
+    assigneeName: string | null;
+    carrier: string | null;
+    trackingNumber: string | null;
+    trackingUrl: string | null;
+    address: {
+      line1?: string;
+      wardName?: string;
+      provinceName?: string;
+      recipientName?: string;
+      phone?: string;
+      note?: string;
+    } | null;
+    shippedAt: string | null;
+    deliveredAt: string | null;
+    canceledAt: string | null;
+    lastFailure: { code: string; note: string | null; at: string } | null;
+    attempts: number;
+  } | null;
 };
 
 export type BranchSummary = { code: string; name: Record<string, string>; timezone: string; onlineOrdering: boolean };
+
+/** A courier the assign dialog may pick (`GET /orders/delivery-staff`). */
+export type DeliveryStaff = { ref: string; name: string };

@@ -399,6 +399,59 @@ await withApp(async (app) => {
   await transfer(9003, atp.order.order.code, atp.order.order.totalAmount);
   assert.equal((await groupOf(atpId)).status, 'preparing');
 
+  // ── Delivery board: tabs, assignee filter, courier list ────────────────────
+  await setDelivery('pay-on-pickup', ['cash']);
+  const board = await place();
+  const boardId = board.order.order.id;
+  const boardGroup = board.order.groups[0];
+  await transition.transitionGroup({ orderId: boardId, groupId: boardGroup.id, to: 'preparing' }, systemCtx);
+  await transition.transitionGroup({ orderId: boardId, groupId: boardGroup.id, to: 'ready' }, systemCtx);
+
+  const listFor = (params, ctx = lanCtx) => adminOrders.list({ receive: 'delivery', branch: 'Q1', ...params }, ctx);
+  const ready = await listFor({ tab: 'ready' });
+  assert.equal(ready.counts.ready >= 1, true);
+  const readyRow = ready.results.find((row) => row.id === boardId);
+  assert.ok(readyRow, 'a ready leg is on the board');
+  assert.equal(readyRow.delivery.assigneeRef, null);
+  assert.equal(readyRow.delivery.address.wardCode, 'XT01002');
+  assert.equal(readyRow.delivery.due, board.order.order.totalAmount);
+  assert.equal(readyRow.next.to, 'out-for-delivery');
+  assert.deepEqual(readyRow.next.requires, ['assignee']);
+  assert.equal(ready.results.every((row) => row.delivery), true);
+
+  const couriers = await delivery.assignableStaff('Q1', lanCtx);
+  const refs = new Set(couriers.map((item) => item.ref));
+  assert.ok(refs.has(lanRef) && refs.has(minhRef) && refs.has(`admin:${staff.keToan.user.id}`));
+  assert.equal(refs.has(`admin:${q3only.id}`), false, 'a courier outside the scope is not offered');
+  assert.equal(
+    await errorOf(() => delivery.assignableStaff('Q1', q3Ctx)),
+    'ORDER_NOT_FOUND',
+    'the courier list itself is scoped',
+  );
+
+  await adminOrders.transition(boardId, { to: 'out-for-delivery', assigneeRef: lanRef }, lanCtx);
+  const out = await listFor({ tab: 'out' });
+  const outRow = out.results.find((row) => row.id === boardId);
+  assert.ok(outRow, 'a dispatched leg is on the out tab');
+  assert.equal(outRow.delivery.assigneeRef, lanRef);
+  assert.equal(outRow.delivery.assigneeName !== null, true);
+  assert.equal((await listFor({ tab: 'out', assignee: 'mine' })).results.some((row) => row.id === boardId), true);
+  assert.equal(
+    (await listFor({ tab: 'out', assignee: 'unassigned' })).results.some((row) => row.id === boardId),
+    false,
+    'an assigned leg is not "unassigned"',
+  );
+  assert.equal(
+    (await listFor({ tab: 'out', assignee: minhRef })).results.some((row) => row.id === boardId),
+    false,
+    'the assignee filter matches the courier exactly',
+  );
+  assert.equal(
+    (await listFor({ tab: 'out' }, q3Ctx)).results.length,
+    0,
+    'out-of-scope staff sees an empty board',
+  );
+
   console.log('[ordering-test] delivery leg: dispatch, race, external vehicle, fail/retry,');
   console.log('[ordering-test] cash handover actor, cancel refunds (cash + bank), sepay prepay');
 });

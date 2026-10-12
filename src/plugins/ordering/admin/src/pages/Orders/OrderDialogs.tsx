@@ -19,7 +19,7 @@ import { useLocale, useT } from '../../lib/i18n';
 import type { InboxSettings, OrderDetail } from '../../lib/types';
 
 /** Shared frame: "Hủy bỏ" left, the main action right (danger for destructive steps). */
-const Frame = ({
+export const Frame = ({
   title,
   children,
   onClose,

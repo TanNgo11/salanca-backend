@@ -8,7 +8,7 @@ import { o4Messages } from './o4';
 import { o5Messages } from './o5';
 
 const ROOT = join(__dirname, '..');
-const O3_DIRS = ['inbox', 'components/orders', 'pages/Orders', 'pages/Branches', 'pages/Staff', 'pages/Settings', 'pages/PaymentReview', 'lib'];
+const O3_DIRS = ['inbox', 'components/orders', 'pages/Orders', 'pages/Deliveries', 'pages/Branches', 'pages/Staff', 'pages/Settings', 'pages/PaymentReview', 'lib'];
 const EXTRA_FILES = ['pages/App.tsx'];
 
 const files = (dir: string): string[] =>
@@ -19,11 +19,11 @@ const files = (dir: string): string[] =>
 
 /** Values the screens interpolate into dynamic keys (`state.${status}` …). */
 const DYNAMIC: Record<string, string[]> = {
-  state: ['awaiting-acceptance', 'awaiting-payment', 'preparing', 'ready', 'delivered', 'rejected', 'canceled', 'expired'],
+  state: ['awaiting-acceptance', 'awaiting-payment', 'preparing', 'ready', 'out-for-delivery', 'delivered', 'failed', 'rejected', 'canceled', 'expired'],
   tab: ['awaiting', 'preparing', 'ready', 'done', 'canceled', 'all', 'drafts'],
   payment: ['unpaid', 'paid', 'partially-paid', 'overpaid', 'partially-refunded', 'refunded'],
   origin: ['storefront', 'staff-draft'],
-  transition: ['preparing', 'awaiting-payment', 'ready', 'delivered', 'rejected'],
+  transition: ['preparing', 'awaiting-payment', 'ready', 'out-for-delivery', 'delivered', 'failed', 'rejected'],
   'orders.empty': ['awaiting', 'preparing', 'ready', 'done', 'canceled', 'all', 'drafts'],
   'branch.timing': ['asap', 'scheduled', 'both'],
   'branch.paymentTiming': ['prepay', 'accept-then-pay', 'pay-on-pickup'],
@@ -31,6 +31,9 @@ const DYNAMIC: Record<string, string[]> = {
   consent: ['web-checkout', 'phone-staff'],
   method: ['cash', 'sepay'],
   'delivery.when': ['any', 'subtotal-gte', 'subtotal-lt'],
+  'deliveries.tab': ['ready', 'out', 'failed'],
+  'deliveries.empty': ['ready', 'out', 'failed', 'filtered'],
+  'deliveries.failReason': ['unreachable', 'wrong-address', 'refused', 'other'],
 };
 
 describe('O3 admin translations', () => {

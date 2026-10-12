@@ -28,6 +28,12 @@ Nghiên cứu: [`ordering-reference.md` mục U5](ordering-reference.md). **Quy 
   Giao lại là `transition { to: "ready" }` — server tự xóa assignee/tracking cũ. Hủy sau `failed` gọi
   `/cancel` như thường: tiền mặt đã thu hoàn `settled`, chuyển khoản đã thu tạo phiếu hoàn `pending`.
   `cash-handover` trên đơn giao ghi sổ tiền theo người giao được gán (không phải nhân viên đang bấm).
+- Bước 6 (2026-10-12): combobox người giao tải qua `GET /ordering/orders/delivery-staff?branch=<code>`
+  (quyền `order.read`, trả `[{ ref, name }]`, chỉ nhân viên active trong scope). Filter `assignee` nhận
+  `unassigned | mine | other | admin:<id>` — `mine`/`other` so với `actorRef` của người xem. Mỗi row của
+  list thêm `delivery { status, assigneeRef, assigneeName, carrier, trackingNumber, address, shippedAt, due }`;
+  tab `all` cũng được chấp nhận. Đếm tab tính sau khi lọc `assignee`. Order detail trả `delivery` đầy đủ
+  hơn (`trackingUrl`, `deliveredAt`, `canceledAt`, `lastFailure`, `attempts`).
 
 ## D1. Tab "Giao tận nơi" trong Chi nhánh (S7 của O3)
 

@@ -15,13 +15,14 @@ import {
 } from '../lib/permissions';
 
 const OrdersPage = lazy(() => import('./Orders'));
+const DeliveriesPage = lazy(() => import('./Deliveries'));
 const PaymentReviewPage = lazy(() => import('./PaymentReview'));
 const BranchesPage = lazy(() => import('./Branches'));
 const StaffPage = lazy(() => import('./Staff'));
 const CategoriesPage = lazy(() => import('./Categories'));
 const AvailabilityPage = lazy(() => import('./Availability'));
 
-type Section = 'orders' | 'payment-review' | 'categories' | 'availability' | 'branches' | 'staff';
+type Section = 'orders' | 'deliveries' | 'payment-review' | 'categories' | 'availability' | 'branches' | 'staff';
 
 /**
  * One "Bán hàng" entry in the main menu; every ordering screen lives under it with its own
@@ -65,9 +66,10 @@ const SideNav = ({
     <SubNav aria-label={t('nav.title')}>
       <SubNavHeader label={t('nav.title')} />
       <SubNavSections>
-        {visible.orders || visible['payment-review'] ? (
+        {visible.orders || visible.deliveries || visible['payment-review'] ? (
           <SubNavSection label={t('nav.operations')}>
             {visible.orders ? link('orders', t('nav.orders'), inbox?.awaiting) : null}
+            {visible.deliveries ? link('deliveries', t('nav.deliveries')) : null}
             {visible['payment-review'] ? link('payment-review', t('nav.paymentReview'), openReviews) : null}
           </SubNavSection>
         ) : null}
@@ -111,6 +113,7 @@ const OrderingApp = () => {
   const any = (actions: Record<string, boolean>) => Object.values(actions).some(Boolean);
   const visible = {
     orders: any(orders.allowedActions),
+    deliveries: any(orders.allowedActions),
     'payment-review': any(reviews.allowedActions),
     categories: any(catalogManage.allowedActions),
     availability: any(catalogAccess.allowedActions),
@@ -119,7 +122,7 @@ const OrderingApp = () => {
     settings: any(settings.allowedActions),
   };
   const first = (
-    ['orders', 'payment-review', 'categories', 'availability', 'branches', 'staff'] as Section[]
+    ['orders', 'deliveries', 'payment-review', 'categories', 'availability', 'branches', 'staff'] as Section[]
   ).find((key) => visible[key]);
 
   return (
@@ -135,6 +138,7 @@ const OrderingApp = () => {
           <Routes>
             <Route index element={first ? <Navigate to={first} replace /> : null} />
             <Route path="orders/*" element={<OrdersPage />} />
+            <Route path="deliveries/*" element={<DeliveriesPage />} />
             <Route path="payment-review/*" element={<PaymentReviewPage />} />
             <Route path="categories/*" element={<CategoriesPage />} />
             <Route path="availability/*" element={<AvailabilityPage />} />

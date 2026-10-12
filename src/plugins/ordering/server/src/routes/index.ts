@@ -176,6 +176,8 @@ export default {
       adminRoute('GET', '/orders', 'admin-orders.list', 'order.read'),
       adminRoute('GET', '/orders/summary', 'admin-orders.summary', 'order.read'),
       adminRoute('GET', '/orders/branches', 'admin-orders.branches', 'order.read'),
+      // Couriers the assign dialog may offer for a branch (screens D3).
+      adminRoute('GET', '/orders/delivery-staff', 'admin-orders.deliveryStaff', 'order.read'),
       adminRoute('GET', '/orders/stream', 'admin-stream.stream', 'order.read'),
       adminRoute('GET', '/orders/:id', 'admin-orders.detail', 'order.read'),
       adminRoute('POST', '/orders/:id/payment-link', 'admin-orders.paymentLink', 'order.read'),

@@ -15,7 +15,7 @@ import orderRepository from '../repositories/order';
 import type { OrderAggregate } from '../repositories/types';
 import type branchFactory from './branch';
 import type { ServiceContext } from './context';
-import { nowOf } from './context';
+import { actorRefOf, nowOf } from './context';
 import type deliveryAssignmentFactory from './delivery-assignment';
 import { isDeliveryGroup } from './delivery-assignment';
 import type lineCancelFactory from './line-cancel';
@@ -88,6 +88,43 @@ export type NextTransition = {
   requires: Array<'reason' | 'cash' | 'assignee'>;
 };
 
+/** A delivery leg row (`plugin::ordering.fulfillment`) as the admin views it. */
+type FulfillmentLeg = {
+  id: number;
+  status: string;
+  assigneeRef: string | null;
+  addressSnapshot: unknown;
+  trackingNumber: string | null;
+  trackingUrl: string | null;
+  shippedAt: string | null;
+  deliveredAt: string | null;
+  canceledAt: string | null;
+  metadata: Record<string, unknown> | null;
+};
+
+/** The `delivery` block a list row carries on the delivery board (screens D2). */
+type DeliveryRow = {
+  status: string | null;
+  assigneeRef: string | null;
+  assigneeName: string | null;
+  carrier: string | null;
+  trackingNumber: string | null;
+  address: unknown;
+  shippedAt: string | null;
+  due: number;
+};
+
+/** Delivery board tabs (screens D2): the leg's position, not the pickup inbox grouping. */
+const DELIVERY_TABS = ['ready', 'out', 'failed', 'all'] as const;
+const deliveryTab = (status: string): 'ready' | 'out' | 'failed' | null =>
+  status === 'ready'
+    ? 'ready'
+    : status === 'out-for-delivery'
+      ? 'out'
+      : status === 'failed'
+        ? 'failed'
+        : null;
+
 /**
  * Admin order handling (screens S1–S5; plan step 7). Every method resolves the staff scope
  * (out of scope = ORDER_NOT_FOUND, 404) and the route already checked the action. Money moves
@@ -153,7 +190,7 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
 
   const rowOf = (
     aggregate: OrderAggregate,
-    context: { now: Date; slaMinutes: number; tab: Exclude<Tab, 'all'> },
+    context: { now: Date; slaMinutes: number; tab: Exclude<Tab, 'all'> | 'out' | 'failed' },
   ) => {
     const { order } = aggregate;
     const group = liveGroup(aggregate);
@@ -203,7 +240,12 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
   const service = {
     nextTransitions,
 
-    /** GET /orders — tabs with counts, filters, 20 rows per page (screens S1). */
+    /**
+     * GET /orders — tabs with counts, filters, 20 rows per page (screens S1). `receive=delivery`
+     * switches to the delivery board (screens D2): tabs ready|out|failed come from the leg's
+     * state, `assignee` filters by courier (`unassigned` | `mine` | `admin:<id>`), and each row
+     * carries the leg's assignee, address, tracking and amount due.
+     */
     async list(
       filters: {
         tab?: string;
@@ -212,6 +254,8 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
         q?: string;
         payment?: string;
         origin?: string;
+        receive?: string;
+        assignee?: string;
         page?: number;
         pageSize?: number;
       },
@@ -220,9 +264,16 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
       const staffScope = await s.scope().loadScope(ctx);
       const conditions: Record<string, unknown>[] = [s.scope().orderWhere(staffScope)];
       if (filters.branch) conditions.push({ locationRef: filters.branch });
-      const tab: Tab = (TABS as readonly string[]).includes(filters.tab ?? '')
-        ? (filters.tab as Tab)
-        : 'awaiting';
+      const receive =
+        filters.receive === 'delivery' ? 'delivery' : filters.receive === 'pickup' ? 'pickup' : null;
+      const tab: string =
+        receive === 'delivery'
+          ? (DELIVERY_TABS as readonly string[]).includes(filters.tab ?? '')
+            ? (filters.tab as string)
+            : 'ready'
+          : (TABS as readonly string[]).includes(filters.tab ?? '')
+            ? (filters.tab as Tab)
+            : 'awaiting';
       const q = filters.q?.trim();
       if (q) {
         const phone = normalizeVietnamesePhone(q);
@@ -248,29 +299,55 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
       })) as Array<{ id: number }>;
       const now = new Date();
       const branchSla = new Map<string, number>();
-      const counts: Record<Tab, number> = {
-        awaiting: 0,
-        preparing: 0,
-        ready: 0,
-        done: 0,
-        canceled: 0,
-        all: 0,
-        drafts: 0,
-      };
-      const items: ReturnType<typeof rowOf>[] = [];
+      const counts: Record<string, number> =
+        receive === 'delivery'
+          ? { ready: 0, out: 0, failed: 0, all: 0 }
+          : { awaiting: 0, preparing: 0, ready: 0, done: 0, canceled: 0, all: 0, drafts: 0 };
+      const items: Array<ReturnType<typeof rowOf> & { delivery?: DeliveryRow }> = [];
+      const legs = new Map<number, { leg: FulfillmentLeg | null; due: number }>();
       for (const { id } of rows) {
         const aggregate = await repo.loadOrderAggregate(id);
         if (!aggregate) continue;
         if (filters.origin && aggregate.order.origin.kind !== filters.origin) continue;
         const group = liveGroup(aggregate);
         if (!group) continue;
-        const rowTab = tabOf(workflowOf(group), group.status);
-        if (tab === 'drafts') {
-          counts.drafts += 1;
-        } else {
-          counts[rowTab] += 1;
+        const kind = isDeliveryGroup(group) ? 'delivery' : 'pickup';
+        if (receive && kind !== receive) continue;
+        let rowTab: Exclude<Tab, 'all'> | 'out' | 'failed';
+        if (receive === 'delivery') {
+          const dt = deliveryTab(group.status);
+          if (dt === null) continue; // legs before ready and closed legs are off the board
+          const leg = (await strapi.db.query('plugin::ordering.fulfillment').findOne({
+            where: { group: group.id },
+          })) as FulfillmentLeg | null;
+          const assignee = filters.assignee?.trim();
+          const ref = leg?.assigneeRef ?? null;
+          if (
+            (assignee === 'unassigned' && ref !== null) ||
+            (assignee === 'mine' && ref !== actorRefOf(ctx)) ||
+            (assignee === 'other' && (ref === null || ref === actorRefOf(ctx))) ||
+            (assignee &&
+              assignee !== 'unassigned' &&
+              assignee !== 'mine' &&
+              assignee !== 'other' &&
+              ref !== assignee)
+          ) {
+            continue;
+          }
+          counts[dt] += 1;
           counts.all += 1;
-          if (tab !== 'all' && tab !== rowTab) continue;
+          if (tab !== 'all' && tab !== dt) continue;
+          legs.set(id, { leg, due: paidAmounts(aggregate).due });
+          rowTab = dt;
+        } else {
+          rowTab = tabOf(workflowOf(group), group.status);
+          if (tab === 'drafts') {
+            counts.drafts += 1;
+          } else {
+            counts[rowTab] += 1;
+            counts.all += 1;
+            if (tab !== 'all' && tab !== rowTab) continue;
+          }
         }
         let sla = branchSla.get(aggregate.order.locationRef);
         if (sla === undefined) {
@@ -281,6 +358,42 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
         items.push(rowOf(aggregate, { now, slaMinutes: sla, tab: rowTab }));
       }
       if (tab === 'awaiting') items.reverse(); // oldest waiting first
+      if (legs.size > 0) {
+        // Courier names for the "Người giao" column — one lookup for every visible leg.
+        const refs = [...legs.values()]
+          .map(({ leg }) => leg?.assigneeRef)
+          .filter((ref): ref is string => typeof ref === 'string');
+        const ids = [...new Set(refs.map((ref) => Number(/^admin:(\d+)$/.exec(ref)?.[1])))].filter(
+          Number.isInteger,
+        );
+        const admins = ids.length
+          ? ((await strapi.db.query('admin::user').findMany({
+              where: { id: { $in: ids } },
+              select: ['id', 'firstname', 'lastname'],
+            })) as Array<{ id: number; firstname?: string; lastname?: string }>)
+          : [];
+        const nameOf = new Map(
+          admins.map((admin) => [
+            `admin:${admin.id}`,
+            [admin.firstname, admin.lastname].filter(Boolean).join(' '),
+          ]),
+        );
+        for (const row of items) {
+          const entry = legs.get(row.id);
+          if (!entry) continue;
+          const { leg, due } = entry;
+          row.delivery = {
+            status: leg?.status ?? null,
+            assigneeRef: leg?.assigneeRef ?? null,
+            assigneeName: leg?.assigneeRef ? (nameOf.get(leg.assigneeRef) ?? null) : null,
+            carrier: (leg?.metadata as { carrier?: string } | null)?.carrier ?? null,
+            trackingNumber: leg?.trackingNumber ?? null,
+            address: leg?.addressSnapshot ?? null,
+            shippedAt: leg?.shippedAt ?? null,
+            due,
+          };
+        }
+      }
       const pageSize = Math.min(Math.max(filters.pageSize ?? 20, 1), 100);
       const page = Math.max(filters.page ?? 1, 1);
       return {
@@ -366,17 +479,7 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
       const leg = deliveryGroup
         ? ((await strapi.db.query('plugin::ordering.fulfillment').findOne({
             where: { group: deliveryGroup.id },
-          })) as {
-            status: string;
-            assigneeRef: string | null;
-            addressSnapshot: unknown;
-            trackingNumber: string | null;
-            trackingUrl: string | null;
-            shippedAt: string | null;
-            deliveredAt: string | null;
-            canceledAt: string | null;
-            metadata: Record<string, unknown> | null;
-          } | null)
+          })) as FulfillmentLeg | null)
         : null;
       const actorIds = [
         ...new Set(

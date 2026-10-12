@@ -1,12 +1,14 @@
 import type { Core } from '@strapi/strapi';
 
 import type adminOrdersFactory from '../services/admin-orders';
+import type deliveryAssignmentFactory from '../services/delivery-assignment';
 import type manualPaymentFactory from '../services/manual-payment';
 import type paymentLinkFactory from '../services/payment-link';
 import type orderingSettingsFactory from '../services/ordering-settings';
 import { adminAction, positiveInt, text } from './http';
 
 type AdminOrders = ReturnType<typeof adminOrdersFactory>;
+type Delivery = ReturnType<typeof deliveryAssignmentFactory>;
 type Settings = ReturnType<typeof orderingSettingsFactory>;
 type ManualPayment = ReturnType<typeof manualPaymentFactory>;
 type PaymentLink = ReturnType<typeof paymentLinkFactory>;
@@ -25,6 +27,7 @@ const optionalText = (value: unknown): string | undefined =>
  */
 export default ({ strapi }: { strapi: Core.Strapi }) => {
   const service = () => strapi.plugin('ordering').service('admin-orders') as AdminOrders;
+  const delivery = () => strapi.plugin('ordering').service('delivery-assignment') as Delivery;
   const settings = () => strapi.plugin('ordering').service('ordering-settings') as Settings;
   const manual = () => strapi.plugin('ordering').service('manual-payment') as ManualPayment;
   const links = () => strapi.plugin('ordering').service('payment-link') as PaymentLink;
@@ -40,6 +43,8 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
           q: text(ctx.query.q),
           payment: text(ctx.query.payment),
           origin: text(ctx.query.origin),
+          receive: text(ctx.query.receive),
+          assignee: text(ctx.query.assignee),
           page: positiveInt(ctx.query.page),
           pageSize: positiveInt(ctx.query.pageSize),
         },
@@ -48,6 +53,9 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     ),
     branches: adminAction(strapi, async (_ctx, serviceCtx) => ({
       results: await service().branchesForStaff(serviceCtx),
+    })),
+    deliveryStaff: adminAction(strapi, async (ctx, serviceCtx) => ({
+      results: await delivery().assignableStaff(text(ctx.query.branch) ?? '', serviceCtx),
     })),
     summary: adminAction(strapi, async (ctx, serviceCtx) =>
       service().summary(text(ctx.query.since), serviceCtx),

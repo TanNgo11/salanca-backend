@@ -163,6 +163,11 @@ const deliveryAssignment = ({ strapi }: { strapi: Core.Strapi }) => {
 
     /** Staff members the assign combobox may offer for a branch (screens D3). */
     async assignableStaff(locationRef: string, ctx: ServiceContext) {
+      if (!locationRef) {
+        throw new OrderingError('VALIDATION_ERROR', 'branch is required', {
+          details: { field: 'branch' },
+        });
+      }
       const { scope } = services();
       const viewer = await scope.loadScope(ctx);
       if (viewer === null) {
