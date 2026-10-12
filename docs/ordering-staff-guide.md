@@ -99,10 +99,24 @@ Mục **Báo cáo → Chốt tiền mặt** (quyền Báo cáo) đối chiếu t
 5. Sai sau khi chốt: bấm **Điều chỉnh**, nhập lại số đếm và **lý do bắt buộc** — hệ thống tạo bản
    mới (tăng revision), bản cũ giữ lại trong lịch sử. Điều chỉnh về đúng số sẽ tự đóng cảnh báo.
 
+## Báo cáo bán hàng (quản lý, kế toán)
+
+Mục **Báo cáo → Báo cáo** (quyền Báo cáo) xem doanh thu theo **ngày kinh doanh**:
+
+1. Chọn chi nhánh (hoặc "Tất cả trong phạm vi"), khoảng ngày Từ–Đến (mặc định 7 ngày gần nhất) và
+   **Nhóm theo**: Ngày, Danh mục, Món, Cách trả hoặc Cách nhận. Bấm **Xem**.
+2. Bốn thẻ trên cùng: **Doanh thu** (tiền đã thu qua mọi cách trả, tính theo ngày thu tiền), **Số
+   đơn** (đơn đã bán — đơn hủy và nháp không tính), **Giá trị đơn trung bình**, **Đã hoàn** (và dòng
+   nhỏ **Thực thu** = doanh thu trừ hoàn).
+3. Bảng đổi theo cách nhóm: theo ngày có cột Đã thu / Đã hoàn để đối chiếu; theo Danh mục/Món có số
+   lượng và doanh số (tên lấy theo tên lúc khách đặt, đổi tên sau này không ảnh hưởng); theo Cách
+   trả/Cách nhận tách tiền mặt, chuyển khoản, tự lấy, giao hàng.
+4. Nhân viên chỉ xem được báo cáo của chi nhánh mình được phân; kế toán xem được tất cả.
+
 ## Giới hạn hiện tại
 
 - Chạy một máy chủ (một instance): báo đơn realtime và giới hạn tần suất nằm trong bộ nhớ của tiến trình.
 - Giao tận nơi là quán **tự giao** (O5): hãng xe chỉ là thông tin kèm theo, chưa có tích hợp GHN/Ahamove/
   Grab (dự kiến O6). Danh mục đơn vị hành chính hiện là **dữ liệu mẫu (XT…)** — cần nguồn chính thức trước
   khi bật cho chi nhánh thật.
-- Chưa có báo cáo tổng hợp và xuất CSV (O6 các bước sau).
+- Chưa có xuất CSV (O6 các bước sau).

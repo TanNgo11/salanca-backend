@@ -243,6 +243,8 @@ export default {
       adminRoute('GET', '/cash-closing/summary', 'cash-closing.summary', 'report.read'),
       adminRoute('POST', '/cash-closing', 'cash-closing.close', 'report.read'),
       adminRoute('POST', '/cash-closing/:id/adjust', 'cash-closing.adjust', 'report.read'),
+      // Sales report (screens V4): ledger revenue + sold-order grouping by business date.
+      adminRoute('GET', '/reports/sales', 'reports.sales', 'report.read'),
     ],
   },
 };

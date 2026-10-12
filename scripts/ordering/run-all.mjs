@@ -37,6 +37,7 @@ const scripts = [
   'alerts-engine.mjs',
   'ops-status.mjs',
   'cash-closing.mjs',
+  'reports.mjs',
   'lookup-drafts.mjs',
   'stream.mjs',
   'sepay-webhook.mjs',

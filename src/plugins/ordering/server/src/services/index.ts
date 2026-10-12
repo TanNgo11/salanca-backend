@@ -14,6 +14,7 @@ import hold from './hold';
 import outbox from './outbox';
 import branch from './branch';
 import cashClosing from './cash-closing';
+import reports from './reports';
 import catalogAvailability from './catalog-availability';
 import catalogCategory from './catalog-category';
 import catalogSlug from './catalog-slug';
@@ -68,6 +69,7 @@ export default {
   'alert-recipients': alertRecipients,
   'ops-status': opsStatus,
   'cash-closing': cashClosing,
+  reports,
   'order-stream': orderStream,
   'staff-scope': staffScope,
   webhook,

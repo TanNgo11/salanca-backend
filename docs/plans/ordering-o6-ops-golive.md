@@ -58,6 +58,12 @@ Related phase: [`phases/phase-ordering-6-ops-golive.md`](../phases/phase-orderin
 - Decision: chênh lệch ≠ 0 mở/bump alert `cash-closing-mismatch:<branch>:<date>:<collectorRef>`
   (severity warning, aggregateRef `cash-closing:<id>`); điều chỉnh về 0 thì `alert.resolve` cùng key.
   `actor_ref` null của payment nhóm thành người thu `'system'`.
+- Decision: báo cáo bán hàng (`GET /reports/sales`) định nghĩa `revenue` = Σ payment `captured` trong
+  khoảng ngày kinh doanh và `refunded` = Σ refund `settled` theo `refund.business_date` (ledger — mọi
+  provider, không lọc theo trạng thái đơn); "đơn đã bán" = `order.status` `open`/`completed` theo
+  `order.business_date` (loại `draft`, `canceled`). Nhóm `category`/`product` chỉ đọc snapshot trên
+  `order-line` (`categoriesSnapshot[0]`, `sellableUid` + `variantUid`, `titleSnapshot` lần xuất hiện
+  gần nhất), không đọc catalog; dòng không danh mục gom `uncategorized`. Khoảng tối đa 366 ngày.
 - Owner decision required: kết quả của kế toán (hóa đơn điện tử, VAT) và pháp lý (thời hạn lưu, nội dung
   đồng ý) trước go-live.
 
@@ -143,3 +149,6 @@ Related phase: [`phases/phase-ordering-6-ops-golive.md`](../phases/phase-orderin
   `0004-o6-ops`, `services/cash-closing.ts`, routes `report.read`, trang Admin `CashClosing`,
   test `scripts/ordering/cash-closing.mjs`. Chọn: chốt hai lần cùng (chi nhánh, ngày, người thu) bị
   từ chối 409; sửa qua bản điều chỉnh có lý do, bản cũ giữ `superseded`.
+- Bước 4 (báo cáo bán hàng) xong: `services/reports.ts` + `GET /reports/sales` (quyền `report.read`,
+  lọc scope khi không truyền `branch`), trang Admin `Reports` (nav "Báo cáo" trong mục Báo cáo),
+  test `scripts/ordering/reports.mjs`. Nút "Xuất CSV" chừa chỗ (bước 5).

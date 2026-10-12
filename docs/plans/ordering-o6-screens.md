@@ -68,10 +68,26 @@ Bố cục (theo Odoo "Closing Register"):
 
 ## V4. Báo cáo
 
-- Route: `/plugins/ordering/reports`. Quyền `report.read`. API `GET /ordering/admin/reports/sales?branch=&from=&to=&groupBy=`.
-- Lọc: chi nhánh, khoảng ngày kinh doanh, nhóm theo (Ngày · Danh mục · Món · Cách trả · Cách nhận).
-- Thẻ tổng: doanh thu, số đơn, giá trị đơn trung bình, đã hoàn. Bảng theo nhóm đã chọn. Ghi chú nhỏ: "Theo ngày kinh
-  doanh và tên tại lúc đặt".
+- Route: `/plugins/ordering/reports`. Quyền `report.read`. API thật:
+  `GET /ordering/reports/sales?branch=&from=&to=&groupBy=` (không có tiền tố `/admin`).
+- `from`/`to` là ngày kinh doanh `YYYY-MM-DD`, bắt buộc cả hai, `from ≤ to`, tối đa 366 ngày (quá → 400
+  `VALIDATION_ERROR`, `details.field: 'to'`). `groupBy` ∈ `day | category | product | payment | receive`
+  (mặc định `day`; khác → 400). `branch` tùy chọn — bỏ trống lọc theo scope của nhân viên (không scope → 403
+  `SCOPE_REQUIRED`; ngoài scope → 404).
+- Trả `{ range, branch, groupBy, summary, rows, generatedAt }`. `summary`: `revenue` = Σ `payment.captured_amount`
+  đã captured trong khoảng (ledger — mọi provider, không lọc theo trạng thái đơn); `refunded` = Σ `refund.amount`
+  đã settled theo `refund.business_date`; `orders`/`gross` = số đơn và tổng tiền của đơn "đã bán"
+  (`open`/`completed`); `averageOrder` = gross/orders (0 khi không có đơn); `net` = revenue − refunded.
+- `rows` theo `groupBy`: `day` — mỗi ngày kinh doanh có dữ liệu `{key: ngày, orders, gross, revenue, refunded}`
+  (Σ revenue các dòng = summary.revenue); `payment` — theo `provider_code` `{orders, revenue, refunded}`;
+  `receive` — theo `receiveMethod.kind` `{orders, gross}`; `category` — danh mục đầu của `categoriesSnapshot`
+  `{quantity, orders, gross}` (không có danh mục → `uncategorized`); `product` — theo `sellableUid` (+ `variantUid`)
+  `{quantity, orders, gross}`, label là `titleSnapshot` của lần xuất hiện gần nhất.
+- Lọc: chi nhánh ("Tất cả trong phạm vi" + danh sách `/ordering/reports/branches`), khoảng ngày kinh doanh
+  (mặc định 7 ngày gần nhất tới `businessDateToday`), nhóm theo. Nút "Xuất CSV" chừa chỗ (bước 5).
+- Thẻ tổng: doanh thu, số đơn, giá trị đơn trung bình, đã hoàn (+ dòng nhỏ "Thực thu: net"). Bảng theo nhóm đã
+  chọn. Ghi chú nhỏ: "Theo ngày kinh doanh và tên tại lúc đặt" — tên món/danh mục đọc từ snapshot trên
+  `order-line`, không đọc catalog hiện tại.
 
 ## V5. Xuất CSV đơn
 

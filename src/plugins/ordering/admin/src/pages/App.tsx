@@ -27,6 +27,7 @@ const AvailabilityPage = lazy(() => import('./Availability'));
 const AlertsPage = lazy(() => import('./Alerts'));
 const OpsPage = lazy(() => import('./Ops'));
 const CashClosingPage = lazy(() => import('./CashClosing'));
+const ReportsPage = lazy(() => import('./Reports'));
 
 type Section =
   | 'orders'
@@ -34,6 +35,7 @@ type Section =
   | 'payment-review'
   | 'alerts'
   | 'ops'
+  | 'reports'
   | 'cash-closing'
   | 'categories'
   | 'availability'
@@ -106,9 +108,10 @@ const SideNav = ({
             {visible.ops ? link('ops', t('nav.ops')) : null}
           </SubNavSection>
         ) : null}
-        {visible['cash-closing'] ? (
+        {visible.reports || visible['cash-closing'] ? (
           <SubNavSection label={t('nav.reports')}>
-            {link('cash-closing', t('nav.cashClosing'))}
+            {visible.reports ? link('reports', t('nav.sales')) : null}
+            {visible['cash-closing'] ? link('cash-closing', t('nav.cashClosing')) : null}
           </SubNavSection>
         ) : null}
         {visible.categories || visible.availability ? (
@@ -160,6 +163,7 @@ const OrderingApp = () => {
     'payment-review': any(reviews.allowedActions),
     alerts: any(alerts.allowedActions),
     ops: any(ops.allowedActions),
+    reports: any(report.allowedActions),
     'cash-closing': any(report.allowedActions),
     categories: any(catalogManage.allowedActions),
     availability: any(catalogAccess.allowedActions),
@@ -174,6 +178,7 @@ const OrderingApp = () => {
       'payment-review',
       'alerts',
       'ops',
+      'reports',
       'cash-closing',
       'categories',
       'availability',
@@ -201,6 +206,7 @@ const OrderingApp = () => {
             <Route path="payment-review/*" element={<PaymentReviewPage />} />
             <Route path="alerts/*" element={<AlertsPage />} />
             <Route path="ops/*" element={<OpsPage />} />
+            <Route path="reports/*" element={<ReportsPage />} />
             <Route path="cash-closing/*" element={<CashClosingPage />} />
             <Route path="categories/*" element={<CategoriesPage />} />
             <Route path="availability/*" element={<AvailabilityPage />} />
