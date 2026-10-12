@@ -8,6 +8,7 @@ import { runOpsCheck } from './ops-check';
 import { runOutboxDispatcher } from './outbox-dispatcher';
 import { runPaymentExpiry } from './payment-expiry';
 import { runSepayReconciliation } from './reconciliation';
+import { runRetention } from './retention';
 import { runSlaCheck } from './sla-check';
 
 export type JobRun = (
@@ -57,6 +58,7 @@ export const ORDERING_JOBS: OrderingJob[] = [
     runnable: true,
   },
   { name: 'ops-check', cronKey: 'opsCheckCron', run: runOpsCheck, runnable: true },
+  { name: 'retention', cronKey: 'retentionCron', run: runRetention, runnable: true },
 ];
 
 export const jobByName = (name: string): OrderingJob | undefined =>

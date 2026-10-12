@@ -106,6 +106,20 @@ It does not open the order view or cancel. The plaintext is sealed with `ORDERIN
 store keeps the SHA-256. Creating a new link can extend the payment window. The customer's original
 order token is unchanged.
 
+## Ordering ops và dữ liệu cá nhân (O6)
+
+Job `retention` (mặc định 03:30 hằng ngày, `plugin::ordering.retention`) giới hạn thời hạn lưu: sau
+`paymentPayloadDays` (mặc định 180 ngày) `payment-event.raw_payload` bị thu gọn còn allowlist
+`RETAINED_PAYLOAD_KEYS` — giữ id, số tiền và `referenceCode` để đối soát, bỏ `content`,
+`accountNumber`, `description`, `sender*` — kèm dấu `redactedAt`; outbox `delivered`/`failed` và alert
+`resolved` bị xóa sau 30/90/90 ngày. Các mặc định chờ pháp lý xác nhận.
+
+`GET /ordering/orders/export` xuất CSV có tên, số điện thoại, email, địa chỉ khách — chỉ cấp cho
+quyền `export`, giới hạn 92 ngày và 10.000 đơn mỗi lần. Admin cảnh báo rõ trước khi tải.
+
+Log chỉ ghi số đếm (số dòng export, số bản ghi đã redact/xóa); trang vận hành và Admin không hiển thị
+raw payload webhook hay PII khách ngoài luồng đơn.
+
 ## Form intake rate limiting
 
 Contact and reservation intake are rate limited in-process per client IP (default 5 per 10 minutes).

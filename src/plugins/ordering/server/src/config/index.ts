@@ -57,8 +57,18 @@ export const configSchema = z.object({
     paymentExpiryCron: z.string().min(1),
     manualConfirmCron: z.string().min(1),
     opsCheckCron: z.string().min(1),
+    retentionCron: z.string().min(1),
     /** Expected run period in minutes per job for `job-heartbeat-missed` (ops-check). */
     heartbeatMinutes: z.record(z.string(), z.number().int().positive()),
+  }),
+  /** Data retention windows for the `retention` job (contracts §19.9). */
+  retention: z.object({
+    paymentPayloadDays: z.number().int().positive(),
+    outboxDeliveredDays: z.number().int().positive(),
+    outboxFailedDays: z.number().int().positive(),
+    alertResolvedDays: z.number().int().positive(),
+    batchSize: z.number().int().positive(),
+    maxBatchesPerRun: z.number().int().positive(),
   }),
   /** Trusted visitor-IP forwarding for rate limits / captcha (domain/client-ip.ts). */
   clientIp: z.object({
@@ -134,6 +144,7 @@ export default {
       paymentExpiryCron: '*/30 * * * * *',
       manualConfirmCron: '0 15 * * * *',
       opsCheckCron: '0 * * * * *',
+      retentionCron: '0 30 3 * * *',
       heartbeatMinutes: {
         outbox: 2,
         'hold-expiry': 2,
@@ -142,7 +153,17 @@ export default {
         'idempotency-cleanup': 45,
         'sepay-reconciliation': 150,
         'manual-payment-check': 150,
+        retention: 1500,
       },
+    },
+    // Defaults pending legal confirmation (contracts §19.9).
+    retention: {
+      paymentPayloadDays: 180,
+      outboxDeliveredDays: 30,
+      outboxFailedDays: 90,
+      alertResolvedDays: 90,
+      batchSize: 500,
+      maxBatchesPerRun: 20,
     },
     clientIp: { secretHeader: 'x-ordering-client-secret', ipHeader: 'x-ordering-client-ip' },
     notifications: { email: { enabled: false }, orderLinkTemplate: '' },

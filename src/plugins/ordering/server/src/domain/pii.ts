@@ -37,3 +37,59 @@ export function maskPayload(value: unknown): unknown {
   }
   return value;
 }
+
+/**
+ * Keys retained on a payment-event raw payload after the retention job redacts it
+ * (O6 §19.9). Everything needed to reconcile — ids, amounts, the bank reference —
+ * stays; free-text fields that carry names/account numbers (content, description,
+ * accountNumber, sender*, headers, body, …) are dropped.
+ */
+export const RETAINED_PAYLOAD_KEYS = [
+  'id',
+  'transferAmount',
+  'transferType',
+  'transactionDate',
+  'referenceCode',
+  'gateway',
+  'code',
+  'source',
+  'accountKey',
+  'memoCode',
+  'manual',
+  'confirmed',
+  'confirmedAt',
+  'transferredAt',
+  'sepayTransactionId',
+  'kind',
+  'amount',
+  'currency',
+  'providerTransactionId',
+] as const;
+
+const KEEP = new Set<string>(RETAINED_PAYLOAD_KEYS);
+
+/**
+ * Returns the payload with only the retained keys plus `redactedAt`. Non-object or
+ * unparsable input collapses to `{ redactedAt, unparsable: true }`.
+ */
+export const redactPayload = (
+  raw: unknown,
+  redactedAt: string,
+): Record<string, unknown> => {
+  let source = raw;
+  if (typeof source === 'string') {
+    try {
+      source = JSON.parse(source);
+    } catch {
+      return { redactedAt, unparsable: true };
+    }
+  }
+  if (!isPlainObject(source)) {
+    return { redactedAt, unparsable: true };
+  }
+  const kept: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(source)) {
+    if (KEEP.has(key)) kept[key] = value;
+  }
+  return { ...kept, redactedAt };
+};
