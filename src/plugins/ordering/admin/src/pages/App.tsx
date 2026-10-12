@@ -16,6 +16,7 @@ import {
   RBAC_REPORT,
   RBAC_SCOPE,
   RBAC_SETTINGS,
+  RBAC_WEBHOOK,
 } from '../lib/permissions';
 
 const OrdersPage = lazy(() => import('./Orders'));
@@ -30,6 +31,7 @@ const OpsPage = lazy(() => import('./Ops'));
 const CashClosingPage = lazy(() => import('./CashClosing'));
 const ReportsPage = lazy(() => import('./Reports'));
 const AuditLogPage = lazy(() => import('./AuditLog'));
+const WebhooksPage = lazy(() => import('./Webhooks'));
 
 type Section =
   | 'orders'
@@ -43,7 +45,8 @@ type Section =
   | 'availability'
   | 'branches'
   | 'staff'
-  | 'audit-log';
+  | 'audit-log'
+  | 'webhooks';
 
 /**
  * One "Bán hàng" entry in the main menu; every ordering screen lives under it with its own
@@ -123,10 +126,11 @@ const SideNav = ({
             {visible.availability ? link('availability', t('nav.availability')) : null}
           </SubNavSection>
         ) : null}
-        {visible.branches || visible.staff || visible.settings || visible['audit-log'] ? (
+        {visible.branches || visible.staff || visible.settings || visible['audit-log'] || visible.webhooks ? (
           <SubNavSection label={t('nav.setup')}>
             {visible.branches ? link('branches', t('nav.branches')) : null}
             {visible.staff ? link('staff', t('nav.staff')) : null}
+            {visible.webhooks ? link('webhooks', t('nav.webhooks')) : null}
             {visible['audit-log'] ? link('audit-log', t('nav.auditLog')) : null}
             {visible.settings ? (
               <SubNavLink tag={NavLink} to="/settings/ordering">
@@ -151,7 +155,8 @@ const OrderingApp = () => {
   const settings = useRBAC(RBAC_SETTINGS);
   const scope = useRBAC(RBAC_SCOPE);
   const audit = useRBAC(RBAC_AUDIT);
-  const loading = [orders, reviews, alerts, ops, report, catalogManage, catalogAccess, settings, scope, audit].some(
+  const webhook = useRBAC(RBAC_WEBHOOK);
+  const loading = [orders, reviews, alerts, ops, report, catalogManage, catalogAccess, settings, scope, audit, webhook].some(
     (item) => item.isLoading,
   );
   if (loading) {
@@ -175,6 +180,7 @@ const OrderingApp = () => {
     branches: any(settings.allowedActions),
     staff: any(scope.allowedActions),
     'audit-log': any(audit.allowedActions),
+    webhooks: any(webhook.allowedActions),
     settings: any(settings.allowedActions),
   };
   const first = (
@@ -191,6 +197,7 @@ const OrderingApp = () => {
       'branches',
       'staff',
       'audit-log',
+      'webhooks',
     ] as Section[]
   ).find((key) => visible[key]);
 
@@ -220,6 +227,7 @@ const OrderingApp = () => {
             <Route path="branches/*" element={<BranchesPage />} />
             <Route path="staff/*" element={<StaffPage />} />
             <Route path="audit-log/*" element={<AuditLogPage />} />
+            <Route path="webhooks/*" element={<WebhooksPage />} />
           </Routes>
         </Suspense>
       </Layouts.Root>

@@ -31,7 +31,7 @@ export type WebhookEndpointRow = {
   createdByRef: string | null;
 };
 
-type EndpointInput = {
+export type EndpointInput = {
   url?: string;
   description?: string;
   events?: string[];

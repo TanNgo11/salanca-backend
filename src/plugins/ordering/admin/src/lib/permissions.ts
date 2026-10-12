@@ -16,6 +16,7 @@ export const PERMISSIONS = {
   export: action('export'),
   ops: action('ops.read'),
   audit: action('audit.read'),
+  webhook: action('webhook.manage'),
 } as const;
 
 /** Stable arrays for `useRBAC` (a new array each render makes it re-check every time). */
@@ -48,6 +49,7 @@ export const RBAC_OPS = [...PERMISSIONS.ops];
 export const RBAC_REPORT = [...PERMISSIONS.report];
 export const RBAC_EXPORT = [...PERMISSIONS.export];
 export const RBAC_AUDIT = [...PERMISSIONS.audit];
+export const RBAC_WEBHOOK = [...PERMISSIONS.webhook];
 /** O6 alert list: anyone a rule could notify (ops, reports, payment review or branch staff). */
 export const RBAC_ALERTS = [
   ...PERMISSIONS.ops,
@@ -65,4 +67,5 @@ export const RBAC_ANY_ORDERING = [
   ...RBAC_OPS,
   ...RBAC_REPORT,
   ...RBAC_AUDIT,
+  ...RBAC_WEBHOOK,
 ];

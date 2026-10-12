@@ -514,6 +514,12 @@ const webhookDelivery = ({ strapi }: { strapi: Core.Strapi }) => {
       endpointId: number,
       filter: { status?: string; page?: number; pageSize?: number },
     ) {
+      const endpoint = (await endpoints().findOne({
+        where: { id: endpointId },
+      })) as WebhookEndpointRow | null;
+      if (!endpoint) {
+        throw new OrderingError('WEBHOOK_NOT_FOUND', 'webhook endpoint not found');
+      }
       const page = Math.max(1, filter.page ?? 1);
       const pageSize = Math.min(100, Math.max(1, filter.pageSize ?? 20));
       const where: Record<string, unknown> = { endpointId };

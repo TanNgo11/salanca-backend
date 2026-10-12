@@ -12,6 +12,7 @@ import paymentReview from './payment-review';
 import reports from './reports';
 import storefront from './storefront';
 import webhook from './webhook';
+import webhooks from './webhooks';
 
 export default {
   'admin-branches': adminBranches,
@@ -23,6 +24,7 @@ export default {
   categories,
   storefront,
   webhook,
+  webhooks,
   'payment-review': paymentReview,
   ops,
   'cash-closing': cashClosing,

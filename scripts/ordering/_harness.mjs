@@ -369,7 +369,7 @@ export const ORDERING_ACTIONS = [
   'order.read', 'order.process', 'order.cancel', 'order.create', 'order.edit-lines',
   'payment.record-cash', 'payment.review', 'payment.raw-read', 'refund.manage', 'report.read',
   'export', 'settings.manage', 'scope.manage', 'ops.read', 'catalog.manage',
-  'catalog.toggle-availability', 'audit.read',
+  'catalog.toggle-availability', 'audit.read', 'webhook.manage',
 ];
 
 /**

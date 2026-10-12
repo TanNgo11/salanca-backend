@@ -252,6 +252,22 @@ export default {
       adminRoute('GET', '/audit-log/actors', 'audit-log.actors', 'audit.read'),
       adminRoute('GET', '/audit-log/export', 'audit-log.exportCsv', 'audit.read', 'export'),
       adminRoute('GET', '/audit-log/:id', 'audit-log.detail', 'audit.read'),
+      // O10 "Webhook" (screens X1): outbound endpoint management. `webhook.manage` gates the
+      // whole surface; the plaintext signing secret leaves the server only in create/rotate
+      // responses. `/webhooks/events` precedes `/webhooks/:id` so it is not parsed as
+      // an id (same rule as `/orders/export`).
+      adminRoute('GET', '/webhooks', 'webhooks.list', 'webhook.manage'),
+      adminRoute('GET', '/webhooks/events', 'webhooks.eventCatalog', 'webhook.manage'),
+      adminRoute('GET', '/webhooks/:id', 'webhooks.get', 'webhook.manage'),
+      adminRoute('POST', '/webhooks', 'webhooks.create', 'webhook.manage'),
+      adminRoute('PATCH', '/webhooks/:id', 'webhooks.update', 'webhook.manage'),
+      // The Admin fetch client has no PATCH; PUT carries the same partial update.
+      adminRoute('PUT', '/webhooks/:id', 'webhooks.update', 'webhook.manage'),
+      adminRoute('POST', '/webhooks/:id/rotate-secret', 'webhooks.rotateSecret', 'webhook.manage'),
+      adminRoute('POST', '/webhooks/:id/active', 'webhooks.setActive', 'webhook.manage'),
+      adminRoute('POST', '/webhooks/:id/test', 'webhooks.sendTest', 'webhook.manage'),
+      adminRoute('GET', '/webhooks/:id/deliveries', 'webhooks.deliveries', 'webhook.manage'),
+      adminRoute('POST', '/webhook-deliveries/:id/resend', 'webhooks.resend', 'webhook.manage'),
     ],
   },
 };
