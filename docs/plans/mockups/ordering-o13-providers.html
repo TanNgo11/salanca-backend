@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O13 Provider</title>
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body>
+<main class="doc">
+
+<header class="doc-head">
+  <p class="eyebrow">Mockup · Phase O13 · Provider</p>
+  <h1>Ví điện tử, hãng giao, Zalo ZNS / SMS</h1>
+  <p class="lead"><strong>Đặc tả từng màn: <a href="../ordering-o13-screens.md">ordering-o13-screens.md</a>.</strong></p>
+  <div class="links">
+    <a href="../../phases/phase-ordering-13-providers.md">Spec O13</a>
+    <a href="../ordering-o13-providers.md">Kế hoạch O13</a>
+  </div>
+</header>
+
+<section class="screen">
+  <h2>P1. Provider</h2>
+  <div class="frame">
+    <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/providers</span></div>
+    <div class="admin">
+      <nav><span class="logo"></span><a class="active">Bán hàng</a></nav>
+      <div class="content">
+        <strong>Thanh toán</strong>
+        <div class="grid3">
+          <div class="panel"><div class="spread"><b>SePay</b><span class="badge ok">Đã cấu hình</span></div><span class="muted small">Thật · webhook 12:05 ✓</span></div>
+          <div class="panel"><div class="spread"><b>MoMo</b><span class="badge info">Sandbox</span></div><span class="muted small">Đối tác •••• 7KQ2 · IPN 11:58 ✓</span></div>
+          <div class="panel"><div class="spread"><b>VNPay</b><span class="badge gray">Chưa cấu hình</span></div><span class="muted small">Cần env: VNPAY_TMN_CODE, VNPAY_HASH_SECRET · IPN: /api/v1/ordering/webhooks/vnpay</span></div>
+        </div>
+        <strong>Giao hàng</strong>
+        <div class="grid3">
+          <div class="panel"><div class="spread"><b>Quán tự giao</b><span class="badge ok">Bật</span></div></div>
+          <div class="panel"><div class="spread"><b>Ahamove</b><span class="badge info">Sandbox</span></div><span class="muted small">webhook 12:01 ✓</span></div>
+        </div>
+        <strong>Thông báo</strong>
+        <div class="grid3">
+          <div class="panel"><div class="spread"><b>Email</b><span class="badge ok">Bật</span></div></div>
+          <div class="panel"><div class="spread"><b>Zalo ZNS</b><span class="badge ok">Bật</span></div><span class="muted small">~300đ/tin</span></div>
+          <div class="panel"><div class="spread"><b>SMS</b><span class="badge warn">Lỗi</span></div><span class="muted small">Hết hạn mức · 11:40</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>P2. Gọi xe</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/orders/150 · Gọi xe</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a class="active">Bán hàng</a></nav>
+        <div class="content">
+          <div class="panel">
+            <div class="toggle"><span class="on">Ahamove</span><span>GHN</span></div>
+            <div class="toggle"><span class="on">Siêu tốc</span><span>2 giờ</span></div>
+            <div class="alert-box info">Thu khách 15.000đ · Hãng 23.000đ · Chênh −8.000đ</div>
+            <div class="field"><label>Ghi chú tài xế</label><span class="input">Gọi trước khi tới</span></div>
+            <span class="btn">Xác nhận gọi xe</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Gọi xe idempotent; hãng nhận → chặng giao "Đang giao" kèm mã chuyến và link theo dõi.</span></li>
+      <li><span class="n">2</span><span>Webhook hãng có chữ ký cập nhật đã giao / thất bại.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>P3. Kênh thông báo</h2>
+  <div class="frame">
+    <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/settings/ordering-settings · Kênh thông báo</span></div>
+    <div class="admin">
+      <nav><span class="logo"></span><a class="active">Cài đặt</a></nav>
+      <div class="content">
+        <div class="panel" style="padding:0"><div class="table-wrap"><table class="t">
+          <thead><tr><th>Mẫu</th><th>Kênh ưu tiên</th><th>Mẫu ZNS</th><th class="num">Chi phí/tin</th></tr></thead>
+          <tbody>
+            <tr><td>Đơn sẵn sàng</td><td><span class="badge primary">Zalo</span> → <span class="badge gray">SMS</span> → <span class="badge gray">Email</span></td><td>ZNS #284113 · 4 tham số</td><td class="num">~300đ</td></tr>
+            <tr><td>Mã OTP</td><td><span class="badge primary">SMS</span> → <span class="badge gray">Zalo</span></td><td>ZNS #284120</td><td class="num">~700đ</td></tr>
+          </tbody></table></div></div>
+        <span class="btn secondary">Gửi thử</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="doc-foot">File trên máy, không publish. Mã đối tác, giá tin, tên biến env chỉ là ví dụ — lấy đúng theo tài liệu chính thức của từng provider khi code.</footer>
+</main>
+</body>
+</html>

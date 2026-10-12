@@ -1660,6 +1660,65 @@ nội bộ.
 tặng bắt buộc lý do; thẻ là cách thanh toán (không phải giảm giá), trả một phần được; người mua nhập người nhận + lời
 chúc.
 
+## U10. Webhook ra ngoài, OpenAPI, nhập/xuất catalog, mẫu email (O10)
+
+Ghi chú nguồn như U7: viết từ tài liệu công khai, **chưa ghim commit**; kiểm lại khi code.
+
+- **Saleor Webhooks/Apps**: đăng ký endpoint theo sự kiện, payload có chữ ký, nhật ký gửi + thử lại, tự tắt webhook lỗi kéo
+  dài, gửi thử. **Stripe webhooks** (mẫu phổ biến): header `t=…,v1=…` HMAC của `t.body`, dung sai thời gian, xoay bí mật có
+  thời gian chồng, gửi lại tay. **WooCommerce webhooks** (GPL): tự tắt sau 5 lần lỗi, nhật ký trong Action Scheduler.
+  **Medusa** subscribers (nội bộ) + module notification.
+- **OpenAPI**: Medusa và Saleor công bố tài liệu API tự sinh; Vendure sinh schema GraphQL.
+- **Nhập/xuất catalog**: Medusa product import/export CSV (chạy thử → xác nhận → áp, báo lỗi theo dòng); WooCommerce Product
+  CSV Importer (khớp cột, cập nhật theo SKU).
+- **Mẫu email**: Saleor (mẫu sửa được + biến), WooCommerce (Settings → Emails, tiêu đề/nội dung, xem trước), TastyIgniter
+  (Mail templates theo ngôn ngữ).
+
+**Best practice:** webhook ký `t + body`, mặc định ít dữ liệu, thử lại có lịch rồi tự tắt + báo; nhập CSV luôn chạy thử trước,
+khớp theo khóa ổn định (SKU); mẫu email chỉ có biến khai báo sẵn, xem trước và khôi phục mặc định.
+
+## U11. Khách hàng, giỏ, quyền dữ liệu (O11)
+
+- **Medusa** Customer (+ groups, addresses) và Cart module (giỏ server, complete tạo đơn); **Saleor** Checkout (token, dòng,
+  địa chỉ, complete) và Customer (địa chỉ mặc định, xuất dữ liệu, xóa có ẩn danh đơn); **Vendure** ActiveOrder (giỏ là đơn đang
+  hoạt động gắn phiên), guest checkout gắn bằng email; **Shopify** đăng nhập khách bằng mã một lần qua email/SMS.
+
+**Best practice:** khách vãng lai vẫn đặt được, đơn tự gắn hồ sơ; đăng nhập không mật khẩu bằng OTP; giỏ server có token, mọi
+lần đọc tính lại giá; xóa dữ liệu = ẩn danh đơn, không xóa sổ sách.
+
+## U12. Tính năng nhà hàng (O12)
+
+- **TastyIgniter** (GPL): trạng thái nhận đơn theo địa điểm (mở/đóng/tạm dừng), thời gian chuẩn bị, phí theo đơn, tip
+  (extension), Kitchen Display (extension) theo trạng thái món, in đơn (extension), bàn + đặt bàn.
+- **Square / Toast** (tài liệu công khai): tạm dừng đơn online theo thời gian, "busy mode" cộng thời gian chuẩn bị, tự từ chối
+  đơn không được nhận, KDS chia trạm, đặt món tại bàn bằng QR gắn phiếu bàn, thanh toán cả bàn.
+- **Quy định EU 1169/2011**: 14 nhóm chất gây dị ứng phải công bố — dùng làm danh mục mã cho trường `allergens`.
+
+**Best practice:** tạm dừng/bận có hạn tự hết; tự từ chối có hoàn tiền và thông báo; KDS thẻ to, màu theo thời gian chờ, gạch
+từng món; QR bàn mở phiên gom nhiều đơn, thanh toán một lần.
+
+## U13. Provider ví điện tử, hãng giao, Zalo/SMS (O13)
+
+- Nguồn bắt buộc khi code là **tài liệu chính thức** của MoMo, VNPay, Ahamove, GHN, Zalo ZNS và nhà cung cấp SMS được chọn —
+  ghi URL + phiên bản + ngày đọc vào `docs/providers/<code>.md`.
+- Mẫu chung các cổng VN: tạo giao dịch → chuyển hướng/QR/deeplink; IPN server-to-server có chữ ký là nguồn sự thật, return URL
+  chỉ hiển thị; API truy vấn trạng thái khi IPN lỡ; hoàn tiền qua API (đầy đủ/một phần tùy cổng).
+- Medusa/Saleor/Vendure: provider thanh toán/giao hàng cắm qua interface + webhook riêng — giống contract §5/§8 của plugin.
+
+**Best practice:** không ghi tiền từ return URL; idempotent theo mã giao dịch; job truy vấn trạng thái cho giao dịch treo; bí mật
+ở env; tài liệu viết provider dựa trên một provider thật.
+
+## U14. Bảng giá theo kênh, nhóm khách, khung giờ (O14)
+
+- **Medusa v2 Price Lists**: kiểu sale (giá gạch) / override, rule theo customer group/region, thời gian; Pricing module chọn
+  giá theo ngữ cảnh (rule khớp, nhiều rule thắng) — plugin đã theo mô hình này (§20.1).
+- **Saleor** giá theo kênh + catalogue promotions (giảm theo danh mục/món, thời gian).
+- **Square** happy hour / giá theo khung giờ; **WooCommerce Dynamic Pricing** (extension, GPL) theo vai trò/nhóm.
+
+**Best practice:** bảng giá cha có điều kiện chung, override hoặc giảm %; xem trước "giá cuối và vì sao"; khuyến mãi áp sau giá
+niêm yết.
+
+
 ## UW. Giao diện web đặt món (OW)
 
 Nguồn thêm: [Medusa Next.js storefront](https://github.com/medusajs/nextjs-starter-medusa/tree/9818886f06e493cb2249733d114d339aa216ef00)
