@@ -1,6 +1,8 @@
 # Phase O10 — Nền mở rộng: webhook ra ngoài, OpenAPI, nhập/xuất catalog, mẫu email
 
-Trạng thái: spec chờ duyệt (2026-10-12). Roadmap: [`plans/ordering-roadmap.md`](../plans/ordering-roadmap.md).
+Trạng thái: **implemented, automated verification passed, chờ manual UAT** (2026-10-13, nhánh
+`feat/ordering-o10`, chưa merge). Spec đã duyệt chưa ghi nhận — duyệt spec/đóng phase là quyết định chủ dự án.
+Roadmap: [`plans/ordering-roadmap.md`](../plans/ordering-roadmap.md).
 Mockup: [`plans/mockups/ordering-o10-extensibility.html`](../plans/mockups/ordering-o10-extensibility.html).
 **Đặc tả màn hình:** [`plans/ordering-o10-screens.md`](../plans/ordering-o10-screens.md) (reference mục U10).
 Kế hoạch thực hiện: [`plans/ordering-o10-extensibility.md`](../plans/ordering-o10-extensibility.md).

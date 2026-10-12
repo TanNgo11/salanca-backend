@@ -2,6 +2,33 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
+2026-10-13: **Ordering O10 (nền mở rộng: webhook ra ngoài, OpenAPI, CSV catalog, mẫu email) — implemented + automated verification passed, chờ manual UAT** trên
+`feat/ordering-o10` (tách từ `feat/ordering`; chưa merge/push). Bốn khối theo
+[`phases/phase-ordering-10-extensibility.md`](phases/phase-ordering-10-extensibility.md):
+
+- **Webhook ra ngoài** (X1 `Cấu hình → Webhook`, quyền `webhook.manage`): đăng ký endpoint https với bí mật
+  `whsec_…` hiện một lần (lưu mã hóa, xoay có 24 giờ ký kép); danh mục sự kiện công khai `GET /ordering/webhooks/events`;
+  fanout từ outbox ghi `webhook-delivery` rồi dispatcher gửi — payload `{id,type,apiVersion:"2026-10",occurredAt,data}`
+  **không PII** trừ khi bật `includeCustomer` (xác nhận trong UI, ghi change-log); ký
+  `X-Ordering-Signature: t=…,v1=…` (HMAC-SHA256 của `t.rawBody`); thử lại 1/5/15/30 phút + 1/2/4/8/12/24 giờ,
+  tự tắt sau 50 lỗi liên tiếp + alert `webhook-endpoint-disabled`; ping/resend từ màn hình. Chống SSRF: resolve DNS,
+  từ chối IP nội bộ, ghim IP đã kiểm, không theo redirect.
+- **OpenAPI 3.1**: `GET /api/v1/ordering/openapi.json` (public) + `docs/ordering-admin-openapi.json` (71 path,
+  `pnpm run ordering:openapi`); gate `openapi.mjs` bắt route thiếu tài liệu. Màn tĩnh X2 **Cấu hình → Tài liệu API**
+  (link OpenAPI, hướng dẫn Swagger/Postman, mã kiểm chữ ký Node/PHP).
+- **CSV catalog** (X3 `Món → Nhập/xuất`): xuất `products.csv`/`modifiers.csv` (BOM, formula-guard), nhập
+  chạy thử → áp trong một transaction khớp slug/SKU/code, khóa phiên bản `CATALOG_IMPORT_STALE`, ≤ 2 MB / 5000 dòng,
+  change-log `catalog.import`.
+- **Mẫu email** (X4 `Cài đặt bán hàng → Mẫu email`, quyền `settings.manage`): 14 mẫu × VI/EN, biến allowlist
+  (`TEMPLATE_VARIABLE_UNKNOWN`), markdown giới hạn link-https, xem trước/gửi thử/khôi phục mặc định, change-log
+  `notification-template.*`; mẫu hỏng → dùng mặc định + alert `notification-template-broken`, mail vẫn đi.
+
+Gate đầy đủ: lint, typecheck, test (165 file / 1210), `check:ordering` hai lượt, `check:phase3` tắt/bật,
+`strapi build` (server + admin) — chi tiết Completion record trong
+[`plans/ordering-o10-extensibility.md`](plans/ordering-o10-extensibility.md). **Open:** manual UAT (đăng ký endpoint
+thật + kiểm chữ ký, xuất→sửa→nhập CSV trong Excel, sửa/gửi thử mẫu email — checklist trong phase spec) và quyết
+định merge của chủ dự án. Tài liệu mới: [`ordering-integrations.md`](ordering-integrations.md).
+
 2026-10-12: **Ordering O15 (lịch sử thay đổi) — implemented, targeted gates passed, chưa UAT giao diện** trên
 `feat/ordering-o15`, merge vào `feat/ordering`. Màn **Cấu hình → Lịch sử thay đổi** (quyền `audit.read`; xuất CSV thêm
 `export`): lọc ngày/người/nhóm/chi nhánh/mã đơn-tên món, trước → sau, các dòng cùng request, link từ chi tiết đơn. Bù log luồng

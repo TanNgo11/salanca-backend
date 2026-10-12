@@ -11,7 +11,7 @@ import { o15Messages } from './o15';
 import { o10Messages } from './o10';
 
 const ROOT = join(__dirname, '..');
-const O3_DIRS = ['inbox', 'components/orders', 'pages/Orders', 'pages/Deliveries', 'pages/Branches', 'pages/Staff', 'pages/Settings', 'pages/PaymentReview', 'pages/Ops', 'pages/Alerts', 'pages/CashClosing', 'pages/Reports', 'pages/AuditLog', 'pages/Webhooks', 'pages/CatalogImport', 'lib'];
+const O3_DIRS = ['inbox', 'components/orders', 'pages/Orders', 'pages/Deliveries', 'pages/Branches', 'pages/Staff', 'pages/Settings', 'pages/PaymentReview', 'pages/Ops', 'pages/Alerts', 'pages/CashClosing', 'pages/Reports', 'pages/AuditLog', 'pages/Webhooks', 'pages/CatalogImport', 'pages/ApiDocs', 'lib'];
 const EXTRA_FILES = ['pages/App.tsx', 'components/OrderExportModal.tsx'];
 
 const files = (dir: string): string[] =>

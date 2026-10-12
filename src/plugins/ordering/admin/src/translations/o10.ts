@@ -218,4 +218,33 @@ export const o10Messages: Record<string, [string, string]> = {
     'Mẫu email tùy biến lỗi, đã dùng mẫu mặc định',
     'Custom email template failed, the default was used',
   ],
+  'nav.apiDocs': ['Tài liệu API', 'API docs'],
+  'x2.title': ['Tài liệu API', 'API documentation'],
+  'x2.subtitle': [
+    'OpenAPI, tích hợp webhook và đoạn mã kiểm chữ ký cho hệ thống bên ngoài.',
+    'OpenAPI, webhook integration and the signature-verification snippets for external systems.',
+  ],
+  'x2.openapi.title': ['Tài liệu OpenAPI', 'OpenAPI document'],
+  'x2.openapi.hint': [
+    'Tài liệu OpenAPI 3.1 của toàn bộ API công khai, phục vụ trực tiếp từ máy chủ:',
+    'OpenAPI 3.1 for the whole public API, served by the running server:',
+  ],
+  'x2.openapi.tools': [
+    'Mở bằng Swagger Editor (editor.swagger.io) hoặc Import vào Postman (Raw text → URL). Tài liệu Admin API đầy đủ nằm trong repo: docs/ordering-admin-openapi.json.',
+    'Open in Swagger Editor (editor.swagger.io) or import into Postman (Raw text → URL). The full Admin API document lives in the repo: docs/ordering-admin-openapi.json.',
+  ],
+  'x2.copy': ['Sao chép', 'Copy'],
+  'x2.copied': ['Đã sao chép.', 'Copied.'],
+  'x2.copyFailed': ['Không sao chép được — hãy chọn và chép tay.', 'Copy failed — select and copy manually.'],
+  'x2.webhook.title': ['Kiểm chữ ký webhook', 'Verifying webhook signatures'],
+  'x2.webhook.hint': [
+    'Mọi request webhook được ký bằng bí mật endpoint. Xác minh HMAC-SHA256 trên "<t>.<raw body>" và từ chối khi t lệch quá 5 phút.',
+    'Every webhook request is signed with the endpoint secret. Verify the HMAC-SHA256 over "<t>.<raw body>" and reject when t is off by more than 5 minutes.',
+  ],
+  'x2.webhook.headers': ['Headers gửi kèm', 'Headers sent with every request'],
+  'x2.more.title': ['Thêm', 'More'],
+  'x2.more.hint': [
+    'Đăng ký endpoint, danh mục sự kiện, lịch thử lại, CSV catalog và mẫu email — đầy đủ trong tài liệu repo:',
+    'Endpoint registration, the event catalog, retry schedule, catalog CSV and email templates — all in the repo doc:',
+  ],
 };

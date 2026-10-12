@@ -126,6 +126,39 @@ Hạ tầng trước route webhook: Cloudflare phải bypass cache và skip chal
 `POST /api/v1/ordering/webhooks/sepay` (prefix theo `API_REST_PREFIX`), không bật Bot Fight
 Mode trên path đó — chi tiết checklist trong [`ordering-ops-runbook.md`](ordering-ops-runbook.md).
 
+## Ordering outbound integrations (O10)
+
+Webhook endpoints are operator-registered outbound HTTP targets — the plugin's first
+*data-leaving-the-system* surface besides SePay callbacks.
+
+- **SSRF.** Endpoint URLs must be `https:` (`http:` only under the dev flag
+  `plugin::ordering.webhooks.allowHttp`). `domain/url-guard` resolves DNS at send time and rejects
+  loopback/private/link-local/CGNAT/multicast IPv4+IPv6 answers — including hostnames that resolve to
+  an internal address; the request is pinned to the checked IP (DNS-rebinding safe). Redirects are
+  never followed. Dev exemptions live in `plugin::ordering.webhooks.allowHosts`.
+- **Signatures.** `X-Ordering-Signature: t=<unix>,v1=<hex>` where `v1` is hex HMAC-SHA256 of
+  `"{t}.{raw body}"` with the per-endpoint secret. Secrets are generated as `whsec_…`, shown exactly
+  once at create/rotate, stored encrypted with `ORDERING_ENCRYPTION_KEY`, and never returned by
+  list/get. Rotation overlaps old+new signatures for 24 hours. Receivers should reject skew > 5 min.
+- **PII minimization.** Default payloads carry ids, order code, branch ref, status and amounts only.
+  `includeCustomer` (name/phone/email/address) is a separate flag gated behind `webhook.manage`,
+  requires an in-UI confirmation, and is recorded in the admin change log.
+- **Abuse controls.** 10 s timeout per attempt; retry schedule 1m/5m/15m/30m then 1h/2h/4h/8h/12h/24h
+  (10 attempts); 50 consecutive failures auto-disable the endpoint and open a
+  `webhook-endpoint-disabled` alert. Delivery logs keep status/attempts/next-attempt/trimmed error —
+  never the receiver's response body. URL query strings are stripped from logs and listings.
+- **CSV.** Import accepts `text/csv`/octet-stream bodies ≤ 2 MB and ≤ 5000 rows; validate-then-apply
+  inside one transaction, guarded by a catalog version hash (`CATALOG_IMPORT_STALE`). Export cells
+  starting with `= + - @` are neutralized (formula-injection guard). Import needs `catalog.manage`;
+  export additionally needs `export`.
+- **Email templates.** Admin-editable copies render through a restricted markdown (paragraphs, bold,
+  `- ` lists, `https:`-only links — `javascript:`/other schemes are stripped to label text). Variables
+  are allowlisted per template (`TEMPLATE_VARIABLE_UNKNOWN` on save/preview); all interpolated values
+  are HTML-escaped. A broken custom template falls back to the built-in copy and opens a
+  `notification-template-broken` alert — the email still goes out.
+- **OpenAPI.** `GET /api/v1/ordering/openapi.json` is public `auth: false` and read-only (document,
+  not data); cached 1 hour.
+
 ## Form intake rate limiting
 
 Contact and reservation intake are rate limited in-process per client IP (default 5 per 10 minutes).

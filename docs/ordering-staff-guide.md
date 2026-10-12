@@ -147,6 +147,40 @@ toán, ghi/duyệt chuyển khoản, hoàn tiền, chốt tiền, giao hàng, đ
   thấy. Thông tin khách (tên, số điện thoại, địa chỉ) không có trong lịch sử. Lịch sử không sửa, không xóa
   được.
 
+## Nhập/xuất menu bằng CSV (Món → Nhập/xuất)
+
+Dùng khi cần sửa giá/nội dung hàng loạt bằng Excel thay vì sửa từng món:
+
+1. **Tải products.csv** (và modifiers.csv nếu sửa nhóm tùy chọn) — file UTF-8, mở được ngay trong
+   Excel, giữ nguyên dòng tiêu đề.
+2. Sửa trong Excel, lưu lại dạng CSV.
+3. Ở khối **Nhập**: chọn loại file (Món/Tùy chọn — nhập **Tùy chọn trước** nếu cả hai đều sửa), chọn
+   file, bấm **Kiểm tra**. Báo cáo cho biết sẽ tạo mới bao nhiêu, sửa bao nhiêu, lỗi bao nhiêu dòng
+   (kèm tên cột và lý do).
+4. Không lỗi thì bấm **Áp dụng**. Có lỗi thì sửa file và kiểm tra lại — một dòng lỗi cũng không áp
+   gì cả.
+5. Nếu thấy "Menu vừa thay đổi, kiểm tra lại file": có người khác vừa sửa menu — kiểm tra lại file
+   (bấm Kiểm tra) rồi áp lại.
+
+Nhập chỉ **tạo/sửa**, không xóa — món ngừng bán đặt `sellOnline=false`. Mọi lần nhập đều ghi vào
+**Lịch sử thay đổi**.
+
+## Sửa mẫu email (Cài đặt bán hàng → Mẫu email)
+
+Câu chữ các email hệ thống gửi cho khách/nhân viên sửa được mà không cần đổi code:
+
+1. Vào **Cài đặt bán hàng → Mẫu email** — mỗi mẫu hiện badge **Mặc định/Đã sửa** cho từng ngôn ngữ.
+2. Chọn mẫu → chọn ngôn ngữ → sửa **Tiêu đề** và **Nội dung**. Bên phải là danh sách **biến** được
+   phép — bấm để chèn `{{code}}`, `{{items}}`… Chỉ dùng biến trong danh sách; biến lạ sẽ báo đỏ và
+   không cho lưu.
+3. Nội dung hỗ trợ chữ **đậm** (`**chữ**`), gạch đầu dòng (`- `), và link `[nhãn](https://…)`.
+4. **Xem trước** để thấy email với dữ liệu mẫu; **Gửi thử tới tôi** để nhận bản thật vào email đăng
+   nhập của bạn.
+5. **Khôi phục mặc định** xóa bản sửa, email quay về nội dung hệ thống.
+
+Nếu một mẫu đã sửa bị lỗi lúc gửi, hệ thống tự dùng lại mẫu mặc định và báo cảnh báo cho đội vận hành
+— email khách không bị mất.
+
 ## Giới hạn hiện tại
 
 - Chạy một máy chủ (một instance): báo đơn realtime và giới hạn tần suất nằm trong bộ nhớ của tiến trình.

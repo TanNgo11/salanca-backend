@@ -45,3 +45,24 @@ kế hoạch [`ordering-o10-extensibility.md`](ordering-o10-extensibility.md), m
 - Sửa (trang con): chọn ngôn ngữ (nút VI/EN), **Tiêu đề** (`TextInput`), **Nội dung** (`Textarea` markdown giới hạn),
   bên phải danh sách **biến** cho phép (bấm để chèn `{{orderCode}}`), xem trước (render server với dữ liệu mẫu, khung
   email). Nút "Lưu", "Gửi thử tới tôi", "Khôi phục mặc định" (`Dialog`). Lỗi `TEMPLATE_VARIABLE_UNKNOWN` tô biến lạ.
+
+## Đã đổi khi code O10 (2026-10-13)
+
+- **X1 route API** theo bảng trong kế hoạch: danh mục sự kiện `GET /ordering/webhooks/events`, bật/tắt
+  `POST /ordering/webhooks/:id/active`, gửi lại `POST /ordering/webhook-deliveries/:id/resend`. "Gửi thử" là
+  `POST /ordering/webhooks/:id/test`.
+- **X1 nhóm sự kiện** chỉ gồm các nhóm thực sự phát qua outbox hiện nay: Đơn hàng (`order.*`), Giao hàng
+  (`fulfillment-group.transitioned`), Thanh toán (`payment.*`), Hoàn tiền (`refund.settled`), Vận hành
+  (`ops-alert.*`). Chưa có nhóm Khuyến mãi/Thẻ quà tặng/Đánh giá — các entity này chưa phát sự kiện outbox
+  (catalog sẽ tự có thêm khi event tồn tại).
+- **X1 deliveries** nằm ở tab thứ hai *trong trang sửa* endpoint (không phải trang riêng); bí mật một lần hiện
+  trong khối bên trong trang sửa sau khi tạo/xoay.
+- **X2** đã làm: route `/plugins/ordering/api-docs`, quyền `settings.manage`, nav "Tài liệu API" dưới mục
+  Cấu hình. Link tới `docs/ordering-integrations.md` hiển thị dạng đường dẫn repo (tài liệu nội bộ, không
+  phải URL).
+- **X3** dùng số dự đoán từ server (`predicted` trả về lúc validate) trong dialog "Sẽ tạo n, sửa m" — không
+  đếm lại ở client. Chọn loại file dùng `SingleSelect`/`Radio` theo DS; lịch sử 10 lần nhập gần nhất nằm dưới
+  khối nhập.
+- **X4** trình sửa là panel ngay dưới danh sách trong tab "Mẫu email" (không mở trang con) — bấm một dòng mẫu
+  mở panel sửa bên dưới, bấm dòng khác đổi mẫu/ngôn ngữ. Tên biến thật là `{{code}}`, `{{items}}`… (không
+  phải `{{orderCode}}` như ví dụ spec).

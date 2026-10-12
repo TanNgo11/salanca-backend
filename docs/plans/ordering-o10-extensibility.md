@@ -194,4 +194,22 @@ Mã lỗi mới: `WEBHOOK_URL_INVALID` 400 (`details.reason`: `scheme`\|`private
 
 ## Completion record
 
-- Chưa bắt đầu.
+Trạng thái: **implemented, automated verification passed, chờ manual UAT** (2026-10-13). Nhánh
+`feat/ordering-o10` (worktree `salanca-backend-o10`, DB `salanca_ordering_o10`), base `feat/ordering`,
+chưa merge/push.
+
+Làm xong theo các commit: danh mục sự kiện + `publicPayload` (`c673a17`); content types +
+migration 0006 + `webhook.manage` + url-guard + endpoint service (`a68cfa1`); fanout + dispatcher +
+`webhooks-out.mjs` (`ea3d5a3`); Admin X1 + `webhooks-admin.mjs` (`e9de5bc`); OpenAPI 3.1 + route công
+khai + `openapi.mjs` + `ordering:openapi` (`4f027cd`); `parseCsv` + `catalog-csv` + routes +
+`catalog-csv.mjs` (`2da8ae2`); Admin X3 + Xuất CSV (`93f381f`); mẫu email + Admin X4 +
+`email-templates.mjs` (`ba955b7`); tài liệu + màn X2 + schema gate + bản ghi này (bước 9).
+
+- Gate (2026-10-13): `npm run lint`, `npm run typecheck`, `npm run test` (165 file / 1210),
+  `npm run check:ordering` hai lượt (`run-all.mjs` 54 script gồm `webhooks-out`, `webhooks-admin`,
+  `openapi`, `catalog-csv`, `email-templates`, `admin-build`), `check:phase3` tắt/bật plugin,
+  `strapi build` tắt/bật. Kết quả tóm tắt ở `docs/STATUS.md`. `check:phase3` chạy trên DB scratch
+  `salanca_cms_o10_smoke` vì `salanca_cms` đã có nội dung editorial thật — `smoke:i18n` từ chối ghi đè.
+- Sửa trong bước 9: `schema.mjs` cập nhật kỳ vọng (35 CT, +4 index migration 0006, ledger đến
+  `0006-o10-extensibility`); màn X2 "Tài liệu API" bổ sung theo screens spec.
+- Chưa làm (ngoài phase): manual UAT 3 mục trong phase spec; quyết định merge/push của chủ dự án.

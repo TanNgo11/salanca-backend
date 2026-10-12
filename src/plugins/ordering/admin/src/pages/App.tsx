@@ -33,6 +33,7 @@ const CashClosingPage = lazy(() => import('./CashClosing'));
 const ReportsPage = lazy(() => import('./Reports'));
 const AuditLogPage = lazy(() => import('./AuditLog'));
 const WebhooksPage = lazy(() => import('./Webhooks'));
+const ApiDocsPage = lazy(() => import('./ApiDocs'));
 
 type Section =
   | 'orders'
@@ -48,7 +49,8 @@ type Section =
   | 'branches'
   | 'staff'
   | 'audit-log'
-  | 'webhooks';
+  | 'webhooks'
+  | 'api-docs';
 
 /**
  * One "Bán hàng" entry in the main menu; every ordering screen lives under it with its own
@@ -129,11 +131,12 @@ const SideNav = ({
             {visible.availability ? link('availability', t('nav.availability')) : null}
           </SubNavSection>
         ) : null}
-        {visible.branches || visible.staff || visible.settings || visible['audit-log'] || visible.webhooks ? (
+        {visible.branches || visible.staff || visible.settings || visible['audit-log'] || visible.webhooks || visible['api-docs'] ? (
           <SubNavSection label={t('nav.setup')}>
             {visible.branches ? link('branches', t('nav.branches')) : null}
             {visible.staff ? link('staff', t('nav.staff')) : null}
             {visible.webhooks ? link('webhooks', t('nav.webhooks')) : null}
+            {visible['api-docs'] ? link('api-docs', t('nav.apiDocs')) : null}
             {visible['audit-log'] ? link('audit-log', t('nav.auditLog')) : null}
             {visible.settings ? (
               <SubNavLink tag={NavLink} to="/settings/ordering">
@@ -185,6 +188,7 @@ const OrderingApp = () => {
     staff: any(scope.allowedActions),
     'audit-log': any(audit.allowedActions),
     webhooks: any(webhook.allowedActions),
+    'api-docs': any(settings.allowedActions),
     settings: any(settings.allowedActions),
   };
   const first = (
@@ -203,6 +207,7 @@ const OrderingApp = () => {
       'staff',
       'audit-log',
       'webhooks',
+      'api-docs',
     ] as Section[]
   ).find((key) => visible[key]);
 
@@ -234,6 +239,7 @@ const OrderingApp = () => {
             <Route path="staff/*" element={<StaffPage />} />
             <Route path="audit-log/*" element={<AuditLogPage />} />
             <Route path="webhooks/*" element={<WebhooksPage />} />
+            <Route path="api-docs/*" element={<ApiDocsPage />} />
           </Routes>
         </Suspense>
       </Layouts.Root>

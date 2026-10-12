@@ -11,6 +11,7 @@ const EXPECTED_TABLES = [
   'plugins_ordering_cash_closing',
   'plugins_ordering_catalog_availability_window',
   'plugins_ordering_catalog_category',
+  'plugins_ordering_catalog_import',
   'plugins_ordering_catalog_location_state',
   'plugins_ordering_catalog_modifier',
   'plugins_ordering_catalog_modifier_group',
@@ -24,6 +25,7 @@ const EXPECTED_TABLES = [
   'plugins_ordering_hold',
   'plugins_ordering_idempotency_key',
   'plugins_ordering_notification_delivery',
+  'plugins_ordering_notification_template',
   'plugins_ordering_ops_alert',
   'plugins_ordering_order',
   'plugins_ordering_order_adjustment',
@@ -36,6 +38,8 @@ const EXPECTED_TABLES = [
   'plugins_ordering_refund',
   'plugins_ordering_refund_line',
   'plugins_ordering_staff_location_scope',
+  'plugins_ordering_webhook_delivery',
+  'plugins_ordering_webhook_endpoint',
 ];
 
 const EXPECTED_INDEXES = [
@@ -64,6 +68,10 @@ const EXPECTED_INDEXES = [
   'plugins_ordering_cash_closing_current_uq',
   'plugins_ordering_payment_cash_day_idx',
   'plugins_ordering_ops_alert_status_seen_idx',
+  'plugins_ordering_webhook_delivery_uq',
+  'plugins_ordering_webhook_delivery_pending_idx',
+  'plugins_ordering_notification_template_uq',
+  'plugins_ordering_catalog_import_created_idx',
 ];
 
 // Catalog types staff edit in Content Manager (O2 step 1).
@@ -83,7 +91,7 @@ const CM_HIDDEN_CATALOG_UIDS = [
   'plugin::ordering.catalog-location-state',
 ];
 
-// Every manyToOne owner side produces one link table (28 relations across the 31 types).
+// Every manyToOne owner side produces one link table (28+ relations across the types).
 const MIN_LINK_TABLES = 28;
 
 await withApp(async (app) => {
@@ -133,7 +141,14 @@ await withApp(async (app) => {
     .connection('plugins_ordering_migrations')
     .select('name')
     .orderBy('name');
-  for (const migration of ['0001-o1-core', '0002-o2-catalog', '0003-o3-pickup', '0004-o6-ops']) {
+  for (const migration of [
+    '0001-o1-core',
+    '0002-o2-catalog',
+    '0003-o3-pickup',
+    '0004-o6-ops',
+    '0005-o15-audit-log',
+    '0006-o10-extensibility',
+  ]) {
     assert.ok(
       applied.some((row) => row.name === migration),
       `migration ${migration} is not recorded`,
