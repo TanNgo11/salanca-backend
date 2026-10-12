@@ -3,7 +3,12 @@
 Last reviewed against repository documentation: 2026-09-29
 
 2026-10-12: **Ordering O5 (giao tận nơi, quán tự giao) — automated + manual UAT passed** trên
-`feat/ordering-o5` (chưa push/merge; 7 commit `407aa65`…`03ef864` + tài liệu/smoke ở working tree).
+`feat/ordering-o5` (chưa push/merge; 8 commit `407aa65`…`c0695bb` + sửa sau review `6f68dbc`, `49d3417`).
+Spec `phase-ordering-5-delivery.md` vẫn "chờ duyệt": duyệt spec/đóng phase là quyết định chủ dự án.
+**Sửa sau review:** `transition { to: canceled }` bị từ chối (hủy chỉ qua `/cancel`, quyền `order.cancel`,
+có hoàn tiền); từ chối/hết hạn khi đã có tiền thì hoàn luôn (chuyển khoản: phiếu `pending`);
+`outbox-two-process.mjs` hết chập chờn (worker chờ barrier). Cảnh báo `pg` concurrent query đến từ
+populate của `@strapi/database`, `pg` khóa 8.20.0 — nợ upstream, chưa sửa.
 Khách chọn giao tận nơi theo mã xã/phường (`communeCode`, alias `wardCode`), phí giao tính ở server
 và nằm trong `fulfillmentAmount`; snapshot địa chỉ lưu mã + tên lúc đặt. Vùng giao cấu hình trong
 branch `deliverySettings` (match theo mã xã, rule theo giá trị đơn, ưu tiên, đơn tối thiểu, phí 0/đồng/
@@ -13,8 +18,8 @@ Board Admin "Đơn giao": lọc sẵn sàng/đang giao/thất bại/tất cả +
 viên), gán nhân viên quán trong scope hoặc xe ngoài (tên hãng, mã vận đơn, URL tracking), bắt đầu giao,
 báo thất bại kèm lý do bắt buộc, thử lại, thu tiền và giao (cash tại cửa). Email khách VI/EN dùng
 wording giao hàng riêng (đang giao, thất bại + lý do, đã giao). Sửa `paymentByToken` và cửa sổ hủy
-chọn settings theo receive kind (trước chỉ đọc `pickupSettings`). Gates: lint, typecheck, test
-159 file / 1097, `check:ordering` 41/41, `check:phase3` off/on, `smoke:reservation-form`,
+chọn settings theo receive kind (trước chỉ đọc `pickupSettings`). Gates (chạy lại sau review, tuần tự): lint, typecheck, test
+159 file / 1097, `check:ordering` 41/41 hai lượt liên tiếp, `check:phase3` off/on, `smoke:reservation-form`,
 `smoke:ordering-pickup`, `smoke-ordering-sepay.mjs`, `node scripts/smoke-ordering-delivery.mjs` mới,
 `strapi build` bật/tắt — tất cả exit 0. **Danh mục hành chính vẫn TEST FIXTURE** (XT01/XT02, 5 xã) —
 chưa có nguồn chính thức; vùng/phí/đơn tối thiểu Salanca là fixture test. Không tích hợp hãng giao.

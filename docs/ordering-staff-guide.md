@@ -16,7 +16,8 @@ Dành cho nhân viên và quản lý chi nhánh dùng Admin để nhận đơn o
 - **Nhận**: đơn sang "Đang chuẩn bị", khách nhận email (nếu có email). Giờ sẵn sàng dự kiến là giờ khách
   chọn, hoặc bây giờ + thời gian chuẩn bị nếu khách đặt ASAP.
 - **Nhận và lùi 10/20/30 phút**: như Nhận, dời giờ sẵn sàng; khách nhận email giờ mới.
-- **Từ chối**: chọn lý do có sẵn hoặc "Lý do khác…" (bắt buộc ghi). Khách nhận email kèm lý do.
+- **Từ chối**: chọn lý do có sẵn hoặc "Lý do khác…" (bắt buộc ghi). Khách nhận email kèm lý do. Đơn đã chuyển
+  khoản trước thì hệ thống tạo phiếu hoàn chờ; chuyển trả xong thì ghi mã ngân hàng trên đơn.
 - **Để sau**: đóng hộp thoại; đơn vẫn nằm ở tab **Chờ nhận**.
 - Hai người cùng bấm: người sau thấy "Đơn đã được người khác xử lý"; không có gì bị làm hai lần.
 - Đơn chờ nhận quá số phút "Báo chậm" của chi nhánh (mặc định 10) thì cột **Chờ** đỏ và email cảnh báo gửi
