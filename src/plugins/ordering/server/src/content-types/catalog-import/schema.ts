@@ -21,7 +21,8 @@ export default collection(
     report: { type: 'json' },
     payload: { type: 'text' },
     catalogVersion: { type: 'string' },
-    createdBy: { type: 'string' },
+    /** Actor ref (`admin:<id>`/`system`) — `createdBy` is reserved for Strapi's admin link. */
+    createdByRef: { type: 'string' },
     appliedAt: { type: 'datetime' },
   },
   { displayName: 'Lần nhập menu' },

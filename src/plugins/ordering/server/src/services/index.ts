@@ -18,6 +18,7 @@ import orderExport from './order-export';
 import reports from './reports';
 import catalogAvailability from './catalog-availability';
 import catalogCategory from './catalog-category';
+import catalogCsv from './catalog-csv';
 import catalogSlug from './catalog-slug';
 import changeLog from './change-log';
 import jobLock from './job-lock';
@@ -57,6 +58,7 @@ export default {
   branch,
   'catalog-availability': catalogAvailability,
   'catalog-category': catalogCategory,
+  'catalog-csv': catalogCsv,
   'catalog-slug': catalogSlug,
   'change-log': changeLog,
   'job-lock': jobLock,

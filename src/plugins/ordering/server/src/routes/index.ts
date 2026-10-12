@@ -254,6 +254,12 @@ export default {
       adminRoute('GET', '/audit-log/actors', 'audit-log.actors', 'audit.read'),
       adminRoute('GET', '/audit-log/export', 'audit-log.exportCsv', 'audit.read', 'export'),
       adminRoute('GET', '/audit-log/:id', 'audit-log.detail', 'audit.read'),
+      // O10 "Nhập/Xuất menu" (screens X3): catalog CSV round-trip. Import posts the file as
+      // text/csv (≤256 KB) or application/octet-stream (≤2 MB); export needs both actions.
+      adminRoute('GET', '/catalog/imports', 'catalog-import.list', 'catalog.manage'),
+      adminRoute('GET', '/catalog/export', 'catalog-import.exportCsv', 'catalog.manage', 'export'),
+      adminRoute('POST', '/catalog/import', 'catalog-import.importCsv', 'catalog.manage'),
+      adminRoute('POST', '/catalog/import/:id/apply', 'catalog-import.apply', 'catalog.manage'),
       // O10 "Webhook" (screens X1): outbound endpoint management. `webhook.manage` gates the
       // whole surface; the plaintext signing secret leaves the server only in create/rotate
       // responses. `/webhooks/events` precedes `/webhooks/:id` so it is not parsed as

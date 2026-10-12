@@ -59,6 +59,7 @@ const scripts = [
   'webhooks-out.mjs',
   'webhooks-admin.mjs',
   'openapi.mjs',
+  'catalog-csv.mjs',
 ];
 
 const results = [];

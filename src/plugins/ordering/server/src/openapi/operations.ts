@@ -416,4 +416,53 @@ export const OPERATIONS: Operation[] = [
   adm('post', '/webhook-deliveries/:id/resend', 'Webhooks', 'Re-queue a delivery', ['webhook.manage'], {
     parameters: [pathParam('id', 'delivery id')],
   }),
+  // O10 catalog CSV import/export (screens X3).
+  adm('get', '/catalog/imports', 'Catalog import', 'Recent catalog CSV import runs', ['catalog.manage']),
+  adm(
+    'get',
+    '/catalog/export',
+    'Catalog import',
+    'Download products.csv or modifiers.csv',
+    ['catalog.manage', 'export'],
+    {
+      parameters: [
+        {
+          name: 'kind',
+          in: 'query',
+          required: true,
+          schema: { ...str, enum: ['products', 'modifiers'] },
+        },
+      ],
+      response: str,
+    },
+  ),
+  adm(
+    'post',
+    '/catalog/import',
+    'Catalog import',
+    'Upload a catalog CSV (text/csv ≤256KB or application/octet-stream ≤2MB); dryRun defaults to true',
+    ['catalog.manage'],
+    {
+      parameters: [
+        {
+          name: 'kind',
+          in: 'query',
+          required: true,
+          schema: { ...str, enum: ['products', 'modifiers'] },
+        },
+        { name: 'dryRun', in: 'query', schema: { ...str, enum: ['true', 'false'] } },
+        { name: 'filename', in: 'query', schema: str },
+      ],
+      requestBody: { ...str, description: 'Raw CSV file bytes (UTF-8, RFC 4180)' },
+      response: obj({ import: generic, report: generic }),
+    },
+  ),
+  adm(
+    'post',
+    '/catalog/import/:id/apply',
+    'Catalog import',
+    'Apply a dry-run-validated import — 409 CATALOG_IMPORT_STALE when the catalog moved',
+    ['catalog.manage'],
+    { parameters: [pathParam('id', 'catalog-import documentId')] },
+  ),
 ];

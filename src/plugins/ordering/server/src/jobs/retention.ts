@@ -82,6 +82,13 @@ export const runRetention = async (
       outboxDeleted += await deleteOutbox('delivered_at', config.outboxDeliveredDays);
       outboxDeleted += await deleteOutbox('failed_at', config.outboxFailedDays);
 
+      // ── Validated-but-never-applied CSV imports: the staged payload expires at 24h ──
+      await knex('plugins_ordering_catalog_import')
+        .where('status', 'validated')
+        .where('created_at', '<', new Date(now.getTime() - 24 * 60 * 60 * 1000))
+        .whereNotNull('payload')
+        .update({ payload: null });
+
       // ── Resolved alerts past their window ──────────────────────────────────────
       const alertCutoff = daysAgo(now, config.alertResolvedDays);
       for (let batch = 0; batch < config.maxBatchesPerRun; batch += 1) {

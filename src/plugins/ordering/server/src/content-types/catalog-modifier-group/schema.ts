@@ -8,6 +8,8 @@ import { catalogCollection } from '../internal';
 export default catalogCollection(
   'catalog-modifier-group',
   {
+    /** Staff-facing import/export key (O10 CSV) — optional in CM, stamped on first CSV apply. */
+    code: { type: 'string' },
     name: {
       type: 'customField',
       customField: 'plugin::ordering.localized-text',

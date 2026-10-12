@@ -6,6 +6,7 @@ import auditLog from './audit-log';
 import availability from './availability';
 import cashClosing from './cash-closing';
 import catalog from './catalog';
+import catalogImport from './catalog-import';
 import categories from './categories';
 import openapi from './openapi';
 import ops from './ops';
@@ -22,6 +23,7 @@ export default {
   'admin-stream': adminStream,
   availability,
   catalog,
+  'catalog-import': catalogImport,
   categories,
   storefront,
   webhook,
