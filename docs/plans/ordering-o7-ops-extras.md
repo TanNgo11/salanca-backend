@@ -52,15 +52,11 @@ Bốn việc chủ dự án chọn sau review chức năng (2026-10-12):
   món; không trừ ở bước quote.
 - Decision: sửa đơn là thao tác của nhân viên (quyền mới `order.edit`), một transaction: tính lại bằng
   pipeline, ghi timeline/change-log, giữ snapshot cũ trong payload timeline.
-- Owner decision required — **trang người giao**, chọn trước bước 4:
-  - (A, đề xuất) trang riêng trong plugin, chạy trong Strapi Admin nhưng bố cục toàn màn hình cho
-    điện thoại (route `/plugins/ordering/courier`), đăng nhập admin như hiện tại. Ít rủi ro bảo mật,
-    vẫn tải bundle admin lần đầu.
-  - (B) trang web nhẹ riêng, đăng nhập bằng link ký (magic link) gửi cho người giao theo từng ca. Nhẹ
-    hơn, nhưng thêm một cơ chế xác thực mới cần review bảo mật.
-- Owner decision required — **đơn đã chuyển khoản mà sửa làm tăng tiền**: (đề xuất) chuyển đơn sang
-  chờ thanh toán phần chênh bằng link thanh toán O4, không chặn bếp; hoặc chỉ cho tăng khi trả tiền mặt
-  lúc nhận.
+- Decision (chủ dự án, 2026-10-12): **trang người giao** là phương án A — trang riêng trong plugin,
+  chạy trong Strapi Admin nhưng bố cục toàn màn hình cho điện thoại (route `/plugins/ordering/courier`),
+  đăng nhập admin như hiện tại. Không làm magic link.
+- Decision (chủ dự án, 2026-10-12): **đơn đã chuyển khoản mà sửa làm tăng tiền** → đơn chờ thanh toán
+  phần chênh qua link thanh toán O4, không chặn bếp; đơn trả khi nhận thì chỉ tăng số cần thu.
 - Assumption: sửa đơn chỉ cho phép trước `out-for-delivery` (giao) / trước `ready` (tự lấy). Kiểm với
   chủ dự án ở UAT.
 
@@ -108,8 +104,8 @@ Bốn việc chủ dự án chọn sau review chức năng (2026-10-12):
    - Verification: script `order-edit.mjs`: thêm món đơn tiền mặt; bớt món đơn chuyển khoản → phiếu
      hoàn `pending`; đổi giờ sang slot đầy → lỗi; đổi địa chỉ ra vùng phí khác → phí đổi; sửa sau
      `ready` bị từ chối; hai nhân viên sửa cùng lúc → một thắng (khóa group).
-5. **Trang người giao trên điện thoại** (sau khi chủ dự án chọn A/B)
-   - Files (A): `admin/src/pages/Courier/` bố cục một cột, chữ lớn; API `GET /courier/deliveries`
+5. **Trang người giao trên điện thoại** (phương án A)
+   - Files: `admin/src/pages/Courier/` bố cục một cột, chữ lớn; API `GET /courier/deliveries`
      (đơn gán cho tôi, hôm nay, theo trạng thái), dùng lại `transition`/`cash-handover`/`markFailed`.
      Nút "Gọi khách" (`tel:`), "Mở bản đồ" (link Google Maps theo địa chỉ text, không định vị), số tiền
      cần thu. Quyền: chỉ cần `order.process` + `payment.record-cash`; server lọc `assigneeRef = tôi`.
@@ -141,8 +137,7 @@ Bốn việc chủ dự án chọn sau review chức năng (2026-10-12):
 
 ## Risks and blockers
 
-- Sửa đơn đã chuyển khoản là phần rủi ro nhất về tiền — chờ quyết định ở trên trước bước 4.
-- Trang người giao (B) cần review bảo mật riêng.
+- Sửa đơn đã chuyển khoản là phần rủi ro nhất về tiền — test kỹ phần chênh dương/âm.
 - Tồn theo ngày với đơn đặt trước nhiều ngày: cần UAT kỹ ngày kinh doanh qua nửa đêm.
 
 Ước lượng thô: 2–3 tuần (bước 1: 2 ngày; 2–3: 4 ngày; 4: 5–6 ngày; 5: 3 ngày; 6: 2 ngày).

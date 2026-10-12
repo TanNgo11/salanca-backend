@@ -16,8 +16,8 @@ Related phase: chưa có spec — viết `docs/phases/phase-ordering-8-promotion
 
 ## Non-goals
 
-- **Thẻ quà tặng / voucher bán ra có số dư** (contracts §10 `VoucherProvider`, product type `voucher`):
-  là sản phẩm bán, khác mã giảm giá. Để module sau nếu chủ dự án cần (xem quyết định bên dưới).
+- **Thẻ quà tặng bán ra có số dư** (contracts §10): chủ dự án chọn làm cả hai (2026-10-12), thẻ quà
+  tặng là phase riêng [O9](ordering-o9-gift-cards.md).
 - Tích điểm, hạng thành viên, tài khoản khách; giới thiệu bạn bè.
 - Combo/mua X tặng Y phức tạp (bundle pricing) — v1 chỉ giảm theo món/danh mục; "tặng món" để sau.
 - Đánh giá công khai trên web, trả lời công khai, đánh giá từng món.
@@ -50,12 +50,11 @@ Related phase: chưa có spec — viết `docs/phases/phase-ordering-8-promotion
   `sha256(số điện thoại chuẩn hóa)` — không lưu số điện thoại thô trong redemption.
 - Decision: đánh giá gắn 1–1 với đơn, gửi bằng token đơn, chỉ khi đơn `completed`, trong N ngày (mặc
   định 7), sửa được trong 24 giờ.
-- Owner decision required: "voucher" chủ dự án muốn là **mã giảm giá** (plan này) hay **thẻ quà tặng
-  bán ra có số dư** (module khác, §10)? Chặn trước bước 1.
-- Owner decision required: hủy bớt món làm đơn không còn đủ điều kiện (dưới đơn tối thiểu của mã) —
-  (đề xuất) giữ giảm giá đã áp, hoàn theo phần đã phân bổ; hoặc tính lại và bỏ mã.
-- Owner decision required: đánh giá thấp (≤ 2 sao) có gửi email quản lý chi nhánh không (đề xuất có,
-  qua alert engine O6, rule `low-rating`).
+- Decision (chủ dự án, 2026-10-12): làm cả mã giảm giá (O8) và thẻ quà tặng (O9).
+- Decision (chủ dự án, 2026-10-12): hủy bớt món làm đơn dưới mức tối thiểu của mã → giữ giảm giá đã áp,
+  hoàn theo phần đã phân bổ.
+- Decision (chủ dự án, 2026-10-12): đánh giá ≤ 2 sao gửi email quản lý chi nhánh qua alert engine O6
+  (rule mới `low-rating`, người nhận `report.read` trong scope chi nhánh).
 - Assumption: web đặt món (OW) sẽ thêm ô nhập mã và trang đánh giá; O8 chỉ làm API + Admin. Email
   "Mời đánh giá" chứa link tới trang đơn trên web (`orderLinkTemplate`).
 
@@ -108,7 +107,7 @@ Related phase: chưa có spec — viết `docs/phases/phase-ordering-8-promotion
      `editableUntil`); `services/rating.ts`; route công khai `POST/GET /orders/rating` (`X-Order-Token`,
      captcha, rate limit); Admin trang "Đánh giá" (lọc chi nhánh/sao/ngày, ẩn, ghi chú nội bộ); báo cáo
      thêm điểm TB và số đánh giá theo chi nhánh; email "Mời đánh giá" sau `completed` (template VI/EN,
-     gửi một lần); alert `low-rating` nếu chủ dự án đồng ý; retention xóa `comment` sau thời hạn cấu hình.
+     gửi một lần); alert `low-rating` (≤ 2 sao); retention xóa `comment` sau thời hạn cấu hình.
    - Verification: script `rating.mjs`: đơn chưa xong → 409; token sai → 401; gửi 2 lần → sửa trong
      24 giờ, sau đó 409; nhân viên ngoài scope không thấy (404); báo cáo TB đúng.
 6. **Tài liệu và UAT**

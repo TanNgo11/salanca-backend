@@ -32,9 +32,10 @@ Mockup giao diện từng phase: [`mockups/index.html`](mockups/index.html). O0 
 | O6 | Vận hành và go-live: trang tình trạng, đủ cảnh báo, báo cáo, chốt tiền mặt, CSV, xóa dữ liệu theo hạn, Cloudflare, runbook | 3 | 1–2 tuần | [phase-ordering-6-ops-golive](../phases/phase-ordering-6-ops-golive.md) | [ordering-o6-ops-golive](ordering-o6-ops-golive.md) |
 | O7 | Vận hành bổ sung (chọn sau review 2026-10-12): giờ mở cửa đặc biệt theo ngày, giới hạn số phần mỗi ngày, nhân viên sửa đơn (thêm/bớt món, đổi giờ, đổi địa chỉ), trang di động cho người giao | sau go-live tự lấy/giao | 2–3 tuần | chưa viết | [ordering-o7-ops-extras](ordering-o7-ops-extras.md) (Draft) |
 | O8 | Khuyến mãi (mã giảm giá, khuyến mãi tự động, miễn phí giao) và đánh giá đơn | sau O7 hoặc song song | 2–3 tuần | chưa viết | [ordering-o8-promotions-rating](ordering-o8-promotions-rating.md) (Draft) |
+| O9 | Thẻ quà tặng: bán thẻ có số dư, dùng thẻ để thanh toán, tra/khóa/gia hạn, báo cáo tách nợ thẻ | sau O8 hoặc song song | ~2 tuần | chưa viết | [ordering-o9-gift-cards](ordering-o9-gift-cards.md) (Draft) |
 | OW | Web đặt món (repo web, cần duyệt phase frontend riêng); làm song song khi API của O2–O3 ổn | 1 | theo repo web | [phase-ordering-w-web](../phases/phase-ordering-w-web.md) | trong repo web |
 
-Thứ tự: O0 → O1 → O2 → O3 → O4 → O5 → O6 → O7 → O8 (O7/O8 là plan nháp, chờ chủ dự án duyệt và quyết định các mục "Owner decision required"). Kết quả spike (O0) có thể đổi phạm vi các phase sau; khi
+Thứ tự: O0 → O1 → O2 → O3 → O4 → O5 → O6 → O7 → O8 → O9 (O7–O9 là plan nháp, chờ chủ dự án duyệt và quyết định các mục "Owner decision required"). Kết quả spike (O0) có thể đổi phạm vi các phase sau; khi
 đó sửa bảng này trước khi viết spec phase kế tiếp.
 
 ## Trước khi bắt đầu viết code
