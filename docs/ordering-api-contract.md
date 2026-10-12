@@ -5,6 +5,12 @@ Public routes of the `ordering` plugin for the web app (phase OW). Base path wit
 at 32 KB and returns only the fields listed here. Source of truth: `src/plugins/ordering/server/src/
 controllers/storefront.ts`, `domain/storefront/{parse,serialize}.ts`, contracts §11 and §21.
 
+**OpenAPI (O10):** the public contract is also served as OpenAPI 3.1 at
+`GET /api/v1/ordering/openapi.json` (public, cached 1 hour). The staff-facing document is generated
+into [`ordering-admin-openapi.json`](ordering-admin-openapi.json) by `pnpm run ordering:openapi` —
+regenerate it whenever `routes/index.ts` changes; `scripts/ordering/openapi.mjs` in `check:ordering`
+fails on an undocumented route.
+
 ## Calling rules
 
 - **Server-side calls from salanca-web** must send `x-salanca-intake-secret: <FORM_INTAKE_SHARED_SECRET>`

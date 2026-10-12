@@ -43,6 +43,7 @@
     "check:phase6": "pnpm run check && pnpm run smoke:api",
     "check:forms": "pnpm run test && pnpm run verify:schema && pnpm run smoke:contact-form && pnpm run smoke:reservation-form",
     "check:ordering": "pnpm run build:ordering && node scripts/ordering/run-all.mjs",
+    "ordering:openapi": "node scripts/ordering/openapi.mjs --write",
     "smoke:ordering-pickup": "pnpm run build:ordering && node scripts/smoke-ordering-pickup.mjs",
     "upgrade": "npx @strapi/upgrade latest",
     "upgrade:dry": "npx @strapi/upgrade latest --dry"

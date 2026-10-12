@@ -58,6 +58,7 @@ const scripts = [
   'delivery-assignment.mjs',
   'webhooks-out.mjs',
   'webhooks-admin.mjs',
+  'openapi.mjs',
 ];
 
 const results = [];

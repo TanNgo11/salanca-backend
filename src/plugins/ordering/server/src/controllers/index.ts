@@ -7,6 +7,7 @@ import availability from './availability';
 import cashClosing from './cash-closing';
 import catalog from './catalog';
 import categories from './categories';
+import openapi from './openapi';
 import ops from './ops';
 import paymentReview from './payment-review';
 import reports from './reports';
@@ -26,6 +27,7 @@ export default {
   webhook,
   webhooks,
   'payment-review': paymentReview,
+  openapi,
   ops,
   'cash-closing': cashClosing,
   reports,

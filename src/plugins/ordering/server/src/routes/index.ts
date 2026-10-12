@@ -57,6 +57,8 @@ export default {
       publicRoute('POST', '/orders/cancel', 'storefront.cancel'),
       publicRoute('POST', '/orders/lookup', 'storefront.lookup'),
       publicRoute('POST', '/webhooks/:providerCode', 'webhook.receive'),
+      // O10: the public contract, self-served (cached 1h by the controller).
+      publicRoute('GET', '/openapi.json', 'openapi.document'),
     ],
   },
   admin: {
