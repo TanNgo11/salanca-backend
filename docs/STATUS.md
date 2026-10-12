@@ -2,6 +2,16 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
+2026-10-12: **Ordering O15 (lịch sử thay đổi) — implemented, targeted gates passed, chưa UAT giao diện** trên
+`feat/ordering-o15`, merge vào `feat/ordering`. Màn **Cấu hình → Lịch sử thay đổi** (quyền `audit.read`; xuất CSV thêm
+`export`): lọc ngày/người/nhóm/chi nhánh/mã đơn-tên món, trước → sau, các dòng cùng request, link từ chi tiết đơn. Bù log luồng
+đơn qua timeline (chuyển bước, từ chối, hủy, hủy bớt món, thu tiền mặt, xác nhận đơn hộ, giao/thất bại/giao lại) và
+`payment-link.issue`; sửa ghi trùng log danh mục; chuỗi băm sau commit (job `audit-chain`) + cảnh báo `audit-tampered`.
+Gate có chọn lọc (quy ước từ O7): lint, typecheck, unit test plugin, `audit-coverage`/`audit-log` mới + 12 script bị ảnh
+hưởng (`schema`, `review-additions`, `admin-orders`, `sepay-review`, `sepay-manual`, `payment-refund`, `cash-closing`,
+`catalog-availability`, `catalog-categories`, `delivery-assignment`, `alerts-engine`, `ops-status`), `strapi build` bật
+plugin — exit 0. Plan: [`plans/ordering-o15-audit-log.md`](plans/ordering-o15-audit-log.md).
+
 2026-10-12: **Ordering O6 (vận hành và go-live) — đóng theo quyết định chủ dự án (2026-10-12): automated verification passed, bỏ UAT tay** trên
 `feat/ordering-o6`, gộp vào nhánh tích hợp `feat/ordering` (đã push; chưa merge `main`). 8 commit `97b72ae`…`5d5b9eb` + sửa sau review
 `61897da`, `b0e45a2`, `a79eb6f`, `78e4ae1`: cảnh báo đủ 8 rule (gộp, critical, "đã biết", người nhận theo vai trò + scope,

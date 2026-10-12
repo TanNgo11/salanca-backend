@@ -132,6 +132,21 @@ Mục **Vận hành → Cảnh báo** liệt kê các sự cố đang cần xử
 - Mỗi loại chỉ hiện cho nhóm được phân — quản lý chi nhánh thấy cảnh báo chi nhánh mình, kế toán
   thấy cảnh báo tiền và chốt tiền.
 
+## Lịch sử thay đổi (quản lý, kế toán)
+
+Mục **Cấu hình → Lịch sử thay đổi** (quyền "Lịch sử thay đổi") ghi lại ai đã làm gì, lúc nào, ở chi nhánh
+nào: sửa giá/món/danh mục, bật tắt tạm hết, nhận/từ chối/hủy đơn, hủy bớt món, thu tiền mặt, tạo link thanh
+toán, ghi/duyệt chuyển khoản, hoàn tiền, chốt tiền, giao hàng, đổi cấu hình và quyền.
+
+- Lọc theo ngày (giờ Việt Nam), người làm, nhóm (Tiền / Đơn / Món / Giao hàng / Cấu hình / Quyền / Vận
+  hành), chi nhánh, hoặc gõ mã đơn / tên món. Bấm một dòng để xem **trước → sau** từng field; "Cùng thao
+  tác" liệt kê các dòng của cùng một lần bấm (ví dụ hủy đơn kèm hoàn tiền).
+- Trong chi tiết đơn có link **Lịch sử thay đổi** mở sẵn lịch sử của đơn đó.
+- **Xuất CSV** (cần thêm quyền xuất) cho kế toán, tối đa 92 ngày / 10.000 dòng.
+- Nhân viên chi nhánh chỉ thấy lịch sử chi nhánh mình; thay đổi cấu hình chung chỉ người xem mọi chi nhánh
+  thấy. Thông tin khách (tên, số điện thoại, địa chỉ) không có trong lịch sử. Lịch sử không sửa, không xóa
+  được.
+
 ## Giới hạn hiện tại
 
 - Chạy một máy chủ (một instance): báo đơn realtime và giới hạn tần suất nằm trong bộ nhớ của tiến trình.

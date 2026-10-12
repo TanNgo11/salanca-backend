@@ -7,6 +7,26 @@ Related phase: [`phases/phase-ordering-15-audit-log.md`](../phases/phase-orderin
 
 Mockup: [`mockups/ordering-o15-audit-log.html`](mockups/ordering-o15-audit-log.html). Đặc tả màn hình ở mục cuối.
 
+## Đã đổi khi code O15 (2026-10-12)
+
+- **Log catalog đã có từ O2** (`catalogChangeLog` trong `register.ts`, 8 bảng catalog) — "Current evidence" bên dưới viết sai.
+  O15 không viết lại mà sửa lỗi **ghi trùng**: service `catalog-category` ghi dòng riêng *và* middleware ghi thêm một dòng.
+  Service bọc lệnh Document Service bằng `withAuditSuppressed` (`domain/audit/suppress.ts`, AsyncLocalStorage) → middleware
+  bỏ qua. Middleware thêm `entityLabel` (tên VI/SKU) và `locationRef` (khi bảng có, ví dụ `catalog-location-state`).
+- **Mã thao tác lạ không ném lỗi**: `record` ghi `category: 'other'` + cảnh báo log; `domain/audit/actions.test.ts` quét mọi
+  `record({ action: '…' })` và `audit('…')` trong source + tổ hợp middleware → thiếu mã là test đỏ.
+- **Log luồng đơn móc ở một chỗ**: `timeline.record` (actor là nhân viên) → `auditActionForTimeline` ánh xạ
+  `fulfillment-group.transitioned` (→ `order.transition|reject|cancel|complete`, `delivery.dispatch|fail|retry`),
+  `order.line.canceled`, `payment.captured` (tiền mặt), `order.confirmed`. Chỉ lưu **mã** lý do, không lưu lý do/ghi chú gõ tay.
+  Thêm `record` riêng cho `payment-link.issue`; `refund.*`, `payment-manual.record` thêm `orderId`.
+- **Chuỗi băm không khóa lúc ghi**: job `audit-chain` (5 phút) điền `prevHash`/`hash` sau khi commit (dòng cũ hơn 30 giây,
+  nối vào đỉnh chuỗi theo id), kiểm 2.000 dòng mới nhất + 200 dòng ngẫu nhiên và kiểm mọi `prevHash` còn tồn tại → alert
+  `audit-tampered` (mã cảnh báo thứ 9, luôn critical, `ops.read`). Bỏ khóa advisory toàn cục trong transaction ghi.
+- `requestId` lấy lười từ `strapi.requestContext` (một id mỗi request admin); job/script không có request → null.
+- Migration `0005-o15-audit-log` (tên khác `0005-o7-…` của O7 — runner chạy theo tên); backfill chỉ `category`.
+- Quyền `audit.read`; xuất CSV cần thêm `export`. Ngày lọc theo giờ Việt Nam (+07:00). Link "Lịch sử thay đổi" trong chi tiết
+  đơn (S4) mở `?q=<mã đơn>`; không có link từ form món (form món là Content Manager).
+
 ## Goal
 
 Màn xem/lọc/xuất change-log và bù đủ log cho thao tác nhạy cảm.
@@ -151,4 +171,12 @@ Quy ước chung như [`ordering-o3-screens.md`](ordering-o3-screens.md); chuỗ
 
 ## Completion record
 
-- Chưa bắt đầu.
+Trạng thái: **implemented, targeted gates passed** (quy ước từ O7: không chạy lại toàn bộ gate, UAT giao diện do chủ dự án
+làm sau). Nhánh `feat/ordering-o15` (worktree `salanca-backend-o15`, DB `salanca_ordering_o15`), merge vào `feat/ordering`.
+
+- Gate (2026-10-12): `pnpm run lint`, `pnpm run typecheck`, unit test plugin (`vitest run src/plugins/ordering` — gồm
+  `domain/audit/*.test.ts` mới, test dịch admin), `scripts/ordering/audit-coverage.mjs`, `audit-log.mjs` (mới), các script
+  bị ảnh hưởng: `schema`, `review-additions`, `admin-orders`, `sepay-review`, `sepay-manual`, `payment-refund`,
+  `cash-closing`, `catalog-availability`, `catalog-categories`, `delivery-assignment`, `alerts-engine`, `ops-status`;
+  `strapi build` bật plugin. Kết quả ghi ở `docs/STATUS.md`.
+- Chưa làm: UAT giao diện (chủ dự án); thời hạn giữ log (mặc định giữ hết — chờ chủ dự án).
