@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { resolvePickupSettings } from '../branch-settings';
-import { asapReadyAt, checkSlot, isOpenAt, listSlots } from './slots';
+import { asapReadyAt, checkSlot, dayKind, isOpenAt, listSlots } from './slots';
 import { localToUtc, toLocalParts } from './zoned-time';
 
 const TZ = 'Asia/Ho_Chi_Minh';
@@ -110,6 +110,79 @@ describe('checkSlot', () => {
       startsAt: localToUtc('2026-10-13', '01:00', TZ).toISOString(),
     });
     expect(result.ok).toBe(true);
+  });
+});
+
+describe('special hours', () => {
+  const now = localToUtc('2026-10-12', '08:00', TZ);
+
+  it('replaces a 07:00–22:00 day with the special 10:00–14:00 window', () => {
+    const special = settings({}, {
+      openingHours: { mode: 'daily', daily: [{ start: '07:00', end: '22:00' }] },
+      businessDayPolicy: {
+        specialHours: [{ date: '2026-10-12', ranges: [{ start: '10:00', end: '14:00' }] }],
+      },
+    });
+    const slots = listSlots({ settings: special, timezone: TZ, now, date: '2026-10-12', leadTimeMinutes: 0 });
+    expect(slots.map((slot) => slot.localStart)).toEqual([
+      '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30',
+    ]);
+    expect(dayKind(special, '2026-10-12')).toBe('special');
+    expect(dayKind(special, '2026-10-13')).toBe('regular');
+  });
+
+  it('opens a Sunday that weekly hours leave closed', () => {
+    const sunday = settings({}, {
+      openingHours: { mode: 'weekly', weekly: { mon: [{ start: '10:00', end: '11:00' }] } },
+      businessDayPolicy: {
+        specialHours: [{ date: '2026-10-18', ranges: [{ start: '09:00', end: '12:00' }] }],
+      },
+    });
+    const slots = listSlots({
+      settings: sunday, timezone: TZ, now, date: '2026-10-18', leadTimeMinutes: 0,
+    });
+    expect(slots.map((slot) => slot.localStart)).toEqual(['09:00', '09:30', '10:00', '10:30', '11:00', '11:30']);
+    expect(dayKind(sunday, '2026-10-18')).toBe('special');
+  });
+
+  it('closes the day and makes ASAP unavailable when the special row is closed', () => {
+    const closed = settings({}, {
+      openingHours: { mode: 'daily', daily: [{ start: '07:00', end: '22:00' }] },
+      businessDayPolicy: { specialHours: [{ date: '2026-10-12', closed: true, ranges: [] }] },
+    });
+    expect(listSlots({ settings: closed, timezone: TZ, now, date: '2026-10-12', leadTimeMinutes: 0 })).toEqual([]);
+    expect(isOpenAt(closed, TZ, now)).toBe(false);
+    expect(asapReadyAt(closed, TZ, now, 0)).toBeNull();
+    expect(dayKind(closed, '2026-10-12')).toBe('special');
+  });
+
+  it('keeps yesterday special 22:00–02:00 open at 01:00 the next morning', () => {
+    const overnight = settings({}, {
+      openingHours: { mode: 'daily', daily: [{ start: '07:00', end: '22:00' }] },
+      businessDayPolicy: {
+        specialHours: [{ date: '2026-10-12', ranges: [{ start: '22:00', end: '02:00' }] }],
+      },
+    });
+    const atOne = localToUtc('2026-10-13', '01:00', TZ);
+    expect(isOpenAt(overnight, TZ, atOne)).toBe(true);
+    expect(asapReadyAt(overnight, TZ, atOne, 0)?.toISOString()).toBe(atOne.toISOString());
+    expect(dayKind(overnight, '2026-10-12')).toBe('special');
+    expect(dayKind(overnight, '2026-10-13')).toBe('regular');
+  });
+
+  it('lets special hours win over a holiday on the same date', () => {
+    const both = settings({}, {
+      openingHours: { mode: 'daily', daily: [{ start: '07:00', end: '22:00' }] },
+      businessDayPolicy: {
+        holidayDates: ['2026-10-13'],
+        specialHours: [{ date: '2026-10-13', ranges: [{ start: '10:00', end: '12:00' }] }],
+      },
+    });
+    const slots = listSlots({
+      settings: both, timezone: TZ, now, date: '2026-10-13', leadTimeMinutes: 0,
+    });
+    expect(slots.map((slot) => slot.localStart)).toEqual(['10:00', '10:30', '11:00', '11:30']);
+    expect(dayKind(both, '2026-10-13')).toBe('special');
   });
 });
 
