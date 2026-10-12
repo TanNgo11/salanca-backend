@@ -156,6 +156,41 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
     aggregate.groups.find((group) => isTerminal(workflowOf(group), group.status) === null) ??
     aggregate.groups[0];
 
+  /**
+   * Gives back the money still held when an order closes as canceled (contracts §19.1, §19.8).
+   * Cash is refunded now; with `transfers`, a captured transfer becomes a refund row the bank
+   * provider leaves `pending` until staff settle it.
+   */
+  const refundHeld = async (
+    trx: TransactionClient,
+    payments: OrderAggregate['payments'],
+    reason: string,
+    options: { transfers: boolean },
+    ctx: ServiceContext,
+  ) => {
+    let refunded = 0;
+    let refundPending = 0;
+    for (const payment of payments) {
+      const held = payment.capturedAmount - payment.refundedAmount;
+      if (held <= 0) continue;
+      if (payment.providerCode === 'cash') {
+        const { amount } = await s
+          .refund()
+          .createRefundInTransaction(trx, { paymentId: payment.id, amount: held, reason }, ctx);
+        refunded += amount;
+      } else if (options.transfers) {
+        const room = held - (await pendingRefundSum(strapi, payment.id));
+        if (room <= 0) continue;
+        const { amount, status } = await s
+          .refund()
+          .createRefundInTransaction(trx, { paymentId: payment.id, amount: room, reason }, ctx);
+        if (status === 'settled') refunded += amount;
+        else refundPending += amount;
+      }
+    }
+    return { refunded, refundPending };
+  };
+
   const nextTransitions = (aggregate: OrderAggregate): NextTransition[] => {
     const group = liveGroup(aggregate);
     if (!group || aggregate.order.status === 'draft') return [];
@@ -626,7 +661,9 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
      * cash-handover instead. Delivery leg moves (`out-for-delivery`, `failed`, `delivered`, a
      * `failed` → `ready` retry) delegate to delivery-assignment — they carry the assignee or
      * tracking and their own failure reason set. A concurrent winner leaves the loser with
-     * INVALID_TRANSITION.
+     * INVALID_TRANSITION. Cancel is refused here: it refunds, so it goes through POST /cancel
+     * and its own permission. Reject and expire still refund what was paid (a transfer stays
+     * a `pending` refund row).
      */
     async transition(
       orderId: number,
@@ -645,11 +682,16 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
       if (note && note.length > MAX_NOTE) {
         throw new OrderingError('VALIDATION_ERROR', 'note is too long', { details: { field: 'note' } });
       }
-      return strapi.db.transaction(async () => {
+      return strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
         const aggregate = await loadScoped(orderId, ctx);
         const group = liveGroup(aggregate);
         if (!group) throw new OrderingError('INVALID_TRANSITION', 'order has no active group');
         const definition = workflowOf(group);
+        if (input.to === definition.cancelState) {
+          throw new OrderingError('INVALID_TRANSITION', 'cancel the order with POST /cancel', {
+            details: { to: input.to, use: 'cancel' },
+          });
+        }
         const terminal = isTerminal(definition, input.to);
         if (terminal === 'canceled' && !input.reasonCode && !note) {
           throw new OrderingError('VALIDATION_ERROR', 'a reason is required', {
@@ -741,7 +783,23 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
         );
         // Accept-then-pay paid before acceptance: nothing is owed, so do not wait for a transfer.
         if (result.to === 'awaiting-payment') await s.matching().advanceIfPaid(orderId, ctx);
-        return { from: result.from, to: result.to, detail: await service.detail(orderId, ctx) };
+        // A prepaid order rejected (or expired) by staff owes the customer their money back.
+        const refunds =
+          terminal === 'canceled'
+            ? await refundHeld(
+                trx,
+                aggregate.payments,
+                `${input.to}: ${input.reasonCode ?? note}`,
+                { transfers: true },
+                ctx,
+              )
+            : { refunded: 0, refundPending: 0 };
+        return {
+          from: result.from,
+          to: result.to,
+          ...refunds,
+          detail: await service.detail(orderId, ctx),
+        };
       });
     },
 
@@ -829,31 +887,14 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
           { orderId, reason, payload: input.note?.trim() ? { note: input.note.trim() } : undefined },
           ctx,
         );
-        let refunded = 0;
-        let refundPending = 0;
-        for (const payment of before.payments) {
-          const held = payment.capturedAmount - payment.refundedAmount;
-          if (held <= 0) continue;
-          if (payment.providerCode === 'cash') {
-            const { amount } = await s.refund().createRefundInTransaction(
-              trx,
-              { paymentId: payment.id, amount: held, reason: `cancel: ${reason}` },
-              ctx,
-            );
-            refunded += amount;
-          } else if (isDelivery) {
-            const room = held - (await pendingRefundSum(strapi, payment.id));
-            if (room <= 0) continue;
-            const { amount, status } = await s.refund().createRefundInTransaction(
-              trx,
-              { paymentId: payment.id, amount: room, reason: `cancel: ${reason}` },
-              ctx,
-            );
-            if (status === 'settled') refunded += amount;
-            else refundPending += amount;
-          }
-        }
-        return { refunded, refundPending, detail: await service.detail(orderId, ctx) };
+        const refunds = await refundHeld(
+          trx,
+          before.payments,
+          `cancel: ${reason}`,
+          { transfers: isDelivery },
+          ctx,
+        );
+        return { ...refunds, detail: await service.detail(orderId, ctx) };
       });
     },
 

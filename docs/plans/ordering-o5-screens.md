@@ -28,6 +28,10 @@ Nghiên cứu: [`ordering-reference.md` mục U5](ordering-reference.md). **Quy 
   Giao lại là `transition { to: "ready" }` — server tự xóa assignee/tracking cũ. Hủy sau `failed` gọi
   `/cancel` như thường: tiền mặt đã thu hoàn `settled`, chuyển khoản đã thu tạo phiếu hoàn `pending`.
   `cash-handover` trên đơn giao ghi sổ tiền theo người giao được gán (không phải nhân viên đang bấm).
+- Sửa sau review (2026-10-12): `transition { to: "canceled" }` bị từ chối (`INVALID_TRANSITION`,
+  `details.use: "cancel"`) vì nó bỏ qua hoàn tiền và quyền `order.cancel`; hủy chỉ qua `/cancel`. Từ chối
+  (`rejected`) hoặc hết hạn (`expired`) khi đơn đã thu tiền thì hoàn luôn trong cùng transaction: tiền mặt
+  `settled`, chuyển khoản phiếu `pending`. Response `transition` thêm `refunded`, `refundPending`.
 - Bước 6 (2026-10-12): combobox người giao tải qua `GET /ordering/orders/delivery-staff?branch=<code>`
   (quyền `order.read`, trả `[{ ref, name }]`, chỉ nhân viên active trong scope). Filter `assignee` nhận
   `unassigned | mine | other | admin:<id>` — `mine`/`other` so với `actorRef` của người xem. Mỗi row của
@@ -89,7 +93,7 @@ API: `PATCH /ordering/admin/branches/:code` (gửi cả `fulfillment.delivery.zo
 | --- | --- | --- |
 | Gán người giao | `Toggle` Nhân viên quán / Xe ngoài; nhân viên: `Combobox` nhân viên trong scope; xe ngoài: hãng (text), mã chuyến, link theo dõi (URL) | `transition { to: "out-for-delivery", assigneeRef, tracking }` |
 | Thu tiền và giao | như S5 của O3 | `cash-handover` |
-| Giao thất bại | lý do * (`Select`: Không liên lạc được · Sai địa chỉ · Khách từ chối · Khác), ghi chú; sau đó chọn **Giao lại** hoặc **Hủy và hoàn tiền** | `transition { to: failed, reasonCode, note }` rồi `transition` tiếp |
+| Giao thất bại | lý do * (`Select`: Không liên lạc được · Sai địa chỉ · Khách từ chối · Khác), ghi chú; sau đó chọn **Giao lại** hoặc **Hủy và hoàn tiền** | `transition { to: failed, reasonCode, note }`; giao lại là `transition { to: ready }`, hủy là `POST .../cancel` (quyền `order.cancel`) |
 
 ## D4. Phía khách
 

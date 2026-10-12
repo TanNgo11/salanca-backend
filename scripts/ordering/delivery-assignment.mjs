@@ -375,6 +375,15 @@ await withApp(async (app) => {
   await transition.transitionGroup({ orderId: doomedId, groupId: doomedGroup.id, to: 'ready' }, systemCtx);
   await adminOrders.transition(doomedId, { to: 'out-for-delivery', assigneeRef: lanRef }, lanCtx);
   await adminOrders.transition(doomedId, { to: 'failed', reasonCode: 'wrong-address' }, lanCtx);
+  // Cancel through the transition endpoint would skip the refund (and order.cancel): refused.
+  assert.equal(
+    await errorOf(() =>
+      adminOrders.transition(doomedId, { to: 'canceled', reasonCode: 'other', note: 'x' }, lanCtx),
+    ),
+    'INVALID_TRANSITION',
+  );
+  assert.equal((await groupOf(doomedId)).status, 'failed');
+  assert.equal((await adminOrders.detail(doomedId, lanCtx)).refunds.length, 0);
   const doomedCancel = await adminOrders.cancel(
     doomedId,
     { reasonCode: 'other', note: 'hủy sau giao thất bại' },
@@ -388,6 +397,24 @@ await withApp(async (app) => {
   assert.equal(doomedDetail.order.paymentStatus, 'paid', 'pending refund does not move paymentStatus');
   leg = await legOf(doomedGroup.id);
   assert.equal(leg.status, 'canceled');
+
+  // Rejected after the customer paid: the transfer becomes a pending refund (contracts §19.1).
+  const turnedAway = await place({ payment: { providerCode: 'sepay' } });
+  const turnedAwayId = turnedAway.order.order.id;
+  await transfer(9004, turnedAway.order.order.code, turnedAway.order.order.totalAmount);
+  assert.equal((await groupOf(turnedAwayId)).status, 'awaiting-acceptance');
+  const rejected = await adminOrders.transition(
+    turnedAwayId,
+    { to: 'rejected', reasonCode: 'other', note: 'hết món' },
+    lanCtx,
+  );
+  assert.equal(rejected.to, 'rejected');
+  assert.equal(rejected.refunded, 0);
+  assert.equal(rejected.refundPending, turnedAway.order.order.totalAmount);
+  const rejectedDetail = await adminOrders.detail(turnedAwayId, lanCtx);
+  assert.equal(rejectedDetail.order.status, 'canceled');
+  assert.equal(rejectedDetail.refunds.length, 1);
+  assert.equal(rejectedDetail.refunds[0].status, 'pending');
 
   // ── Accept-then-pay picks its own workflow ─────────────────────────────────
   await setDelivery('accept-then-pay', ['sepay']);
@@ -453,5 +480,5 @@ await withApp(async (app) => {
   );
 
   console.log('[ordering-test] delivery leg: dispatch, race, external vehicle, fail/retry,');
-  console.log('[ordering-test] cash handover actor, cancel refunds (cash + bank), sepay prepay');
+  console.log('[ordering-test] cash handover actor, cancel refunds (cash + bank), transition cancel refused, paid reject refunds, sepay prepay');
 });
