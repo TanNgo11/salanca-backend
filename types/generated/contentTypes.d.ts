@@ -3243,6 +3243,185 @@ export interface PluginOrderingCatalogCategory
   };
 }
 
+export interface PluginOrderingCatalogDailyLimit
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_catalog_daily_limit';
+  info: {
+    displayName: 'Gi\u1EDBi h\u1EA1n ph\u1EA7n theo ng\u00E0y';
+    pluralName: 'catalog-daily-limits';
+    singularName: 'catalog-daily-limit';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    dailyLimit: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      >;
+    entityDocumentId: Schema.Attribute.String & Schema.Attribute.Required;
+    entityType: Schema.Attribute.Enumeration<
+      ['product', 'variant', 'modifier']
+    > &
+      Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.catalog-daily-limit'
+    > &
+      Schema.Attribute.Private;
+    locationRef: Schema.Attribute.String & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    updatedByRef: Schema.Attribute.String;
+  };
+}
+
+export interface PluginOrderingCatalogDailyReservation
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_catalog_daily_reservation';
+  info: {
+    displayName: 'Gi\u1EEF su\u1EA5t theo d\u00F2ng';
+    pluralName: 'catalog-daily-reservations';
+    singularName: 'catalog-daily-reservation';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    businessDate: Schema.Attribute.Date & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    entityDocumentId: Schema.Attribute.String & Schema.Attribute.Required;
+    entityType: Schema.Attribute.Enumeration<
+      ['product', 'variant', 'modifier']
+    > &
+      Schema.Attribute.Required;
+    line: Schema.Attribute.Relation<
+      'manyToOne',
+      'plugin::ordering.order-line'
+    > &
+      Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.catalog-daily-reservation'
+    > &
+      Schema.Attribute.Private;
+    locationRef: Schema.Attribute.String & Schema.Attribute.Required;
+    order: Schema.Attribute.Relation<'manyToOne', 'plugin::ordering.order'> &
+      Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    quantity: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 1;
+        },
+        number
+      >;
+    releasedQuantity: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<0>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface PluginOrderingCatalogDailyUsage
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_catalog_daily_usage';
+  info: {
+    displayName: 'Su\u1EA5t \u0111\u00E3 gi\u1EEF trong ng\u00E0y';
+    pluralName: 'catalog-daily-usages';
+    singularName: 'catalog-daily-usage';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    businessDate: Schema.Attribute.Date & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    entityDocumentId: Schema.Attribute.String & Schema.Attribute.Required;
+    entityType: Schema.Attribute.Enumeration<
+      ['product', 'variant', 'modifier']
+    > &
+      Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.catalog-daily-usage'
+    > &
+      Schema.Attribute.Private;
+    locationRef: Schema.Attribute.String & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    reserved: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<0>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface PluginOrderingCatalogLocationState
   extends Struct.CollectionTypeSchema {
   collectionName: 'plugins_ordering_catalog_location_state';
@@ -4056,6 +4235,10 @@ export interface PluginOrderingOrder extends Struct.CollectionTypeSchema {
       Schema.Attribute.DefaultTo<'VND'>;
     customerNote: Schema.Attribute.Text;
     customerRef: Schema.Attribute.String;
+    dailyReservations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.catalog-daily-reservation'
+    >;
     draftConfirmedAt: Schema.Attribute.DateTime;
     fulfillmentAmount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
     fulfillmentGroups: Schema.Attribute.Relation<
@@ -4314,6 +4497,10 @@ export interface PluginOrderingOrderLine extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     currency: Schema.Attribute.String & Schema.Attribute.Required;
+    dailyReservations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.catalog-daily-reservation'
+    >;
     descriptionSnapshot: Schema.Attribute.Text;
     discountAmount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
     feeAmount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
@@ -5095,6 +5282,9 @@ declare module '@strapi/strapi' {
       'plugin::ordering.cash-closing': PluginOrderingCashClosing;
       'plugin::ordering.catalog-availability-window': PluginOrderingCatalogAvailabilityWindow;
       'plugin::ordering.catalog-category': PluginOrderingCatalogCategory;
+      'plugin::ordering.catalog-daily-limit': PluginOrderingCatalogDailyLimit;
+      'plugin::ordering.catalog-daily-reservation': PluginOrderingCatalogDailyReservation;
+      'plugin::ordering.catalog-daily-usage': PluginOrderingCatalogDailyUsage;
       'plugin::ordering.catalog-location-state': PluginOrderingCatalogLocationState;
       'plugin::ordering.catalog-modifier': PluginOrderingCatalogModifier;
       'plugin::ordering.catalog-modifier-group': PluginOrderingCatalogModifierGroup;

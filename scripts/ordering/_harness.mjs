@@ -201,6 +201,7 @@ export const services = (app) => {
     changeLog: plugin.service('change-log'),
     jobLock: plugin.service('job-lock'),
     lineCancel: plugin.service('line-cancel'),
+    dailyStock: plugin.service('daily-stock'),
   };
 };
 

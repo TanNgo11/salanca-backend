@@ -17,6 +17,7 @@ import cashClosing from './cash-closing';
 import orderExport from './order-export';
 import reports from './reports';
 import catalogAvailability from './catalog-availability';
+import dailyStock from './daily-stock';
 import catalogCategory from './catalog-category';
 import catalogSlug from './catalog-slug';
 import changeLog from './change-log';
@@ -53,6 +54,7 @@ export default {
   outbox,
   branch,
   'catalog-availability': catalogAvailability,
+  'daily-stock': dailyStock,
   'catalog-category': catalogCategory,
   'catalog-slug': catalogSlug,
   'change-log': changeLog,

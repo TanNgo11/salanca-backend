@@ -11,6 +11,9 @@ const EXPECTED_TABLES = [
   'plugins_ordering_cash_closing',
   'plugins_ordering_catalog_availability_window',
   'plugins_ordering_catalog_category',
+  'plugins_ordering_catalog_daily_limit',
+  'plugins_ordering_catalog_daily_reservation',
+  'plugins_ordering_catalog_daily_usage',
   'plugins_ordering_catalog_location_state',
   'plugins_ordering_catalog_modifier',
   'plugins_ordering_catalog_modifier_group',
@@ -56,6 +59,8 @@ const EXPECTED_INDEXES = [
   'plugins_ordering_catalog_slug_locale_uq',
   'plugins_ordering_catalog_slug_entity_idx',
   'plugins_ordering_catalog_location_state_uq',
+  'plugins_ordering_catalog_daily_limit_uq',
+  'plugins_ordering_catalog_daily_usage_uq',
   'plugins_ordering_catalog_variant_sku_uq',
   'plugins_ordering_catalog_product_online_idx',
   'plugins_ordering_notification_delivery_uq',
@@ -81,9 +86,12 @@ const CM_VISIBLE_UIDS = [
 const CM_HIDDEN_CATALOG_UIDS = [
   'plugin::ordering.catalog-slug',
   'plugin::ordering.catalog-location-state',
+  'plugin::ordering.catalog-daily-limit',
+  'plugin::ordering.catalog-daily-usage',
+  'plugin::ordering.catalog-daily-reservation',
 ];
 
-// Every manyToOne owner side produces one link table (28 relations across the 31 types).
+// Every manyToOne owner side produces one link table. Floor stays 28; new relations only raise it.
 const MIN_LINK_TABLES = 28;
 
 await withApp(async (app) => {
@@ -133,7 +141,13 @@ await withApp(async (app) => {
     .connection('plugins_ordering_migrations')
     .select('name')
     .orderBy('name');
-  for (const migration of ['0001-o1-core', '0002-o2-catalog', '0003-o3-pickup', '0004-o6-ops']) {
+  for (const migration of [
+    '0001-o1-core',
+    '0002-o2-catalog',
+    '0003-o3-pickup',
+    '0004-o6-ops',
+    '0005-o7-ops-extras',
+  ]) {
     assert.ok(
       applied.some((row) => row.name === migration),
       `migration ${migration} is not recorded`,

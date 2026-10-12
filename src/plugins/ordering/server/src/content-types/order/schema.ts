@@ -65,6 +65,7 @@ export default collection(
     refunds: oneToMany('refund', 'order'),
     timeline: oneToMany('order-event', 'order'),
     holds: oneToMany('hold', 'order'),
+    dailyReservations: oneToMany('catalog-daily-reservation', 'order'),
   },
   { displayName: 'Đơn hàng' },
 );

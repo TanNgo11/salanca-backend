@@ -58,6 +58,12 @@ export default collection(
       target: 'plugin::ordering.refund-line',
       mappedBy: 'line',
     },
+    dailyReservations: {
+      type: 'relation',
+      relation: 'oneToMany',
+      target: 'plugin::ordering.catalog-daily-reservation',
+      mappedBy: 'line',
+    },
   },
   { displayName: 'Dòng hàng' },
 );

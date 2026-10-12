@@ -35,4 +35,5 @@ export const o7Messages: Record<string, [string, string]> = {
     'Cần ít nhất một khoảng giờ hoặc bật Đóng cửa',
     'Add at least one range, or mark the day closed',
   ],
+  'error.ITEM_SOLD_OUT': ['Món này đã hết phần trong ngày', 'This item is sold out for today'],
 };
