@@ -2,7 +2,9 @@
 // two independent Strapi processes claiming the same queue; worker B kills itself mid-run
 // leaving its lease behind, a third process reclaims after the lease expires, and a
 // `test.fail` batch exercises backoff → failed_at. Run: node scripts/ordering/outbox-two-process.mjs
-// (children: `worker <owner> [crash-after=<n>] [barrier]`). With `barrier` a child prints
+// (children: `worker <owner> [crash-after=<n>] [lease=<seconds>] [barrier]`). B holds a long
+// lease so A, which runs longer than a short lease, cannot reclaim B's rows before the parent
+// sees them; the parent then expires that lease in the DB instead of sleeping it out. With `barrier` a child prints
 // READY after boot and waits for `go` on stdin, so both workers start claiming together —
 // otherwise a fast-booting A can drain the queue before B claims anything.
 import assert from 'node:assert/strict';
@@ -27,6 +29,9 @@ if (mode === 'worker') {
   const crashAfter = Number(
     workerArgs.find((arg) => arg.startsWith('crash-after='))?.split('=')[1] ?? 0,
   );
+  const leaseSeconds = Number(
+    workerArgs.find((arg) => arg.startsWith('lease='))?.split('=')[1] ?? 3,
+  );
   const app = await bootOrderingTestApp();
   const { outbox } = services(app);
   if (workerArgs.includes('barrier')) {
@@ -42,7 +47,7 @@ if (mode === 'worker') {
   let batches = 0;
   const result = await outbox.dispatch({
     owner,
-    leaseSeconds: 3,
+    leaseSeconds,
     batchSize: 10,
     maxBatches: 100,
     beforeDeliver: () => {
@@ -135,7 +140,7 @@ withApp(async (app) => {
 
   configureTestEnvironment(); // children inherit the test env
   // Both workers boot first, then start claiming at the same moment (barrier).
-  const workers = [startWorker('A', ['barrier']), startWorker('B', ['crash-after=2', 'barrier'])];
+  const workers = [startWorker('A', ['barrier']), startWorker('B', ['crash-after=2', 'lease=600', 'barrier'])];
   await Promise.all(workers.map((worker) => worker.ready));
   for (const worker of workers) worker.child.stdin.end('go\n');
   const [a, b] = await Promise.all(workers.map((worker) => worker.exited));
@@ -149,8 +154,11 @@ withApp(async (app) => {
   assert.ok(bLocks[0].n > 0, 'worker B must leave locked rows behind');
   console.log(`[ordering-test] worker B abandoned ${bLocks[0].n} leased rows`);
 
-  // Wait out the 3 s lease, then a fresh process reclaims the remainder.
-  await new Promise((resolve) => setTimeout(resolve, 4000));
+  // B's lease runs out (moved into the past here), then a fresh process reclaims the remainder.
+  await db.raw(
+    `UPDATE plugins_ordering_outbox SET lease_until = now() - interval '1 second'
+       WHERE locked_by = 'B' AND delivered_at IS NULL`,
+  );
   const a2 = await runWorker('A2');
   assert.equal(a2.code, 0, `worker A2 must exit cleanly (got ${a2.code})`);
 
