@@ -24,11 +24,35 @@ describe('built-in pickup workflows', () => {
   });
 });
 
+describe('built-in delivery workflows', () => {
+  const deliveries = builtinWorkflows.filter((workflow) => workflow.name.startsWith('delivery-'));
+
+  it('has the three payment timings with the O5 delivery leg', () => {
+    expect(deliveries.map((workflow) => workflow.name).sort()).toEqual([
+      'delivery-accept-then-pay',
+      'delivery-pay-on-delivery',
+      'delivery-prepay',
+    ]);
+    for (const workflow of deliveries) {
+      expect(workflow.states.ready.next).toEqual(['out-for-delivery', 'canceled']);
+      expect(workflow.states['out-for-delivery'].next).toEqual(['delivered', 'failed', 'canceled']);
+      expect(workflow.states.failed.next).toEqual(['ready', 'canceled']);
+      expect(workflow.states.delivered.terminal).toBe('success');
+    }
+  });
+});
+
 describe('food selectWorkflow', () => {
-  const select = (paymentTiming?: string) =>
+  const select = (paymentTiming?: string, kind: 'pickup' | 'delivery' = 'pickup') =>
     foodProductType.selectWorkflow({
       lines: [],
-      receiveMethod: { kind: 'pickup', locationRef: 'Q1' },
+      receiveMethod:
+        kind === 'pickup'
+          ? { kind: 'pickup', locationRef: 'Q1' }
+          : {
+              kind: 'delivery',
+              address: { recipientName: 'Khách', phone: '+84900000000', line1: 'x' },
+            },
       paymentTiming,
     });
 
@@ -37,5 +61,12 @@ describe('food selectWorkflow', () => {
     expect(select('prepay')).toEqual({ name: 'pickup-prepay', version: '1' });
     expect(select('accept-then-pay')).toEqual({ name: 'pickup-accept-then-pay', version: '1' });
     expect(select(undefined)).toEqual({ name: 'pickup-pay-on-pickup', version: '1' });
+  });
+
+  it('maps every paymentTiming to its delivery workflow', () => {
+    expect(select('pay-on-pickup', 'delivery')).toEqual({ name: 'delivery-pay-on-delivery', version: '1' });
+    expect(select('prepay', 'delivery')).toEqual({ name: 'delivery-prepay', version: '1' });
+    expect(select('accept-then-pay', 'delivery')).toEqual({ name: 'delivery-accept-then-pay', version: '1' });
+    expect(select(undefined, 'delivery')).toEqual({ name: 'delivery-pay-on-delivery', version: '1' });
   });
 });

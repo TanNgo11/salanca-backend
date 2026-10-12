@@ -5,6 +5,7 @@ import registry from './registry';
 import scope from './scope';
 import idempotency from './idempotency';
 import order from './order';
+import deliveryAssignment from './delivery-assignment';
 import transition from './transition';
 import payment from './payment';
 import refund from './refund';
@@ -54,6 +55,7 @@ export default {
   'pickup-scheduling': pickupScheduling,
   storefront,
   'admin-orders': adminOrders,
+  'delivery-assignment': deliveryAssignment,
   'ordering-settings': orderingSettings,
   notification,
   'admin-units': adminUnits,

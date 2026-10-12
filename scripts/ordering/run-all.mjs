@@ -47,6 +47,7 @@ const scripts = [
   'sepay-link.mjs',
   'admin-units.mjs',
   'delivery-quote.mjs',
+  'delivery-assignment.mjs',
 ];
 
 const results = [];

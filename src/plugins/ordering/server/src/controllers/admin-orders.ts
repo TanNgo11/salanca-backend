@@ -63,6 +63,8 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
           notifyCustomer: typeof input.notifyCustomer === 'boolean' ? input.notifyCustomer : undefined,
           delayMinutes: typeof input.delayMinutes === 'number' ? input.delayMinutes : undefined,
           reasonCode: optionalText(input.reasonCode),
+          assigneeRef: optionalText(input.assigneeRef),
+          tracking: input.tracking,
         },
         serviceCtx,
       );

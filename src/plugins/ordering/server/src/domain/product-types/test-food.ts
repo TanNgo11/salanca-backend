@@ -18,8 +18,11 @@ export const testFoodProductType: ProductTypeDefinition = {
         }
         return { name: 'pickup-pay-on-pickup', version: '1' };
       case 'delivery':
-        // O5 adds the delivery workflows; O1 reuses the pickup happy path for tests.
-        return { name: 'pickup-pay-on-pickup', version: '1' };
+        if (paymentTiming === 'prepay') return { name: 'delivery-prepay', version: '1' };
+        if (paymentTiming === 'accept-then-pay') {
+          return { name: 'delivery-accept-then-pay', version: '1' };
+        }
+        return { name: 'delivery-pay-on-delivery', version: '1' };
       default:
         throw new OrderingError('LINE_INVALID', 'test-food does not support appointment');
     }

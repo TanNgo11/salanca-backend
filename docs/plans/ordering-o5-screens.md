@@ -20,6 +20,14 @@ Nghiên cứu: [`ordering-reference.md` mục U5](ordering-reference.md). **Quy 
   và nằm trong `totals.fulfillmentTotal` / `totals.grandTotal`. Báo giá thêm `delivery.freeFrom` khi có bậc miễn
   phí. Tên xã/phường client gửi bị bỏ; server ghi tên từ danh mục lúc đặt. Mã không có trong danh mục
   trả `VALIDATION_ERROR` với `reason: unknown-commune` (không phải `DELIVERY_UNAVAILABLE`).
+- Bước 5 (2026-10-12): state workflow dùng kebab-case (`out-for-delivery`, không phải `out_for_delivery`).
+  Gán người giao là `transition { to: "out-for-delivery", assigneeRef, tracking }`: `assigneeRef` dạng
+  `admin:<id>` của nhân viên active trong scope chi nhánh; xe ngoài gửi `tracking { carrier, number, url }`
+  không kèm `assigneeRef`. Cần ít nhất một trong hai. Lý do `failed` là bộ riêng
+  (`unreachable | wrong-address | refused | other`; `other` bắt buộc `note`), không phải bộ lý do từ chối S4.
+  Giao lại là `transition { to: "ready" }` — server tự xóa assignee/tracking cũ. Hủy sau `failed` gọi
+  `/cancel` như thường: tiền mặt đã thu hoàn `settled`, chuyển khoản đã thu tạo phiếu hoàn `pending`.
+  `cash-handover` trên đơn giao ghi sổ tiền theo người giao được gán (không phải nhân viên đang bấm).
 
 ## D1. Tab "Giao tận nơi" trong Chi nhánh (S7 của O3)
 
@@ -49,7 +57,8 @@ API: `PATCH /ordering/admin/branches/:code` (gửi cả `fulfillment.delivery.zo
 ## D2. Danh sách đơn giao
 
 - Route: `/plugins/ordering/deliveries`. Quyền `order.read`; thao tác cần `order.process`.
-- API: `GET /ordering/admin/orders?receive=delivery&tab=ready|out|failed&assignee=&branch=`.
+- API: `GET /ordering/orders?receive=delivery&tab=ready|out|failed&assignee=&branch=` (đã bỏ `/admin` theo
+  quy ước O3).
 - `Tabs`: Sẵn sàng giao (n) · Đang giao (n) · Giao thất bại (n). Lọc người giao (theo TastyIgniter assignee: Chưa gán
   / Của tôi / Người khác + chọn người).
 
@@ -66,7 +75,7 @@ API: `PATCH /ordering/admin/branches/:code` (gửi cả `fulfillment.delivery.zo
 
 | Hộp thoại | Field | API |
 | --- | --- | --- |
-| Gán người giao | `Toggle` Nhân viên quán / Xe ngoài; nhân viên: `Combobox` nhân viên trong scope; xe ngoài: hãng (text), mã chuyến, link theo dõi (URL) | `transition { to: out_for_delivery, assigneeRef, tracking }` |
+| Gán người giao | `Toggle` Nhân viên quán / Xe ngoài; nhân viên: `Combobox` nhân viên trong scope; xe ngoài: hãng (text), mã chuyến, link theo dõi (URL) | `transition { to: "out-for-delivery", assigneeRef, tracking }` |
 | Thu tiền và giao | như S5 của O3 | `cash-handover` |
 | Giao thất bại | lý do * (`Select`: Không liên lạc được · Sai địa chỉ · Khách từ chối · Khác), ghi chú; sau đó chọn **Giao lại** hoặc **Hủy và hoàn tiền** | `transition { to: failed, reasonCode, note }` rồi `transition` tiếp |
 

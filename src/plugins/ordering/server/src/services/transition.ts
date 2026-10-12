@@ -7,7 +7,7 @@ import { assertTransition, isPublicState, isTerminal } from '../domain/workflow/
 import orderRepository from '../repositories/order';
 import type { OrderAggregate } from '../repositories/types';
 import type { ServiceContext } from './context';
-import { actorRefOf } from './context';
+import { actorRefOf, nowOf } from './context';
 import type holdFactory from './hold';
 import type orderServiceFactory from './order';
 import type outboxFactory from './outbox';
@@ -93,6 +93,19 @@ const transition = ({ strapi }: { strapi: Core.Strapi }) => {
         await groups().update({ where: { id: input.groupId }, data: { status: input.to } });
         if (isTerminal(definition, input.to) === 'canceled') {
           await hold.releaseForGroup(input.groupId, 'group-canceled', ctx);
+          // A canceled group cancels its open fulfillment rows too (O5 delivery legs); a row
+          // already delivered or canceled is left alone. Pickup groups have no rows — no-op.
+          const legs = (await strapi.db.query('plugin::ordering.fulfillment').findMany({
+            where: { group: input.groupId },
+            select: ['id', 'status'],
+          })) as Array<{ id: number; status: string }>;
+          for (const leg of legs) {
+            if (leg.status === 'delivered' || leg.status === 'canceled') continue;
+            await strapi.db.query('plugin::ordering.fulfillment').update({
+              where: { id: leg.id },
+              data: { status: 'canceled', canceledAt: nowOf(ctx) },
+            });
+          }
         }
         await timeline.record(
           {

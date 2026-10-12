@@ -16,6 +16,8 @@ import type { OrderAggregate } from '../repositories/types';
 import type branchFactory from './branch';
 import type { ServiceContext } from './context';
 import { nowOf } from './context';
+import type deliveryAssignmentFactory from './delivery-assignment';
+import { isDeliveryGroup } from './delivery-assignment';
 import type lineCancelFactory from './line-cancel';
 import type paymentLinkFactory from './payment-link';
 import type paymentMatchingFactory from './payment-matching';
@@ -69,10 +71,21 @@ const eventConfirmed = (kind: string | null, reviewStatus: string, rawPayload: u
 };
 const SUCCESS_REQUIRES_PAYMENT = 'cash';
 
+/** Pending refunds already count against a payment's refundable room (same rule as refundBank). */
+const pendingRefundSum = async (strapi: Core.Strapi, paymentId: number): Promise<number> => {
+  const rows = (await strapi.db
+    .connection('plugins_ordering_refund as refund')
+    .join('plugins_ordering_refund_payment_lnk as link', 'link.refund_id', 'refund.id')
+    .where('link.payment_id', paymentId)
+    .where('refund.status', 'pending')
+    .select('refund.amount')) as Array<{ amount: string | number }>;
+  return rows.reduce((sum, row) => sum + amountFromDb(row.amount), 0);
+};
+
 export type NextTransition = {
   to: string;
   kind: 'primary' | 'secondary' | 'danger';
-  requires: Array<'reason' | 'cash'>;
+  requires: Array<'reason' | 'cash' | 'assignee'>;
 };
 
 /**
@@ -92,6 +105,7 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
     paymentLink: () => plugin().service('payment-link') as ReturnType<typeof paymentLinkFactory>,
     matching: () => plugin().service('payment-matching') as ReturnType<typeof paymentMatchingFactory>,
     timeline: () => plugin().service('timeline') as ReturnType<typeof timelineFactory>,
+    delivery: () => plugin().service('delivery-assignment') as ReturnType<typeof deliveryAssignmentFactory>,
     scope: () => plugin().service('scope') as ReturnType<typeof scopeFactory>,
     branch: () => plugin().service('branch') as ReturnType<typeof branchFactory>,
     settings: () => plugin().service('ordering-settings') as ReturnType<typeof orderingSettingsFactory>,
@@ -117,11 +131,17 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
       .map((to) => {
         const terminal = isTerminal(definition, to);
         const requires: NextTransition['requires'] = [];
-        if (terminal === 'canceled') requires.push('reason');
+        if (terminal === 'canceled' || to === 'failed') requires.push('reason');
+        if (to === 'out-for-delivery') requires.push('assignee');
         if (terminal === 'success' && due > 0) requires.push('cash');
         return {
           to,
-          kind: terminal === 'canceled' ? 'danger' : to === firstForward ? 'primary' : 'secondary',
+          kind:
+            terminal === 'canceled' || to === 'failed'
+              ? 'danger'
+              : to === firstForward
+                ? 'primary'
+                : 'secondary',
           requires,
         };
       });
@@ -340,10 +360,28 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
           }),
         )
       ).flat();
+      // The delivery leg of a delivery group (O5): assignee, address, tracking and the last
+      // failure live on the fulfillment row — the order's next steps still read the group.
+      const deliveryGroup = aggregate.groups.find(isDeliveryGroup);
+      const leg = deliveryGroup
+        ? ((await strapi.db.query('plugin::ordering.fulfillment').findOne({
+            where: { group: deliveryGroup.id },
+          })) as {
+            status: string;
+            assigneeRef: string | null;
+            addressSnapshot: unknown;
+            trackingNumber: string | null;
+            trackingUrl: string | null;
+            shippedAt: string | null;
+            deliveredAt: string | null;
+            canceledAt: string | null;
+            metadata: Record<string, unknown> | null;
+          } | null)
+        : null;
       const actorIds = [
         ...new Set(
-          events
-            .map((event) => /^admin:(\d+)$/.exec(event.actorRef ?? '')?.[1])
+          [...events.map((event) => event.actorRef), leg?.assigneeRef]
+            .map((ref) => /^admin:(\d+)$/.exec(ref ?? '')?.[1])
             .filter((value): value is string => value !== undefined)
             .map(Number),
         ),
@@ -456,6 +494,22 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
           payload: event.payload,
           occurredAt: event.occurredAt,
         })),
+        delivery: leg
+          ? {
+              status: leg.status,
+              assigneeRef: leg.assigneeRef,
+              assigneeName: leg.assigneeRef ? (nameOf.get(leg.assigneeRef) ?? null) : null,
+              address: leg.addressSnapshot ?? null,
+              carrier: (leg.metadata as { carrier?: string } | null)?.carrier ?? null,
+              trackingNumber: leg.trackingNumber,
+              trackingUrl: leg.trackingUrl,
+              shippedAt: leg.shippedAt,
+              deliveredAt: leg.deliveredAt,
+              canceledAt: leg.canceledAt,
+              lastFailure: (leg.metadata as { lastFailure?: unknown } | null)?.lastFailure ?? null,
+              attempts: Number((leg.metadata as { attempts?: number } | null)?.attempts ?? 0),
+            }
+          : null,
         nextTransitions: nextTransitions(aggregate),
         paymentLink: await s.paymentLink().summary(aggregate.order.id),
         settings: { delayMinutes: (await s.settings().get()).delayMinutes },
@@ -466,7 +520,10 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
      * POST /orders/:id/transition — one step forward/back along the workflow. Acceptance sets
      * `estimatedReadyAt` (slot start, or now + preparation time for ASAP, plus `delayMinutes`);
      * rejection needs a reason; reaching a success terminal with money due must go through
-     * cash-handover instead. A concurrent winner leaves the loser with INVALID_TRANSITION.
+     * cash-handover instead. Delivery leg moves (`out-for-delivery`, `failed`, `delivered`, a
+     * `failed` → `ready` retry) delegate to delivery-assignment — they carry the assignee or
+     * tracking and their own failure reason set. A concurrent winner leaves the loser with
+     * INVALID_TRANSITION.
      */
     async transition(
       orderId: number,
@@ -476,6 +533,8 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
         notifyCustomer?: boolean;
         delayMinutes?: number;
         reasonCode?: string;
+        assigneeRef?: string;
+        tracking?: unknown;
       },
       ctx: ServiceContext,
     ) {
@@ -494,6 +553,41 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
             details: { field: 'reasonCode' },
           });
         }
+        if (terminal === 'success' && paidAmounts(aggregate).due > 0) {
+          throw new OrderingError('PAYMENT_REQUIRED', 'collect the payment with cash handover first', {
+            details: { due: paidAmounts(aggregate).due },
+          });
+        }
+        if (isDeliveryGroup(group)) {
+          const leg = { note, notifyCustomer: input.notifyCustomer };
+          const done = async (result: { from: string; to: string }) => ({
+            from: result.from,
+            to: result.to,
+            detail: await service.detail(orderId, ctx),
+          });
+          if (input.to === 'out-for-delivery') {
+            return done(
+              await s
+                .delivery()
+                .dispatch(
+                  orderId,
+                  { assigneeRef: input.assigneeRef, tracking: input.tracking, ...leg },
+                  ctx,
+                ),
+            );
+          }
+          if (input.to === 'failed') {
+            return done(
+              await s.delivery().markFailed(orderId, { reasonCode: input.reasonCode, ...leg }, ctx),
+            );
+          }
+          if (input.to === 'delivered') {
+            return done(await s.delivery().markDelivered(orderId, leg, ctx));
+          }
+          if (input.to === 'ready' && group.status === 'failed') {
+            return done(await s.delivery().retry(orderId, leg, ctx));
+          }
+        }
         if (input.reasonCode) {
           const reasons = (await s.settings().get()).rejectReasons.map((item) => item.code);
           if (input.reasonCode !== 'other' && !reasons.includes(input.reasonCode)) {
@@ -501,11 +595,6 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
               details: { field: 'reasonCode' },
             });
           }
-        }
-        if (terminal === 'success' && paidAmounts(aggregate).due > 0) {
-          throw new OrderingError('PAYMENT_REQUIRED', 'collect the payment with cash handover first', {
-            details: { due: paidAmounts(aggregate).due },
-          });
         }
         if (input.delayMinutes !== undefined) {
           if (!Number.isInteger(input.delayMinutes) || input.delayMinutes < 1 || input.delayMinutes > 240) {
@@ -517,7 +606,9 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
         let estimatedReadyAt: string | undefined;
         if (isAcceptance(definition, group.status, input.to)) {
           const branch = await s.branch().findByCode(aggregate.order.locationRef);
-          const settings = s.branch().pickupSettings(branch ?? { fulfillment: null });
+          const settings = isDeliveryGroup(group)
+            ? s.branch().deliverySettings(branch ?? { fulfillment: null })
+            : s.branch().pickupSettings(branch ?? { fulfillment: null });
           const receive = aggregate.order.receiveMethod as {
             timing?: { slot?: { startsAt?: string } };
           };
@@ -552,8 +643,11 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
     },
 
     /**
-     * POST /orders/:id/cash-handover — "Thu tiền và giao" (contracts §19.3): records the cash for
-     * the amount due and moves the group to its success terminal in ONE transaction.
+     * POST /orders/:id/cash-handover — "Thu tiền và giao" (contracts §19.3, §19.8): records the
+     * cash for the amount due and moves the group to its success terminal in ONE transaction.
+     * For a delivery order the courier collects at the door: the payment row names the assignee
+     * (O6 settles per driver) and the leg's deliveredAt is stamped. A prepaid order has due 0 —
+     * the same call just marks the leg delivered.
      */
     async cashHandover(orderId: number, input: { method?: string }, ctx: ServiceContext) {
       const method = input.method ?? SUCCESS_REQUIRES_PAYMENT;
@@ -566,6 +660,7 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
         const aggregate = await loadScoped(orderId, ctx);
         const group = liveGroup(aggregate);
         if (!group) throw new OrderingError('INVALID_TRANSITION', 'order has no active group');
+        const delivery = isDeliveryGroup(group);
         const definition = workflowOf(group);
         await repo.lockGroup(trx, group.id);
         const success = (definition.states[group.status]?.next ?? []).find(
@@ -579,14 +674,17 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
         const due = paidAmounts(aggregate).due;
         let collected = 0;
         if (due > 0) {
-          const payment = await s.payment().createPayment({ orderId, providerCode: 'cash', amount: due }, ctx);
+          const paymentCtx = delivery ? await s.delivery().assigneeCtxFor(group.id, ctx) : ctx;
+          const payment = await s
+            .payment()
+            .createPayment({ orderId, providerCode: 'cash', amount: due }, paymentCtx);
           await s.payment().capturePayment(
             {
               paymentId: payment.id,
               amount: due,
               providerTransactionId: `cash-handover:${orderId}:${randomUUID()}`,
             },
-            ctx,
+            paymentCtx,
           );
           collected = due;
         }
@@ -599,13 +697,17 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
           },
           ctx,
         );
+        if (delivery) await s.delivery().completeLeg(group.id, ctx);
         return { collected, detail: await service.detail(orderId, ctx) };
       });
     },
 
     /**
      * POST /orders/:id/cancel — staff cancel. Captured cash still held is refunded through the
-     * cash provider in the same transaction as the cancel (contracts §19.3).
+     * cash provider in the same transaction as the cancel (contracts §19.3). On a delivery
+     * order (§19.8 — e.g. failed → hủy và hoàn) a captured transfer becomes a refund row that
+     * the bank provider leaves `pending` for the settlement flow; pickup orders keep refunding
+     * cash only.
      */
     async cancel(orderId: number, input: { reasonCode?: string; note?: string }, ctx: ServiceContext) {
       const reason = input.reasonCode ?? input.note?.trim();
@@ -619,22 +721,36 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
             details: { status: before.order.status },
           });
         }
+        const isDelivery = before.groups.some(isDeliveryGroup);
         await s.transition().cancelOrder(
           { orderId, reason, payload: input.note?.trim() ? { note: input.note.trim() } : undefined },
           ctx,
         );
         let refunded = 0;
+        let refundPending = 0;
         for (const payment of before.payments) {
           const held = payment.capturedAmount - payment.refundedAmount;
-          if (payment.providerCode !== 'cash' || held <= 0) continue;
-          const { amount } = await s.refund().createRefundInTransaction(
-            trx,
-            { paymentId: payment.id, amount: held, reason: `cancel: ${reason}` },
-            ctx,
-          );
-          refunded += amount;
+          if (held <= 0) continue;
+          if (payment.providerCode === 'cash') {
+            const { amount } = await s.refund().createRefundInTransaction(
+              trx,
+              { paymentId: payment.id, amount: held, reason: `cancel: ${reason}` },
+              ctx,
+            );
+            refunded += amount;
+          } else if (isDelivery) {
+            const room = held - (await pendingRefundSum(strapi, payment.id));
+            if (room <= 0) continue;
+            const { amount, status } = await s.refund().createRefundInTransaction(
+              trx,
+              { paymentId: payment.id, amount: room, reason: `cancel: ${reason}` },
+              ctx,
+            );
+            if (status === 'settled') refunded += amount;
+            else refundPending += amount;
+          }
         }
-        return { refunded, detail: await service.detail(orderId, ctx) };
+        return { refunded, refundPending, detail: await service.detail(orderId, ctx) };
       });
     },
 
@@ -746,13 +862,7 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
       let best: { id: number; room: number } | null = null;
       for (const payment of aggregate.payments) {
         if (payment.providerCode !== 'sepay') continue;
-        const pendingRows = (await strapi.db
-          .connection('plugins_ordering_refund as refund')
-          .join('plugins_ordering_refund_payment_lnk as link', 'link.refund_id', 'refund.id')
-          .where('link.payment_id', payment.id)
-          .where('refund.status', 'pending')
-          .select('refund.amount')) as Array<{ amount: string | number }>;
-        const pending = pendingRows.reduce((sum, row) => sum + amountFromDb(row.amount), 0);
+        const pending = await pendingRefundSum(strapi, payment.id);
         const room = payment.capturedAmount - payment.refundedAmount - pending;
         if (best === null || room > best.room) best = { id: payment.id, room };
       }
