@@ -1,6 +1,7 @@
 import type { Core } from '@strapi/strapi';
 
 import type alertFactory from '../services/alert';
+import type alertRulesFactory from '../services/alert-rules';
 import type branchFactory from '../services/branch';
 import type { ServiceContext } from '../services/context';
 import type jobLockFactory from '../services/job-lock';
@@ -8,7 +9,8 @@ import type jobLockFactory from '../services/job-lock';
 /**
  * `order-awaiting-acceptance` (spec O3): an order still waiting for the branch longer than the
  * branch's `slaMinutes` opens one alert per order; once it leaves awaiting-acceptance the alert
- * resolves. Serialized across instances by the job lock.
+ * resolves. It turns critical once the wait passes the rule's `criticalThreshold` × the SLA.
+ * Serialized across instances by the job lock.
  */
 export const runSlaCheck = async (
   strapi: Core.Strapi,
@@ -18,6 +20,8 @@ export const runSlaCheck = async (
   const jobLock = plugin.service('job-lock') as ReturnType<typeof jobLockFactory>;
   const alerts = plugin.service('alert') as ReturnType<typeof alertFactory>;
   const branches = plugin.service('branch') as ReturnType<typeof branchFactory>;
+  const alertRules = plugin.service('alert-rules') as ReturnType<typeof alertRulesFactory>;
+  const rule = await alertRules.ruleOf('order-awaiting-acceptance');
   const now = options.now ?? new Date();
   const ctx: ServiceContext = { actor: { kind: 'system', actorRef: 'job:sla-check' }, now };
 
@@ -42,12 +46,18 @@ export const runSlaCheck = async (
       }
       const key = `order-awaiting-acceptance:${order.id}`;
       stillWaiting.add(key);
-      if (now.getTime() - new Date(order.placedAt).getTime() <= minutes * 60_000) continue;
+      const waitedMs = now.getTime() - new Date(order.placedAt).getTime();
+      if (waitedMs <= minutes * 60_000) continue;
       const result = await alerts.open(
         {
           alertCode: 'order-awaiting-acceptance',
           dedupeKey: key,
-          severity: 'warning',
+          // Critical once the wait passes `criticalThreshold` × the branch SLA.
+          severity:
+            rule.criticalThreshold !== undefined &&
+            waitedMs > rule.criticalThreshold * minutes * 60_000
+              ? 'critical'
+              : 'warning',
           aggregateRef: `order:${order.id}`,
           locationRef: order.locationRef,
         },

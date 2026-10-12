@@ -46,6 +46,20 @@ const MAX_ROWS = 500;
 const MINUTE_MS = 60_000;
 
 /**
+ * Rules whose `count` is a count of real occurrences (each `open` is one more bad webhook,
+ * unmatched transfer, failed reconciliation row or mismatched closing), so `criticalThreshold`
+ * compares with `count`. Every other rule is opened again on each run of a periodic check
+ * (ops-check, sla-check, manual-payment-check), where `count` only counts runs; those callers
+ * measure their own unit (minutes, periods, hours, SLA multiples) and pass `severity`.
+ */
+const COUNT_ESCALATED = new Set([
+  'webhook-failing',
+  'payment-unmatched',
+  'reconciliation-mismatch',
+  'cash-closing-mismatch',
+]);
+
+/**
  * Operational alerts (contracts §12, §19.9; O6 step 1). One open alert per `dedupeKey` — the
  * partial unique index from migration 0001 makes concurrent openers converge on the same row,
  * which only bumps `count`/`lastSeenAt`. Behaviour follows the Saleor `AppProblem` model:
@@ -53,8 +67,8 @@ const MINUTE_MS = 60_000;
  * - a disabled rule records and sends nothing;
  * - an open/acknowledged row only bumps `count` (acknowledged blocks re-notifying at the same
  *   severity but never blocks escalation to critical);
- * - crossing `criticalThreshold` (or a caller-passed `severity: 'critical'`) escalates once via
- *   the `ops-alert.escalated` outbox event;
+ * - crossing `criticalThreshold` (count-based rules only, see COUNT_ESCALATED) or a caller-passed
+ *   `severity: 'critical'` escalates once via the `ops-alert.escalated` outbox event;
  * - the newest `resolved` row inside the rule's `aggregationMinutes` window is reopened silently
  *   (anti-flapping — no email), outside it a new row + `ops-alert.opened` is created;
  * - the table is capped at 500 rows, pruning the oldest resolved first.
@@ -100,7 +114,10 @@ const alert = ({ strapi }: { strapi: Core.Strapi }) => {
     rule: AlertRule,
     ctx: ServiceContext,
   ): Promise<boolean> => {
-    const reached = rule.criticalThreshold !== undefined && row.count >= rule.criticalThreshold;
+    const reached =
+      COUNT_ESCALATED.has(row.alertCode) &&
+      rule.criticalThreshold !== undefined &&
+      row.count >= rule.criticalThreshold;
     if ((!reached && input.severity !== 'critical') || row.severity === 'critical') return false;
     await alerts().update({ where: { id: row.id }, data: { severity: 'critical' } });
     await enqueueEvent(

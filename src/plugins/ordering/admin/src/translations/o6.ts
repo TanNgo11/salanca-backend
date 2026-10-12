@@ -122,8 +122,8 @@ export const o6Messages: Record<string, [string, string]> = {
   'settings.alerts.saved': ['Đã lưu ngưỡng cảnh báo', 'Alert thresholds saved'],
   'settings.alerts.loadFailed': ['Không tải được ngưỡng cảnh báo.', 'Could not load alert rules.'],
   'settings.alerts.hint': [
-    'Đơn vị ngưỡng: webhook = lần lỗi liên tiếp; outbox = phút; heartbeat = số chu kỳ; chuyển khoản ghi tay = giờ; còn lại = số lần.',
-    'Threshold units: webhook = consecutive failures; outbox = minutes; heartbeat = periods; manual transfer = hours; others = occurrences.',
+    'Đơn vị ngưỡng: webhook = lần lỗi liên tiếp; outbox = phút; heartbeat = số chu kỳ; chuyển khoản ghi tay = giờ; ngưỡng nghiêm trọng của đơn chờ nhận = số lần thời gian SLA; còn lại = số lần.',
+    'Threshold units: webhook = consecutive failures; outbox = minutes; heartbeat = periods; manual transfer = hours; awaiting-acceptance critical = multiples of the SLA; others = occurrences.',
   ],
   'settings.alerts.col.rule': ['Rule', 'Rule'],
   'settings.alerts.col.enabled': ['Bật', 'On'],

@@ -332,6 +332,27 @@ withApp(async (app) => {
     });
     assert.equal(heartbeat.status, 'open');
     assert.equal(heartbeat.aggregateRef, 'job:hold-expiry');
+    // ops-check runs every minute: its repeats only count runs, so they must not escalate a
+    // heartbeat (critical = silent for 6 cycles = 12 minutes here, not 6 runs).
+    for (let run = 0; run < 7; run += 1) await runOpsCheck(app, { owner });
+    const repeated = await alerts().findOne({ where: { id: heartbeat.id } });
+    assert.ok(repeated.count >= 6, 'repeat runs bump the count');
+    assert.equal(repeated.severity, 'warning', 'repeat runs alone never make it critical');
+    assert.equal((await eventsOf('ops-alert.escalated', heartbeat.id)).length, 0);
+    await app.db
+      .connection('plugins_ordering_order_job_lock')
+      .where({ job_name: 'hold-expiry' })
+      .update({
+        created_at: new Date(Date.now() - 13 * MINUTE),
+        last_success_at: new Date(Date.now() - 13 * MINUTE),
+      });
+    await runOpsCheck(app, { owner });
+    assert.equal(
+      (await alerts().findOne({ where: { id: heartbeat.id } })).severity,
+      'critical',
+      '13 silent minutes > 6 cycles of 2 minutes',
+    );
+    assert.equal((await eventsOf('ops-alert.escalated', heartbeat.id)).length, 1);
     await locks().update({
       where: { jobName: 'hold-expiry' },
       data: { lastSuccessAt: new Date() },
