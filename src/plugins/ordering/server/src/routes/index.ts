@@ -230,6 +230,11 @@ export default {
           policies: ['admin::isAuthenticatedAdmin', 'plugin::ordering.has-alert-access'],
         },
       },
+      // "Tình trạng vận hành" (screens V1): status board plus the two staff actions —
+      // run a catalog job now, retry a failed outbox event. `ops.read` for all three.
+      adminRoute('GET', '/ops/status', 'ops.status', 'ops.read'),
+      adminRoute('POST', '/ops/jobs/:name/run', 'ops.runJob', 'ops.read'),
+      adminRoute('POST', '/ops/outbox/:id/retry', 'ops.retryOutbox', 'ops.read'),
     ],
   },
 };

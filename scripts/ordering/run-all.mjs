@@ -35,6 +35,7 @@ const scripts = [
   'notifications.mjs',
   'sla-alerts.mjs',
   'alerts-engine.mjs',
+  'ops-status.mjs',
   'lookup-drafts.mjs',
   'stream.mjs',
   'sepay-webhook.mjs',

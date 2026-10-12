@@ -6,9 +6,10 @@ import { describe, expect, it } from 'vitest';
 import { o3Messages } from './o3';
 import { o4Messages } from './o4';
 import { o5Messages } from './o5';
+import { o6Messages } from './o6';
 
 const ROOT = join(__dirname, '..');
-const O3_DIRS = ['inbox', 'components/orders', 'pages/Orders', 'pages/Deliveries', 'pages/Branches', 'pages/Staff', 'pages/Settings', 'pages/PaymentReview', 'lib'];
+const O3_DIRS = ['inbox', 'components/orders', 'pages/Orders', 'pages/Deliveries', 'pages/Branches', 'pages/Staff', 'pages/Settings', 'pages/PaymentReview', 'pages/Ops', 'pages/Alerts', 'lib'];
 const EXTRA_FILES = ['pages/App.tsx'];
 
 const files = (dir: string): string[] =>
@@ -52,10 +53,16 @@ describe('O3 admin translations', () => {
     for (const [prefix, values] of Object.entries(DYNAMIC)) {
       for (const value of values) used.add(`${prefix}.${value}`);
     }
-    const known = (key: string) => Boolean(o3Messages[key] || o4Messages[key] || o5Messages[key]);
+    const known = (key: string) =>
+      Boolean(o3Messages[key] || o4Messages[key] || o5Messages[key] || o6Messages[key]);
     const missing = [...used].filter((key) => !known(key));
     expect(missing).toEqual([]);
-    for (const [key, [vi, en]] of Object.entries({ ...o3Messages, ...o4Messages, ...o5Messages })) {
+    for (const [key, [vi, en]] of Object.entries({
+      ...o3Messages,
+      ...o4Messages,
+      ...o5Messages,
+      ...o6Messages,
+    })) {
       expect(vi.trim(), key).not.toBe('');
       expect(en.trim(), key).not.toBe('');
     }

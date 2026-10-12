@@ -3,21 +3,238 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   Field,
   Flex,
   IconButton,
   Loader,
+  NumberInput,
   Switch,
+  Table,
+  Tbody,
+  Td,
   TextInput,
+  Th,
+  Thead,
+  Tr,
   Typography,
 } from '@strapi/design-system';
 import { ArrowDown, ArrowUp, Plus, Trash } from '@strapi/icons';
 import { Layouts, Page, useFetchClient, useNotification } from '@strapi/strapi/admin';
 
 import { fieldErrors, useErrorToast } from '../../lib/api';
-import { useT } from '../../lib/i18n';
+import { useT, type Translate } from '../../lib/i18n';
 import { PERMISSIONS } from '../../lib/permissions';
 import type { InboxSettings } from '../../lib/types';
+
+type AlertRule = {
+  enabled: boolean;
+  threshold: number;
+  criticalThreshold?: number;
+  aggregationMinutes: number;
+  recipients: string[];
+};
+
+type AlertRules = Record<string, AlertRule>;
+
+/** The eight fixed codes (mirrors server `domain/alert-codes.ts` — Admin never imports server). */
+const ALERT_CODES = [
+  'webhook-failing',
+  'payment-unmatched',
+  'outbox-stuck',
+  'job-heartbeat-missed',
+  'order-awaiting-acceptance',
+  'reconciliation-mismatch',
+  'manual-payment-unconfirmed',
+  'cash-closing-mismatch',
+] as const;
+
+const RECIPIENT_CHOICES = ['branch-email', 'ops.read', 'report.read', 'payment.review', 'order.read'];
+
+const numberOrUndefined = (value: number | undefined): number | undefined =>
+  typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+
+/** Alert-rule editor block (O6, screens "Cảnh báo" in Settings): saved on its own button. */
+const AlertRulesBlock = ({ t }: { t: Translate }) => {
+  const { get, put } = useFetchClient();
+  const { toggleNotification } = useNotification();
+  const toastError = useErrorToast();
+  const [rules, setRules] = useState<AlertRules | null>(null);
+  const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [alertErrors, setAlertErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const { data } = await get('/ordering/settings/alert-rules');
+      setRules((data as { rules: AlertRules }).rules);
+      setState('ready');
+    } catch {
+      setState('error');
+    }
+  }, [get]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const update = (code: string, patch: Partial<AlertRule>) => {
+    if (!rules) return;
+    setRules({ ...rules, [code]: { ...rules[code], ...patch } });
+  };
+
+  const toggleRecipient = (code: string, recipient: string, checked: boolean) => {
+    if (!rules) return;
+    const current = rules[code].recipients;
+    update(code, {
+      recipients: checked ? [...current, recipient] : current.filter((item) => item !== recipient),
+    });
+  };
+
+  const save = async () => {
+    if (!rules) return;
+    setSaving(true);
+    setAlertErrors({});
+    try {
+      const { data } = await put('/ordering/settings/alert-rules', { rules });
+      setRules((data as { rules: AlertRules }).rules);
+      toggleNotification({ type: 'success', message: t('settings.alerts.saved') });
+    } catch (error) {
+      setAlertErrors(fieldErrors(error));
+      toastError(error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (state === 'loading') {
+    return (
+      <Flex justifyContent="center" padding={6}>
+        <Loader>{t('common.loading')}</Loader>
+      </Flex>
+    );
+  }
+  if (state === 'error' || !rules) {
+    return (
+      <Alert
+        variant="danger"
+        closeLabel={t('common.close')}
+        title={t('common.error.title')}
+        action={<Button onClick={() => void load()}>{t('common.retry')}</Button>}
+      >
+        {t('settings.alerts.loadFailed')}
+      </Alert>
+    );
+  }
+
+  return (
+    <Flex direction="column" alignItems="stretch" gap={3}>
+      <Flex justifyContent="space-between" alignItems="center">
+        <Typography variant="delta" tag="h2">
+          {t('settings.alerts')}
+        </Typography>
+        <Button size="S" loading={saving} onClick={() => void save()}>
+          {t('settings.alerts.save')}
+        </Button>
+      </Flex>
+      <Table colCount={6}>
+        <Thead>
+          <Tr>
+            <Th><Typography variant="sigma">{t('settings.alerts.col.rule')}</Typography></Th>
+            <Th><Typography variant="sigma">{t('settings.alerts.col.enabled')}</Typography></Th>
+            <Th><Typography variant="sigma">{t('settings.alerts.col.threshold')}</Typography></Th>
+            <Th><Typography variant="sigma">{t('settings.alerts.col.critical')}</Typography></Th>
+            <Th><Typography variant="sigma">{t('settings.alerts.col.window')}</Typography></Th>
+            <Th><Typography variant="sigma">{t('settings.alerts.col.recipients')}</Typography></Th>
+          </Tr>
+        </Thead>
+        <Tbody>
+          {ALERT_CODES.map((code) => {
+            const rule = rules[code];
+            if (!rule) return null;
+            return (
+              <Tr key={code}>
+                <Td>
+                  <Typography variant="pi">{t(`alert.code.${code}`, undefined, code)}</Typography>
+                </Td>
+                <Td>
+                  <Switch checked={rule.enabled} onCheckedChange={(value: boolean) => update(code, { enabled: value })} />
+                </Td>
+                <Td>
+                  <Box width="120px">
+                    <Field.Root error={alertErrors[`${code}.threshold`]}>
+                      <NumberInput
+                        name={`${code}-threshold`}
+                        minValue={1}
+                        value={rule.threshold}
+                        onValueChange={(next?: number) =>
+                          update(code, { threshold: numberOrUndefined(next) ?? rule.threshold })
+                        }
+                      />
+                      <Field.Error />
+                    </Field.Root>
+                  </Box>
+                </Td>
+                <Td>
+                  <Box width="120px">
+                    <Field.Root error={alertErrors[`${code}.criticalThreshold`]} hint={t('settings.alerts.col.critical.none')}>
+                      <NumberInput
+                        name={`${code}-critical`}
+                        minValue={1}
+                        value={rule.criticalThreshold}
+                        onValueChange={(next?: number) =>
+                          update(code, { criticalThreshold: numberOrUndefined(next) })
+                        }
+                      />
+                      <Field.Error />
+                    </Field.Root>
+                  </Box>
+                </Td>
+                <Td>
+                  <Box width="120px">
+                    <Field.Root error={alertErrors[`${code}.aggregationMinutes`]}>
+                      <NumberInput
+                        name={`${code}-window`}
+                        minValue={1}
+                        maxValue={1440}
+                        value={rule.aggregationMinutes}
+                        onValueChange={(next?: number) =>
+                          update(code, { aggregationMinutes: numberOrUndefined(next) ?? rule.aggregationMinutes })
+                        }
+                      />
+                      <Field.Error />
+                    </Field.Root>
+                  </Box>
+                </Td>
+                <Td>
+                  <Flex direction="column" gap={1}>
+                    <Field.Root error={alertErrors[`${code}.recipients`]}>
+                      <Flex direction="column" gap={1}>
+                        {RECIPIENT_CHOICES.map((recipient) => (
+                          <Checkbox
+                            key={recipient}
+                            checked={rule.recipients.includes(recipient)}
+                            onCheckedChange={(checked: boolean) => toggleRecipient(code, recipient, checked)}
+                          >
+                            {t(`alert.recipient.${recipient}`)}
+                          </Checkbox>
+                        ))}
+                      </Flex>
+                      <Field.Error />
+                    </Field.Root>
+                  </Flex>
+                </Td>
+              </Tr>
+            );
+          })}
+        </Tbody>
+      </Table>
+      <Typography variant="pi" textColor="neutral600">
+        {t('settings.alerts.hint')}
+      </Typography>
+    </Flex>
+  );
+};
 
 /** Settings → "Bán hàng" (screens S9): inbox dialog, sound default, reject reasons, delays. */
 const SettingsPage = () => {
@@ -99,8 +316,9 @@ const SettingsPage = () => {
               {t('settings.loadFailed')}
             </Alert>
           ) : (
-            <Box background="neutral0" padding={6} hasRadius shadow="tableShadow">
-              <Flex direction="column" alignItems="stretch" gap={5}>
+            <Flex direction="column" alignItems="stretch" gap={5}>
+              <Box background="neutral0" padding={6} hasRadius shadow="tableShadow">
+                <Flex direction="column" alignItems="stretch" gap={5}>
                 <Flex gap={2}>
                   <Switch checked={settings.newOrderDialog} onCheckedChange={(value: boolean) => setSettings({ ...settings, newOrderDialog: value })} />
                   <Typography>{t('settings.dialog')}</Typography>
@@ -151,8 +369,12 @@ const SettingsPage = () => {
                   <Field.Hint />
                   <Field.Error />
                 </Field.Root>
-              </Flex>
-            </Box>
+                </Flex>
+              </Box>
+              <Box background="neutral0" padding={6} hasRadius shadow="tableShadow">
+                <AlertRulesBlock t={t} />
+              </Box>
+            </Flex>
           )}
         </Layouts.Content>
       </Page.Main>

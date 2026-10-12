@@ -35,6 +35,14 @@ Related phase: [`phases/phase-ordering-6-ops-golive.md`](../phases/phase-orderin
 - Decision: giới hạn 500 bản ghi `ops-alert`, dọn bản `resolved` cũ nhất trước.
 - Decision: nhịp job qua `order-job-lock` (`lastRunAt`, `lastDurationMs`); job không dùng lock (outbox
   dispatcher) gọi `heartbeat`; `ops-check` so nhịp theo `heartbeatMinutes`.
+- Decision: danh sách job định kỳ gom trong `jobs/catalog.ts` (`ORDERING_JOBS`: name, cronKey, run, runnable)
+  — bootstrap lặp mảng để đăng ký `ordering.<name>`, `ops-status` đọc cho bảng job và "Chạy ngay"; bước 6 chỉ
+  thêm một dòng cho job retention.
+- Decision: "Chạy ngay" (`POST /ops/jobs/:name/run`) chạy với owner `admin:<id>`, ghi change-log `ops.job-run`;
+  job đang giữ lock trả `{ ran: false }` với HTTP 200 (không phải lỗi). Mọi job trong catalog đều idempotent
+  nên `runnable` mặc định true.
+- Decision: `POST /ops/outbox/:id/retry` reset `failed_at`/`attempts`/lease và giữ `last_error` làm ngữ cảnh;
+  ghi change-log `ops.outbox-retry`.
 - Decision: thời hạn lưu mặc định (raw payload 180 ngày, outbox 30/90 ngày, alert 90 ngày) là cấu hình,
   chờ pháp lý xác nhận.
 - Owner decision required: kết quả của kế toán (hóa đơn điện tử, VAT) và pháp lý (thời hạn lưu, nội dung

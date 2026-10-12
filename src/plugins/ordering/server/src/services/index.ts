@@ -28,6 +28,7 @@ import adminUnits from './admin-units';
 import alert from './alert';
 import alertRules from './alert-rules';
 import alertRecipients from './alert-recipients';
+import opsStatus from './ops-status';
 import orderStream from './order-stream';
 import staffScope from './staff-scope';
 import webhook from './webhook';
@@ -64,6 +65,7 @@ export default {
   alert,
   'alert-rules': alertRules,
   'alert-recipients': alertRecipients,
+  'ops-status': opsStatus,
   'order-stream': orderStream,
   'staff-scope': staffScope,
   webhook,

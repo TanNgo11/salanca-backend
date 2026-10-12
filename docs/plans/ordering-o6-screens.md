@@ -7,13 +7,24 @@ Nghiên cứu: [`ordering-reference.md` mục U6](ordering-reference.md). **Quy 
 
 ## V1. Tình trạng vận hành
 
-- Route: `/plugins/ordering/ops`. Quyền `ops.read`. API `GET /ordering/admin/ops/status`.
-- Hàng thẻ (`Card`): Outbox đang chờ (số + tuổi cũ nhất, đỏ khi > ngưỡng); Webhook thành công gần nhất theo từng
-  provider (badge Bình thường / Chậm / Lỗi); Đối soát gần nhất và lần tới; Cảnh báo đang mở (số, nghiêm trọng).
-- Bảng job (theo Action Scheduler): tên job, lần chạy gần nhất, kết quả, thời lượng, lần tới; thao tác **Chạy ngay**
-  (`POST /ordering/admin/ops/jobs/:name/run`, có xác nhận) cho job an toàn chạy lại (gửi outbox, đối soát, nhả hold).
-- Bảng outbox lỗi (tab "Lỗi"): loại event, mã đơn (nếu có), số lần thử, lỗi gần nhất (đã che PII), thao tác **Thử
-  lại** (`POST /ordering/admin/ops/outbox/:id/retry`).
+- Route: `/plugins/ordering/ops`. Quyền `ops.read` (cả link điều hướng lẫn `Page.Protect`; route server đi qua
+  `admin::isAuthenticatedAdmin` + `hasPermissions ops.read`).
+- API (đã có ở bước 2): `GET /ordering/ops/status` → `{ now, outbox, webhooks, reconciliation, alerts, jobs,
+  failedOutbox }`; `POST /ordering/ops/jobs/:name/run` (tên lạ → 404 `JOB_NOT_FOUND`, job đang giữ lock → 200
+  `{ result: { ran: false } }`); `POST /ordering/ops/outbox/:id/retry` (không tồn tại → 404, không ở trạng thái
+  lỗi → 409 `INVALID_TRANSITION`). Danh sách job lấy từ `jobs/catalog.ts` — cùng mảng `ORDERING_JOBS` mà
+  bootstrap đăng ký cron.
+- `nextRunAt`: đọc `nextInvocation()` của job trong `strapi.cron.jobs` (node-schedule). Khi cron tắt
+  (`jobs.enabled`/`server.cron.enabled`) cột "Lần tới" hiện `—`.
+- Hàng thẻ: Outbox đang chờ (số + tuổi cũ nhất, đỏ khi `stuck` — tuổi > ngưỡng rule `outbox-stuck` hoặc có row
+  lỗi); Webhook theo từng provider có capability ký webhook (badge Bình thường / Chậm / Lỗi); Đối soát gần nhất
+  và lần tới (tắt khi provider sepay không đăng ký); Cảnh báo đang mở (số, nghiêm trọng, link sang Cảnh báo).
+- Bảng job: tên (`ops.job.<name>` dịch, fallback tên), lần chạy gần nhất, kết quả (Thành công / Lỗi + lỗi rút
+  gọn / Chưa chạy / Đang chạy), thời lượng, lần tới; **Chạy ngay** qua `Dialog` xác nhận, ghi change-log
+  `ops.job-run`.
+- Bảng outbox lỗi (tab "Lỗi"): loại event, mã đơn (tra từ `aggregateType='order'` hoặc `payload.orderId`), số
+  lần thử, lỗi gần nhất (message đã che PII); **Thử lại** đưa row về pending (reset attempts, change-log
+  `ops.outbox-retry`).
 - Tự làm mới mỗi 30 giây; có nút làm mới.
 
 ## V2. Cảnh báo

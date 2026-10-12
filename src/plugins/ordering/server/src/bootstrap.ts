@@ -3,14 +3,7 @@ import { hostname } from 'node:os';
 import type { Core } from '@strapi/strapi';
 
 import type { OrderingConfig } from './config';
-import { runHoldExpiry } from './jobs/hold-expiry';
-import { runIdempotencyCleanup } from './jobs/idempotency-cleanup';
-import { runOutboxDispatcher } from './jobs/outbox-dispatcher';
-import { runManualPaymentCheck } from './jobs/manual-confirmation';
-import { runOpsCheck } from './jobs/ops-check';
-import { runPaymentExpiry } from './jobs/payment-expiry';
-import { runSepayReconciliation } from './jobs/reconciliation';
-import { runSlaCheck } from './jobs/sla-check';
+import { ORDERING_JOBS } from './jobs/catalog';
 import { orderingMigrations } from './migrations';
 import { persistOrderingTables } from './migrations/persisted-tables';
 import { runOrderingMigrations } from './migrations/runner';
@@ -75,41 +68,19 @@ const bootstrap = async ({ strapi }: { strapi: Core.Strapi }) => {
         }
       };
     // Shape from @strapi/core services/cron.js: { <taskName>: { task, options } } — options go
-    // straight to node-schedule's Job.schedule, so { rule } carries the cron expression.
-    strapi.cron.add({
-      'ordering.outbox': {
-        task: wrap('outbox', () => runOutboxDispatcher(strapi, { owner })),
-        options: { rule: config.jobs.outboxCron },
-      },
-      'ordering.hold-expiry': {
-        task: wrap('hold-expiry', () => runHoldExpiry(strapi, { owner })),
-        options: { rule: config.jobs.holdExpiryCron },
-      },
-      'ordering.idempotency-cleanup': {
-        task: wrap('idempotency-cleanup', () => runIdempotencyCleanup(strapi, { owner })),
-        options: { rule: config.jobs.idempotencyCleanupCron },
-      },
-      'ordering.sla-check': {
-        task: wrap('sla-check', () => runSlaCheck(strapi, { owner })),
-        options: { rule: config.jobs.slaCheckCron },
-      },
-      'ordering.sepay-reconciliation': {
-        task: wrap('sepay-reconciliation', () => runSepayReconciliation(strapi, { owner })),
-        options: { rule: config.jobs.reconciliationCron },
-      },
-      'ordering.payment-expiry': {
-        task: wrap('payment-expiry', () => runPaymentExpiry(strapi, { owner })),
-        options: { rule: config.jobs.paymentExpiryCron },
-      },
-      'ordering.manual-payment-check': {
-        task: wrap('manual-payment-check', () => runManualPaymentCheck(strapi, { owner })),
-        options: { rule: config.jobs.manualConfirmCron },
-      },
-      'ordering.ops-check': {
-        task: wrap('ops-check', () => runOpsCheck(strapi, { owner })),
-        options: { rule: config.jobs.opsCheckCron },
-      },
-    });
+    // straight to node-schedule's Job.schedule, so { rule } carries the cron expression. Job
+    // list lives in jobs/catalog.ts so step 6 only adds a row there.
+    strapi.cron.add(
+      Object.fromEntries(
+        ORDERING_JOBS.map((job) => [
+          `ordering.${job.name}`,
+          {
+            task: wrap(job.name, () => job.run(strapi, { owner })),
+            options: { rule: config.jobs[job.cronKey] },
+          },
+        ]),
+      ),
+    );
     strapi.log.info(`[ordering] jobs scheduled as ${owner}`);
   }
 

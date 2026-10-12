@@ -59,6 +59,8 @@ export type OrderingErrorCode =
   | 'ORDER_CLOSED'
   | 'REFUND_NOT_FOUND'
   | 'ALERT_NOT_FOUND'
+  | 'JOB_NOT_FOUND'
+  | 'OUTBOX_EVENT_NOT_FOUND'
   | 'INTERNAL';
 
 const defaultStatus: Record<OrderingErrorCode, number> = {
@@ -117,6 +119,8 @@ const defaultStatus: Record<OrderingErrorCode, number> = {
   ORDER_CLOSED: 409,
   REFUND_NOT_FOUND: 404,
   ALERT_NOT_FOUND: 404,
+  JOB_NOT_FOUND: 404,
+  OUTBOX_EVENT_NOT_FOUND: 404,
   INTERNAL: 500,
 };
 

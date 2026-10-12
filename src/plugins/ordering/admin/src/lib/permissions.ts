@@ -12,6 +12,9 @@ export const PERMISSIONS = {
   settings: action('settings.manage'),
   scope: action('scope.manage'),
   review: action('payment.review'),
+  report: action('report.read'),
+  export: action('export'),
+  ops: action('ops.read'),
 } as const;
 
 /** Stable arrays for `useRBAC` (a new array each render makes it re-check every time). */
@@ -40,6 +43,16 @@ export const RBAC_CATALOG_ACCESS = [...catalog('manage'), ...catalog('toggle-ava
 export const RBAC_SETTINGS = [...PERMISSIONS.settings];
 export const RBAC_SCOPE = [...PERMISSIONS.scope];
 export const RBAC_PAYMENT_REVIEW = [...PERMISSIONS.review];
+export const RBAC_OPS = [...PERMISSIONS.ops];
+export const RBAC_REPORT = [...PERMISSIONS.report];
+export const RBAC_EXPORT = [...PERMISSIONS.export];
+/** O6 alert list: anyone a rule could notify (ops, reports, payment review or branch staff). */
+export const RBAC_ALERTS = [
+  ...PERMISSIONS.ops,
+  ...PERMISSIONS.report,
+  ...PERMISSIONS.review,
+  ...PERMISSIONS.read,
+];
 /** Anyone holding one of these sees the "Bán hàng" menu entry. */
 export const RBAC_ANY_ORDERING = [
   ...RBAC_ORDERS_READ,
@@ -47,4 +60,6 @@ export const RBAC_ANY_ORDERING = [
   ...RBAC_SETTINGS,
   ...RBAC_SCOPE,
   ...RBAC_PAYMENT_REVIEW,
+  ...RBAC_OPS,
+  ...RBAC_REPORT,
 ];

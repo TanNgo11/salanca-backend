@@ -2,10 +2,12 @@ import type { Core } from '@strapi/strapi';
 
 import type alertFactory from '../services/alert';
 import type alertRulesFactory from '../services/alert-rules';
+import type opsStatusFactory from '../services/ops-status';
 import { adminAction, positiveInt, text } from './http';
 
 type AlertService = ReturnType<typeof alertFactory>;
 type AlertRules = ReturnType<typeof alertRulesFactory>;
+type OpsStatus = ReturnType<typeof opsStatusFactory>;
 
 const body = (value: unknown): Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -20,8 +22,16 @@ const body = (value: unknown): Record<string, unknown> =>
 export default ({ strapi }: { strapi: Core.Strapi }) => {
   const rules = () => strapi.plugin('ordering').service('alert-rules') as AlertRules;
   const alerts = () => strapi.plugin('ordering').service('alert') as AlertService;
+  const ops = () => strapi.plugin('ordering').service('ops-status') as OpsStatus;
 
   return {
+    status: adminAction(strapi, async () => ops().status()),
+    runJob: adminAction(strapi, async (ctx, serviceCtx) =>
+      ops().runJob(ctx.params.name ?? '', serviceCtx),
+    ),
+    retryOutbox: adminAction(strapi, async (ctx, serviceCtx) =>
+      ops().retryOutbox(positiveInt(ctx.params.id) ?? 0, serviceCtx),
+    ),
     getAlertRules: adminAction(strapi, async () => ({ rules: await rules().get() })),
     putAlertRules: adminAction(strapi, async (ctx, serviceCtx) => ({
       rules: await rules().put(body(ctx.request.body).rules, serviceCtx),
