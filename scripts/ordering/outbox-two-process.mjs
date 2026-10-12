@@ -2,7 +2,9 @@
 // two independent Strapi processes claiming the same queue; worker B kills itself mid-run
 // leaving its lease behind, a third process reclaims after the lease expires, and a
 // `test.fail` batch exercises backoff → failed_at. Run: node scripts/ordering/outbox-two-process.mjs
-// (children: `worker <owner> [crash-after=<n>]`).
+// (children: `worker <owner> [crash-after=<n>] [barrier]`). With `barrier` a child prints
+// READY after boot and waits for `go` on stdin, so both workers start claiming together —
+// otherwise a fast-booting A can drain the queue before B claims anything.
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -17,14 +19,26 @@ import {
   withApp,
 } from './_harness.mjs';
 
-const [, , mode, owner, crashAfterArg] = process.argv;
+const [, , mode, owner, ...workerArgs] = process.argv;
 const FILE = fileURLToPath(import.meta.url);
 
 if (mode === 'worker') {
   // Child mode: own Strapi instance, no truncation — just claim and deliver.
-  const crashAfter = Number(crashAfterArg?.split('=')[1] ?? 0);
+  const crashAfter = Number(
+    workerArgs.find((arg) => arg.startsWith('crash-after='))?.split('=')[1] ?? 0,
+  );
   const app = await bootOrderingTestApp();
   const { outbox } = services(app);
+  if (workerArgs.includes('barrier')) {
+    process.stdout.write('READY\n');
+    await new Promise((resolve) => {
+      process.stdin.setEncoding('utf8');
+      process.stdin.on('data', (chunk) => {
+        if (chunk.includes('go')) resolve();
+      });
+    });
+    process.stdin.destroy();
+  }
   let batches = 0;
   const result = await outbox.dispatch({
     owner,
@@ -43,6 +57,36 @@ if (mode === 'worker') {
   await app.destroy();
   process.exit(0);
 }
+
+const startWorker = (workerOwner, extra = []) => {
+  const child = spawn(process.execPath, [FILE, 'worker', workerOwner, ...extra], {
+    stdio: ['pipe', 'pipe', 'pipe'],
+    env: { ...process.env },
+  });
+  let ready;
+  const readyPromise = new Promise((resolve) => {
+    ready = resolve;
+  });
+  let stdout = '';
+  let stderr = '';
+  child.stdout.on('data', (data) => {
+    stdout += data;
+    if (stdout.includes('READY')) ready();
+    process.stdout.write(`  [${workerOwner}] ${data}`);
+  });
+  child.stderr.on('data', (data) => {
+    stderr += data;
+    process.stderr.write(`  [${workerOwner}!] ${data}`);
+  });
+  const exited = new Promise((resolve, reject) => {
+    child.on('exit', (code, signal) => {
+      ready();
+      resolve({ code, signal, stderr });
+    });
+    child.on('error', reject);
+  });
+  return { child, ready: readyPromise, exited };
+};
 
 const runWorker = (workerOwner, extra = []) =>
   new Promise((resolve, reject) => {
@@ -90,10 +134,11 @@ withApp(async (app) => {
   console.log(`[ordering-test] enqueued ${EVENTS} test.ping events`);
 
   configureTestEnvironment(); // children inherit the test env
-  const [a, b] = await Promise.all([
-    runWorker('A'),
-    runWorker('B', ['crash-after=2']),
-  ]);
+  // Both workers boot first, then start claiming at the same moment (barrier).
+  const workers = [startWorker('A', ['barrier']), startWorker('B', ['crash-after=2', 'barrier'])];
+  await Promise.all(workers.map((worker) => worker.ready));
+  for (const worker of workers) worker.child.stdin.end('go\n');
+  const [a, b] = await Promise.all(workers.map((worker) => worker.exited));
   assert.equal(a.code, 0, `worker A must exit cleanly (got ${a.code})`);
   assert.notEqual(b.code, 0, `worker B must crash (got ${b.code})`);
 
