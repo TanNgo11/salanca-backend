@@ -45,6 +45,8 @@ export const AUDIT_ACTIONS: Record<string, ActionDef> = {
     category: 'catalog',
     label: ['Bật/tắt tạm hết', 'Toggle out of stock'],
   },
+  // O10: catalog CSV import (all-or-nothing apply logged with created/updated counts).
+  'catalog.import': { category: 'catalog', label: ['Nhập menu từ CSV', 'Import menu CSV'] },
   // Money
   'refund.create': { category: 'money', label: ['Tạo phiếu hoàn', 'Create refund'] },
   'refund.settle': { category: 'money', label: ['Ghi nhận đã hoàn', 'Settle refund'] },
@@ -85,6 +87,39 @@ export const AUDIT_ACTIONS: Record<string, ActionDef> = {
   'branch.update': { category: 'config', label: ['Sửa chi nhánh', 'Update branch'] },
   'settings.update': { category: 'config', label: ['Sửa cài đặt bán hàng', 'Update sales settings'] },
   'alert-rules.update': { category: 'config', label: ['Sửa ngưỡng cảnh báo', 'Update alert rules'] },
+  // O10: outbound webhook endpoints and editable email templates.
+  'webhook-endpoint.create': {
+    category: 'config',
+    label: ['Tạo endpoint webhook', 'Create webhook endpoint'],
+  },
+  'webhook-endpoint.update': {
+    category: 'config',
+    label: ['Sửa endpoint webhook', 'Update webhook endpoint'],
+  },
+  'webhook-endpoint.rotate-secret': {
+    category: 'config',
+    label: ['Đổi bí mật webhook', 'Rotate webhook secret'],
+  },
+  'webhook-endpoint.set-active': {
+    category: 'config',
+    label: ['Bật/tắt endpoint webhook', 'Enable/disable webhook endpoint'],
+  },
+  'webhook-endpoint.test': {
+    category: 'config',
+    label: ['Gửi webhook thử', 'Send test webhook'],
+  },
+  'webhook-delivery.resend': {
+    category: 'config',
+    label: ['Gửi lại webhook', 'Resend webhook delivery'],
+  },
+  'notification-template.save': {
+    category: 'config',
+    label: ['Sửa mẫu email', 'Edit email template'],
+  },
+  'notification-template.reset': {
+    category: 'config',
+    label: ['Khôi phục mẫu email', 'Reset email template'],
+  },
   // Access
   'scope.update': { category: 'access', label: ['Gán chi nhánh cho nhân viên', 'Update staff scope'] },
   // Ops

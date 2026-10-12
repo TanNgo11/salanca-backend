@@ -4,6 +4,7 @@
  */
 export const ALERT_CODES = [
   'webhook-failing',
+  'webhook-endpoint-disabled',
   'payment-unmatched',
   'outbox-stuck',
   'job-heartbeat-missed',
@@ -21,6 +22,10 @@ export const isAlertCode = (value: string): value is AlertCode =>
 
 const labels: Record<AlertCode, { vi: string; en: string }> = {
   'webhook-failing': { vi: 'Webhook thanh toán lỗi liên tiếp', en: 'Payment webhook failing' },
+  'webhook-endpoint-disabled': {
+    vi: 'Endpoint webhook tự tắt sau 50 lỗi liên tiếp',
+    en: 'Webhook endpoint auto-disabled after 50 failures',
+  },
   'payment-unmatched': { vi: 'Tiền về không khớp đơn', en: 'Unmatched incoming transfer' },
   'outbox-stuck': { vi: 'Hàng đợi gửi bị kẹt', en: 'Outbox stuck' },
   'job-heartbeat-missed': { vi: 'Job định kỳ im lặng', en: 'Scheduled job silent' },

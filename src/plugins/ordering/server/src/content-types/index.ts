@@ -9,6 +9,7 @@ import branch from './branch';
 import cashClosing from './cash-closing';
 import catalogAvailabilityWindow from './catalog-availability-window';
 import catalogCategory from './catalog-category';
+import catalogImport from './catalog-import';
 import catalogLocationState from './catalog-location-state';
 import catalogModifier from './catalog-modifier';
 import catalogModifierGroup from './catalog-modifier-group';
@@ -22,6 +23,7 @@ import fulfillmentLine from './fulfillment-line';
 import hold from './hold';
 import idempotencyKey from './idempotency-key';
 import notificationDelivery from './notification-delivery';
+import notificationTemplate from './notification-template';
 import opsAlert from './ops-alert';
 import order from './order';
 import orderAdjustment from './order-adjustment';
@@ -34,6 +36,8 @@ import paymentEvent from './payment-event';
 import refund from './refund';
 import refundLine from './refund-line';
 import staffLocationScope from './staff-location-scope';
+import webhookDelivery from './webhook-delivery';
+import webhookEndpoint from './webhook-endpoint';
 
 export default {
   'adjustment-allocation': adjustmentAllocation,
@@ -42,6 +46,7 @@ export default {
   'cash-closing': cashClosing,
   'catalog-availability-window': catalogAvailabilityWindow,
   'catalog-category': catalogCategory,
+  'catalog-import': catalogImport,
   'catalog-location-state': catalogLocationState,
   'catalog-modifier': catalogModifier,
   'catalog-modifier-group': catalogModifierGroup,
@@ -55,6 +60,7 @@ export default {
   hold,
   'idempotency-key': idempotencyKey,
   'notification-delivery': notificationDelivery,
+  'notification-template': notificationTemplate,
   'ops-alert': opsAlert,
   order,
   'order-adjustment': orderAdjustment,
@@ -67,4 +73,6 @@ export default {
   refund,
   'refund-line': refundLine,
   'staff-location-scope': staffLocationScope,
+  'webhook-delivery': webhookDelivery,
+  'webhook-endpoint': webhookEndpoint,
 };

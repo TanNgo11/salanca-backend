@@ -36,6 +36,7 @@ import auditLog from './audit-log';
 import orderStream from './order-stream';
 import staffScope from './staff-scope';
 import webhook from './webhook';
+import webhookEndpoint from './webhook-endpoint';
 import paymentMatching from './payment-matching';
 import paymentReview from './payment-review';
 import manualPayment from './manual-payment';
@@ -77,6 +78,7 @@ export default {
   'order-stream': orderStream,
   'staff-scope': staffScope,
   webhook,
+  'webhook-endpoint': webhookEndpoint,
   'payment-matching': paymentMatching,
   'payment-review': paymentReview,
   'manual-payment': manualPayment,

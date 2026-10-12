@@ -59,6 +59,7 @@ export const configSchema = z.object({
     opsCheckCron: z.string().min(1),
     retentionCron: z.string().min(1),
     auditChainCron: z.string().min(1),
+    webhookDispatcherCron: z.string().min(1),
     /** Expected run period in minutes per job for `job-heartbeat-missed` (ops-check). */
     heartbeatMinutes: z.record(z.string(), z.number().int().positive()),
   }),
@@ -89,6 +90,26 @@ export const configSchema = z.object({
   }),
   /** AES-256-GCM key (32 bytes, base64) for secrets read back later (contracts §21.10). */
   encryptionKey: z.string().optional(),
+  /** O10: outbound signed webhooks. */
+  webhooks: z.object({
+    /** Dev/test only — production endpoints must stay https-only. */
+    allowHttp: z.boolean(),
+    /** Hostnames exempt from the private-address block (local test receivers). */
+    allowHosts: z.array(z.string()),
+    timeoutMs: z.number().int().positive(),
+    /** Response body is read at most this many bytes, then discarded (never stored). */
+    maxResponseBytes: z.number().int().positive(),
+    /** Previous secret keeps signing this long after rotation. */
+    rotationGraceHours: z.number().int().positive(),
+    /** Consecutive delivery failures before an endpoint auto-disables + alerts. */
+    disableAfterFailures: z.number().int().positive(),
+    /** Attempts per delivery before it is marked failed (schedule is fixed in code). */
+    maxAttempts: z.number().int().positive(),
+    batchSize: z.number().int().positive(),
+    leaseSeconds: z.number().int().positive(),
+    /** Deliveries handled per dispatcher run (jobs stay short). */
+    maxBatchesPerRun: z.number().int().positive(),
+  }),
   notifications: z.object({
     /** Sends through the app's Strapi email plugin; off = deliveries are logged as skipped. */
     email: z.object({ enabled: z.boolean() }),
@@ -157,6 +178,7 @@ export default {
       opsCheckCron: '0 * * * * *',
       retentionCron: '0 30 3 * * *',
       auditChainCron: '0 */5 * * * *',
+      webhookDispatcherCron: '*/15 * * * * *',
       heartbeatMinutes: {
         outbox: 2,
         'hold-expiry': 2,
@@ -167,6 +189,7 @@ export default {
         'manual-payment-check': 150,
         retention: 1500,
         'audit-chain': 15,
+        'webhook-dispatcher': 2,
       },
     },
     audit: {
@@ -185,6 +208,18 @@ export default {
       alertResolvedDays: 90,
       batchSize: 500,
       maxBatchesPerRun: 20,
+    },
+    webhooks: {
+      allowHttp: false,
+      allowHosts: [],
+      timeoutMs: 10_000,
+      maxResponseBytes: 4 * 1024,
+      rotationGraceHours: 24,
+      disableAfterFailures: 50,
+      maxAttempts: 10,
+      batchSize: 20,
+      leaseSeconds: 60,
+      maxBatchesPerRun: 5,
     },
     clientIp: { secretHeader: 'x-ordering-client-secret', ipHeader: 'x-ordering-client-ip' },
     notifications: { email: { enabled: false }, orderLinkTemplate: '' },
