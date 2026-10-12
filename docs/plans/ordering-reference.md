@@ -1598,6 +1598,68 @@ vùng trống có thông báo hướng dẫn; danh sách đơn giao lọc theo n
 ô ghi chú bắt buộc khi lệch; trang vận hành có thẻ tổng quan + bảng job có thao tác "chạy ngay"; cảnh báo là danh sách
 có số lần, mức độ, "đã biết" ghi người.
 
+## U7. Giờ đặc biệt, giới hạn bán, sửa đơn, trang người giao (O7)
+
+Ghi chú nguồn: các mục dưới viết từ tài liệu/giao diện công khai của từng hệ thống, **chưa ghim commit** như U3–U6;
+người code O7 kiểm lại đường dẫn trước khi trích. Code GPL (WooCommerce, TastyIgniter) chỉ để học cách làm.
+
+- **Giờ đặc biệt** — Google Business Profile "Special hours" và Square Online: danh sách ngày, mỗi ngày bật "Đóng
+  cửa" hoặc nhập 1..n khoảng giờ, thêm ngày bằng nút; ngày đặc biệt thắng giờ thường. TastyIgniter (`ti-ext-local`)
+  có lịch mở cửa theo tuần cho từng kiểu (mở cửa / giao / tự lấy) — tách lịch theo cách nhận giống plugin.
+- **Giới hạn bán** — TastyIgniter menu item có `stock_qty` + "trừ tồn khi đặt" theo chi nhánh; WooCommerce
+  "Manage stock" (số tồn, hết thì "Out of stock", tự giữ khi đơn chờ thanh toán và trả lại khi hủy); Square "Sold out
+  today" tự bật lại hôm sau. Plugin chọn: giới hạn **theo ngày** (không tồn cộng dồn), hiện "đã đặt / giới hạn".
+- **Sửa đơn** — Shopify "Edit order": thêm món, đổi số lượng, xem "Updated total / Balance" trước khi bấm "Update
+  order", phần thiếu gửi hóa đơn/link thu thêm, phần dư hoàn; lịch sử ghi từng lần sửa. Medusa v2 "Order edit" /
+  order changes: tạo bản sửa, xem trước chênh lệch, xác nhận mới áp. WooCommerce chỉ cho sửa đơn "pending/on-hold" và
+  bấm "Recalculate". Plugin chọn: trang sửa có cột Trước → Sau và khối tiền (thu thêm / hoàn) như Shopify; preview
+  không ghi như Medusa.
+- **Người giao** — Shopify Local Delivery (app tài xế): danh sách điểm giao theo thứ tự, mỗi điểm có địa chỉ, nút gọi
+  khách, mở bản đồ, "Delivered", ghi chú; không có màn quản trị. TastyIgniter chỉ có assignee trên đơn.
+
+**Best practice:** ngày đặc biệt là bảng ngày → (đóng | khoảng giờ) thắng giờ thường; giới hạn bán theo ngày tự mở
+lại, hiện thanh tiến độ; sửa đơn luôn xem trước số tiền thu thêm/hoàn rồi mới áp, ghi lịch sử từng lần; trang người
+giao là danh sách thẻ to, nút gọi/bản đồ/hoàn tất, không bảng.
+
+## U8. Khuyến mãi và đánh giá (O8)
+
+- **Medusa v2 Promotion module**: promotion `type` standard | buyget, `is_automatic`, `code`; application method
+  `type` fixed | percentage, `target_type` order | items | shipping_methods, `allocation` each | across, `max_quantity`;
+  rule (thuộc tính + toán tử + giá trị) cho điều kiện và cho món mục tiêu; campaign có ngân sách (usage | spend) và
+  thời gian. Admin: danh sách promotion, form nhiều bước (loại → cách áp → điều kiện → campaign).
+- **Saleor**: Vouchers (mã, nhiều mã/voucher, giảm % / cố định / miễn phí ship, yêu cầu tối thiểu theo tổng hoặc số
+  món, "Apply once per customer", "Only for staff", giới hạn lượt, kênh, ngày bắt đầu/kết thúc) và Promotions (catalogue
+  / order promotions với rule tự áp). Trang voucher có tab "Codes" (sinh hàng loạt, xuất).
+- **Vendure**: Promotion = conditions (min order amount, contains products, customer group…) + actions (order %
+  discount, product % discount, free shipping…), `couponCode`, `perCustomerUsageLimit`, `usageLimit`, `startsAt/endsAt`,
+  `priorityScore`.
+- **WooCommerce coupons** (GPL): Discount type (percentage / fixed cart / fixed product), "Allow free shipping",
+  Usage restriction (min/max spend, individual use only, exclude sale items, products/categories, allowed emails),
+  Usage limits (per coupon, per user). Màn sửa coupon chia tab General / Usage restriction / Usage limits.
+- **Đánh giá** — TastyIgniter Reviews (`ti-ext-reviews`): 3 điểm (chất lượng, giao, phục vụ) 1–5, nội dung, trạng thái
+  duyệt, theo chi nhánh, chỉ cho đơn đã hoàn tất. Shopify/Judge.me: email mời sau khi giao, nhãn nhanh, ẩn đánh giá.
+
+**Best practice:** khuyến mãi tách 3 khối Giảm gì / Điều kiện / Giới hạn + thời gian; mã là danh sách con có sinh hàng
+loạt và xuất; giới hạn tổng và theo khách; tự áp và mã cùng một bộ máy, giảm chọn phương án tốt nhất cho khách. Đánh giá:
+1 điểm tổng + nhãn (đơn giản hơn 3 điểm của TastyIgniter), chỉ đơn hoàn tất, email mời trễ, quán ẩn được và ghi chú
+nội bộ.
+
+## U9. Thẻ quà tặng (O9)
+
+- **Shopify gift cards**: mã 16 ký tự, Admin chỉ hiện 4 ký tự cuối; mỗi thẻ có số dư/mệnh giá, ngày hết hạn, ghi chú,
+  khách nhận, timeline; "Disable gift card" không hoàn tiền; phát thẻ thủ công trả mã một lần; thẻ là cách thanh toán ở
+  checkout, trả một phần được.
+- **Saleor Gift Cards**: tạo đơn lẻ hoặc hàng loạt (bulk create, xuất mã), tag, ngày hết hạn, `isActive`, số dư ban
+  đầu/hiện tại, sự kiện (issued, used in order, balance reset, expiry date updated, activated/deactivated, resent),
+  gửi lại cho khách; dùng như một phương thức trả trong checkout.
+- **WooCommerce Gift Cards** (extension trả phí, GPL): sản phẩm "gift card" có mệnh giá, người mua nhập email người
+  nhận + lời nhắn + ngày gửi; số dư dùng dần; trang "My account → Gift cards".
+- **Medusa**: không có thẻ quà tặng trong core v2 (module ngoài) — contracts §10 của plugin theo hướng provider riêng.
+
+**Best practice:** chỉ hiện 4 ký tự cuối sau lần phát; sổ sự kiện của thẻ là nguồn sự thật; khóa thay vì xóa; phát
+tặng bắt buộc lý do; thẻ là cách thanh toán (không phải giảm giá), trả một phần được; người mua nhập người nhận + lời
+chúc.
+
 ## UW. Giao diện web đặt món (OW)
 
 Nguồn thêm: [Medusa Next.js storefront](https://github.com/medusajs/nextjs-starter-medusa/tree/9818886f06e493cb2249733d114d339aa216ef00)

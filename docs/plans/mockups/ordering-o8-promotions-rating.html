@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O8 Khuyến mãi và đánh giá</title>
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body>
+<main class="doc">
+
+<header class="doc-head">
+  <p class="eyebrow">Mockup · Phase O8 · Khuyến mãi và đánh giá đơn</p>
+  <h1>Mã giảm giá, khuyến mãi tự động, đánh giá sau khi nhận</h1>
+  <p class="lead"><strong>Đặc tả từng màn: <a href="../ordering-o8-screens.md">ordering-o8-screens.md</a>.</strong></p>
+  <div class="links">
+    <a href="../../phases/phase-ordering-8-promotions-rating.md">Spec O8</a>
+    <a href="../ordering-o8-promotions-rating.md">Kế hoạch O8</a>
+    <a href="../ordering-reference.md">Reference U8</a>
+  </div>
+</header>
+
+<section class="screen">
+  <h2>K1. Danh sách khuyến mãi</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/promotions</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a class="active">Bán hàng</a></nav>
+        <div class="content">
+          <div class="spread"><strong>Khuyến mãi</strong><span class="btn">+ Tạo khuyến mãi</span></div>
+          <div class="tabs"><span class="on">Đang chạy (3)</span><span>Sắp chạy (1)</span><span>Đã tắt</span><span>Đã hết hạn</span><span>Tất cả</span></div>
+          <div class="panel" style="padding:0"><div class="table-wrap"><table class="t">
+            <thead><tr><th>Tên</th><th>Giảm</th><th>Điều kiện</th><th>Thời gian</th><th>Đã dùng</th><th class="num">Tổng giảm</th><th>Bật</th></tr></thead>
+            <tbody>
+              <tr><td>Chào tháng 10 <span class="badge primary">Mã</span></td><td>10% tối đa 30.000đ</td><td class="small">Đơn từ 100.000đ · Q1 · Giao</td><td>01/10 – 31/10</td><td>37 / 100</td><td class="num">812.000</td><td><span class="toggle"><span class="on">Bật</span><span>Tắt</span></span></td></tr>
+              <tr><td>Freeship 200k <span class="badge info">Tự động</span></td><td>Miễn phí giao</td><td class="small">Đơn từ 200.000đ · mọi chi nhánh</td><td>từ 01/10</td><td>124 / ∞</td><td class="num">1.860.000</td><td><span class="toggle"><span class="on">Bật</span><span>Tắt</span></span></td></tr>
+              <tr><td>Tết 2027 <span class="badge primary">Mã · 500 mã</span></td><td>50.000đ</td><td class="small">Đơn từ 300.000đ · 1 lượt/khách</td><td>01/02 – 15/02/2027</td><td>0 / 500</td><td class="num">0</td><td><span class="toggle"><span>Bật</span><span class="on">Tắt</span></span></td></tr>
+            </tbody></table></div></div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Quyền <code>promotion.manage</code>; nhóm menu "Khuyến mãi &amp; thẻ".</span></li>
+      <li><span class="n">2</span><span>Tắt khuyến mãi đang chạy hỏi xác nhận; đơn đã áp giữ số giảm.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>K2. Tạo / sửa khuyến mãi</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/promotions/new</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a class="active">Bán hàng</a></nav>
+        <div class="content">
+          <div class="grid2">
+            <div class="panel">
+              <strong>Loại</strong>
+              <div class="toggle"><span class="on">Mã giảm giá</span><span>Tự động</span></div>
+              <div class="field"><label>Tên (VI) *</label><span class="input">Chào tháng 10</span></div>
+              <strong>Giảm gì</strong>
+              <div class="toggle"><span class="on">Phần trăm</span><span>Số tiền</span><span>Miễn phí giao</span><span>Giảm phí giao</span></div>
+              <div class="spread"><span class="input">10 %</span><span class="input">Tối đa 30.000đ</span></div>
+              <div class="field"><label>Áp cho</label><span class="toggle"><span class="on">Cả đơn</span><span>Món chọn</span><span>Danh mục chọn</span></span></div>
+              <strong>Điều kiện</strong>
+              <div class="field"><label>Tạm tính tối thiểu</label><span class="input">100.000đ</span></div>
+              <div class="spread"><span class="check on">Q1</span><span class="check">Q3</span><span class="check on">Giao</span><span class="check">Tự lấy</span></div>
+              <span class="check">Chỉ đơn đầu tiên của số điện thoại</span>
+              <strong>Thời gian &amp; giới hạn</strong>
+              <div class="spread"><span class="input">01/10 00:00</span><span class="input">31/10 23:59</span></div>
+              <div class="spread"><span class="input">Tổng 100 lượt</span><span class="input">1 lượt/khách</span></div>
+              <span class="check">Cộng dồn với khuyến mãi khác</span>
+              <div class="field"><label>Mã</label><span class="input">THANG10</span></div>
+            </div>
+            <div class="panel">
+              <strong>Khách thấy</strong>
+              <div class="alert-box info">Giảm 10% tối đa 30.000đ cho đơn từ 100.000đ · Quận 1 · giao tận nơi · 01/10–31/10 · mỗi khách 1 lần.</div>
+              <div class="tabs"><span class="on">Mã (1)</span><span>Thống kê</span></div>
+              <span class="btn secondary">Sinh hàng loạt</span>
+              <span class="btn">Lưu và bật</span>
+              <span class="btn ghost">Lưu nháp</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Chọn món/danh mục bằng danh sách checkbox có ô tìm không dấu (không dropdown trong Modal).</span></li>
+      <li><span class="n">2</span><span>Sinh hàng loạt: số lượng ≤ 5000, tiền tố, độ dài, lượt mỗi mã; xuất CSV cần thêm quyền <code>export</code>.</span></li>
+      <li><span class="n">3</span><span>Sửa khuyến mãi đã có lượt dùng chỉ áp cho đơn mới.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>Phía khách: nhập mã ở checkout và đánh giá đơn</h2>
+  <div class="phones">
+    <div class="phone web"><div class="site-head">Salanca <small>Thanh toán</small></div>
+      <div class="wrap">
+        <div class="field"><label>Mã khuyến mãi</label><span class="input">THANG10</span></div>
+        <div class="card small">
+          <div class="spread"><span>Tạm tính</span><span>220.000đ</span></div>
+          <div class="spread"><span>Mã THANG10</span><span style="color:var(--ok)">−22.000đ</span></div>
+          <div class="spread"><span>Freeship 200k</span><span style="color:var(--ok)">−15.000đ phí giao</span></div>
+          <div class="spread strong"><span>Tổng</span><span class="price">198.000đ</span></div>
+        </div>
+        <span class="muted small">Mã sai: "Mua thêm 20.000đ để dùng mã này" · "Mã đã hết lượt" · "Đã chọn ưu đãi tốt hơn cho bạn"</span>
+      </div></div>
+    <div class="phone web"><div class="site-head">Salanca <small>Đơn SLC-000150</small></div>
+      <div class="wrap">
+        <div class="card">
+          <strong>Đánh giá đơn này</strong>
+          <div style="font-size:28px;color:#e0a100">★★★★☆</div>
+          <div class="chips"><span class="on">Đúng giờ</span><span class="on">Ngon</span><span>Đóng gói đẹp</span><span>Người giao thân thiện</span></div>
+          <div class="field"><label>Ghi chú</label><span class="input">Cơm hơi nguội một chút</span></div>
+          <span class="btn">Gửi đánh giá</span>
+          <span class="muted small">Sửa được trong 24 giờ.</span>
+        </div>
+      </div></div>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>R1. Đánh giá (Admin)</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/ratings</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a class="active">Bán hàng</a></nav>
+        <div class="content">
+          <div class="grid3">
+            <div class="panel"><span class="muted small">Điểm TB (30 ngày)</span><strong style="font-size:22px">4,6 ★</strong></div>
+            <div class="panel"><span class="muted small">Số đánh giá</span><strong style="font-size:22px">212</strong></div>
+            <div class="panel"><span class="muted small">≤ 2 sao</span><strong style="font-size:22px;color:var(--warn)">7</strong></div>
+          </div>
+          <div class="spread"><span class="toggle"><span>1★</span><span class="on">2★</span><span>3★</span><span>4★</span><span>5★</span></span><span class="check on">Có ghi chú</span></div>
+          <div class="panel" style="padding:0"><div class="table-wrap"><table class="t">
+            <thead><tr><th>Sao</th><th>Nhãn</th><th>Ghi chú</th><th>Đơn</th><th>Chi nhánh</th><th>Lúc</th></tr></thead>
+            <tbody>
+              <tr class="hl"><td style="color:var(--warn)">★★</td><td><span class="badge gray">Giao trễ</span></td><td>Chờ 70 phút mới tới, cơm nguội</td><td>SLC-000133</td><td>Q1</td><td>12/10 13:40</td></tr>
+              <tr><td style="color:var(--warn)">★★</td><td><span class="badge gray">Thiếu món</span></td><td>Thiếu 1 chai trà</td><td>SLC-000128</td><td>Q3</td><td>11/10 19:05</td></tr>
+            </tbody></table></div></div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Xem: <code>order.read</code> trong scope; ẩn/ghi chú nội bộ: <code>rating.manage</code>.</span></li>
+      <li><span class="n">2</span><span>≤ 2 sao mở cảnh báo <code>low-rating</code> gửi quản lý chi nhánh (quyết định 2026-10-12).</span></li>
+    </ol>
+  </div>
+</section>
+
+<footer class="doc-foot">File trên máy, không publish. Tên, mã, số liệu chỉ là ví dụ.</footer>
+</main>
+</body>
+</html>

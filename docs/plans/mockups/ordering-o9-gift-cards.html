@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O9 Thẻ quà tặng</title>
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body>
+<main class="doc">
+
+<header class="doc-head">
+  <p class="eyebrow">Mockup · Phase O9 · Thẻ quà tặng</p>
+  <h1>Bán thẻ có số dư, dùng thẻ để trả đơn, sổ thẻ</h1>
+  <p class="lead"><strong>Đặc tả từng màn: <a href="../ordering-o9-screens.md">ordering-o9-screens.md</a>.</strong></p>
+  <div class="links">
+    <a href="../../phases/phase-ordering-9-gift-cards.md">Spec O9</a>
+    <a href="../ordering-o9-gift-cards.md">Kế hoạch O9</a>
+    <a href="../ordering-reference.md">Reference U9</a>
+  </div>
+</header>
+
+<section class="screen">
+  <h2>Luồng thẻ</h2>
+  <div class="flow">
+    <span class="node">Khách mua thẻ 200.000đ</span><span class="arrow">→</span>
+    <span class="node">Trả SePay / tiền mặt ở quầy</span><span class="arrow">→</span>
+    <span class="node pub">Phát mã, email người nhận</span><span class="arrow">→</span>
+    <span class="node">Dùng 150.000đ cho đơn món</span><span class="arrow">→</span>
+    <span class="node term">Còn 50.000đ</span>
+    <span class="arrow">·</span><span class="node cancel">Hủy đơn → hoàn về thẻ</span>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>G1. Danh sách thẻ</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/gift-cards</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a class="active">Bán hàng</a></nav>
+        <div class="content">
+          <div class="spread"><strong>Thẻ quà tặng</strong><span class="btn">Phát thẻ tặng</span></div>
+          <div class="grid3">
+            <div class="panel"><span class="muted small">Số dư lưu hành</span><strong style="font-size:20px">18.450.000đ</strong></div>
+            <div class="panel"><span class="muted small">Bán tháng này</span><strong style="font-size:20px">6.200.000đ</strong></div>
+            <div class="panel"><span class="muted small">Dùng tháng này</span><strong style="font-size:20px">3.980.000đ</strong></div>
+          </div>
+          <div class="field"><label>Tìm</label><span class="input">4 ký tự cuối, mã đầy đủ hoặc mã đơn</span></div>
+          <div class="tabs"><span class="on">Đang dùng</span><span>Đã khóa</span><span>Hết hạn</span><span>Hết tiền</span><span>Tất cả</span></div>
+          <div class="panel" style="padding:0"><div class="table-wrap"><table class="t">
+            <thead><tr><th>Thẻ</th><th class="num">Mệnh giá</th><th class="num">Số dư</th><th>Hạn dùng</th><th>Nguồn</th><th>Trạng thái</th></tr></thead>
+            <tbody>
+              <tr><td>•••• AB7K</td><td class="num">200.000</td><td class="num">50.000</td><td>12/10/2027</td><td><span class="badge primary">Bán · SLC-000150</span></td><td><span class="badge ok">Đang dùng</span></td></tr>
+              <tr><td>•••• 9QXM</td><td class="num">500.000</td><td class="num">500.000</td><td style="color:var(--warn)">03/11/2026</td><td><span class="badge info">Tặng</span></td><td><span class="badge ok">Đang dùng</span></td></tr>
+              <tr><td>•••• H4TP</td><td class="num">200.000</td><td class="num">200.000</td><td>01/09/2027</td><td><span class="badge primary">Bán · SLC-000099</span></td><td><span class="badge warn">Đã khóa</span></td></tr>
+            </tbody></table></div></div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Admin chỉ hiện 4 ký tự cuối; mã đầy đủ tìm qua <code>POST /gift-cards/search</code> (không để trong URL).</span></li>
+      <li><span class="n">2</span><span>Quyền <code>gift-card.manage</code>; điều chỉnh số dư cần thêm <code>gift-card.adjust</code>.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>G2. Chi tiết thẻ và sổ thẻ</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/gift-cards/31</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a class="active">Bán hàng</a></nav>
+        <div class="content">
+          <div class="spread"><strong>•••• AB7K · <span style="font-size:20px">50.000đ</span> / 200.000đ</strong><span class="badge ok">Đang dùng · hạn 12/10/2027</span></div>
+          <div class="muted small">Người nhận n•••@gmail.com · "Chúc mừng sinh nhật!" · Bán trong đơn SLC-000150</div>
+          <div class="spread"><span class="btn secondary">Khóa thẻ</span><span class="btn secondary">Gia hạn</span><span class="btn secondary">Điều chỉnh số dư</span><span class="btn ghost">Gửi lại email</span></div>
+          <div class="panel" style="padding:0"><div class="table-wrap"><table class="t">
+            <thead><tr><th>Lúc</th><th>Loại</th><th class="num">Số tiền</th><th class="num">Số dư sau</th><th>Đơn</th><th>Người làm</th><th>Lý do</th></tr></thead>
+            <tbody>
+              <tr><td>14/10 12:05</td><td>Hoàn về thẻ</td><td class="num" style="color:var(--ok)">+30.000</td><td class="num">50.000</td><td>SLC-000171</td><td>quản lý Q1</td><td>hủy món</td></tr>
+              <tr><td>14/10 11:40</td><td>Dùng</td><td class="num" style="color:var(--warn)">−180.000</td><td class="num">20.000</td><td>SLC-000171</td><td>khách</td><td></td></tr>
+              <tr><td>12/10 09:12</td><td>Phát</td><td class="num" style="color:var(--ok)">+200.000</td><td class="num">200.000</td><td>SLC-000150</td><td>hệ thống</td><td></td></tr>
+            </tbody></table></div></div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Sổ thẻ chỉ thêm, không sửa/xóa; mỗi thao tác bắt buộc lý do và ghi change-log.</span></li>
+      <li><span class="n">2</span><span>Khóa chặn dùng mới, không đụng đơn đã trả; hoàn thẻ chưa dùng chờ quyết định kế toán.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>G3. Phát thẻ tặng (mã hiện một lần)</h2>
+  <div class="modal-backdrop">
+    <div class="modal">
+      <header><strong>Đã phát thẻ tặng</strong></header>
+      <div class="body">
+        <div style="font:700 24px var(--mono);text-align:center;letter-spacing:.06em">7KQM-2X9A-HP4T-AB7K</div>
+        <span class="btn secondary" style="justify-self:center">Sao chép</span>
+        <div class="alert-box warn">Mã chỉ hiện một lần. Đóng cửa sổ này là không xem lại được.</div>
+        <div class="muted small">500.000đ · hạn 12/10/2027 · lý do: Đền bù đơn SLC-000140 · đã gửi tới n•••@gmail.com</div>
+      </div>
+      <footer><span></span><span class="btn">Đóng</span></footer>
+    </div>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>Phía khách: mua thẻ và dùng thẻ</h2>
+  <div class="phones">
+    <div class="phone web"><div class="site-head">Salanca <small>Thẻ quà tặng</small></div>
+      <div class="wrap">
+        <div class="chips"><span>100.000đ</span><span class="on">200.000đ</span><span>500.000đ</span></div>
+        <div class="field"><label>Email người nhận</label><span class="input">ban@gmail.com</span></div>
+        <div class="field"><label>Lời chúc</label><span class="input">Chúc mừng sinh nhật!</span></div>
+        <span class="btn">Thanh toán 200.000đ</span>
+      </div></div>
+    <div class="phone web"><div class="site-head">Salanca <small>Thanh toán đơn</small></div>
+      <div class="wrap">
+        <div class="field"><label>Thẻ quà tặng</label><span class="input">7KQM-2X9A-HP4T-AB7K</span></div>
+        <div class="card small">
+          <div class="spread"><span>Tổng đơn</span><span>235.000đ</span></div>
+          <div class="spread"><span>Thẻ •••• AB7K</span><span style="color:var(--ok)">−200.000đ</span></div>
+          <div class="spread strong"><span>Còn phải trả</span><span class="price">35.000đ</span></div>
+          <span class="muted">Trả phần còn lại bằng: tiền mặt khi nhận / chuyển khoản</span>
+        </div>
+      </div></div>
+  </div>
+</section>
+
+<footer class="doc-foot">File trên máy, không publish. Mã thẻ và số liệu chỉ là ví dụ.</footer>
+</main>
+</body>
+</html>

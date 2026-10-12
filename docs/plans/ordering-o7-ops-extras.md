@@ -1,146 +1,278 @@
-# O7 — Vận hành bổ sung: giờ đặc biệt, tồn theo ngày, sửa đơn, trang người giao
+# O7 — Vận hành bổ sung: kế hoạch thực hiện
 
 Status: Draft
 Owner: tan_ngo (duyệt), AI thực hiện
 Last updated: 2026-10-12
-Related phase: chưa có spec — viết `docs/phases/phase-ordering-7-ops-extras.md` khi plan này được duyệt
+Related phase: [`phases/phase-ordering-7-ops-extras.md`](../phases/phase-ordering-7-ops-extras.md)
+
+Đặc tả màn hình: [`ordering-o7-screens.md`](ordering-o7-screens.md) (E1–E4, reference mục U7). Mockup:
+[`mockups/ordering-o7-ops-extras.html`](mockups/ordering-o7-ops-extras.html). Mọi màn UI làm theo hai file đó.
 
 ## Goal
 
-Bốn việc chủ dự án chọn sau review chức năng (2026-10-12):
-
-1. Giờ mở cửa đặc biệt theo ngày (ví dụ mùng 2 Tết mở 10:00–14:00), không chỉ ngày nghỉ.
-2. Giới hạn số phần bán mỗi ngày cho món/biến thể/tùy chọn (ví dụ "30 phần/ngày"), tự trừ khi đặt, tự
-   trả lại khi hủy.
-3. Sửa đơn sau khi đặt: thêm/bớt món, đổi giờ nhận, đổi địa chỉ giao — server tính lại tiền, thu thêm
-   hoặc hoàn phần chênh.
-4. Trang di động cho người giao: đơn của tôi, địa chỉ, gọi khách, "Đã giao / Đã thu tiền", "Giao thất bại".
+Giờ đặc biệt theo ngày, giới hạn số phần mỗi ngày, nhân viên sửa đơn, trang di động cho người giao —
+xem spec. Plan này chốt dữ liệu, API, thuật toán, thứ tự làm và test.
 
 ## Non-goals
 
-- Tồn kho theo nguyên liệu, nhập/xuất kho, định lượng (module kho riêng, contracts §5 `inventoryRef`).
-- Khách tự sửa đơn trên web (O7 chỉ cho nhân viên sửa; khách gọi điện). Có thể mở ở OW sau.
-- Định vị, bản đồ, theo dõi vị trí người giao; app native.
-- Đổi chi nhánh hoặc đổi cách nhận (tự lấy ↔ giao) của đơn đã đặt — hủy và đặt lại.
+- Kho nguyên liệu, định lượng; khách tự sửa đơn; đổi chi nhánh/cách nhận; định vị; app native.
+- Sửa đơn nháp (draft O3 đã có luồng riêng) và đơn đã đóng.
 
 ## Current evidence
 
-- Lịch: `domain/branch-settings.ts` `scheduleSchema` có `openingHours` (`24_7 | daily | weekly`) và
-  `businessDayPolicy.holidayDates`; `domain/scheduling/slots.ts` đọc `holidayDates` (trả rỗng),
-  `asapReadyAt` nối khoảng giờ qua nửa đêm; `services/pickup-scheduling.ts`; giao hàng dùng
-  `deliverySettings.schedule` cùng schema.
-- Tạm hết: `catalog-location-state` (`selling`, `outOfStockUntil`) theo product/variant/modifier ×
-  chi nhánh; `catalog-variant`/`catalog-modifier` đã có `trackInventory`, `inventoryRef` (chưa dùng).
-- Giữ chỗ: `hold` (`resourceRef`, `quantity`, `expiresAt`, `releasedAt`) + `services/hold.ts`, job
-  `hold-expiry`; dùng cho sức chứa slot.
-- Sửa đơn hiện có: `services/line-cancel.ts` (hủy bớt số lượng, hoàn theo phần đã phân bổ, preview bằng
-  transaction rollback). Pricing: `domain/pricing/pipeline.ts` (line base, adjustment, allocation, thuế,
-  làm tròn tiền mặt). Hoàn: `services/refund.ts` (tiền mặt `settled`, chuyển khoản `pending`). Link
-  thanh toán bổ sung: `services/payment-link.ts` (O4).
-- Giao hàng: `services/delivery-assignment.ts` (dispatch/markFailed/markDelivered/retry, assignee
-  `admin:<id>`), `admin-orders.cashHandover` ghi tiền theo người giao, board "Đơn giao"
-  `admin/src/pages/Deliveries/`. Người giao là admin user có `order.read`, `order.process`,
-  `payment.record-cash` trong scope chi nhánh.
+- `domain/branch-settings.ts`: `scheduleSchema.businessDayPolicy = { cutoffLocalTime, holidayDates }`,
+  `openingHours { mode: 24_7|daily|weekly, daily[], weekly{mon..sun} }`, `timeRange` cho phép qua nửa đêm;
+  `pickupSettingsSchema` và `deliverySettingsSchema` mỗi cái có `schedule` riêng. Object lồng dùng
+  `.prefault({})`.
+- `domain/scheduling/slots.ts`: `rangesForDate(settings, date)` là nơi duy nhất đọc `holidayDates` và giờ
+  mở cửa; `listSlots`, `checkSlot`, `isOpenAt`, `asapReadyAt` (nối hôm qua → ngày mai) đều đi qua nó.
+- `catalog-location-state` (tạm hết) theo `entityType product|variant|modifier` × `locationRef`; service
+  `catalog-availability.ts` (`list`, `toggle`, quyền `catalog.toggle-availability`, change-log).
+- `catalog-variant`/`catalog-modifier` có `trackInventory`, `inventoryRef` (chưa dùng).
+- `services/order.ts`: `prepareOrder` (dùng chung quote/create, chạy trong transaction create),
+  `createOrder` (idempotency, consent, phone, address), `recomputeProjection`.
+- `services/line-cancel.ts` `cancelLineQuantity` + preview bằng transaction rollback
+  (`admin-orders.lineCancelPreview`); `services/refund.ts` (`createRefundInTransaction`; tiền mặt
+  `settled`, chuyển khoản `pending`); `services/payment-link.ts` (`issue`, `summary`, hạn link).
+- `services/pickup-scheduling.ts` `reserveInTransaction` (hold sức chứa slot, `slotResourceRef`);
+  `services/hold.ts` `releaseForGroup`.
+- Giao: `services/delivery-assignment.ts` (`dispatch`, `markDelivered`, `markFailed`, `retry`,
+  `assigneeCtxFor`), `admin-orders.cashHandover` (payment theo người giao), `admin-orders.list` filter
+  `assignee=mine`. Provider `self-delivery` (`validate`, `calculatePrice`), `requireDeliveryAddress`.
+- Hủy: `transition.cancelOrder`, `admin-orders.cancel`, `refundHeld` (O5 sửa sau review); từ chối/hết hạn
+  qua `transitionGroup`; job `payment-expiry`.
+- Số điện thoại khách lưu E.164 trong `order.contactSnapshot.phone`.
 
 ## Decisions and assumptions
 
-- Decision: giờ đặc biệt là `businessDayPolicy.specialHours: [{ date, ranges | closed }]`, ưu tiên hơn
-  `weekly/daily`; `holidayDates` giữ nguyên nghĩa (= đóng cả ngày) để không đổi dữ liệu cũ.
-- Decision: tồn theo ngày tính theo **ngày kinh doanh của lúc nhận hàng** (đơn đặt trước cho thứ Bảy trừ
-  tồn thứ Bảy), không theo ngày đặt.
-- Decision: tồn trừ lúc tạo đơn (cùng transaction), trả lại khi đơn hủy/hết hạn/từ chối hoặc hủy bớt
-  món; không trừ ở bước quote.
-- Decision: sửa đơn là thao tác của nhân viên (quyền mới `order.edit`), một transaction: tính lại bằng
-  pipeline, ghi timeline/change-log, giữ snapshot cũ trong payload timeline.
-- Decision (chủ dự án, 2026-10-12): **trang người giao** là phương án A — trang riêng trong plugin,
-  chạy trong Strapi Admin nhưng bố cục toàn màn hình cho điện thoại (route `/plugins/ordering/courier`),
-  đăng nhập admin như hiện tại. Không làm magic link.
-- Decision (chủ dự án, 2026-10-12): **đơn đã chuyển khoản mà sửa làm tăng tiền** → đơn chờ thanh toán
-  phần chênh qua link thanh toán O4, không chặn bếp; đơn trả khi nhận thì chỉ tăng số cần thu.
-- Assumption: sửa đơn chỉ cho phép trước `out-for-delivery` (giao) / trước `ready` (tự lấy). Kiểm với
-  chủ dự án ở UAT.
+- Decision: `specialHours` nằm trong `schedule.businessDayPolicy` của **từng** cách nhận (tự lấy, giao) —
+  cùng chỗ với `holidayDates`. UI có nút "Áp dụng cho cả giao tận nơi".
+- Decision: thứ tự ưu tiên trong một ngày: `specialHours[date]` → `holidayDates` → `openingHours`.
+- Decision: giới hạn ngày tính theo ngày kinh doanh của **thời điểm nhận**: ASAP = `order.businessDate`;
+  hẹn giờ = `businessDate(slot.startsAt, timezone, cutoff)`.
+- Decision: trừ giới hạn khi tạo đơn (kể cả đơn chờ thanh toán); trả lại khi group về terminal `canceled`
+  (hủy, từ chối, hết hạn) hoặc hủy bớt/sửa bớt món. Đơn hoàn tất không trả lại.
+- Decision: món nháp (draft O3) không trừ cho tới khi `confirmDraft`.
+- Decision: sửa đơn cho phép khi group ở `awaiting-acceptance` hoặc `preparing`; đơn giao thêm `ready`.
+  Không cho ở `awaiting-payment` (khách chưa trả; hủy và tạo lại).
+- Decision: dòng cũ giữ giá lúc đặt; dòng thêm lấy giá hiện hành của catalog lúc sửa.
+- Decision (chủ dự án 2026-10-12): đơn đã trả trước mà sửa tăng tiền → phần chênh trả qua link thanh toán
+  O4, group không đổi trạng thái; đơn trả khi nhận chỉ tăng số cần thu.
+- Decision (chủ dự án 2026-10-12): trang người giao là trang Admin bố cục điện thoại (phương án A).
+- Decision: chống sửa đè bằng `order.editRevision` (integer, tăng mỗi lần sửa); client gửi revision đã xem.
+- Assumption: Strapi Admin dùng được trên điện thoại 360px sau khi đăng nhập. Kiểm ở UAT; nếu không đạt thì
+  ghi rủi ro và đề xuất trang nhẹ riêng (ngoài O7).
 
 ## Invariants
 
-- Tiền luôn tính ở server qua pipeline; tổng đơn = Σ dòng + adjustment + phí + thuế, khớp sổ.
-- Không bán vượt giới hạn ngày khi hai đơn đặt cùng lúc (khóa/điều kiện trong SQL, không đọc rồi ghi).
-- Sửa đơn không làm mất lịch sử: dòng bị bớt giữ `canceledQuantity`, dòng mới là dòng mới.
-- Người giao chỉ thấy và thao tác đơn được gán cho chính họ, trong scope chi nhánh.
-- Không log tên, số điện thoại, địa chỉ khách.
+- Tổng đơn = Σ dòng còn hiệu lực + adjustment + phí + thuế; khớp sau mỗi lần sửa (`TOTALS_MISMATCH` nếu lệch).
+- `reserved` của một (món, chi nhánh, ngày) không vượt `dailyLimit`, kể cả khi nhiều process tạo đơn song song.
+- Σ `catalog-daily-reservation.quantity - releasedQuantity` của một ngày = `catalog-daily-usage.reserved`.
+- Sửa đơn không xóa dòng: bớt = tăng `canceledQuantity`; thêm = dòng mới `addedInRevision = n`.
+- Người giao chỉ thao tác đơn có `assigneeRef` = chính họ (hoặc nhân viên có quyền xử lý đơn trong scope).
+- Không log tên/số điện thoại/địa chỉ; timeline sửa đơn che PII như timeline hiện có.
+
+## Data model
+
+| Bảng / field | Mô tả |
+| --- | --- |
+| `businessDayPolicy.specialHours[]` (JSON trên branch) | `{ date: YYYY-MM-DD, closed: boolean, ranges: TimeRange[] (0–6), note?: string ≤ 100 }`; tối đa 366 dòng; `closed=true` ⇔ `ranges=[]`; ngày không trùng |
+| `catalog-daily-limit` (mới) | `entityType` product\|variant\|modifier, `entityDocumentId`, `locationRef`, `dailyLimit` int ≥ 0, `updatedBy`; unique (entityType, entityDocumentId, locationRef) |
+| `catalog-daily-usage` (mới) | `entityType`, `entityDocumentId`, `locationRef`, `businessDate` (date), `reserved` int ≥ 0; unique (entityType, entityDocumentId, locationRef, businessDate) |
+| `catalog-daily-reservation` (mới) | `order`, `line`, `entityType`, `entityDocumentId`, `locationRef`, `businessDate`, `quantity`, `releasedQuantity`; index (order), (line) |
+| `order.editRevision` (mới) | integer, default 0 |
+| `order-line.addedInRevision` (mới) | integer, null = có từ lúc đặt |
+
+Migration `0005-o7-ops-extras.ts`: 3 unique index trên, `CHECK (reserved >= 0)`,
+`CHECK (released_quantity <= quantity)`. Cập nhật `persisted-tables.ts`, sinh lại
+`types/generated/contentTypes.d.ts` (`ORDERING_ENABLED=true`).
+
+## API
+
+| Method | Path | Quyền | Body / query | Trả về |
+| --- | --- | --- | --- | --- |
+| PUT | `/ordering/branches/:code` (đã có) | `settings.manage` | thêm `specialHours` trong `fulfillment.pickup|delivery.schedule.businessDayPolicy` | branch |
+| GET | `/api/v1/ordering/config?branch=` (đã có) | public | — | thêm `specialHours: [{ date, closed, ranges, note }]` trong 14 ngày tới, theo từng cách nhận |
+| GET | `/ordering/availability?branch=` (đã có) | `catalog.toggle-availability` | — | mỗi món/biến thể/tùy chọn thêm `dailyLimit`, `reservedToday`, `remainingToday` |
+| PUT | `/ordering/availability/daily-limit` | `catalog.toggle-availability` | `{ locationRef, entityType, entityDocumentId, dailyLimit: number \| null }` | dòng sau khi lưu; change-log `catalog.daily-limit` |
+| GET | `/api/v1/ordering/catalog/products?branch=&date=` (đã có) | public | `date` tùy chọn (ngày nhận) | thêm `dailyLimit: { remaining, date }` khi có giới hạn; `available=false`, `unavailableReason: 'sold-out-today'` khi hết |
+| POST | `/api/v1/ordering/quote`, `/orders` (đã có) | public | — | lỗi `ITEM_SOLD_OUT` 409 `details { entityType, sellableUid, variantUid?, modifierUid?, remaining, businessDate }` |
+| POST | `/ordering/orders/:id/edit/preview` | `order.edit` | `EditInput` | `EditPreview` (không ghi) |
+| POST | `/ordering/orders/:id/edit` | `order.edit` | `EditInput` | `{ preview: EditPreview, detail }` |
+| GET | `/ordering/courier/deliveries?view=active\|done` | `order.process` | — | đơn gán cho tôi trong ngày kinh doanh hôm nay của từng chi nhánh |
+
+`EditInput`:
+
+```ts
+type EditInput = {
+  revision: number;                       // order.editRevision client đã xem
+  reason: string;                         // 1–500 ký tự, bắt buộc (vào timeline/change-log)
+  add?: Array<{ sellableUid: string; variantUid?: string; options?: SelectedOption[]; quantity: number; note?: string }>;
+  reduce?: Array<{ lineId: number; quantity: number }>;   // số lượng bớt
+  timing?: { kind: 'asap' } | { kind: 'scheduled'; startsAt: string };
+  address?: DeliveryAddressInput;          // chỉ đơn giao; như storefront
+  notifyCustomer?: boolean;                // mặc định true
+};
+type EditPreview = {
+  revision: number;                        // revision mới nếu áp
+  lines: Array<{ lineId?: number; title: string; quantityBefore: number; quantityAfter: number; lineTotalAfter: number; added: boolean }>;
+  totals: { before: Totals; after: Totals };
+  fulfillmentAmount: { before: number; after: number };
+  timing?: { before: string | null; after: string | null };
+  money: { paid: number; dueAfter: number; refundCash: number; refundTransferPending: number; extraDue: number; paymentLink: boolean };
+  warnings: string[];                      // ví dụ 'below-min-order', 'promotion-kept'
+};
+```
+
+Mã lỗi mới (`domain/errors.ts` + `error.<CODE>` VI/EN trong `translations/o7.ts`):
+
+| Code | HTTP | Khi |
+| --- | --- | --- |
+| `ITEM_SOLD_OUT` | 409 | hết giới hạn ngày (quote, create, sửa đơn thêm món) |
+| `ORDER_NOT_EDITABLE` | 409 | trạng thái không cho sửa; `details.status` |
+| `ORDER_CHANGED` | 409 | `revision` khác `order.editRevision` |
+| `EDIT_EMPTY` | 400 | không có thay đổi nào |
 
 ## Implementation steps
 
-1. **Giờ đặc biệt theo ngày**
-   - Files: `domain/branch-settings.ts` (`specialHours`, tối đa 366 dòng, ngày không trùng),
-     `domain/scheduling/slots.ts` (khoảng giờ của một ngày = special → holiday → weekly/daily;
-     `asapReadyAt` dùng cùng hàm), tab Tự lấy/Giao trong màn Chi nhánh (S7) thêm bảng "Ngày đặc biệt".
-   - Verification: unit test slots (ngày đặc biệt rút ngắn, mở thêm ngày thường đóng, qua nửa đêm, DST
-     không áp dụng ở VN nhưng giữ test timezone); script `branches.mjs` lưu/đọc; quote ASAP ngoài giờ
-     đặc biệt trả `ASAP_UNAVAILABLE`.
-2. **Tồn theo ngày — dữ liệu và khóa**
-   - Files: content type mới `catalog-daily-limit` (entityType, entityDocumentId, locationRef,
-     `dailyLimit`), `catalog-daily-usage` (entity, location, businessDate, `reserved`) + unique index
-     (migration `0005-o7-*`); `services/daily-stock.ts`: `reserve(lines, ctx)` bằng
-     `INSERT … ON CONFLICT DO UPDATE SET reserved = reserved + n WHERE reserved + n <= limit`,
-     `release(order|line)`.
-   - Verification: script `daily-stock.mjs`: 2 đơn song song tranh phần cuối → một thắng
-     (`ITEM_SOLD_OUT` 409); hủy đơn trả lại; hủy bớt món trả đúng số; sang ngày mới đủ lại.
-3. **Tồn theo ngày — nối vào đặt đơn và admin**
-   - Files: `services/order.ts`/`storefront.ts` (reserve trong transaction tạo đơn; quote/catalog trả
-     `remainingToday` để web hiện "còn 3 phần"), `transition` (hủy/hết hạn/từ chối → release),
-     `line-cancel.ts`, màn Món (O2) thêm field "Giới hạn mỗi ngày" theo chi nhánh, trang tạm hết hiện
-     số còn lại. Hết phần thì món hiện như tạm hết tới hết ngày.
-   - Verification: script đặt đơn tới 0 → API catalog báo hết; `check:ordering`.
-4. **Sửa đơn (nhân viên)**
-   - Files: `services/order-edit.ts`: `preview(orderId, changes)` (transaction rollback như
-     `lineCancelPreview`) và `apply(...)`; changes = `{ addLines?, removeQuantities?, slot?, address? }`;
-     tính lại bằng pipeline; đổi slot đi qua capacity hold; đổi địa chỉ gọi lại quote vùng giao (ngoài
-     vùng → `DELIVERY_UNAVAILABLE`); tồn theo ngày reserve/release phần chênh; chênh âm → refund
-     (tiền mặt `settled`, chuyển khoản `pending`); chênh dương → theo quyết định ở trên. Route
-     `POST /orders/:id/edit/preview`, `POST /orders/:id/edit` (quyền `order.edit`), timeline
-     `order.edited` (before/after đã che PII), change-log, email khách "Đơn đã được cập nhật".
-   - Admin: nút "Sửa đơn" trong chi tiết đơn, hộp thoại thêm món (tìm món như tạo đơn hộ O3), đổi giờ,
-     đổi địa chỉ; hiện tổng mới và số thu thêm/hoàn trước khi bấm.
-   - Verification: script `order-edit.mjs`: thêm món đơn tiền mặt; bớt món đơn chuyển khoản → phiếu
-     hoàn `pending`; đổi giờ sang slot đầy → lỗi; đổi địa chỉ ra vùng phí khác → phí đổi; sửa sau
-     `ready` bị từ chối; hai nhân viên sửa cùng lúc → một thắng (khóa group).
-5. **Trang người giao trên điện thoại** (phương án A)
-   - Files: `admin/src/pages/Courier/` bố cục một cột, chữ lớn; API `GET /courier/deliveries`
-     (đơn gán cho tôi, hôm nay, theo trạng thái), dùng lại `transition`/`cash-handover`/`markFailed`.
-     Nút "Gọi khách" (`tel:`), "Mở bản đồ" (link Google Maps theo địa chỉ text, không định vị), số tiền
-     cần thu. Quyền: chỉ cần `order.process` + `payment.record-cash`; server lọc `assigneeRef = tôi`.
-   - Verification: script `courier.mjs`: người giao A không thấy/không thao tác đơn của B (404); UAT
-     trên điện thoại thật (Chrome Android, Safari iOS) ở khổ 360px.
-6. **Tài liệu và UAT**
-   - Files: `docs/ordering-staff-guide.md` (ngày đặc biệt, giới hạn mỗi ngày, sửa đơn, trang người giao),
-     `docs/ordering-api-contract.md` (`remainingToday`, lỗi `ITEM_SOLD_OUT`), screens `ordering-o7-screens.md`
-     + mockup trước khi code UI (theo quy ước O3–O6).
+1. **Giờ đặc biệt — domain**
+   - Files: `domain/branch-settings.ts` (`specialHoursSchema`, refine: ngày duy nhất, `closed` ⇔ không có
+     khoảng, khoảng không chồng nhau trong một ngày); `domain/scheduling/slots.ts` (`rangesForDate`:
+     special → holiday → openingHours; export `dayKind(settings, date): 'special'|'holiday'|'regular'`).
+   - Verification: `slots.test.ts` thêm: (a) ngày thường 07–22 có special 10–14 → slot chỉ 10–14;
+     (b) weekly chủ nhật đóng, special chủ nhật 09–12 → có slot; (c) special `closed` → không slot, ASAP
+     `ASAP_UNAVAILABLE`; (d) special hôm trước 22:00–02:00 → `asapReadyAt` lúc 01:00 hôm sau mở; (e) cùng
+     ngày trong `holidayDates` và `specialHours` → special thắng; `branch-settings.test.ts` trùng ngày lỗi.
+     `pnpm run test`.
+2. **Giờ đặc biệt — API và Admin**
+   - Files: `services/storefront.ts` `config` (lọc 14 ngày tới theo timezone chi nhánh);
+     `admin/src/pages/Branches/` khối "Ngày đặc biệt" trong tab Tự lấy và tab Giao (E1);
+     `translations/o7.ts`.
+   - Verification: `scripts/ordering/branches.mjs` thêm lưu/đọc special, lỗi trùng ngày 400;
+     `scripts/ordering/special-hours.mjs` (mới): quote ASAP/scheduled trong và ngoài giờ đặc biệt;
+     `/config` trả đúng 14 ngày.
+3. **Giới hạn ngày — dữ liệu và service**
+   - Files: 3 content type mới, migration `0005`, `services/daily-stock.ts`:
+     - `limitsFor(locationRef, refs[])` → Map;
+     - `reserveInTransaction(trx, { orderId, locationRef, businessDate, items: [{ lineId, entityType, entityDocumentId, quantity }] })`:
+       gộp theo entity, sắp theo khóa (tránh deadlock), mỗi entity chạy
+
+       ```sql
+       INSERT INTO plugins_ordering_catalog_daily_usage (entity_type, entity_document_id, location_ref, business_date, reserved, …)
+       SELECT ?, ?, ?, ?, ?, … WHERE ? <= ?            -- quantity <= limit
+       ON CONFLICT (entity_type, entity_document_id, location_ref, business_date)
+       DO UPDATE SET reserved = plugins_ordering_catalog_daily_usage.reserved + EXCLUDED.reserved
+       WHERE plugins_ordering_catalog_daily_usage.reserved + EXCLUDED.reserved <= ?
+       RETURNING reserved
+       ```
+
+       không có dòng trả về → `ITEM_SOLD_OUT` (tính `remaining` để báo); ghi `catalog-daily-reservation`;
+     - `releaseForOrder(trx, orderId, reason)`, `releaseForLine(trx, lineId, quantity)` → giảm `reserved`
+       (không dưới 0), tăng `releasedQuantity`; idempotent (chỉ trả phần chưa trả);
+     - `remaining(locationRef, businessDate, refs[])`.
+   - Verification: `scripts/ordering/daily-stock.mjs` (mới): giới hạn 3, 4 lần reserve song song
+     (`Promise.all` 2 process con như outbox test, có barrier) → đúng 3 thành công; release 2 lần chỉ trả
+     một lần; `reserved` không âm.
+4. **Giới hạn ngày — nối vào đặt đơn, hủy, catalog, Admin**
+   - Files: `services/order.ts` (`prepareOrder` gom entity của dòng: product + variant + từng modifier đã
+     chọn có giới hạn; `createOrder` gọi `reserveInTransaction` sau khi có line id; quote chỉ kiểm
+     `remaining`); `transition.ts` (vào terminal `canceled` → `releaseForOrder`); `line-cancel.ts`
+     (`releaseForLine`); `services/catalog-*` public output (`dailyLimit.remaining`); `admin-orders`
+     không đổi; trang Tạm hết (E2) thêm cột giới hạn/còn lại + sửa giới hạn.
+   - Verification: `daily-stock.mjs` mở rộng: đặt tới hết → catalog `sold-out-today`; quote báo
+     `ITEM_SOLD_OUT`; hủy/từ chối/hết hạn (job `payment-expiry`) trả lại; hủy bớt 1 phần trả 1; đơn hẹn
+     thứ Bảy trừ ngày thứ Bảy; đơn 03:59 trừ hôm qua, 04:00 hôm nay; thiếu quyền sửa giới hạn → 403,
+     ngoài scope → 404. `pnpm run check:ordering`.
+5. **Sửa đơn — service**
+   - Files: `services/order-edit.ts`:
+     1. lock group (`repo.lockGroup`) theo thứ tự id; load aggregate; kiểm scope (404), trạng thái
+        (`ORDER_NOT_EDITABLE`), `revision` (`ORDER_CHANGED`), có thay đổi (`EDIT_EMPTY`);
+     2. dựng "đơn sau sửa": dòng cũ với `quantity - canceledQuantity - reduce`, giữ snapshot giá; dòng
+        thêm qua catalog adapter + product type như `prepareOrder` (giá hiện hành, tùy chọn hợp lệ, tạm hết,
+        giới hạn ngày); timing/address mới nếu có;
+     3. fulfillment: giao → `self-delivery.validate` + `calculatePrice` với subtotal mới (bậc phí đổi theo
+        subtotal) và địa chỉ mới; tự lấy → phí 0; timing → `scheduling.resolveTiming` + release hold cũ +
+        `reserveInTransaction` slot mới;
+     4. pricing: chạy `domain/pricing/pipeline.ts` với toàn bộ dòng còn hiệu lực + adjustment hiện có
+        (giữ `ruleSnapshot`; khuyến mãi O8 giữ theo quyết định chủ dự án) + làm tròn tiền mặt; kiểm
+        `MIN_ORDER_NOT_MET` chỉ cảnh báo (`warnings`) — quán chủ động sửa;
+     5. ghi: dòng bớt → `canceledQuantity += n` (+ `releaseForLine`); dòng thêm → `order-line` mới
+        `addedInRevision`, reserve giới hạn ngày; cập nhật amount của các dòng và allocation theo kết quả
+        pipeline; cập nhật order totals, `receiveMethod`, fulfillment `addressSnapshot`, group
+        `fulfillmentAmount`/`estimatedReadyAt`; `editRevision += 1`;
+     6. tiền: `paid = Σ captured − Σ refunded − Σ refund pending`; `paid > newTotal` → `refundHeld`-style
+        hoàn phần dư (tiền mặt `settled`, chuyển khoản `pending`, ưu tiên hoàn chuyển khoản trước nếu đơn
+        trả cả hai — ghi rõ trong timeline); `newTotal > paid` và đơn có payment online đã capture →
+        `payment-link.issue` cho phần chênh (payment `pending` mới với `requestedAmount = chênh`), group giữ
+        trạng thái; đơn `pay-on-pickup` → không làm gì (số cần thu tự tăng);
+     7. `recomputeProjection`; timeline `order.edited` (public: "Đơn đã được cập nhật"; payload nội bộ
+        before/after đã che PII); change-log `order.edit`; outbox `order.edited` → email
+        `customer.order-updated` (VI/EN: món thay đổi, tổng mới, link trả phần chênh nếu có).
+     - `preview` = chạy 1–6 trong transaction rồi rollback (như `lineCancelPreview`).
+   - Verification: unit test hàm tính chênh/hoàn thuần (`domain/order-edit.ts`); script
+     `scripts/ordering/order-edit.mjs` (mới) đủ các ca trong spec + replay cùng `revision` → `ORDER_CHANGED`;
+     preview xong DB không đổi (đếm dòng trước/sau).
+6. **Sửa đơn — route và Admin**
+   - Files: `register.ts` action `order.edit` ("Sửa đơn"); `routes/index.ts` 2 route; controller
+     `admin-orders.editPreview`/`edit`; `detail` trả `editRevision`, `editable: boolean`, `editableReason`;
+     Admin E3: nút "Sửa đơn" trong chi tiết đơn, panel sửa (không dùng dropdown trong Modal — dùng nút/
+     panel như O3/O5), gọi preview mỗi khi thay đổi (debounce 400 ms), xác nhận hiện số thu thêm/hoàn.
+   - Verification: script HTTP trong `order-edit.mjs`: 403 thiếu quyền, 404 ngoài scope; `translations`
+     test đạt; `strapi build`.
+7. **Trang người giao**
+   - Files: `services/courier.ts` `myDeliveries(ctx, view)` (lọc `fulfillment.assigneeRef = actorRef`,
+     trạng thái active = `ready|out-for-delivery|failed`, done = `delivered` trong ngày); route
+     `GET /ordering/courier/deliveries`; `admin/src/pages/Courier/` (E4) dùng lại API `transition`,
+     `cash-handover`; menu "Giao của tôi" chỉ hiện khi có `order.process` và là người giao (có đơn được
+     gán hoặc có `payment.record-cash`); làm mới mỗi 30 giây + SSE `orders/stream` nếu sẵn.
+   - Verification: `scripts/ordering/courier.mjs` (mới): người giao A thấy 2 đơn của mình, không thấy đơn
+     của B; A gọi `cash-handover` cho đơn của B → 404 (chặn thêm trong `cashHandover`/`transition`: nếu
+     actor chỉ có quyền người giao — không có `order.read` cả chi nhánh — thì chỉ đơn của mình); UAT
+     điện thoại.
+8. **Tài liệu, UAT seed, gate**
+   - Files: `docs/ordering-staff-guide.md`, `docs/ordering-api-contract.md` (specialHours trong /config,
+     `dailyLimit`, `ITEM_SOLD_OUT`), `docs/plans/ordering-o7-screens.md` ("Đã đổi khi code O7"),
+     `scripts/ordering/uat-server.mjs` (ngày đặc biệt, món giới hạn, đơn để sửa, người giao),
+     `scripts/ordering/run-all.mjs`, `docs/STATUS.md`, Completion record.
+   - Verification: gate đầy đủ (mục Verification), `check:ordering` 2 lượt.
 
 ## Data and rollback
 
-- Migration: `0005-o7-*` tạo unique index cho daily usage; content type mới, không đổi cột cũ.
-  `specialHours` có default `[]` nên dữ liệu chi nhánh cũ đọc được.
-- Compatibility: đơn cũ không có reserve nên release bỏ qua khi không có usage.
-- Rollback: tắt giới hạn bằng cách xóa `dailyLimit`; sửa đơn ẩn bằng cách không cấp `order.edit`.
+- Migration `0005-o7-ops-extras` thêm bảng và index; `order.editRevision` default 0,
+  `order-line.addedInRevision` null — đơn cũ đọc bình thường.
+- Đơn cũ không có reservation: `releaseForOrder` không làm gì.
+- Rollback: xóa giới hạn và ngày đặc biệt trong Admin; bỏ quyền `order.edit`. Không xóa bảng (dữ liệu
+  reservation còn dùng để đối chiếu).
 
 ## Verification
 
-- Automated: `pnpm run lint`, `pnpm run typecheck`, `pnpm run test`, `pnpm run check:ordering` (2 lượt),
-  `check:phase3` tắt/bật, smoke pickup/sepay/delivery, `strapi build` tắt/bật.
-- Manual UAT: đặt đơn vào ngày đặc biệt; bán hết món giới hạn; sửa một đơn mỗi loại; người giao làm
-  trọn một chuyến trên điện thoại.
+- Automated (tuần tự, `DATABASE_NAME`/`ORDERING_TEST_DATABASE` là DB test):
+
+  ```bash
+  pnpm run lint && pnpm run typecheck && pnpm run test
+  pnpm run check:ordering            # 2 lượt liên tiếp
+  DATABASE_NAME=salanca_ordering_test ORDERING_ENABLED=false pnpm run check:phase3
+  DATABASE_NAME=salanca_ordering_test ORDERING_ENABLED=true  pnpm run check:phase3
+  DATABASE_NAME=salanca_ordering_test ORDERING_ENABLED=true  pnpm run smoke:reservation-form
+  pnpm run smoke:ordering-pickup && node scripts/smoke-ordering-sepay.mjs && node scripts/smoke-ordering-delivery.mjs
+  ORDERING_ENABLED=true pnpm exec strapi build && ORDERING_ENABLED=false pnpm exec strapi build
+  ```
+
+- Manual UAT: theo spec.
+- Evidence: Completion record + `docs/STATUS.md`.
 
 ## Documentation impact
 
-- Spec `phase-ordering-7-ops-extras.md`, screens + mockup O7, staff guide, API contract, `docs/STATUS.md`,
-  roadmap.
+- Spec O7, screens O7, mockup O7, reference U7, staff guide, API contract, STATUS, roadmap.
 
 ## Risks and blockers
 
-- Sửa đơn đã chuyển khoản là phần rủi ro nhất về tiền — test kỹ phần chênh dương/âm.
-- Tồn theo ngày với đơn đặt trước nhiều ngày: cần UAT kỹ ngày kinh doanh qua nửa đêm.
+- Sửa đơn chạm tiền và allocation: viết hàm thuần cho chênh lệch trước, test property "tổng sau sửa =
+  Σ dòng + phí + adjustment" trước khi nối DB.
+- Đơn trả cả tiền mặt và chuyển khoản rồi sửa giảm: thứ tự hoàn ghi rõ, test riêng.
+- Strapi Admin trên điện thoại: UAT sớm (sau bước 7) để kịp đổi hướng.
 
-Ước lượng thô: 2–3 tuần (bước 1: 2 ngày; 2–3: 4 ngày; 4: 5–6 ngày; 5: 3 ngày; 6: 2 ngày).
+Ước lượng thô: 2–3 tuần (1–2: 2 ngày; 3–4: 4 ngày; 5–6: 5–6 ngày; 7: 3 ngày; 8: 2 ngày).
 
 ## Completion record
 

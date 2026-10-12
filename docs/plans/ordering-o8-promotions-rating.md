@@ -1,145 +1,240 @@
-# O8 — Khuyến mãi (mã giảm giá, khuyến mãi tự động) và đánh giá đơn
+# O8 — Khuyến mãi và đánh giá đơn: kế hoạch thực hiện
 
 Status: Draft
 Owner: tan_ngo (duyệt), AI thực hiện
 Last updated: 2026-10-12
-Related phase: chưa có spec — viết `docs/phases/phase-ordering-8-promotions-rating.md` khi plan này được duyệt
+Related phase: [`phases/phase-ordering-8-promotions-rating.md`](../phases/phase-ordering-8-promotions-rating.md)
+
+Đặc tả màn hình: [`ordering-o8-screens.md`](ordering-o8-screens.md) (K1–K4, R1–R2, reference mục U8). Mockup:
+[`mockups/ordering-o8-promotions-rating.html`](mockups/ordering-o8-promotions-rating.html).
 
 ## Goal
 
-1. **Khuyến mãi:** quán tạo mã giảm giá (khách nhập lúc đặt) và khuyến mãi tự động (tự áp khi đủ điều
-   kiện): giảm % hoặc số tiền, miễn/giảm phí giao, có điều kiện (đơn tối thiểu, chi nhánh, cách nhận,
-   khung giờ, món/danh mục), giới hạn lượt dùng; server tính tiền, chia giảm giá xuống dòng món để hủy
-   món/hoàn tiền vẫn đúng.
-2. **Đánh giá đơn:** khách chấm 1–5 sao + chọn nhãn + ghi chú sau khi nhận đơn; quán xem, lọc, trả lời
-   nội bộ; điểm trung bình vào báo cáo; đánh giá thấp báo quản lý chi nhánh.
+Khuyến mãi (mã + tự động) tính ở server, chia xuống dòng, giới hạn lượt an toàn khi đặt song song; đánh giá
+đơn bằng token đơn, báo quản lý khi xấu. Xem spec cho phạm vi.
 
 ## Non-goals
 
-- **Thẻ quà tặng bán ra có số dư** (contracts §10): chủ dự án chọn làm cả hai (2026-10-12), thẻ quà
-  tặng là phase riêng [O9](ordering-o9-gift-cards.md).
-- Tích điểm, hạng thành viên, tài khoản khách; giới thiệu bạn bè.
-- Combo/mua X tặng Y phức tạp (bundle pricing) — v1 chỉ giảm theo món/danh mục; "tặng món" để sau.
-- Đánh giá công khai trên web, trả lời công khai, đánh giá từng món.
-- Hóa đơn điện tử/VAT cho phần giảm giá (chờ kế toán; pipeline đã có cờ `taxable` cho adjustment).
+- Thẻ quà tặng (O9), tích điểm, giới thiệu bạn bè, mua X tặng Y, combo giá, đánh giá công khai/từng món.
 
 ## Current evidence
 
-- Pricing: `domain/pricing/pipeline.ts` nhận `adjustments: { kind: 'discount'|'fee'|'rounding', code,
-  label, amount|percent, priority, sourceRef, ruleSnapshot }`, chia adjustment xuống dòng theo largest
-  remainder (`allocation.ts`), lưu `order-adjustment` + `adjustment-allocation`. **Chưa** có cách giới
-  hạn một adjustment vào một số dòng (giảm theo món/danh mục).
-- Hủy món/hoàn: `line-cancel.ts`, `refund-amount.ts` dùng phần đã phân bổ — giảm giá chia đúng thì hoàn
-  đúng.
-- Phí giao: `domain/delivery/zones.ts` rule theo subtotal (`freeFrom`), nằm trong `fulfillmentAmount`.
-- Đặt đơn công khai: `services/storefront.ts` + `domain/storefront/parse.ts` (quote và create cùng
-  input), captcha Turnstile, rate limit (`domain/rate-limit.ts`), token đơn `X-Order-Token` cho tra cứu
-  và hủy (`POST /orders/cancel`).
-- Contracts §3/§5 dự kiến `sourceRef` cho promotion ngoài core; §10 thiết kế voucher bán ra.
-- Báo cáo O6: `services/reports.ts` (thêm cột giảm giá/khuyến mãi được); alert engine O6
-  (`services/alert.ts`, rule theo người nhận).
+- `domain/pricing/pipeline.ts`: `PricingAdjustmentInput { kind: discount|fee|rounding, code, label,
+  amount|percent, taxable, priority, sourceRef, ruleSnapshot }`; percent áp trên subtotal; mọi adjustment
+  chia cho **tất cả** dòng (`allocation.ts`, largest remainder); `fulfillmentAmount` là số riêng, không có
+  adjustment trên phí. Kết quả lưu `order-adjustment` + `adjustment-allocation`; dòng có `discountAmount`.
+- Hoàn theo phân bổ: `domain/refund-amount.ts`, `services/line-cancel.ts`.
+- `services/order.ts` `prepareOrder` (quote + create dùng chung), `createOrder` (idempotency, transaction);
+  `domain/storefront/parse.ts` (input công khai); `controllers/storefront.ts` (`verifyCaptcha` cho
+  `order-create`, `order-lookup`; quote không captcha); `controllers/storefront-guard.ts` (rate limit theo IP,
+  429 `RATE_LIMITED`).
+- `order-line.categoriesSnapshot` (JSON `[{ ref, title }]`), `sellableUid`, `variantUid` — đủ để xét điều kiện
+  món/danh mục từ snapshot.
+- Số điện thoại khách: `order.contactSnapshot.phone` (E.164, không mã hóa). Tra cứu đơn so `sha256` (storefront
+  `lookup`).
+- Token đơn: `X-Order-Token` (`storefront.aggregateByToken`), dùng cho xem/hủy/thanh toán.
+- Alert O6: `services/alert.ts` (`open` với `locationRef`), `alert-rules.ts` (danh sách mã cố định
+  `domain/alert-codes.ts`), người nhận theo action + scope (`alert-recipients.ts`).
+- Outbox có `availableAt` (gửi trễ được). Notification `deliver` dedupe theo (event, template, người nhận).
+- Báo cáo O6 `services/reports.ts` đọc sổ payment/refund + snapshot dòng.
 
 ## Decisions and assumptions
 
-- Decision: khuyến mãi là module trong plugin, xuất adjustment `kind: 'discount'` cho pipeline;
-  `sourceRef = promotion:<id>`, `ruleSnapshot` lưu điều kiện lúc áp (đổi khuyến mãi không sửa đơn cũ).
-- Decision: v1 mỗi đơn tối đa **1 mã** + các khuyến mãi tự động có cờ `stackable`; thứ tự áp theo
-  `priority`; tổng giảm không vượt subtotal (phí giao xử lý riêng).
-- Decision: lượt dùng giữ (reserved) lúc tạo đơn trong cùng transaction, khóa dòng promotion
-  (`FOR UPDATE`); trả lại khi đơn hủy/hết hạn/từ chối. Giới hạn theo khách dùng khóa
-  `sha256(số điện thoại chuẩn hóa)` — không lưu số điện thoại thô trong redemption.
-- Decision: đánh giá gắn 1–1 với đơn, gửi bằng token đơn, chỉ khi đơn `completed`, trong N ngày (mặc
-  định 7), sửa được trong 24 giờ.
-- Decision (chủ dự án, 2026-10-12): làm cả mã giảm giá (O8) và thẻ quà tặng (O9).
-- Decision (chủ dự án, 2026-10-12): hủy bớt món làm đơn dưới mức tối thiểu của mã → giữ giảm giá đã áp,
-  hoàn theo phần đã phân bổ.
-- Decision (chủ dự án, 2026-10-12): đánh giá ≤ 2 sao gửi email quản lý chi nhánh qua alert engine O6
-  (rule mới `low-rating`, người nhận `report.read` trong scope chi nhánh).
-- Assumption: web đặt món (OW) sẽ thêm ô nhập mã và trang đánh giá; O8 chỉ làm API + Admin. Email
-  "Mời đánh giá" chứa link tới trang đơn trên web (`orderLinkTemplate`).
+- Decision: khuyến mãi là module trong plugin (`services/promotion.ts`), xuất adjustment `kind: 'discount'`
+  với `sourceRef = promotion:<id>`, `code = <mã hoặc promotion slug>`, `ruleSnapshot` = điều kiện + giá trị lúc áp.
+- Decision: pipeline thêm `target: { kind: 'order' } | { kind: 'lines'; lineIndexes: number[] } | { kind: 'fulfillment' }`
+  cho adjustment. Mặc định `order` (hành vi cũ).
+- Decision: percent làm tròn **xuống** đồng; trần `maxDiscount`; không vượt subtotal của dòng mục tiêu (hoặc phí giao).
+- Decision: chọn khuyến mãi: lấy mọi ứng viên đạt điều kiện → phương án A = tổng các khuyến mãi `stackable`
+  (kể cả mã nếu mã stackable); phương án B = từng khuyến mãi không stackable đứng một mình → chọn phương án giảm
+  nhiều nhất; hòa thì ưu tiên phương án có mã khách nhập, rồi `priority` cao, rồi id nhỏ. Mã không được chọn →
+  `rejected: [{ code, reason: 'not-best' }]` (quote báo khách).
+- Decision: lượt dùng giữ khi tạo đơn (`reserved`), thành `applied` khi đơn `completed`, `released` khi đơn về
+  terminal `canceled`. `usedCount` = số redemption `reserved|applied`.
+- Decision: định danh khách = `HMAC-SHA256(encryptionKey, phoneE164)` (không lưu số thô trong redemption;
+  không dùng sha256 trần vì dò được từ danh bạ). "Đơn đầu tiên" = không có đơn nào khác (trừ `draft`,
+  `canceled`) có cùng số điện thoại — truy vấn `contact_snapshot->>'phone'` có index biểu thức (migration).
+- Decision (2026-10-12): hủy bớt món và sửa đơn giữ khuyến mãi đã áp; sửa đơn tính lại số giảm theo
+  `ruleSnapshot` trên dòng còn lại nhưng không bỏ khuyến mãi khi dưới điều kiện (`warnings: ['promotion-kept']`).
+- Decision: quote công khai nhận `promotionCode`; sau **3** lần mã sai/IP/10 phút thì quote có mã bắt buộc
+  `captchaToken` (`CAPTCHA_FAILED` nếu thiếu); sau **20** lần → `RATE_LIMITED`.
+- Decision: đánh giá: `stars` 1–5, `tags` từ danh sách cấu hình, `comment` ≤ 1000; mở khi đơn `completed`,
+  trong `ratingWindowDays` (7); sửa trong `ratingEditHours` (24). Email mời trễ `ratingInviteDelayMinutes` (60).
+- Decision (2026-10-12): `stars ≤ 2` mở alert `low-rating` (dedupe `low-rating:<orderId>`, `locationRef`,
+  người nhận `report.read` trong scope).
+- Decision: quyền mới `promotion.manage` (tạo/sửa/tắt/xem thống kê khuyến mãi), `rating.manage` (ẩn, ghi chú);
+  xem đánh giá: `order.read` trong scope.
+- Assumption: kế toán chấp nhận giảm giá là adjustment trước thuế (`taxable: true` → thuế tính trên giá sau
+  giảm). Kiểm khi có quyết định VAT.
 
 ## Invariants
 
-- Giảm giá luôn tính ở server; client chỉ gửi mã. Quote và create cho cùng kết quả với cùng input/giờ.
-- Không vượt giới hạn lượt dùng khi nhiều đơn đặt cùng lúc.
-- Σ allocation của một giảm giá = số giảm; hủy món/hoàn tiền dùng phần đã phân bổ.
-- Đoán mã bị chặn: rate limit theo IP + captcha như đặt đơn; lỗi mã không nói mã có tồn tại hay không
-  ngoài các lý do công khai (hết hạn, chưa đủ điều kiện).
-- Đánh giá không lộ thông tin đơn khác; nội dung đánh giá là dữ liệu cá nhân — không log, có trong
-  job retention O6.
+- Client chỉ gửi mã; số giảm do server tính. Quote và create cùng input, cùng giờ → cùng kết quả.
+- `usedCount ≤ usageLimit` mọi lúc, kể cả nhiều process (khóa dòng promotion + mã theo thứ tự id).
+- Σ allocation của một adjustment = số giảm; adjustment `fulfillment` không có allocation dòng.
+- Tổng đơn = Σ dòng (sau giảm) + phí giao (sau giảm phí) + phí khác + thuế + làm tròn.
+- Lỗi mã không tiết lộ mã có tồn tại không khi mã bị tắt/không có (`PROMOTION_INVALID` chung).
+- Không log số điện thoại, nội dung đánh giá, mã đầy đủ (log 4 ký tự cuối).
+
+## Data model
+
+| Bảng | Field |
+| --- | --- |
+| `promotion` | `name` (JSON `{vi,en}`), `internalNote`, `kind` code\|auto, `discountType` percent\|amount\|free-delivery\|delivery-amount, `value` int (percent 1–100; amount VND), `maxDiscount` int?, `target` JSON `{ kind: 'order'\|'products'\|'categories', refs: string[] }`, `minSubtotal` int (0), `locationRefs` JSON string[] \| null (= mọi chi nhánh), `receiveKinds` JSON (`pickup`,`delivery`), `startsAt`, `endsAt?` (datetime), `weekdays` JSON (mon..sun, rỗng = mọi ngày), `timeRanges` JSON `[{start,end}]` (giờ chi nhánh), `firstOrderOnly` bool, `usageLimit` int?, `perCustomerLimit` int?, `stackable` bool, `priority` int, `active` bool, `usedCount` int, `createdBy` |
+| `promotion-code` | `promotion` (manyToOne), `code` (chữ hoa A–Z 0–9 `-`, 4–32, unique), `usageLimit` int? (1 = dùng một lần), `usedCount` int, `active` bool, `batch` string? |
+| `promotion-redemption` | `promotion`, `promotionCode?`, `order`, `customerKey` (HMAC hex), `discountAmount` int, `status` reserved\|applied\|released, `reservedAt`, `appliedAt?`, `releasedAt?`, `releaseReason?` |
+| `order-rating` | `order` (oneToOne, unique), `locationRef`, `stars` 1–5, `tags` JSON string[], `comment` text ≤ 1000, `locale`, `status` visible\|hidden, `staffNote`, `staffNoteBy`, `ratedAt`, `updatedAt`, `editableUntil` |
+| settings (`ordering-settings`) | `ratingTags: [{ code, label: {vi,en}, sentiment: positive\|negative }]`, `ratingWindowDays`, `ratingEditHours`, `ratingInviteDelayMinutes`, `ratingInviteEnabled` |
+| retention config | `ratingCommentDays` (365) — job retention O6 xóa `comment` cũ |
+
+Migration `0006-o8-promotions-rating.ts`: unique `upper(code)`; index redemption (promotion_id, customer_key,
+status); index `order_rating(order_id)` unique; index biểu thức
+`plugins_ordering_order ((contact_snapshot->>'phone'))`; `CHECK (used_count >= 0)`.
+
+## API
+
+Công khai (`/api/v1/ordering`):
+
+| Method | Path | Body / query | Trả về / lỗi |
+| --- | --- | --- | --- |
+| POST | `/quote` (đã có) | thêm `promotionCode?`, `captchaToken?` | thêm `promotions: [{ code, label, amount, target }]`, `rejectedPromotions: [{ code, reason }]`, `totals.discountTotal` |
+| POST | `/orders` (đã có) | thêm `promotionCode?` | như quote; lỗi `PROMOTION_*` |
+| GET | `/orders/rating` | header `X-Order-Token` | `{ rateable, reason?, tags, rating? }` |
+| POST | `/orders/rating` | `{ stars, tags?, comment? }` + token | `{ rating }`; `RATING_NOT_AVAILABLE` 409, `RATING_LOCKED` 409 |
+
+Admin (`/ordering`):
+
+| Method | Path | Quyền | Mô tả |
+| --- | --- | --- | --- |
+| GET | `/promotions?status=&kind=&q=&page=` | `promotion.manage` | danh sách + `usedCount`, `discountTotal` |
+| POST | `/promotions` | `promotion.manage` | tạo; change-log `promotion.create` |
+| GET/PUT | `/promotions/:id` | `promotion.manage` | xem/sửa (không sửa `kind`; sửa điều kiện chỉ áp đơn mới) |
+| POST | `/promotions/:id/active` | `promotion.manage` | `{ active }` |
+| GET | `/promotions/:id/codes?page=&q=` | `promotion.manage` | danh sách mã |
+| POST | `/promotions/:id/codes` | `promotion.manage` | `{ code }` một mã hoặc `{ generate: { count ≤ 5000, prefix, length 8–16, usageLimit } }` |
+| GET | `/promotions/:id/codes/export` | `promotion.manage` + `export` | CSV mã |
+| POST | `/promotion-codes/:id/active` | `promotion.manage` | tắt/bật mã |
+| GET | `/promotions/:id/redemptions?page=` | `promotion.manage` | đơn đã dùng (mã đơn, ngày, số giảm, trạng thái) |
+| GET | `/ratings?branch=&stars=&from=&to=&hasComment=&status=&page=` | `order.read` | lọc theo scope |
+| POST | `/ratings/:id/hide` · `/ratings/:id/note` | `rating.manage` | ẩn/hiện; ghi chú nội bộ; change-log |
+| GET | `/reports/sales` (đã có) | `report.read` | thêm `summary.discount`, groupBy `promotion`; `ratings: { average, count, distribution }` |
+
+Mã lỗi mới (`domain/errors.ts`, `translations/o8.ts`):
+
+| Code | HTTP | `details.reason` |
+| --- | --- | --- |
+| `PROMOTION_INVALID` | 400 | — (không có, đã tắt, sai định dạng) |
+| `PROMOTION_EXPIRED` | 400 | `not-started` \| `ended` |
+| `PROMOTION_NOT_ELIGIBLE` | 400 | `min-subtotal` (`details.minSubtotal`, `missing`) \| `location` \| `receive-kind` \| `time` \| `products` \| `first-order` \| `per-customer` |
+| `PROMOTION_EXHAUSTED` | 409 | `usage-limit` \| `code-used` |
+| `RATING_NOT_AVAILABLE` | 409 | `not-completed` \| `window-closed` \| `disabled` |
+| `RATING_LOCKED` | 409 | — |
+| `PROMOTION_NOT_FOUND`, `RATING_NOT_FOUND` | 404 | — (Admin) |
 
 ## Implementation steps
 
-1. **Pipeline: giảm giá theo dòng được chọn**
-   - Files: `domain/pricing/pipeline.ts`, `allocation.ts` — thêm `eligibleLines?: number[]` vào
-     `PricingAdjustmentInput`; percent tính trên subtotal của các dòng đó; allocation chỉ chia vào các
-     dòng đó. Property test giữ bất biến tổng.
-   - Verification: `pipeline.property.test.ts` thêm trường hợp eligible; `pnpm run test`.
-2. **Dữ liệu khuyến mãi**
-   - Files: content type `promotion` (tên VI/EN, `kind: code|auto`, `discountType: percent|amount|
-     delivery-fee`, `value`, `maxDiscount`, `minSubtotal`, `validFrom/To`, `weekdays`, `timeRanges`,
-     `locationRefs | all`, `receiveKinds`, `productRefs/categoryRefs`, `usageLimit`, `perCustomerLimit`,
-     `stackable`, `priority`, `active`), `promotion-code` (code chữ hoa, unique, thuộc promotion; sinh
-     hàng loạt), `promotion-redemption` (promotion, code, order, customerKey hash, amount, status
-     `reserved|applied|released`); migration `0006-o8-*` (unique code, index redemption). Quyền mới
-     `promotion.manage`.
-   - Verification: `schema.mjs`; unit test validate (percent 1–100, ngày hợp lệ).
-3. **Bộ máy áp khuyến mãi**
-   - Files: `domain/promotions/evaluate.ts` (thuần: đơn nháp + danh sách promotion → adjustments + lý
-     do không áp), `services/promotion.ts` (nạp promotion đang hiệu lực theo chi nhánh/giờ, kiểm lượt,
-     reserve/release redemption), nối vào `order.prepareOrder` (quote + create). Miễn/giảm phí giao:
-     adjustment `discount` gắn vào phần phí (dòng phí) hoặc giảm `fulfillmentAmount` — chọn khi làm,
-     ghi Completion record. Mã lỗi: `PROMOTION_INVALID`, `PROMOTION_EXPIRED`,
-     `PROMOTION_NOT_ELIGIBLE` (+ `details.reason`), `PROMOTION_EXHAUSTED`.
-   - Verification: unit test evaluate (từng điều kiện, stack, giới hạn tổng giảm); script
-     `promotions.mjs`: quote có mã = create; 2 đơn tranh lượt cuối → một thắng; hủy đơn trả lượt;
-     per-customer theo số điện thoại; hủy bớt món hoàn đúng phần đã phân bổ.
-4. **API công khai và Admin khuyến mãi**
-   - Files: `parse.ts` nhận `promotionCode`; quote trả `promotions: [{ code, label, amount }]` và
-     `rejected: [{ code, reason }]`; rate limit riêng cho lỗi mã. Admin: trang "Khuyến mãi" (danh sách,
-     tạo/sửa, sinh mã, bật/tắt, thống kê lượt dùng và tổng giảm), change-log. Báo cáo O6 thêm cột/nhóm
-     "Giảm giá theo khuyến mãi"; CSV thêm cột mã.
-   - Verification: script HTTP (thiếu `promotion.manage` → 403; nhân viên chi nhánh chỉ thấy khuyến mãi
-     của chi nhánh mình nếu áp scope); `check:ordering`.
-5. **Đánh giá đơn**
-   - Files: content type `order-rating` (order 1–1, `stars` 1–5, `tags` (đúng giờ, ngon, đóng gói,
-     người giao…), `comment` ≤ 1000, `locale`, `status visible|hidden`, `staffNote`, `ratedAt`,
-     `editableUntil`); `services/rating.ts`; route công khai `POST/GET /orders/rating` (`X-Order-Token`,
-     captcha, rate limit); Admin trang "Đánh giá" (lọc chi nhánh/sao/ngày, ẩn, ghi chú nội bộ); báo cáo
-     thêm điểm TB và số đánh giá theo chi nhánh; email "Mời đánh giá" sau `completed` (template VI/EN,
-     gửi một lần); alert `low-rating` (≤ 2 sao); retention xóa `comment` sau thời hạn cấu hình.
-   - Verification: script `rating.mjs`: đơn chưa xong → 409; token sai → 401; gửi 2 lần → sửa trong
-     24 giờ, sau đó 409; nhân viên ngoài scope không thấy (404); báo cáo TB đúng.
-6. **Tài liệu và UAT**
-   - Files: spec + screens + mockup O8 trước khi code UI; `ordering-api-contract.md` (`promotionCode`,
-     lỗi khuyến mãi, rating), staff guide (tạo khuyến mãi, xem đánh giá), `docs/STATUS.md`, roadmap.
+1. **Pipeline nhận `target`**
+   - Files: `domain/pricing/pipeline.ts`, `allocation.ts`, test.
+   - Làm: `target.lines` → percent tính trên Σ base của các dòng đó, allocation chỉ chia vào các dòng đó (largest
+     remainder, khóa theo index); `target.fulfillment` → giảm `fulfillmentAmount` (không âm), không allocation;
+     kiểm `discount ≤ base mục tiêu`; output `PricedAdjustment.target`.
+   - Verification: `pipeline.test.ts` ca mới; `pipeline.property.test.ts` thêm sinh ngẫu nhiên `target` giữ bất biến
+     tổng và Σ allocation; `pnpm run test`.
+2. **Dữ liệu + quyền**
+   - Files: 4 content type, migration `0006`, `register.ts` (`promotion.manage`, `rating.manage`), `persisted-tables`,
+     `types/generated`; `domain/promotions/schema.ts` (zod cho Admin input: percent 1–100, `endsAt > startsAt`,
+     `timeRanges` hợp lệ, `target.refs` khác rỗng khi kind ≠ order, free-delivery bỏ `value`).
+   - Verification: `scripts/ordering/schema.mjs`; unit test schema.
+3. **Hàm thuần `evaluate`**
+   - Files: `domain/promotions/evaluate.ts`:
+
+     ```ts
+     evaluate(input: {
+       now: Date; timezone: string; locationRef: string; receiveKind: 'pickup'|'delivery';
+       lines: Array<{ index: number; sellableUid: string; variantUid?: string; categoryRefs: string[]; base: number }>;
+       fulfillmentAmount: number; subtotal: number;
+       candidates: PromotionSnapshot[];          // đã lọc active + có thể dùng (lượt kiểm ở service)
+       code?: string; customer: { isFirstOrder: boolean; usedByPromotion: Record<number, number> };
+     }): { applied: AppliedPromotion[]; rejected: Array<{ code: string; reason: string }> }
+     ```
+
+     điều kiện theo thứ tự: thời gian → chi nhánh → cách nhận → ngày/khung giờ → đơn đầu → món/danh mục (có dòng
+     khớp) → tạm tính tối thiểu (tính trên subtotal cả đơn) → lượt mỗi khách; tính số giảm; chọn phương án.
+   - Verification: `evaluate.test.ts` ≥ 30 ca (mỗi điều kiện đạt/không, cộng dồn, hòa, trần, percent làm tròn,
+     free-delivery khi phí 0 → không áp, khung giờ qua nửa đêm).
+4. **Service + nối vào quote/create/hủy**
+   - Files: `services/promotion.ts`:
+     - `candidates(locationRef, now, code?)` (active, trong thời gian; mã chữ hoa);
+     - `customerContext(phoneE164)` (HMAC; đếm redemption theo promotion; đơn đầu);
+     - `reserveInTransaction(trx, orderId, applied, customerKey)`: khóa `promotion` rồi `promotion-code` theo id
+       (`FOR UPDATE`), kiểm `usedCount < usageLimit`, mã `usedCount < usageLimit`, per-customer lại lần nữa trong
+       khóa → insert redemption `reserved`, tăng `usedCount`; thiếu → `PROMOTION_EXHAUSTED`;
+     - `releaseForOrder(trx, orderId, reason)`, `markApplied(orderId)` (khi `completed`).
+     `services/order.ts` `prepareOrder`: sau khi có dòng + phí → `evaluate` → adjustment cho pipeline; quote trả
+     `promotions`/`rejectedPromotions`; create gọi `reserveInTransaction` sau khi tạo đơn. Mã khách nhập không áp
+     được ở create → lỗi `PROMOTION_*` (không tạo đơn); khuyến mãi tự động hết lượt ở create → bỏ qua, tính lại
+     (tổng có thể khác quote; response trả tổng thật). `transition.ts` terminal `canceled` → release; `completed` →
+     applied. `order-edit.ts` (O7): giữ adjustment, tính lại số giảm từ `ruleSnapshot` trên dòng còn lại.
+     `parse.ts` + controller quote: đếm mã sai theo IP (bucket `promotion-code`), ngưỡng captcha/429.
+   - Verification: `scripts/ordering/promotions.mjs` (mới): quote = create; mỗi kiểu giảm; món/danh mục; tự động +
+     mã; per-customer (2 đơn cùng số → lần 2 `per-customer`); đơn đầu; hủy trả lượt; hủy bớt món hoàn đúng; sửa đơn
+     giữ khuyến mãi; mã sai 3 lần → cần captcha, 20 lần → 429. `scripts/ordering/promotion-race.mjs` (mới, 2
+     process + barrier như outbox): `usageLimit 1` → đúng một đơn có giảm.
+5. **Admin khuyến mãi**
+   - Files: `controllers/promotions.ts`, routes, `admin/src/pages/Promotions/` (K1 danh sách, K2 form, K3 mã, K4
+     thống kê), menu con nhóm mới **Khuyến mãi** (ẩn khi không có quyền), `translations/o8.ts`; sinh mã bằng
+     `crypto.randomInt` trên bảng chữ không nhầm (bỏ 0/O/1/I/L), kiểm trùng; xuất CSV dùng `domain/csv.ts` (O6).
+   - Verification: script HTTP: thiếu quyền 403; sinh 500 mã không trùng; xuất CSV có BOM; tắt mã → quote
+     `PROMOTION_INVALID`; sửa promotion không đổi đơn cũ (adjustment giữ `ruleSnapshot`).
+6. **Báo cáo, CSV đơn**
+   - Files: `services/reports.ts` (`summary.discount` = Σ adjustment discount của đơn bán theo businessDate;
+     groupBy `promotion`), `order-export.ts` thêm cột "Khuyến mãi" (mã/tên + số giảm); Admin Reports thêm thẻ
+     "Giảm giá" và nhóm theo khuyến mãi.
+   - Verification: `scripts/ordering/reports.mjs` mở rộng: tổng giảm khớp Σ adjustment; CSV có cột mới.
+7. **Đánh giá — dữ liệu, API công khai, email**
+   - Files: `services/rating.ts` (`viewByToken`, `submit`, `listForStaff`, `hide`, `note`); routes công khai
+     (`publicRoute`, rate limit bucket `rating`); outbox consumer: khi group → `completed` và `ratingInviteEnabled`
+     và có email → enqueue `rating.invite` với `availableAt = now + delay` → template `customer.rating-invite`
+     (VI/EN, link `orderLinkTemplate` + `#rate`); alert code `low-rating` trong `domain/alert-codes.ts` +
+     `alert-rules` mặc định (`threshold: 2` = số sao tối đa, `recipients: ['report.read']`); retention xóa
+     `comment` sau `ratingCommentDays`.
+   - Verification: `scripts/ordering/rating.mjs` (mới): đủ ca trong spec; email mời gửi một lần (replay outbox);
+     2 sao → alert mở với `locationRef`, người nhận đúng scope; 5 sao → không alert; sửa trong 24 giờ đổi
+     số sao (3 → 1 mở alert); retention xóa comment cũ.
+8. **Admin đánh giá + báo cáo**
+   - Files: `admin/src/pages/Ratings/` (R1 danh sách, R2 chi tiết), nhóm **Vận hành**; chi tiết đơn S4 hiện đánh
+     giá; Reports thêm thẻ "Đánh giá TB"; Settings (S9) khối "Đánh giá" (bật mời, thời hạn, nhãn).
+   - Verification: script HTTP: ngoài scope 404; thiếu `rating.manage` không ẩn được (403); báo cáo TB đúng.
+9. **Tài liệu, UAT seed, gate**
+   - Files: `docs/ordering-api-contract.md` (`promotionCode`, `promotions`, lỗi, rating), staff guide (tạo khuyến
+     mãi, sinh mã, xem đánh giá), `docs/security-baseline.md` (đoán mã, dữ liệu đánh giá), screens O8 "Đã đổi khi
+     code", `uat-server.mjs` (khuyến mãi mẫu, đơn đã xong để đánh giá), `run-all.mjs`, STATUS, Completion record.
+   - Verification: gate đầy đủ, `check:ordering` 2 lượt.
 
 ## Data and rollback
 
-- Migration `0006-o8-*`: content type mới + index; không đổi cột cũ. Đơn cũ không có redemption.
-- Rollback: tắt mọi promotion (`active=false`) → quote không áp; ẩn trang bằng quyền. Đơn đã áp giữ
-  nguyên adjustment (đã thành sổ).
+- Migration `0006`: bảng/index mới; index biểu thức trên `order` tạo `CONCURRENTLY` không được trong transaction —
+  dùng `CREATE INDEX IF NOT EXISTS` thường (bảng đơn còn nhỏ lúc làm O8; ghi chú cho production lớn).
+- Rollback: tắt khuyến mãi; ẩn trang bằng quyền. Adjustment đã áp giữ nguyên.
 
 ## Verification
 
-- Automated: lint, typecheck, test, `check:ordering` 2 lượt, `check:phase3` tắt/bật, smoke pickup/sepay/
-  delivery, `strapi build` tắt/bật.
-- Manual UAT: tạo mã 10% tối đa 30.000đ cho đơn từ 100.000đ ở Q1 → đặt đơn dùng mã → hủy một món → hoàn
-  đúng; khuyến mãi tự động miễn phí giao; khách gửi đánh giá 2 sao → quản lý nhận email.
+- Automated: như O7 (lint, typecheck, test, `check:ordering` 2 lượt, `check:phase3` tắt/bật, smoke, build tắt/bật).
+- Manual UAT: theo spec.
+- Evidence: Completion record + `docs/STATUS.md`.
 
 ## Documentation impact
 
-- Spec/screens/mockup O8, API contract, staff guide, report docs, `docs/STATUS.md`, roadmap,
-  `docs/security-baseline.md` (rate limit mã, dữ liệu đánh giá).
+- Spec/screens/mockup O8, reference U8, API contract, staff guide, security baseline, STATUS, roadmap.
 
 ## Risks and blockers
 
-- Lạm dụng mã (đoán mã, dùng nhiều số điện thoại) — rate limit + giới hạn per-customer chỉ giảm rủi ro;
-  mã giá trị lớn nên là mã dùng một lần.
-- Kế toán có thể yêu cầu cách ghi giảm giá trên hóa đơn điện tử — chờ quyết định VAT.
-- Phụ thuộc OW để khách thật sự dùng mã và gửi đánh giá.
+- Chọn phương án cộng dồn sai làm lệch kỳ vọng của quán: hiện rõ trong quote (`rejectedPromotions` lý do
+  `not-best`) và trong chi tiết đơn.
+- Đổi pipeline chạm mọi đơn: property test phải chạy trước khi nối service.
+- Quyết định VAT có thể đổi `taxable` của giảm giá.
 
-Ước lượng thô: 2–3 tuần (bước 1: 2 ngày; 2–3: 5–6 ngày; 4: 3–4 ngày; 5: 3–4 ngày; 6: 2 ngày).
+Ước lượng thô: 2–3 tuần (1: 2 ngày; 2–4: 5–6 ngày; 5–6: 3–4 ngày; 7–8: 3–4 ngày; 9: 2 ngày).
 
 ## Completion record
 

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O7 Vận hành bổ sung</title>
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body>
+<main class="doc">
+
+<header class="doc-head">
+  <p class="eyebrow">Mockup · Phase O7 · Vận hành bổ sung</p>
+  <h1>Ngày đặc biệt, giới hạn mỗi ngày, sửa đơn, trang người giao</h1>
+  <p class="lead"><strong>Đặc tả từng màn (field, trạng thái, API, quyền, component): <a href="../ordering-o7-screens.md">ordering-o7-screens.md</a>.</strong></p>
+  <div class="links">
+    <a href="../../phases/phase-ordering-7-ops-extras.md">Spec O7</a>
+    <a href="../ordering-o7-ops-extras.md">Kế hoạch O7</a>
+    <a href="../ordering-reference.md">Reference U7</a>
+  </div>
+</header>
+
+<section class="screen">
+  <h2>E1. Ngày đặc biệt (Chi nhánh → tab Tự lấy)</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/branches/Q1 · Tự lấy</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a class="active">Bán hàng</a></nav>
+        <div class="content">
+          <div class="tabs"><span>Thông tin</span><span class="on">Tự lấy</span><span>Giao tận nơi</span><span>Thuế</span></div>
+          <div class="panel">
+            <div class="spread"><strong>Giờ mở cửa</strong><span class="muted small">Theo tuần · T2–CN 07:00–22:00</span></div>
+          </div>
+          <div class="panel">
+            <div class="spread"><strong>Ngày đặc biệt</strong><span class="btn ghost">Chép sang Giao tận nơi</span></div>
+            <div class="table-wrap"><table class="t">
+              <thead><tr><th>Ngày</th><th>Đóng cửa</th><th>Khoảng giờ</th><th>Ghi chú</th><th></th></tr></thead>
+              <tbody>
+                <tr><td><span class="input">09/02/2027</span></td><td><span class="toggle"><span class="on">Mở</span><span>Đóng</span></span></td><td><span class="input">10:00</span> – <span class="input">14:00</span> <span class="btn ghost">+ khoảng</span></td><td><span class="input">Mùng 2 Tết</span></td><td><span class="btn ghost">Xóa</span></td></tr>
+                <tr><td><span class="input">08/02/2027</span></td><td><span class="toggle"><span>Mở</span><span class="on">Đóng</span></span></td><td class="muted">—</td><td><span class="input">Mùng 1 Tết</span></td><td><span class="btn ghost">Xóa</span></td></tr>
+                <tr class="hl"><td><span class="input">31/12/2026</span></td><td><span class="toggle"><span class="on">Mở</span><span>Đóng</span></span></td><td><span class="input">07:00</span> – <span class="input">02:00</span></td><td><span class="input">Giao thừa dương lịch</span></td><td><span class="btn ghost">Xóa</span></td></tr>
+              </tbody></table></div>
+            <span class="btn secondary" style="justify-self:start">+ Thêm ngày đặc biệt</span>
+            <span class="muted small">Đã qua (4) ▸</span>
+            <p class="hint small muted">Ngày đặc biệt thay giờ mở cửa thường và ngày nghỉ của đúng ngày đó. Khoảng 07:00–02:00 là mở qua nửa đêm.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Lưu cùng nút "Lưu" của chi nhánh; quyền <code>settings.manage</code>.</span></li>
+      <li><span class="n">2</span><span>Mỗi cách nhận có danh sách riêng; nút "Chép sang Giao tận nơi" ghi đè (có xác nhận).</span></li>
+      <li><span class="n">3</span><span>Lỗi trùng ngày / chồng khoảng hiện dưới đúng dòng (từ <code>details.issues[].path</code>).</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>E2. Giới hạn mỗi ngày (Tạm hết món)</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/availability?branch=Q1</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a class="active">Bán hàng</a></nav>
+        <div class="content">
+          <div class="spread"><strong>Tạm hết món · Quận 1</strong><span class="check on">Chỉ món có giới hạn</span></div>
+          <div class="panel" style="padding:0"><div class="table-wrap"><table class="t">
+            <thead><tr><th>Món</th><th>Đang bán</th><th class="num">Giới hạn/ngày</th><th>Hôm nay</th></tr></thead>
+            <tbody>
+              <tr><td>Cơm gà xối mỡ</td><td><span class="toggle"><span class="on">Bán</span><span>Hết</span></span></td><td class="num"><span class="input">30</span></td><td>12 / 30 <span class="badge ok">còn 18</span></td></tr>
+              <tr class="hl"><td>&nbsp;&nbsp;↳ Phần lớn</td><td><span class="toggle"><span class="on">Bán</span><span>Hết</span></span></td><td class="num"><span class="input">10</span></td><td>9 / 10 <span class="badge amber">còn 1</span></td></tr>
+              <tr><td>Bánh flan</td><td><span class="toggle"><span class="on">Bán</span><span>Hết</span></span></td><td class="num"><span class="input">20</span></td><td>20 / 20 <span class="badge warn">Hết hôm nay</span><br><span class="muted small">Tự bán lại từ ngày kinh doanh mai</span></td></tr>
+              <tr><td>&nbsp;&nbsp;↳ tùy chọn: Thêm trứng ốp</td><td><span class="toggle"><span class="on">Bán</span><span>Hết</span></span></td><td class="num"><span class="input">40</span></td><td>7 / 40</td></tr>
+            </tbody></table></div></div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Bấm số giới hạn để sửa tại chỗ; để trống = bỏ giới hạn. <code>PUT /ordering/availability/daily-limit</code>.</span></li>
+      <li><span class="n">2</span><span>Trừ khi tạo đơn theo ngày kinh doanh của lúc nhận; hủy/từ chối/hết hạn/hủy bớt món trả lại.</span></li>
+      <li><span class="n">3</span><span>Hết phần không đổi công tắc "Đang bán"; web hiện "Hết hôm nay".</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>E3. Sửa đơn</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/orders/142/edit</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a class="active">Bán hàng</a></nav>
+        <div class="content">
+          <div class="spread"><strong>Sửa đơn SLC-000142 · Đang chuẩn bị · đã chuyển khoản</strong><span class="badge info">lần sửa 1</span></div>
+          <div class="grid2">
+            <div class="panel">
+              <strong>Món trong đơn</strong>
+              <div class="spread"><span>Cơm gà xối mỡ</span><span><span class="input">2</span> <span class="muted small">(đang 2)</span></span></div>
+              <div class="spread"><span style="text-decoration:line-through">Trà đào</span><span><span class="input">0</span> <span class="muted small">(đang 1)</span></span></div>
+              <strong>+ Thêm món</strong>
+              <div class="field"><label>Tìm món</label><span class="input">bánh flan</span></div>
+              <div class="spread"><span>Bánh flan × <span class="input">2</span></span><span class="badge primary">thêm</span></div>
+              <div class="field"><label>Giờ nhận</label><span class="toggle"><span>Sớm nhất</span><span class="on">Hẹn 12:30</span></span></div>
+              <div class="field"><label>Lý do sửa *</label><span class="input">Khách gọi đổi trà đào sang bánh flan</span></div>
+              <span class="check on">Báo khách qua email</span>
+            </div>
+            <div class="panel">
+              <strong>Kết quả</strong>
+              <div class="table-wrap"><table class="t" style="min-width:0">
+                <thead><tr><th></th><th class="num">Trước</th><th class="num">Sau</th></tr></thead>
+                <tbody>
+                  <tr><td>Tạm tính</td><td class="num">175.000</td><td class="num">190.000</td></tr>
+                  <tr><td>Phí giao</td><td class="num">0</td><td class="num">0</td></tr>
+                  <tr><td class="strong">Tổng</td><td class="num">175.000</td><td class="num strong">190.000</td></tr>
+                </tbody></table></div>
+              <div class="alert-box amber">Khách cần trả thêm <strong>15.000đ</strong> — gửi link thanh toán. Bếp vẫn làm tiếp.</div>
+              <span class="btn">Lưu thay đổi</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Cột phải lấy từ <code>POST .../edit/preview</code> (debounce 400 ms) — không ghi gì.</span></li>
+      <li><span class="n">2</span><span>Dòng cũ giữ giá lúc đặt; dòng thêm lấy giá hiện hành; không tăng số lượng dòng cũ.</span></li>
+      <li><span class="n">3</span><span>Giảm tiền: "Hoàn tiền mặt X" hoặc "Tạo phiếu hoàn chuyển khoản X". Người khác vừa sửa → "Đơn vừa được người khác sửa" + Tải lại.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>E4. Giao của tôi (điện thoại)</h2>
+  <div class="phones">
+    <div class="phone">
+      <div class="admin" style="display:block">
+        <div class="content" style="padding:14px;gap:12px">
+          <div class="spread"><strong>Giao của tôi · Tâm</strong><span class="muted small">12/10</span></div>
+          <div class="tabs"><span class="on">Đang làm (2)</span><span>Đã xong (5)</span></div>
+          <div class="panel">
+            <div class="spread"><strong>SLC-000140</strong><span class="badge primary">Đang giao</span></div>
+            <div class="strong">12 Lê Lợi, Phường Bến Thành, TP.HCM</div>
+            <div class="muted">Chị Lan · hẹn 12:30</div>
+            <div class="spread"><span class="btn secondary">Gọi</span><span class="btn secondary">Bản đồ</span></div>
+            <div class="small">2× Cơm gà xối mỡ · 1× Bánh flan</div>
+            <div class="strong" style="color:var(--warn)">Thu 235.000đ tiền mặt</div>
+            <span class="btn success">Thu tiền và giao</span>
+            <span class="btn ghost">Giao thất bại</span>
+          </div>
+          <div class="panel">
+            <div class="spread"><strong>SLC-000141</strong><span class="badge gray">Sẵn sàng</span></div>
+            <div class="strong">5 Pasteur, Phường Sài Gòn</div>
+            <div class="spread"><span class="btn secondary">Gọi</span><span class="btn secondary">Bản đồ</span></div>
+            <div class="strong" style="color:var(--ok)">Đã thanh toán</div>
+            <span class="btn">Bắt đầu giao</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <ol class="notes">
+    <li><span class="n">1</span><span>Trang trong Admin (phương án A), một cột ≤ 480px, nút cao ≥ 48px; tự làm mới 30 giây.</span></li>
+    <li><span class="n">2</span><span>Chỉ đơn gán cho mình (server lọc); "Bản đồ" mở Google Maps bằng địa chỉ chữ, không định vị.</span></li>
+    <li><span class="n">3</span><span>"Giao thất bại" mở panel chọn lý do bằng nút; quản lý quyết định giao lại/hủy.</span></li>
+  </ol>
+</section>
+
+<footer class="doc-foot">File trên máy, không publish. Món, địa chỉ, số tiền chỉ là ví dụ.</footer>
+</main>
+</body>
+</html>
