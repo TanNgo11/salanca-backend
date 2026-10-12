@@ -1719,6 +1719,28 @@ từng món; QR bàn mở phiên gom nhiều đơn, thanh toán một lần.
 niêm yết.
 
 
+## U15. Lịch sử thay đổi (O15)
+
+Ghi chú nguồn như U7: từ tài liệu công khai, chưa ghim commit.
+
+- **Strapi Enterprise Audit Logs**: bảng sự kiện (action, ngày, người), lọc theo action/người/ngày, modal chi tiết payload;
+  plugin không dùng được (bản Enterprise) nhưng là mẫu UI quen thuộc với người dùng Strapi.
+- **Saleor** order/staff events, **Medusa** (activity theo đơn), **Shopify** timeline + "Staff activity": nhãn hành động dễ đọc,
+  link sang đối tượng, lọc theo nhân viên.
+
+**Best practice:** một bảng log append-only, nhãn hành động có nhóm, trước → sau theo field, lọc người/ngày/nhóm/đối tượng, link
+ngược tới đối tượng, xuất CSV cho kế toán.
+
+## U16. Tích điểm và hạng thành viên (O16)
+
+- **Shopify / Smile.io, Square Loyalty, Toast Loyalty** (tài liệu công khai): tích theo tiền chi (loại tip/phí), đổi điểm thành
+  giảm giá ở checkout có ngưỡng tối thiểu, hạng theo chi tiêu kỳ (VIP tiers) có hệ số điểm, điểm hết hạn, email nhắc sắp hết hạn,
+  admin điều chỉnh điểm có lý do; báo cáo nợ điểm.
+- **WooCommerce Points and Rewards** (extension, GPL): tỉ lệ tích/đổi, trần giảm theo %, điểm trừ lại khi hoàn tiền.
+
+**Best practice:** điểm là sổ append-only theo lô có hạn; tích khi đơn hoàn tất, trừ lại khi hoàn tiền; đổi điểm là một khoản giảm
+áp sau khuyến mãi; hạng xét theo cửa sổ 12 tháng có ân hạn.
+
 ## UW. Giao diện web đặt món (OW)
 
 Nguồn thêm: [Medusa Next.js storefront](https://github.com/medusajs/nextjs-starter-medusa/tree/9818886f06e493cb2249733d114d339aa216ef00)
