@@ -64,6 +64,16 @@ Related phase: [`phases/phase-ordering-6-ops-golive.md`](../phases/phase-orderin
   `order.business_date` (loại `draft`, `canceled`). Nhóm `category`/`product` chỉ đọc snapshot trên
   `order-line` (`categoriesSnapshot[0]`, `sellableUid` + `variantUid`, `titleSnapshot` lần xuất hiện
   gần nhất), không đọc catalog; dòng không danh mục gom `uncategorized`. Khoảng tối đa 366 ngày.
+- Decision: xuất CSV đơn (`GET /orders/export`, quyền `export`) gồm mọi đơn `status != 'draft'` (kể cả
+  `canceled`) theo `business_date`, tối đa 92 ngày và 10.000 đơn (`EXPORT_TOO_LARGE` 400); hằng giới
+  hạn chung ở `shared/export-limits.ts` để server và Admin cùng dùng. CSV UTF-8 BOM, mọi ô đều bọc
+  nháy kép, ô bắt đầu `= + - @ \t \r` được thêm `'` chống công thức — tiện ích viết riêng trong
+  `domain/csv.ts`, không import `src/shared/csv` của app.
+- Decision: job `retention` (cron 03:30) redact `payment-event.raw_payload` quá `paymentPayloadDays`
+  chỉ còn allowlist `RETAINED_PAYLOAD_KEYS` (`domain/pii.ts` — giữ id/số tiền/`referenceCode` để đối
+  soát, bỏ `content`/`accountNumber`/…) + `redactedAt`; payload không parse được thay bằng
+  `{ redactedAt, unparsable: true }`. Xóa outbox `delivered`/`failed` và alert `resolved` quá hạn theo
+  lô `batchSize` × `maxBatchesPerRun` mỗi lượt để backlog không chặn một giao dịch lớn.
 - Owner decision required: kết quả của kế toán (hóa đơn điện tử, VAT) và pháp lý (thời hạn lưu, nội dung
   đồng ý) trước go-live.
 
@@ -152,3 +162,9 @@ Related phase: [`phases/phase-ordering-6-ops-golive.md`](../phases/phase-orderin
 - Bước 4 (báo cáo bán hàng) xong: `services/reports.ts` + `GET /reports/sales` (quyền `report.read`,
   lọc scope khi không truyền `branch`), trang Admin `Reports` (nav "Báo cáo" trong mục Báo cáo),
   test `scripts/ordering/reports.mjs`. Nút "Xuất CSV" chừa chỗ (bước 5).
+- Bước 5 (xuất CSV đơn) xong: `domain/csv.ts`, `shared/export-limits.ts`, `services/order-export.ts`,
+  `GET /orders/export` (quyền `export`, đặt trước `/orders/:id`), `OrderExportModal` + nút trên
+  Orders/Reports, test `scripts/ordering/order-export.mjs`.
+- Bước 6 (thời hạn lưu) xong: config `retention` + `retentionCron`, `domain/pii.ts`
+  (`RETAINED_PAYLOAD_KEYS` + `redactPayload`), `jobs/retention.ts` trong `ORDERING_JOBS`,
+  test `scripts/ordering/retention.mjs`.

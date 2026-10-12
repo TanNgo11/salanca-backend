@@ -2,6 +2,7 @@ import type { Core } from '@strapi/strapi';
 
 import type adminOrdersFactory from '../services/admin-orders';
 import type deliveryAssignmentFactory from '../services/delivery-assignment';
+import type orderExportFactory from '../services/order-export';
 import type manualPaymentFactory from '../services/manual-payment';
 import type paymentLinkFactory from '../services/payment-link';
 import type orderingSettingsFactory from '../services/ordering-settings';
@@ -9,6 +10,7 @@ import { adminAction, positiveInt, text } from './http';
 
 type AdminOrders = ReturnType<typeof adminOrdersFactory>;
 type Delivery = ReturnType<typeof deliveryAssignmentFactory>;
+type OrderExport = ReturnType<typeof orderExportFactory>;
 type Settings = ReturnType<typeof orderingSettingsFactory>;
 type ManualPayment = ReturnType<typeof manualPaymentFactory>;
 type PaymentLink = ReturnType<typeof paymentLinkFactory>;
@@ -30,6 +32,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
   const delivery = () => strapi.plugin('ordering').service('delivery-assignment') as Delivery;
   const settings = () => strapi.plugin('ordering').service('ordering-settings') as Settings;
   const manual = () => strapi.plugin('ordering').service('manual-payment') as ManualPayment;
+  const exporter = () => strapi.plugin('ordering').service('order-export') as OrderExport;
   const links = () => strapi.plugin('ordering').service('payment-link') as PaymentLink;
   const id = (value: string | undefined) => positiveInt(value) ?? 0;
 
@@ -60,6 +63,21 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     summary: adminAction(strapi, async (ctx, serviceCtx) =>
       service().summary(text(ctx.query.since), serviceCtx),
     ),
+    // CSV download (screens V5): binary body + attachment headers, errors stay JSON.
+    exportOrders: adminAction(strapi, async (ctx, serviceCtx) => {
+      const { csv, fileName } = await exporter().exportCsv(
+        {
+          from: text(ctx.query.from) ?? undefined,
+          to: text(ctx.query.to) ?? undefined,
+          branch: text(ctx.query.branch) ?? undefined,
+        },
+        serviceCtx,
+      );
+      ctx.set('Content-Type', 'text/csv; charset=utf-8');
+      ctx.set('Content-Disposition', `attachment; filename="${fileName}"`);
+      ctx.body = csv;
+      return undefined;
+    }),
     detail: adminAction(strapi, async (ctx, serviceCtx) => service().detail(id(ctx.params.id), serviceCtx)),
     transition: adminAction(strapi, async (ctx, serviceCtx) => {
       const input = body(ctx.request.body);

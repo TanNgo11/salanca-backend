@@ -91,5 +91,22 @@ Bố cục (theo Odoo "Closing Register"):
 
 ## V5. Xuất CSV đơn
 
-`Modal` (theo lead export đã có của app): từ ngày, đến ngày (ngày kinh doanh), chi nhánh; cảnh báo "File có tên và số
-điện thoại khách. Tối đa 10.000 dòng."; nút Tải. Quyền `export`. API `GET /ordering/admin/orders/export?from=&to=&branch=`.
+`Modal` (theo lead export đã có của app): từ ngày, đến ngày (ngày kinh doanh), chi nhánh (native `<select>` —
+`SingleSelect` không render trong Modal); cảnh báo "File có tên và số điện thoại khách. Tối đa 10.000 dòng, 92
+ngày."; nút Tải. Quyền `export`. API thật: `GET /ordering/orders/export?from=&to=&branch=` (không có tiền tố
+`/admin`; đăng ký trước `GET /orders/:id`).
+
+- Response `text/csv; charset=utf-8`, `Content-Disposition: attachment; filename="don-hang-<branch|tat-ca>-<from>_<to>.csv"`;
+  lỗi trả JSON `{error:{code,message,details}}` chuẩn.
+- `from`/`to` ngày kinh doanh `YYYY-MM-DD`, bắt buộc, `from ≤ to`, tối đa 92 ngày (`VALIDATION_ERROR`,
+  `details.field`); hơn 10.000 đơn → 400 `EXPORT_TOO_LARGE`. Scope như báo cáo: `branch` → 404 ngoài scope;
+  bỏ trống lọc theo scope (không scope → 403 `SCOPE_REQUIRED`).
+- Tập đơn: `status != 'draft'`, `business_date` trong khoảng (gồm `canceled`), sắp `placedAt` tăng dần.
+  Cột tiếng Việt: Mã đơn · Ngày kinh doanh · Đặt lúc (giờ chi nhánh dd/MM/yyyy HH:mm) · Chi nhánh · Trạng thái ·
+  Thanh toán · Cách nhận · Giờ nhận/giao (slot `startsAt` giờ chi nhánh hoặc ASAP) · Tên khách · SĐT · Email ·
+  Địa chỉ giao · Món ("2× Bún bò (Lớn)", chỉ số lượng còn lại) · Tạm tính · Giảm/phụ phí · Phí giao · Thuế ·
+  Tổng · Đã thu · Đã hoàn · Cách trả (providerCode các payment captured) · Ghi chú khách · Nguồn ·
+  Đồng ý chính sách.
+- CSV: BOM UTF-8, mọi ô bọc nháy kép, chống chèn công thức (ô mở đầu `= + - @ \t \r` thêm `'`). Cài đặt trong
+  `domain/csv.ts` của plugin; giới hạn trong `shared/export-limits.ts` (admin dùng lại cho cảnh báo).
+- Nút đặt ở header Đơn hàng (chỉ khi có quyền `export`) và trang Báo cáo (mang sẵn bộ lọc đang chọn).

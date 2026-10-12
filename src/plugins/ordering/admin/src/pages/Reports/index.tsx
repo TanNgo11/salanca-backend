@@ -21,11 +21,12 @@ import {
   Tr,
   Typography,
 } from '@strapi/design-system';
-import { Layouts, Page, useFetchClient } from '@strapi/strapi/admin';
+import { Layouts, Page, useFetchClient, useRBAC } from '@strapi/strapi/admin';
 
+import { OrderExportModal } from '../../components/OrderExportModal';
 import { formatMoney, localized } from '../../lib/format';
 import { useLocale, useT } from '../../lib/i18n';
-import { PERMISSIONS } from '../../lib/permissions';
+import { PERMISSIONS, RBAC_EXPORT } from '../../lib/permissions';
 
 type BranchOption = {
   code: string;
@@ -80,6 +81,7 @@ const ReportsPage = () => {
   const t = useT();
   const locale = useLocale();
   const { get } = useFetchClient();
+  const { allowedActions: exportAccess } = useRBAC(RBAC_EXPORT);
 
   const [branches, setBranches] = useState<BranchOption[] | null>(null);
   const [branch, setBranch] = useState(ALL_BRANCHES);
@@ -89,6 +91,7 @@ const ReportsPage = () => {
   const [report, setReport] = useState<Report | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error' | 'empty'>('loading');
   const [applied, setApplied] = useState<{ from: string; to: string } | null>(null);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const loadReport = useCallback(
     async (code: string, fromDay: string, toDay: string, grouping: GroupBy) => {
@@ -188,10 +191,11 @@ const ReportsPage = () => {
           title={t('reports.title')}
           subtitle={t('reports.subtitle')}
           secondaryAction={
-            // CSV export lands in step 5 — the slot stays reserved but disabled until then.
-            <Button variant="tertiary" disabled>
-              {t('reports.export')}
-            </Button>
+            exportAccess.canExport ? (
+              <Button variant="tertiary" onClick={() => setExportOpen(true)}>
+                {t('reports.export')}
+              </Button>
+            ) : undefined
           }
         />
         <Layouts.Content>
@@ -363,6 +367,14 @@ const ReportsPage = () => {
           </Flex>
         </Layouts.Content>
       </Page.Main>
+      <OrderExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        branches={branches ?? []}
+        initialBranch={branch === ALL_BRANCHES ? '' : branch}
+        initialFrom={from}
+        initialTo={to}
+      />
     </Page.Protect>
   );
 };

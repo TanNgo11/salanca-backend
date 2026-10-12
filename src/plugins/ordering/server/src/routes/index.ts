@@ -179,6 +179,8 @@ export default {
       // Couriers the assign dialog may offer for a branch (screens D3).
       adminRoute('GET', '/orders/delivery-staff', 'admin-orders.deliveryStaff', 'order.read'),
       adminRoute('GET', '/orders/stream', 'admin-stream.stream', 'order.read'),
+      // CSV export (screens V5) — before `/orders/:id` so 'export' is not parsed as an id.
+      adminRoute('GET', '/orders/export', 'admin-orders.exportOrders', 'export'),
       adminRoute('GET', '/orders/:id', 'admin-orders.detail', 'order.read'),
       adminRoute('POST', '/orders/:id/payment-link', 'admin-orders.paymentLink', 'order.read'),
       adminRoute('POST', '/orders/:id/transition', 'admin-orders.transition', 'order.process'),

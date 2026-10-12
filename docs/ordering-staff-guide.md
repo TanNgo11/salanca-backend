@@ -113,6 +113,12 @@ Mục **Báo cáo → Báo cáo** (quyền Báo cáo) xem doanh thu theo **ngày
    trả/Cách nhận tách tiền mặt, chuyển khoản, tự lấy, giao hàng.
 4. Nhân viên chỉ xem được báo cáo của chi nhánh mình được phân; kế toán xem được tất cả.
 
+## Xuất CSV đơn (kế toán)
+
+Từ trang **Đơn hàng** hoặc **Báo cáo**, bấm **Tải CSV** (quyền Xuất): chọn khoảng ngày kinh doanh
+(tối đa 92 ngày, 10.000 đơn) và chi nhánh rồi tải về — mở được bằng Excel. File chứa tên và số điện
+thoại khách nên cần lưu ý bảo mật; chỉ đơn trong phạm vi chi nhánh được phân được xuất.
+
 ## Giới hạn hiện tại
 
 - Chạy một máy chủ (một instance): báo đơn realtime và giới hạn tần suất nằm trong bộ nhớ của tiến trình.

@@ -27,12 +27,13 @@ import { Eye, Plus } from '@strapi/icons';
 import { Layouts, useFetchClient, useRBAC } from '@strapi/strapi/admin';
 import { useNavigate } from 'react-router-dom';
 
+import { OrderExportModal } from '../../components/OrderExportModal';
 import { PaymentBadge, StateBadge } from '../../components/orders/StatusBadges';
 import { useOrderingInbox } from '../../inbox/OrderingInboxProvider';
 import { formatBusinessDate, formatMoney, formatTime, localized } from '../../lib/format';
 import { httpStatusOf } from '../../lib/api';
 import { useLocale, useT } from '../../lib/i18n';
-import { RBAC_LIST } from '../../lib/permissions';
+import { RBAC_EXPORT, RBAC_LIST } from '../../lib/permissions';
 import type { OrderRow } from '../../lib/types';
 import { useOrderActions } from '../../lib/useOrderActions';
 import { OrderPreviewModal } from './OrderPreviewModal';
@@ -68,6 +69,7 @@ export const OrdersList = () => {
   const { get } = useFetchClient();
   const inbox = useOrderingInbox();
   const { allowedActions } = useRBAC(RBAC_LIST);
+  const { allowedActions: exportAccess } = useRBAC(RBAC_EXPORT);
 
   const [branches, setBranches] = useState<StaffBranch[] | null>(null);
   const [branch, setBranch] = useState('');
@@ -82,6 +84,7 @@ export const OrdersList = () => {
   const [status, setStatus] = useState<'loading' | 'ready' | 'error' | 'forbidden'>('loading');
   const [fresh, setFresh] = useState<Set<number>>(new Set());
   const [preview, setPreview] = useState<number | null>(null);
+  const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -146,6 +149,13 @@ export const OrdersList = () => {
         allowedActions.canCreate ? (
           <Button startIcon={<Plus />} onClick={() => navigate('new')}>
             {t('orders.create')}
+          </Button>
+        ) : undefined
+      }
+      secondaryAction={
+        exportAccess.canExport ? (
+          <Button variant="tertiary" onClick={() => setExportOpen(true)}>
+            {t('export.download')}
           </Button>
         ) : undefined
       }
@@ -397,6 +407,14 @@ export const OrdersList = () => {
         {preview !== null ? (
           <OrderPreviewModal orderId={preview} onClose={() => setPreview(null)} onChanged={() => void load()} />
         ) : null}
+        <OrderExportModal
+          open={exportOpen}
+          onClose={() => setExportOpen(false)}
+          branches={branches ?? []}
+          initialBranch={branch}
+          initialFrom={businessDate}
+          initialTo={businessDate}
+        />
       </Layouts.Content>
     </>
   );

@@ -208,9 +208,26 @@ export const o6Messages: Record<string, [string, string]> = {
   'reports.range': ['Khoảng {from} → {to}', 'Range {from} → {to}'],
   'reports.export': ['Xuất CSV', 'Export CSV'],
 
+  'export.title': ['Xuất CSV đơn', 'Export orders CSV'],
+  'export.field.from': ['Từ ngày', 'From'],
+  'export.field.to': ['Đến ngày', 'To'],
+  'export.field.branch': ['Chi nhánh', 'Branch'],
+  'export.field.allBranches': ['Tất cả trong phạm vi', 'All in scope'],
+  'export.warning': [
+    'File có tên và số điện thoại khách. Tối đa {rows} dòng, {days} ngày.',
+    'The file contains customer names and phone numbers. Up to {rows} rows, {days} days.',
+  ],
+  'export.download': ['Tải CSV', 'Download CSV'],
+  'export.done': ['Đã tải file CSV', 'CSV downloaded'],
+  'export.failed': ['Không xuất được dữ liệu lúc này. Vui lòng thử lại.', 'Export failed, please try again.'],
+
   'error.ALERT_NOT_FOUND': ['Không tìm thấy cảnh báo', 'Alert not found'],
   'error.JOB_NOT_FOUND': ['Không có job này', 'Job not found'],
   'error.OUTBOX_EVENT_NOT_FOUND': ['Không tìm thấy sự kiện hàng đợi', 'Outbox event not found'],
   'error.CASH_CLOSING_EXISTS': ['Người thu này đã chốt ngày này', 'This collector is already closed for the day'],
   'error.CASH_CLOSING_NOT_FOUND': ['Không tìm thấy bản chốt tiền', 'Cash closing not found'],
+  'error.EXPORT_TOO_LARGE': [
+    'Quá nhiều đơn trong khoảng đã chọn — hãy rút ngắn khoảng ngày.',
+    'Too many orders in the selected range — shorten the date range.',
+  ],
 };
