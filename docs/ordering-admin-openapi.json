@@ -25,6 +25,9 @@
       "name": "Catalog import"
     },
     {
+      "name": "Email templates"
+    },
+    {
       "name": "Ops"
     },
     {
@@ -5335,6 +5338,521 @@
         ],
         "x-ordering-permissions": [
           "plugin::ordering.catalog.manage"
+        ]
+      }
+    },
+    "/notification-templates": {
+      "get": {
+        "tags": [
+          "Email templates"
+        ],
+        "summary": "All codes × locales with customized flags",
+        "operationId": "admin.get.notification-templates",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing admin authentication or plugin permission"
+          },
+          "default": {
+            "description": "Ordering error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "x-ordering-permissions": [
+          "plugin::ordering.settings.manage"
+        ]
+      }
+    },
+    "/notification-templates/{code}/{locale}": {
+      "get": {
+        "tags": [
+          "Email templates"
+        ],
+        "summary": "Effective subject/body + defaults + allowed variables",
+        "operationId": "admin.get.notification-templates.code.locale",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing admin authentication or plugin permission"
+          },
+          "default": {
+            "description": "Ordering error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "template code (e.g. customer.order-ready)"
+          },
+          {
+            "name": "locale",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "vi|en"
+          }
+        ],
+        "x-ordering-permissions": [
+          "plugin::ordering.settings.manage"
+        ]
+      },
+      "put": {
+        "tags": [
+          "Email templates"
+        ],
+        "summary": "Save a subject/body override — 400 TEMPLATE_VARIABLE_UNKNOWN on stray {{vars}}",
+        "operationId": "admin.put.notification-templates.code.locale",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing admin authentication or plugin permission"
+          },
+          "default": {
+            "description": "Ordering error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-ordering-permissions": [
+          "plugin::ordering.settings.manage"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "subject": {
+                    "type": "string"
+                  },
+                  "body": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "subject",
+                  "body"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Email templates"
+        ],
+        "summary": "Delete the override — the template reverts to the built-in copy",
+        "operationId": "admin.delete.notification-templates.code.locale",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing admin authentication or plugin permission"
+          },
+          "default": {
+            "description": "Ordering error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-ordering-permissions": [
+          "plugin::ordering.settings.manage"
+        ]
+      }
+    },
+    "/notification-templates/{code}/{locale}/preview": {
+      "post": {
+        "tags": [
+          "Email templates"
+        ],
+        "summary": "Render {subject, body} (or the effective template) against sample data",
+        "operationId": "admin.post.notification-templates.code.locale.preview",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "rendered": {
+                      "type": "object",
+                      "properties": {
+                        "subject": {
+                          "type": "string"
+                        },
+                        "text": {
+                          "type": "string"
+                        },
+                        "html": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "variables": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing admin authentication or plugin permission"
+          },
+          "default": {
+            "description": "Ordering error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-ordering-permissions": [
+          "plugin::ordering.settings.manage"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "subject": {
+                    "type": "string"
+                  },
+                  "body": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notification-templates/{code}/{locale}/test": {
+      "post": {
+        "tags": [
+          "Email templates"
+        ],
+        "summary": "Send the sample render to the signed-in admin mailbox",
+        "operationId": "admin.post.notification-templates.code.locale.test",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sent": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing admin authentication or plugin permission"
+          },
+          "default": {
+            "description": "Ordering error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-ordering-permissions": [
+          "plugin::ordering.settings.manage"
         ]
       }
     }

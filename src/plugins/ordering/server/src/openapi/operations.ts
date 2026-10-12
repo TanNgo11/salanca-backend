@@ -465,4 +465,58 @@ export const OPERATIONS: Operation[] = [
     ['catalog.manage'],
     { parameters: [pathParam('id', 'catalog-import documentId')] },
   ),
+
+  // ── Admin: editable email templates (O10 X4) ───────────────────────────────
+  adm('get', '/notification-templates', 'Email templates', 'All codes × locales with customized flags', [
+    'settings.manage',
+  ]),
+  adm(
+    'get',
+    '/notification-templates/:code/:locale',
+    'Email templates',
+    'Effective subject/body + defaults + allowed variables',
+    ['settings.manage'],
+    {
+      parameters: [pathParam('code', 'template code (e.g. customer.order-ready)'), pathParam('locale', 'vi|en')],
+    },
+  ),
+  adm(
+    'put',
+    '/notification-templates/:code/:locale',
+    'Email templates',
+    'Save a subject/body override — 400 TEMPLATE_VARIABLE_UNKNOWN on stray {{vars}}',
+    ['settings.manage'],
+    {
+      parameters: [pathParam('code'), pathParam('locale')],
+      requestBody: obj({ subject: str, body: str }, ['subject', 'body']),
+    },
+  ),
+  adm(
+    'post',
+    '/notification-templates/:code/:locale/preview',
+    'Email templates',
+    'Render {subject, body} (or the effective template) against sample data',
+    ['settings.manage'],
+    {
+      parameters: [pathParam('code'), pathParam('locale')],
+      requestBody: obj({ subject: str, body: str }),
+      response: obj({ rendered: obj({ subject: str, text: str, html: str }), variables: arr(generic) }),
+    },
+  ),
+  adm(
+    'post',
+    '/notification-templates/:code/:locale/test',
+    'Email templates',
+    'Send the sample render to the signed-in admin mailbox',
+    ['settings.manage'],
+    { parameters: [pathParam('code'), pathParam('locale')], response: obj({ sent: bool }) },
+  ),
+  adm(
+    'delete',
+    '/notification-templates/:code/:locale',
+    'Email templates',
+    'Delete the override — the template reverts to the built-in copy',
+    ['settings.manage'],
+    { parameters: [pathParam('code'), pathParam('locale')] },
+  ),
 ];

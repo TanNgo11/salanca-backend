@@ -13,7 +13,8 @@ export default collection(
     messageLocale: { type: 'string', required: true },
     subject: { type: 'string', required: true },
     body: { type: 'text', required: true },
-    updatedBy: { type: 'string' },
+    /** Actor ref (`admin:<id>`/`system`) — `updatedBy` is reserved for Strapi's admin link. */
+    updatedByRef: { type: 'string' },
   },
   { displayName: 'Mẫu email tùy biến' },
 );

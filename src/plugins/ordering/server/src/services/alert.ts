@@ -57,6 +57,7 @@ const COUNT_ESCALATED = new Set([
   'payment-unmatched',
   'reconciliation-mismatch',
   'cash-closing-mismatch',
+  'notification-template-broken',
 ]);
 
 /**

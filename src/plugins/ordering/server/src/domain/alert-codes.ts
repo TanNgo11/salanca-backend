@@ -13,6 +13,7 @@ export const ALERT_CODES = [
   'manual-payment-unconfirmed',
   'cash-closing-mismatch',
   'audit-tampered',
+  'notification-template-broken',
 ] as const;
 
 export type AlertCode = (typeof ALERT_CODES)[number];
@@ -37,6 +38,10 @@ const labels: Record<AlertCode, { vi: string; en: string }> = {
   },
   'cash-closing-mismatch': { vi: 'Chốt tiền mặt chênh lệch', en: 'Cash closing mismatch' },
   'audit-tampered': { vi: 'Lịch sử thay đổi bị sửa ngoài hệ thống', en: 'Audit log tampered' },
+  'notification-template-broken': {
+    vi: 'Mẫu email tùy biến lỗi, đã dùng mẫu mặc định',
+    en: 'Custom email template failed, the default was used',
+  },
 };
 
 export const alertLabel = (code: string, locale: string | null | undefined): string =>

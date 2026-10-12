@@ -28,6 +28,7 @@ import storefront from './storefront';
 import adminOrders from './admin-orders';
 import orderingSettings from './ordering-settings';
 import notification from './notification';
+import notificationTemplate from './notification-template';
 import adminUnits from './admin-units';
 import alert from './alert';
 import alertRules from './alert-rules';
@@ -69,6 +70,7 @@ export default {
   'delivery-assignment': deliveryAssignment,
   'ordering-settings': orderingSettings,
   notification,
+  'notification-template': notificationTemplate,
   'admin-units': adminUnits,
   alert,
   'alert-rules': alertRules,

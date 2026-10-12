@@ -43,6 +43,7 @@ const DYNAMIC: Record<string, string[]> = {
   'error.WEBHOOK_URL_INVALID': ['scheme', 'invalid', 'private-address', 'unresolvable'],
   'x3.kind': ['products', 'modifiers'],
   'x3.status': ['validated', 'applied', 'failed'],
+  'x4.audience': ['staff', 'customer'],
 };
 
 describe('O3 admin translations', () => {

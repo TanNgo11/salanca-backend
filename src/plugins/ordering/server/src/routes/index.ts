@@ -276,6 +276,39 @@ export default {
       adminRoute('POST', '/webhooks/:id/test', 'webhooks.sendTest', 'webhook.manage'),
       adminRoute('GET', '/webhooks/:id/deliveries', 'webhooks.deliveries', 'webhook.manage'),
       adminRoute('POST', '/webhook-deliveries/:id/resend', 'webhooks.resend', 'webhook.manage'),
+      // O10 "Mẫu email" (screens X4): subject + restricted-markdown body overrides per
+      // (code, locale); :code contains dots but stays inside one path segment.
+      adminRoute('GET', '/notification-templates', 'notification-templates.list', 'settings.manage'),
+      adminRoute(
+        'GET',
+        '/notification-templates/:code/:locale',
+        'notification-templates.get',
+        'settings.manage',
+      ),
+      adminRoute(
+        'PUT',
+        '/notification-templates/:code/:locale',
+        'notification-templates.save',
+        'settings.manage',
+      ),
+      adminRoute(
+        'POST',
+        '/notification-templates/:code/:locale/preview',
+        'notification-templates.preview',
+        'settings.manage',
+      ),
+      adminRoute(
+        'POST',
+        '/notification-templates/:code/:locale/test',
+        'notification-templates.test',
+        'settings.manage',
+      ),
+      adminRoute(
+        'DELETE',
+        '/notification-templates/:code/:locale',
+        'notification-templates.remove',
+        'settings.manage',
+      ),
     ],
   },
 };

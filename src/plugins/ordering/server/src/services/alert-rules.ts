@@ -107,6 +107,14 @@ export const ALERT_RULE_DEFAULTS: AlertRules = {
     aggregationMinutes: 1440,
     recipients: ['ops.read'],
   },
+  // O10: a saved template failed at render — the order mail still went out with the default copy.
+  'notification-template-broken': {
+    enabled: true,
+    threshold: 1,
+    criticalThreshold: 10,
+    aggregationMinutes: 60,
+    recipients: ['ops.read'],
+  },
 };
 
 /** Unknown codes (custom callers) behave as a minimal warning rule rather than being dropped. */

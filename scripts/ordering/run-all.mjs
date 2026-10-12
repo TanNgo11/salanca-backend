@@ -60,6 +60,7 @@ const scripts = [
   'webhooks-admin.mjs',
   'openapi.mjs',
   'catalog-csv.mjs',
+  'email-templates.mjs',
 ];
 
 const results = [];
