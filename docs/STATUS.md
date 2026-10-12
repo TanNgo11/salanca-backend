@@ -2,14 +2,14 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
-2026-10-12: **Ordering O6 (vận hành và go-live) — automated verification gần đạt, chưa UAT tay** trên
-`feat/ordering-o6` (worktree `salanca-backend-o6`; chưa push/merge). 8 commit `97b72ae`…`5d5b9eb` + sửa sau review
+2026-10-12: **Ordering O6 (vận hành và go-live) — automated verification passed, chưa UAT tay** trên
+`feat/ordering-o6`, gộp vào nhánh tích hợp `feat/ordering` (đã push; chưa merge `main`). 8 commit `97b72ae`…`5d5b9eb` + sửa sau review
 `61897da`, `b0e45a2`, `a79eb6f`, `78e4ae1`: cảnh báo đủ 8 rule (gộp, critical, "đã biết", người nhận theo vai trò + scope,
 ngưỡng sửa trong Admin), trang Tình trạng vận hành, chốt tiền mặt theo người thu (bảng `cash-closing` mới, bản sửa có lý do),
 báo cáo theo ngày kinh doanh từ sổ + snapshot, xuất CSV đơn (quyền `export`, ≤ 92 ngày / 10.000 dòng), job thời hạn lưu,
 runbook vận hành + checklist go-live. Gate: lint, typecheck, test 160 file / 1106, `check:ordering` 47/47 hai lượt,
-`check:phase3` tắt, smoke đặt bàn/tự lấy/SePay/giao, `strapi build` bật/tắt — exit 0; `check:phase3` bật plugin exit 1 do
-một test media của app quá timeout khi máy tải nặng (xem Completion record O6). **Open:** UAT tay các màn O6; bước 7
+`check:phase3` tắt/bật, smoke đặt bàn/tự lấy/SePay/giao, `strapi build` bật/tắt — exit 0 (`check:phase3` bật plugin
+đạt sau khi sửa test media của app chập chờn khi máy tải nặng — xem Completion record O6). **Open:** UAT tay các màn O6; bước 7
 (Cloudflare, backup, bật production) và cổng go-live (SePay thật, kế toán, pháp lý, email) — việc của chủ dự án.
 Plan: [`plans/ordering-o6-ops-golive.md`](plans/ordering-o6-ops-golive.md). Đã lên plan nháp O7–O16 + OP
 ([`plans/ordering-roadmap.md`](plans/ordering-roadmap.md)); O7 đang code ở worktree `salanca-backend-o7`.

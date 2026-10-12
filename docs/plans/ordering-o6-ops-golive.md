@@ -208,8 +208,7 @@ Related phase: [`phases/phase-ordering-6-ops-golive.md`](../phases/phase-orderin
 - Gate (2026-10-12, sau `78e4ae1`, tuần tự, DB `salanca_ordering_o6_review`): lint, typecheck, test 160 file / 1106,
   `check:ordering` 47/47 **hai lượt liên tiếp**, `check:phase3` tắt plugin, `smoke:reservation-form`,
   `smoke:ordering-pickup`, `smoke-ordering-sepay.mjs`, `smoke-ordering-delivery.mjs`, `strapi build` bật/tắt — exit 0.
-  `check:phase3` **bật plugin exit 1 hai lần** vì đúng một test của app (không thuộc plugin):
+  `check:phase3` bật plugin lúc đầu exit 1 hai lần vì một test của app (không thuộc plugin):
   `src/domain/media-processing/processor.test.ts > bytesToKbytes` quá timeout 5 giây khi máy tải nặng (test
-  `await import('./upload-optimize')` nạp `@strapi/utils` + runtime ảnh; lúc đó session O7 chạy test song song). Cùng test
-  đạt ở bước `pnpm run test` và `check:phase3` tắt plugin. Chưa sửa (chờ chủ dự án cho sửa test của app: nâng timeout
-  hoặc import ở đầu file) — **chưa gọi là PASS sạch** cho `check:phase3` bật plugin.
+  `await import('./upload-optimize')` bên trong). Sửa: import tĩnh ở đầu file (chủ dự án cho sửa, 2026-10-12). Chạy lại
+  riêng bước đó: `check:phase3` bật plugin exit 0 (160 file / 1106). **Tất cả 13 bước gate đạt.**
