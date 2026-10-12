@@ -47,6 +47,7 @@ export default {
         config: { auth: false, policies: [], middlewares: [] },
       },
       publicRoute('GET', '/branches', 'storefront.branches'),
+      publicRoute('GET', '/admin-units', 'admin-units.list'),
       publicRoute('GET', '/config', 'storefront.config'),
       publicRoute('GET', '/slots', 'storefront.slots'),
       publicRoute('POST', '/quote', 'storefront.quote'),
@@ -161,6 +162,7 @@ export default {
         },
       },
       // "Chi nhánh" (screens S7). Scope is enforced in the branch service.
+      adminRoute('GET', '/admin-units', 'admin-units.list', 'settings.manage'),
       adminRoute('GET', '/branches', 'admin-branches.list', 'settings.manage'),
       adminRoute('POST', '/branches', 'admin-branches.create', 'settings.manage'),
       adminRoute('GET', '/branches/:code', 'admin-branches.get', 'settings.manage'),

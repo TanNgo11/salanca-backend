@@ -14,6 +14,7 @@ import { orderingMigrations } from './migrations';
 import { persistOrderingTables } from './migrations/persisted-tables';
 import { runOrderingMigrations } from './migrations/runner';
 import { assertSignedWebhooksHaveRawBody } from './domain/raw-body';
+import type adminUnitsFactory from './services/admin-units';
 import { parseEncryptionKey } from './domain/token-cipher';
 import { assertEnabledCodesRegistered, type OrderingRegistry } from './services/registry';
 
@@ -106,6 +107,29 @@ const bootstrap = async ({ strapi }: { strapi: Core.Strapi }) => {
     });
     strapi.log.info(`[ordering] jobs scheduled as ${owner}`);
   }
+
+  const units = strapi.plugin('ordering').service('admin-units') as ReturnType<typeof adminUnitsFactory>;
+  const catalog = units.load();
+  if (catalog.origin === 'file' && catalog.catalog.version) {
+    strapi.log.info(
+      `[ordering] administrative units ${catalog.catalog.version}: ${catalog.catalog.provinces.length} provinces, ${catalog.catalog.communes.length} communes`,
+    );
+  } else if (catalog.origin === 'test-fixture') {
+    strapi.log.info(
+      `[ordering] administrative units: TEST FIXTURE (${catalog.catalog.provinces.length} provinces, ${catalog.catalog.communes.length} communes, prefix XT) — not the official catalog`,
+    );
+  }
+  const providerOn = config.providers.fulfillment['self-delivery']?.enabled === true;
+  let branchOn = false;
+  try {
+    branchOn = await units.anyBranchDeliveryEnabled();
+  } catch (error) {
+    strapi.log.warn(
+      `[ordering] could not read branch delivery settings: ${(error as Error).message ?? error}`,
+    );
+  }
+  const warning = units.warning(providerOn || branchOn);
+  if (warning) strapi.log.warn(`[ordering] ${warning}`);
 
   strapi.log.info(
     `[ordering] lifecycle: plugin bootstrap; catalog adapters: ${registry.catalogAdapterCodes().join(', ')}`,

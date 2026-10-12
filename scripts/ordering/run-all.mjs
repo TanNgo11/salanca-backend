@@ -45,6 +45,7 @@ const scripts = [
   'sepay-refund.mjs',
   'sepay-alerts.mjs',
   'sepay-link.mjs',
+  'admin-units.mjs',
 ];
 
 const results = [];

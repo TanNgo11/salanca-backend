@@ -23,6 +23,7 @@ import storefront from './storefront';
 import adminOrders from './admin-orders';
 import orderingSettings from './ordering-settings';
 import notification from './notification';
+import adminUnits from './admin-units';
 import alert from './alert';
 import orderStream from './order-stream';
 import staffScope from './staff-scope';
@@ -55,6 +56,7 @@ export default {
   'admin-orders': adminOrders,
   'ordering-settings': orderingSettings,
   notification,
+  'admin-units': adminUnits,
   alert,
   'order-stream': orderStream,
   'staff-scope': staffScope,
