@@ -106,6 +106,55 @@ export async function resetOrderingTables(app) {
   await app.db.connection.raw(
     'ALTER SEQUENCE IF EXISTS plugins_ordering_order_code_seq RESTART WITH 1',
   );
+  await purgeStaleTestIdentities(app);
+}
+
+/**
+ * Purges leftovers of previous aborted runs so each script starts hermetic: test staff users
+ * (`*@example.invalid`, kept by `seedAdminHttpStaff`/`seedStaff` when a process dies before its
+ * finally cleanup), their `ordering-test-*` roles with permissions, and the plugin's runtime
+ * `core_store` keys (settings, alert-rules overrides, webhook counters, sepay cursors) which
+ * the plugin-table truncate does not touch. Runs after the truncate so staff-scope FK rows
+ * are already gone. Never touches the three builtin roles or the super-admin permission set.
+ */
+export async function purgeStaleTestIdentities(app) {
+  const knex = app.db.connection;
+  const userIds = (
+    await knex('admin_users').select('id').where('email', 'like', '%@example.invalid')
+  ).map((row) => row.id);
+  if (userIds.length > 0) {
+    await knex('admin_users_roles_lnk').whereIn('user_id', userIds).del();
+    for (const column of ['created_by_id', 'updated_by_id']) {
+      for (const table of ['admin_users', 'admin_roles', 'admin_permissions']) {
+        await knex(table).whereIn(column, userIds).update({ [column]: null });
+      }
+    }
+    await knex('admin_users').whereIn('id', userIds).del();
+  }
+  const roleIds = (
+    await knex('admin_roles').select('id').where('name', 'like', 'ordering-test-%')
+  ).map((row) => row.id);
+  if (roleIds.length > 0) {
+    const permissionIds = (
+      await knex('admin_permissions_role_lnk')
+        .select('permission_id')
+        .whereIn('role_id', roleIds)
+    ).map((row) => row.permission_id);
+    await knex('admin_permissions_role_lnk').whereIn('role_id', roleIds).del();
+    if (permissionIds.length > 0) {
+      await knex('admin_permissions').whereIn('id', permissionIds).del();
+    }
+    await knex('admin_users_roles_lnk').whereIn('role_id', roleIds).del();
+    await knex('admin_roles').whereIn('id', roleIds).del();
+  }
+  const storeKeys = await knex('strapi_core_store_settings')
+    .where('key', 'like', 'plugin_ordering_%')
+    .del();
+  if (userIds.length > 0 || roleIds.length > 0 || storeKeys > 0) {
+    console.log(
+      `[ordering-test] removed ${userIds.length} stale test users, ${roleIds.length} roles, ${storeKeys} store keys`,
+    );
+  }
 }
 
 /** Boots, resets, runs `fn(app)` and always destroys. Failures set the exit code and rethrow. */
