@@ -23,7 +23,8 @@ export default collection(
     disabledAt: { type: 'datetime' },
     /** 'manual' or 'auto-failures' — the UI shows the badge from this. */
     disabledReason: { type: 'string' },
-    createdBy: { type: 'string' },
+    /** Actor ref (`admin:<id>`/`system`) — `createdBy` is reserved for Strapi's admin link. */
+    createdByRef: { type: 'string' },
   },
   { displayName: 'Webhook endpoint' },
 );

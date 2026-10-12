@@ -56,6 +56,7 @@ const scripts = [
   'admin-units.mjs',
   'delivery-quote.mjs',
   'delivery-assignment.mjs',
+  'webhooks-out.mjs',
 ];
 
 const results = [];

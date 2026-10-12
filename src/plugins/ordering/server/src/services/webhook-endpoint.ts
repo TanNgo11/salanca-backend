@@ -28,7 +28,7 @@ export type WebhookEndpointRow = {
   consecutiveFailures: number;
   disabledAt: string | null;
   disabledReason: string | null;
-  createdBy: string | null;
+  createdByRef: string | null;
 };
 
 type EndpointInput = {
@@ -122,7 +122,7 @@ const webhookEndpoint = ({ strapi }: { strapi: Core.Strapi }) => {
     consecutiveFailures: row.consecutiveFailures,
     disabledAt: row.disabledAt,
     disabledReason: row.disabledReason,
-    createdBy: row.createdBy,
+    createdByRef: row.createdByRef,
   });
 
   /** Change-log snapshot: sanitized URL, no secret material at all. */
@@ -184,7 +184,7 @@ const webhookEndpoint = ({ strapi }: { strapi: Core.Strapi }) => {
           includeCustomer: input.includeCustomer === true,
           secretSealed: encryptSecret(secret, encryptionKey()),
           consecutiveFailures: 0,
-          createdBy: actorRefOf(ctx),
+          createdByRef: actorRefOf(ctx),
         },
       })) as WebhookEndpointRow;
       await changeLog().record(

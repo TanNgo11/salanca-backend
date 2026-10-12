@@ -1,6 +1,7 @@
 import type { Core } from '@strapi/strapi';
 
 import type { OrderingConfig } from './config';
+import type { OutboxEvent } from './contracts/outbox';
 import { isAuditSuppressed } from './domain/audit/suppress';
 import { validateBundleSlotRefs, validateBundleSlots } from './domain/catalog/bundle-slots';
 import {
@@ -15,6 +16,7 @@ import {
   validateModifierGroups,
 } from './domain/catalog/modifier-groups';
 import { OrderingError } from './domain/errors';
+import { PUBLIC_EVENT_TYPES } from './domain/webhooks/events';
 import { foodProductType } from './domain/product-types/food';
 import { testFoodProductType } from './domain/product-types/test-food';
 import { testServiceProductType } from './domain/product-types/test-service';
@@ -162,6 +164,16 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
   registry.registerOutboxConsumer('ops-alert.escalated', (event) =>
     notifications().onOpsAlert(event as never),
   );
+  // Outbound webhooks (O10): the fanout writes pending `webhook-delivery` rows for every
+  // public catalog event; HTTP itself runs in the webhook-dispatcher job. Registered per
+  // public type — the registry's '*' wildcard would also fire on internal-only events.
+  const deliveries = () =>
+    strapi.plugin('ordering').service('webhook-delivery') as {
+      fanout: (event: OutboxEvent) => Promise<void>;
+    };
+  for (const type of PUBLIC_EVENT_TYPES) {
+    registry.registerOutboxConsumer(type, (event) => deliveries().fanout(event));
+  }
   registry.registerCaptchaProvider(
     createTurnstileCaptchaProvider({
       secretKey: () =>
