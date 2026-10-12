@@ -328,6 +328,25 @@ withApp(async (app) => {
     assert.equal(yesterdayCollector.systemAmount, 45000);
     console.log('[ordering-test] boundary: 01:30 order lands on yesterday, not today');
 
+    // ── 9. A refund leaves the collector's float, not the clicker's ─────────────
+    // The courier collected the delivery order; the manager presses "hoàn tiền" later.
+    const courierRefund = await ops.as.quanly('POST', `/orders/${deliveryId}/refunds`, {
+      method: 'cash',
+      amount: 20000,
+      reason: 'giao thiếu món',
+    });
+    assert.equal(courierRefund.status, 200, JSON.stringify(courierRefund.body));
+    const afterCourierRefund = await summary(accounting.as.ketoan, 'Q1', today);
+    const courierRow = rowOf(afterCourierRefund.body, nvgiaoRef);
+    assert.equal(courierRow.refundAmount, 20000, 'the refund is charged to the courier who collected');
+    assert.equal(courierRow.expectedAmount, 125000);
+    assert.equal(
+      rowOf(afterCourierRefund.body, quanlyRef).refundAmount,
+      30000,
+      'the manager who pressed refund only carries their own pickup refund',
+    );
+    console.log('[ordering-test] refund attribution: courier 20.000, manager unchanged 30.000');
+
     // Change-log records exist for close + adjust.
     const logs = await app.db.query('plugin::ordering.admin-change-log').findMany({
       where: { action: { $in: ['cash-closing.close', 'cash-closing.adjust'] } },

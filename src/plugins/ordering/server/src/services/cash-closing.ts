@@ -232,7 +232,10 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     return map;
   };
 
-  /** Settled cash refunds per collector for the branch/day (positive amounts). */
+  /**
+   * Settled cash refunds for the branch/day (positive amounts), charged to the collector of the
+   * refunded payment — the cash left that person's float, whoever pressed "hoàn tiền".
+   */
   const refundBuckets = async (
     locationRef: string,
     day: string,
@@ -247,8 +250,8 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       .where('r.status', 'settled')
       .where('r.business_date', day)
       .where('p.provider_code', 'cash')
-      .groupBy('r.actor_ref')
-      .select('r.actor_ref')
+      .groupBy('p.actor_ref')
+      .select('p.actor_ref')
       .select(knex().raw('coalesce(sum(r.amount), 0) as refund_amount'))) as Array<{
       actor_ref: string | null;
       refund_amount: string | number;
