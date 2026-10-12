@@ -12,7 +12,11 @@ export type TemplateCode =
   | 'customer.order-ready'
   | 'customer.order-delivered'
   | 'customer.order-rejected'
-  | 'customer.order-canceled';
+  | 'customer.order-canceled'
+  | 'customer.delivery-out'
+  | 'customer.delivery-delivered'
+  | 'customer.delivery-failed'
+  | 'customer.delivery-retry';
 
 export type TemplateData = {
   code: string;
@@ -20,6 +24,7 @@ export type TemplateData = {
   total: number;
   items: Array<{ title: string; quantity: number }>;
   pickupLabel?: string;
+  deliveryLabel?: string;
   readyLabel?: string;
   reason?: string;
   link?: string;
@@ -86,11 +91,34 @@ const copy: Record<TemplateCode, Record<Locale, { subject: string; lead: string 
     vi: { subject: 'Đơn {code} đã hủy', lead: 'Đơn của bạn tại {branch} đã được hủy.' },
     en: { subject: 'Order {code} canceled', lead: 'Your order at {branch} has been canceled.' },
   },
+  'customer.delivery-out': {
+    vi: { subject: 'Đơn {code} đang được giao', lead: '{branch} đang giao đơn của bạn — người giao sẽ tới sớm.' },
+    en: { subject: 'Order {code} is on its way', lead: '{branch} has sent your order out — the courier will arrive soon.' },
+  },
+  'customer.delivery-delivered': {
+    vi: { subject: 'Đơn {code} đã giao xong', lead: 'Đơn của bạn đã được giao. Cảm ơn bạn!' },
+    en: { subject: 'Order {code} delivered', lead: 'Your order was delivered. Thank you!' },
+  },
+  'customer.delivery-failed': {
+    vi: {
+      subject: 'Đơn {code} giao chưa thành công',
+      lead: 'Người giao chưa giao được đơn — {branch} sẽ liên hệ hoặc giao lại cho bạn.',
+    },
+    en: {
+      subject: 'Delivery of order {code} failed',
+      lead: 'The courier could not deliver your order — {branch} will contact you or try again.',
+    },
+  },
+  'customer.delivery-retry': {
+    vi: { subject: 'Đơn {code} sẽ được giao lại', lead: '{branch} đang chuẩn bị một chuyến giao mới cho đơn của bạn.' },
+    en: { subject: 'Order {code} will be redelivered', lead: '{branch} is preparing another delivery for your order.' },
+  },
 };
 
 const labels: Record<Locale, Record<string, string>> = {
   vi: {
     pickup: 'Giờ lấy',
+    delivery: 'Giao lúc',
     ready: 'Dự kiến sẵn sàng',
     total: 'Tổng',
     reason: 'Lý do',
@@ -101,6 +129,7 @@ const labels: Record<Locale, Record<string, string>> = {
   },
   en: {
     pickup: 'Pickup',
+    delivery: 'Delivery at',
     ready: 'Estimated ready',
     total: 'Total',
     reason: 'Reason',
@@ -123,6 +152,7 @@ export function renderTemplate(
   const rows: Array<[string, string]> = [];
   if (data.customerName && template.startsWith('staff.')) rows.push([words.customer, data.customerName]);
   if (data.pickupLabel) rows.push([words.pickup, data.pickupLabel]);
+  if (data.deliveryLabel) rows.push([words.delivery, data.deliveryLabel]);
   if (data.readyLabel) rows.push([words.ready, data.readyLabel]);
   if (data.reason) rows.push([words.reason, data.reason]);
   if (data.note) rows.push([words.note, data.note]);
@@ -145,16 +175,42 @@ export function renderTemplate(
   return { subject: fill(subject), text, html };
 }
 
-/** Customer template for a group transition, or null when that step sends nothing. */
-export function customerTemplateFor(to: string, delayed: boolean): TemplateCode | null {
+/** Customer-facing label for a delivery failure code (delivery-assignment.ts). */
+export const deliveryFailureReason = (code: string, localeInput: string): string | undefined => {
+  const locale: Locale = localeInput === 'en' ? 'en' : 'vi';
+  const map: Record<string, Record<Locale, string>> = {
+    unreachable: { vi: 'Không liên lạc được', en: 'We could not reach you' },
+    'wrong-address': { vi: 'Địa chỉ chưa đúng', en: 'The address was wrong' },
+    refused: { vi: 'Khách từ chối nhận', en: 'The delivery was refused' },
+    other: { vi: 'Khác', en: 'Other' },
+  };
+  return map[code]?.[locale];
+};
+
+/**
+ * Customer template for a group transition, or null when that step sends nothing. Delivery legs
+ * have their own wording (screens O5) — a pickup phrase like "mời bạn đến nhận" must never go out
+ * on a delivery order. A delivery `ready` step only mails on a retry (`failed → ready`); the first
+ * one is followed by `out-for-delivery` right after.
+ */
+export function customerTemplateFor(
+  to: string,
+  options: { delayed?: boolean; from?: string; receiveKind?: string },
+): TemplateCode | null {
+  const { delayed = false, from, receiveKind } = options;
   switch (to) {
     case 'preparing':
     case 'awaiting-payment':
       return delayed ? 'customer.order-delayed' : 'customer.order-accepted';
     case 'ready':
+      if (receiveKind === 'delivery') return from === 'failed' ? 'customer.delivery-retry' : null;
       return 'customer.order-ready';
+    case 'out-for-delivery':
+      return 'customer.delivery-out';
     case 'delivered':
-      return 'customer.order-delivered';
+      return receiveKind === 'delivery' ? 'customer.delivery-delivered' : 'customer.order-delivered';
+    case 'failed':
+      return 'customer.delivery-failed';
     case 'rejected':
       return 'customer.order-rejected';
     case 'canceled':

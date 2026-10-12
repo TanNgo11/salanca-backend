@@ -5,6 +5,7 @@ import type { OutboxEvent } from '../contracts';
 import { sha256Hex } from '../domain/hashing';
 import {
   customerTemplateFor,
+  deliveryFailureReason,
   formatLocalTime,
   renderTemplate,
   type TemplateCode,
@@ -106,11 +107,17 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
     const locale = aggregate.order.placedLocale === 'en' ? 'en' : 'vi';
     const name = (branch?.name ?? {}) as Record<string, string>;
     const receive = aggregate.order.receiveMethod as {
+      kind?: string;
       timing?: { mode?: string; slot?: { startsAt?: string } };
     };
     const group = aggregate.groups[0];
     const token = await idempotency().revealSecret('order.create', `order:${aggregate.order.id}`);
     const template = config().notifications.orderLinkTemplate;
+    const timingLabel = receive.timing?.slot?.startsAt
+      ? formatLocalTime(receive.timing.slot.startsAt, timezone)
+      : receive.timing?.mode === 'asap'
+        ? 'ASAP'
+        : undefined;
     const data: TemplateData = {
       code: aggregate.order.code,
       branchName: name[locale] ?? name.vi ?? aggregate.order.locationRef,
@@ -119,11 +126,9 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
         title: line.titleSnapshot,
         quantity: line.quantity - line.canceledQuantity,
       })),
-      pickupLabel: receive.timing?.slot?.startsAt
-        ? formatLocalTime(receive.timing.slot.startsAt, timezone)
-        : receive.timing?.mode === 'asap'
-          ? 'ASAP'
-          : undefined,
+      // "Giờ lấy" is pickup wording; a delivery order's slot reads "Giao lúc" instead.
+      pickupLabel: receive.kind === 'delivery' ? undefined : timingLabel,
+      deliveryLabel: receive.kind === 'delivery' ? timingLabel : undefined,
       readyLabel: group?.estimatedReadyAt ? formatLocalTime(group.estimatedReadyAt, timezone) : undefined,
       link: token && template.includes('{token}') ? template.replace('{token}', token) : undefined,
     };
@@ -193,11 +198,20 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
     /** `fulfillment-group.transitioned`: customer email for public steps when staff chose to notify. */
     async onGroupTransitioned(event: OutboxEvent): Promise<void> {
       if (event.payload.notifyCustomer === false || event.payload.isPublic === false) return;
-      const template = customerTemplateFor(String(event.payload.to), event.payload.delayed === true);
-      if (!template) return;
       const orderId = Number(event.payload.orderId);
       const aggregate = await repo.loadOrderAggregate(orderId);
       if (!aggregate) return;
+      const groupId = Number(event.payload.groupId);
+      const group = aggregate.groups.find((item) => item.id === groupId) ?? aggregate.groups[0];
+      const receiveKind =
+        (group?.receiveMethod as { kind?: string } | undefined)?.kind ??
+        (aggregate.order.receiveMethod as { kind?: string }).kind;
+      const template = customerTemplateFor(String(event.payload.to), {
+        delayed: event.payload.delayed === true,
+        from: typeof event.payload.from === 'string' ? event.payload.from : undefined,
+        receiveKind,
+      });
+      if (!template) return;
       const email = customerEmail(aggregate);
       if (!email) return;
       const { locale, data } = await baseData(aggregate);
@@ -206,6 +220,9 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
       if (typeof reasonCode === 'string' && template === 'customer.order-rejected') {
         const found = (await settings().get()).rejectReasons.find((item) => item.code === reasonCode);
         reason = found ? (found.label[locale] ?? found.label.vi) : undefined;
+      }
+      if (typeof reasonCode === 'string' && template === 'customer.delivery-failed') {
+        reason = deliveryFailureReason(reasonCode, locale);
       }
       await deliver({
         event,

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { customerTemplateFor, formatLocalTime, formatVnd, renderTemplate } from './templates';
+import {
+  customerTemplateFor,
+  deliveryFailureReason,
+  formatLocalTime,
+  formatVnd,
+  renderTemplate,
+} from './templates';
 
 const data = {
   code: 'SLC-000124',
@@ -31,10 +37,46 @@ describe('email templates', () => {
   });
 
   it('maps transitions to customer templates', () => {
-    expect(customerTemplateFor('preparing', false)).toBe('customer.order-accepted');
-    expect(customerTemplateFor('preparing', true)).toBe('customer.order-delayed');
-    expect(customerTemplateFor('rejected', false)).toBe('customer.order-rejected');
-    expect(customerTemplateFor('awaiting-acceptance', false)).toBeNull();
+    expect(customerTemplateFor('preparing', {})).toBe('customer.order-accepted');
+    expect(customerTemplateFor('preparing', { delayed: true })).toBe('customer.order-delayed');
+    expect(customerTemplateFor('rejected', {})).toBe('customer.order-rejected');
+    expect(customerTemplateFor('awaiting-acceptance', {})).toBeNull();
+  });
+
+  it('uses delivery wording on delivery orders, never pickup phrases', () => {
+    const delivery = { receiveKind: 'delivery' };
+    expect(customerTemplateFor('out-for-delivery', delivery)).toBe('customer.delivery-out');
+    expect(customerTemplateFor('delivered', delivery)).toBe('customer.delivery-delivered');
+    expect(customerTemplateFor('failed', delivery)).toBe('customer.delivery-failed');
+    // The first "ready" of a delivery leg mails nothing; the dispatch mail follows right after.
+    expect(customerTemplateFor('ready', { receiveKind: 'delivery', from: 'preparing' })).toBeNull();
+    expect(customerTemplateFor('ready', { receiveKind: 'delivery', from: 'failed' })).toBe(
+      'customer.delivery-retry',
+    );
+    // Pickup keeps its wording on the same targets.
+    expect(customerTemplateFor('ready', {})).toBe('customer.order-ready');
+    expect(customerTemplateFor('delivered', {})).toBe('customer.order-delivered');
+
+    const vi = renderTemplate('customer.delivery-out', 'vi', data);
+    expect(vi.subject).toBe('Đơn SLC-000124 đang được giao');
+    expect(vi.text).not.toContain('đến');
+    expect(vi.text).not.toContain('nhận.');
+    const en = renderTemplate('customer.delivery-failed', 'en', {
+      ...data,
+      reason: deliveryFailureReason('unreachable', 'en'),
+    });
+    expect(en.subject).toBe('Delivery of order SLC-000124 failed');
+    expect(en.text).toContain('Reason: We could not reach you');
+    expect(deliveryFailureReason('refused', 'vi')).toBe('Khách từ chối nhận');
+  });
+
+  it('labels a delivery slot as "Giao lúc", not "Giờ lấy"', () => {
+    const text = renderTemplate('customer.delivery-out', 'vi', {
+      ...data,
+      deliveryLabel: '14:00 · 13/10',
+    }).text;
+    expect(text).toContain('Giao lúc: 14:00 · 13/10');
+    expect(text).not.toContain('Giờ lấy');
   });
 
   it('formats money and branch-local time', () => {

@@ -104,6 +104,84 @@ withApp(async (app) => {
     assert.deepEqual(capture.sent.map((mail) => mail.template), ['customer.order-rejected'], 'retry sends once');
     assert.ok(capture.sent[0].text.includes('Reason: Out of stock'));
 
+    // --- Delivery legs: their own wording, never pickup phrases --------------------------------
+    await branchRows.update({
+      where: { id: q1.id },
+      data: {
+        fulfillment: {
+          pickup: {
+            enabled: true,
+            paymentTiming: 'pay-on-pickup',
+            paymentProviders: ['cash'],
+            schedule: { leadTimeMinutes: 30, openingHours: { mode: '24_7' } },
+          },
+          delivery: {
+            enabled: true,
+            orderTiming: 'both',
+            paymentTiming: 'pay-on-pickup',
+            paymentProviders: ['cash'],
+            minOrderAmount: 0,
+            schedule: { leadTimeMinutes: 60, slotLengthMinutes: 15, capacity: 8, openingHours: { mode: '24_7' } },
+            zones: [
+              {
+                code: 'near',
+                label: 'Gần',
+                priority: 10,
+                match: { kind: 'commune', communeCodes: ['XT01001', 'XT01002'] },
+                rules: [{ when: 'any', fee: 0 }],
+                minOrderAmount: 0,
+                extraLeadTimeMinutes: 30,
+              },
+            ],
+          },
+        },
+      },
+    });
+    const deliveryOrder = await place({
+      lines: [{ sellableUid: 'bun-bo', quantity: 2 }],
+      receiveMethod: { kind: 'delivery', address: {
+        communeCode: 'XT01002', line1: '12 Đường Bí Mật', recipientName: 'Người Thử', phone: '0901234567',
+      } },
+    });
+    await dispatch();
+    capture.sent.splice(0);
+    const dId = deliveryOrder.order.order.id;
+    const lanRef = `admin:${staff.lan.user.id}`;
+    await adminOrders.transition(dId, { to: 'preparing' }, lanCtx);
+    await adminOrders.transition(dId, { to: 'ready' }, lanCtx);
+    await dispatch();
+    assert.deepEqual(
+      capture.sent.splice(0).map((mail) => mail.template),
+      ['customer.order-accepted'],
+      'the first "ready" of a delivery leg mails nothing — the dispatch mail follows',
+    );
+    await adminOrders.transition(dId, { to: 'out-for-delivery', assigneeRef: lanRef }, lanCtx);
+    await dispatch();
+    let mails = capture.sent.splice(0);
+    assert.deepEqual(mails.map((mail) => mail.template), ['customer.delivery-out']);
+    assert.match(mails[0].subject, /is on its way/);
+    assert.ok(!mails[0].text.includes('pickup'), 'no pickup wording on a delivery mail');
+    await adminOrders.transition(dId, { to: 'failed', reasonCode: 'unreachable' }, lanCtx);
+    await dispatch();
+    mails = capture.sent.splice(0);
+    assert.deepEqual(mails.map((mail) => mail.template), ['customer.delivery-failed']);
+    assert.ok(mails[0].text.includes('Reason: We could not reach you'));
+    await adminOrders.transition(dId, { to: 'ready' }, lanCtx);
+    await dispatch();
+    assert.deepEqual(capture.sent.splice(0).map((mail) => mail.template), ['customer.delivery-retry']);
+    await adminOrders.transition(dId, { to: 'out-for-delivery', assigneeRef: lanRef }, lanCtx);
+    await adminOrders.cashHandover(dId, {}, lanCtx);
+    await dispatch();
+    mails = capture.sent.splice(0);
+    assert.deepEqual(
+      mails.map((mail) => mail.template).sort(),
+      ['customer.delivery-delivered', 'customer.delivery-out'].sort(),
+    );
+    assert.ok(
+      mails.every((mail) => !mail.text.includes('ready for pickup')),
+      'pickup phrases never appear on a delivery order',
+    );
+
     // --- Delivery log: hashes only ------------------------------------------------------------
     const rows = await app.db.query('plugin::ordering.notification-delivery').findMany({});
     assert.ok(rows.length >= 4);

@@ -34,6 +34,12 @@ Nghiên cứu: [`ordering-reference.md` mục U5](ordering-reference.md). **Quy 
   list thêm `delivery { status, assigneeRef, assigneeName, carrier, trackingNumber, address, shippedAt, due }`;
   tab `all` cũng được chấp nhận. Đếm tab tính sau khi lọc `assignee`. Order detail trả `delivery` đầy đủ
   hơn (`trackingUrl`, `deliveredAt`, `canceledAt`, `lastFailure`, `attempts`).
+- Bước 7 (2026-10-12): email khách có văn riêng cho giao hàng — `customer.delivery-out` (đang giao),
+  `customer.delivery-delivered`, `customer.delivery-failed` (kèm nhãn lý do `unreachable |
+  wrong-address | refused | other`), `customer.delivery-retry` khi `failed → ready`. Chuyển
+  `preparing → ready` của đơn giao không gửi mail (mail "đang giao" theo ngay sau); `delivered` của
+  đơn giao dùng `delivery-delivered`, không phải câu nhận tại quán. Slot giờ của đơn giao hiện nhãn
+  "Giao lúc", không phải "Giờ lấy".
 
 ## D1. Tab "Giao tận nơi" trong Chi nhánh (S7 của O3)
 
