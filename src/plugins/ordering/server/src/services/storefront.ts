@@ -7,7 +7,9 @@ import { normalizeVietnamesePhone } from '../../../shared/contact/phone';
 import { OrderingError, isOrderingError } from '../domain/errors';
 import { paymentWindowStart } from '../domain/payments/deadline';
 import { sha256Hex } from '../domain/hashing';
+import type { PickupSettings } from '../domain/branch-settings';
 import { asapReadyAt, bookingWindow, isOpenAt } from '../domain/scheduling/slots';
+import { addDays, toLocalParts } from '../domain/scheduling/zoned-time';
 import {
   customerCancellableNow,
   lookupOrderView,
@@ -28,6 +30,44 @@ import type transitionFactory from './transition';
 
 /** `randomBytes(32).toString('base64url')` → 43 chars. Anything else is rejected before hashing. */
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+
+/** Inclusive window the storefront may show: today and the 13 days after it. */
+const SPECIAL_HORIZON_DAYS = 14;
+
+const upcomingSpecialHours = (settings: PickupSettings, timezone: string, now: Date) => {
+  const today = toLocalParts(now, timezone).date;
+  const last = addDays(today, SPECIAL_HORIZON_DAYS - 1);
+  return settings.schedule.businessDayPolicy.specialHours
+    .filter((row) => row.date >= today && row.date <= last)
+    .slice()
+    .sort((left, right) => left.date.localeCompare(right.date))
+    .map((row) => ({
+      date: row.date,
+      closed: row.closed,
+      ranges: row.ranges,
+      ...(row.note ? { note: row.note } : {}),
+    }));
+};
+
+const receiveConfig = (settings: PickupSettings, timezone: string, now: Date) => {
+  const window = bookingWindow(settings, timezone, now);
+  return {
+    orderTiming: settings.orderTiming,
+    leadTimeMinutes: settings.schedule.leadTimeMinutes,
+    slotLengthMinutes: settings.schedule.slotLengthMinutes,
+    maxAdvanceDays: settings.schedule.maxAdvanceDays,
+    bookableFrom: window.today,
+    bookableTo: window.lastDate,
+    minOrderAmount: settings.minOrderAmount,
+    paymentTiming: settings.paymentTiming,
+    paymentMethods: settings.paymentProviders,
+    customerCancelBeforeMinutes: settings.customerCancelBeforeMinutes,
+    openNow: isOpenAt(settings, timezone, now),
+    asapReadyAt:
+      asapReadyAt(settings, timezone, now, settings.schedule.leadTimeMinutes)?.toISOString() ?? null,
+    specialHours: upcomingSpecialHours(settings, timezone, now),
+  };
+};
 
 /**
  * Customer-facing order access (contracts §11, §21). The order token is a bearer secret sent
@@ -234,31 +274,15 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
         });
       }
       const pickup = branches().pickupSettings(branch);
+      const delivery = branches().deliverySettings(branch);
       const now = nowOf(ctx);
-      const window = bookingWindow(pickup, branch.timezone, now);
       return {
         ...base,
         branch: {
           code: branch.code,
           timezone: branch.timezone,
-          pickup: pickup.enabled
-            ? {
-                orderTiming: pickup.orderTiming,
-                leadTimeMinutes: pickup.schedule.leadTimeMinutes,
-                slotLengthMinutes: pickup.schedule.slotLengthMinutes,
-                maxAdvanceDays: pickup.schedule.maxAdvanceDays,
-                bookableFrom: window.today,
-                bookableTo: window.lastDate,
-                minOrderAmount: pickup.minOrderAmount,
-                paymentTiming: pickup.paymentTiming,
-                paymentMethods: pickup.paymentProviders,
-                customerCancelBeforeMinutes: pickup.customerCancelBeforeMinutes,
-                openNow: isOpenAt(pickup, branch.timezone, now),
-                asapReadyAt:
-                  asapReadyAt(pickup, branch.timezone, now, pickup.schedule.leadTimeMinutes)?.toISOString() ??
-                  null,
-              }
-            : null,
+          pickup: pickup.enabled ? receiveConfig(pickup, branch.timezone, now) : null,
+          ...(delivery.enabled ? { delivery: receiveConfig(delivery, branch.timezone, now) } : {}),
         },
       };
     },

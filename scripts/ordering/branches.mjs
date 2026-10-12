@@ -182,6 +182,59 @@ withApp(async (app) => {
       { kind: 'delivery', orderTiming: 'both' },
     ]);
     assert.equal(JSON.stringify(q1public).includes('XT01001'), false, 'public list hides zone communes');
+
+    // --- Special hours: save, read back, reject a duplicated date ----------------------------
+    const special = await lan('PATCH', '/branches/Q1', {
+      fulfillment: {
+        pickup: {
+          enabled: true,
+          paymentTiming: 'pay-on-pickup',
+          paymentProviders: ['cash'],
+          schedule: {
+            leadTimeMinutes: 60,
+            businessDayPolicy: {
+              cutoffLocalTime: '02:00',
+              specialHours: [
+                { date: '2026-02-17', ranges: [{ start: '10:00', end: '14:00' }], note: 'Mùng 2 Tết' },
+              ],
+            },
+            openingHours: { mode: 'daily', daily: [{ start: '22:00', end: '02:00' }] },
+          },
+        },
+      },
+    });
+    assert.equal(special.status, 200, JSON.stringify(special.body));
+    assert.equal(special.body.item.fulfillment.pickup.schedule.businessDayPolicy.specialHours[0].note, 'Mùng 2 Tết');
+    assert.equal(special.body.item.fulfillment.pickup.schedule.businessDayPolicy.specialHours[0].closed, false);
+    const rereadSpecial = await lan('GET', '/branches/Q1');
+    assert.equal(
+      rereadSpecial.body.item.fulfillment.pickup.schedule.businessDayPolicy.specialHours[0].date,
+      '2026-02-17',
+    );
+    const duplicated = await lan('PATCH', '/branches/Q1', {
+      fulfillment: {
+        pickup: {
+          enabled: true,
+          paymentTiming: 'pay-on-pickup',
+          paymentProviders: ['cash'],
+          schedule: {
+            businessDayPolicy: {
+              specialHours: [
+                { date: '2026-02-17', ranges: [{ start: '10:00', end: '14:00' }] },
+                { date: '2026-02-17', closed: true, ranges: [] },
+              ],
+            },
+          },
+        },
+      },
+    });
+    assert.equal(duplicated.status, 400);
+    assert.equal(duplicated.body.error.code, 'VALIDATION_ERROR');
+    assert.ok(
+      duplicated.body.error.details.issues.some((issue) => issue.message === 'duplicate special date'),
+      JSON.stringify(duplicated.body.error.details.issues),
+    );
+
     // --- Staff scopes (screens S8) ------------------------------------------------------------
     const scoped = await seedAdminHttpStaff(app, {
       actions: ['scope.manage', 'order.read'],

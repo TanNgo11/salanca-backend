@@ -51,7 +51,17 @@ export const specialHoursSchema = z
   .array(specialHourSchema)
   .max(366)
   .default([])
-  .refine((rows) => new Set(rows.map((row) => row.date)).size === rows.length, 'duplicate special date');
+  .superRefine((rows, ctx) => {
+    const seen = new Map<string, number>();
+    rows.forEach((row, index) => {
+      const first = seen.get(row.date);
+      if (first !== undefined) {
+        ctx.addIssue({ code: 'custom', message: 'duplicate special date', path: [index, 'date'] });
+      } else {
+        seen.set(row.date, index);
+      }
+    });
+  });
 
 export type SpecialHour = z.infer<typeof specialHourSchema>;
 

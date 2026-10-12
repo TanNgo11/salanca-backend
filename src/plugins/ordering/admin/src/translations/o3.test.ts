@@ -7,6 +7,7 @@ import { o3Messages } from './o3';
 import { o4Messages } from './o4';
 import { o5Messages } from './o5';
 import { o6Messages } from './o6';
+import { o7Messages } from './o7';
 
 const ROOT = join(__dirname, '..');
 const O3_DIRS = ['inbox', 'components/orders', 'pages/Orders', 'pages/Deliveries', 'pages/Branches', 'pages/Staff', 'pages/Settings', 'pages/PaymentReview', 'pages/Ops', 'pages/Alerts', 'pages/CashClosing', 'pages/Reports', 'lib'];
@@ -54,7 +55,7 @@ describe('O3 admin translations', () => {
       for (const value of values) used.add(`${prefix}.${value}`);
     }
     const known = (key: string) =>
-      Boolean(o3Messages[key] || o4Messages[key] || o5Messages[key] || o6Messages[key]);
+      Boolean(o3Messages[key] || o4Messages[key] || o5Messages[key] || o6Messages[key] || o7Messages[key]);
     const missing = [...used].filter((key) => !known(key));
     expect(missing).toEqual([]);
     for (const [key, [vi, en]] of Object.entries({
@@ -62,6 +63,7 @@ describe('O3 admin translations', () => {
       ...o4Messages,
       ...o5Messages,
       ...o6Messages,
+      ...o7Messages,
     })) {
       expect(vi.trim(), key).not.toBe('');
       expect(en.trim(), key).not.toBe('');

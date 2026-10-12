@@ -22,6 +22,7 @@ import { useFetchClient } from '@strapi/strapi/admin';
 import { useErrorToast } from '../../lib/api';
 import { useT } from '../../lib/i18n';
 import { foldDiacritics } from '../../../../shared/text/fold';
+import { SpecialHoursEditor, type SpecialHourRow } from './SpecialHoursEditor';
 
 type Range = { start: string; end: string };
 type Day = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
@@ -32,7 +33,7 @@ type Schedule = {
   capacity: number;
   maxAdvanceDays: number;
   bufferMinutes: number;
-  businessDayPolicy: { cutoffLocalTime: string; holidayDates: string[] };
+  businessDayPolicy: { cutoffLocalTime: string; holidayDates: string[]; specialHours?: SpecialHourRow[] };
   openingHours: { mode: '24_7' | 'daily' | 'weekly'; daily: Range[]; weekly: Record<Day, Range[]> };
 };
 
@@ -83,7 +84,7 @@ const emptySchedule = (): Schedule => ({
   capacity: 8,
   maxAdvanceDays: 7,
   bufferMinutes: 0,
-  businessDayPolicy: { cutoffLocalTime: '04:00', holidayDates: [] },
+  businessDayPolicy: { cutoffLocalTime: '04:00', holidayDates: [], specialHours: [] },
   openingHours: {
     mode: 'daily',
     daily: [{ start: '07:00', end: '22:00' }],
@@ -131,20 +132,24 @@ const feeText = (fee: FeeRule['fee'], t: ReturnType<typeof useT>) =>
 export const DeliveryTab = ({
   branchCode,
   delivery,
+  timezone,
   providers,
   cashRounding,
   errors,
   onChange,
   onRounding,
+  onCopySpecialToPickup,
   numberField,
 }: {
   branchCode?: string;
   delivery: Delivery;
+  timezone: string;
   providers: string[];
   cashRounding: CashRounding;
   errors: Record<string, string>;
   onChange: (next: Delivery) => void;
   onRounding: (next: CashRounding) => void;
+  onCopySpecialToPickup: () => void;
   numberField: (label: string, value: number, onChange: (value: number) => void, path: string, hint?: string) => React.ReactNode;
 }) => {
   const t = useT();
@@ -363,6 +368,18 @@ export const DeliveryTab = ({
           {numberField(t('branch.pickup.sla'), delivery.slaMinutes, (value) => setDelivery({ slaMinutes: value }), 'fulfillment.delivery.slaMinutes')}
         </Grid.Item>
       </Grid.Root>
+
+      <SpecialHoursEditor
+        rows={schedule.businessDayPolicy.specialHours ?? []}
+        timezone={timezone}
+        errorPrefix="fulfillment.delivery.schedule.businessDayPolicy.specialHours"
+        errors={errors}
+        copyLabel={t('branch.special.copyToPickup')}
+        onChange={(specialHours) =>
+          setSchedule({ businessDayPolicy: { ...schedule.businessDayPolicy, specialHours } })
+        }
+        onCopy={onCopySpecialToPickup}
+      />
 
       {catalogStatus === 'error' ? (
         <Alert closeLabel={t('common.close')} title={t('common.error.title')} variant="danger" action={<Button onClick={() => void loadCatalog()}>{t('common.retry')}</Button>}>

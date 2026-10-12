@@ -29,6 +29,7 @@ const scripts = [
   'catalog-extension.mjs',
   'review-additions.mjs',
   'branches.mjs',
+  'special-hours.mjs',
   'pickup-slots.mjs',
   'storefront.mjs',
   'admin-orders.mjs',

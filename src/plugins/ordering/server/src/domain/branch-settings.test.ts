@@ -154,7 +154,10 @@ describe('validateBranchInput', () => {
     );
     expect(duplicated.valid).toBe(false);
     if (!duplicated.valid) {
-      expect(duplicated.issues.some((issue) => issue.message === 'duplicate special date')).toBe(true);
+      expect(duplicated.issues).toContainEqual({
+        path: 'fulfillment.pickup.schedule.businessDayPolicy.specialHours.1.date',
+        message: 'duplicate special date',
+      });
     }
 
     const overlapping = validateBranchInput(
