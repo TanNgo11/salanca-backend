@@ -169,6 +169,7 @@ export default {
       adminRoute('PATCH', '/branches/:code', 'admin-branches.update', 'settings.manage'),
       // The Admin fetch client has no PATCH; PUT carries the same partial update.
       adminRoute('PUT', '/branches/:code', 'admin-branches.update', 'settings.manage'),
+      adminRoute('POST', '/branches/:code/delivery-quote', 'admin-branches.deliveryQuote', 'settings.manage'),
       adminRoute('GET', '/staff-scopes', 'admin-branches.staffList', 'scope.manage'),
       adminRoute('PUT', '/staff-scopes/:adminUserId', 'admin-branches.staffPut', 'scope.manage'),
       // Order inbox and actions (screens S1–S5).

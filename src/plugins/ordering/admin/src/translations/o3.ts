@@ -287,7 +287,7 @@ export const o3Messages: Record<string, [string, string]> = {
   'branch.tab.info': ['Thông tin', 'Details'],
   'branch.tab.hours': ['Giờ mở', 'Opening hours'],
   'branch.tab.pickup': ['Tự lấy', 'Pickup'],
-  'branch.tab.delivery': ['Giao tận nơi (O5)', 'Delivery (O5)'],
+  'branch.tab.delivery': ['Giao tận nơi', 'Delivery'],
   'branch.tab.deliveryLater': ['Giao tận nơi có ở phase O5.', 'Delivery comes with phase O5.'],
   'branch.code': ['Mã', 'Code'],
   'branch.codeHint': ['Chữ, số, "-" hoặc "_"; không đổi được sau khi tạo', 'Letters, digits, "-" or "_"; cannot change later'],

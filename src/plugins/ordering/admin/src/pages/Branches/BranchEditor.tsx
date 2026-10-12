@@ -23,6 +23,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import { fieldErrors, useErrorToast } from '../../lib/api';
 import { useT } from '../../lib/i18n';
+import { DeliveryTab, emptyDelivery, type Delivery } from './DeliveryTab';
 
 type Range = { start: string; end: string };
 const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
@@ -57,7 +58,7 @@ type Branch = {
   isActive: boolean;
   onlineOrdering: boolean;
   cashRounding: { enabled: boolean; multiple: number; providerCodes: string[] } | null;
-  fulfillment: { pickup: Pickup } & Record<string, unknown>;
+  fulfillment: { pickup: Pickup; delivery: Delivery } & Record<string, unknown>;
 };
 
 const TIMEZONES = ['Asia/Ho_Chi_Minh', 'Asia/Bangkok', 'Asia/Singapore', 'UTC'];
@@ -96,6 +97,7 @@ const emptyBranch = (): Branch => ({
         },
       },
     },
+    delivery: emptyDelivery(),
   },
 });
 
@@ -227,7 +229,7 @@ export const BranchEditor = () => {
       isActive: branch.isActive,
       onlineOrdering: branch.onlineOrdering,
       cashRounding: branch.cashRounding,
-      fulfillment: { pickup },
+      fulfillment: { pickup, delivery: branch.fulfillment.delivery ?? emptyDelivery() },
     };
     try {
       const { data } = creating ? await post('/ordering/branches', payload) : await put(`/ordering/branches/${code}`, payload);
@@ -266,9 +268,7 @@ export const BranchEditor = () => {
             <Tabs.Trigger value="info">{t('branch.tab.info')}</Tabs.Trigger>
             <Tabs.Trigger value="hours">{t('branch.tab.hours')}</Tabs.Trigger>
             <Tabs.Trigger value="pickup">{t('branch.tab.pickup')}</Tabs.Trigger>
-            <Tabs.Trigger value="delivery" disabled>
-              {t('branch.tab.delivery')}
-            </Tabs.Trigger>
+            <Tabs.Trigger value="delivery">{t('branch.tab.delivery')}</Tabs.Trigger>
           </Tabs.List>
           <Box background="neutral0" padding={6} hasRadius shadow="tableShadow" marginTop={4}>
             <Tabs.Content value="info">
@@ -524,7 +524,16 @@ export const BranchEditor = () => {
               </Grid.Root>
             </Tabs.Content>
             <Tabs.Content value="delivery">
-              <Typography>{t('branch.tab.deliveryLater')}</Typography>
+              <DeliveryTab
+                branchCode={creating ? undefined : code}
+                delivery={branch.fulfillment.delivery ?? emptyDelivery()}
+                providers={providers}
+                cashRounding={branch.cashRounding}
+                errors={errors}
+                onChange={(next) => setBranch({ ...branch, fulfillment: { ...branch.fulfillment, delivery: next } })}
+                onRounding={(next) => setBranch({ ...branch, cashRounding: next })}
+                numberField={numberField}
+              />
             </Tabs.Content>
           </Box>
         </Tabs.Root>

@@ -4,8 +4,10 @@ import { useIntl } from 'react-intl';
 import { PLUGIN_ID } from '../pluginId';
 import { o3Messages } from '../translations/o3';
 import { o4Messages } from '../translations/o4';
+import { o5Messages } from '../translations/o5';
 
-const messagesOf = (key: string): [string, string] | undefined => o3Messages[key] ?? o4Messages[key];
+const messagesOf = (key: string): [string, string] | undefined =>
+  o3Messages[key] ?? o4Messages[key] ?? o5Messages[key];
 
 export type Translate = (
   key: string,
@@ -38,6 +40,8 @@ const pack = (messages: Record<string, [string, string]>, locale: string): Recor
 export const o3Translations = (locale: string): Record<string, string> => pack(o3Messages, locale);
 
 export const o4Translations = (locale: string): Record<string, string> => pack(o4Messages, locale);
+
+export const o5Translations = (locale: string): Record<string, string> => pack(o5Messages, locale);
 
 /** Admin interface language ('vi' | 'en'), for picking `{ vi, en }` catalog/branch names. */
 export const useLocale = (): string => {

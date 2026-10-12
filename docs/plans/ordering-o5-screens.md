@@ -5,6 +5,17 @@ kế hoạch [`ordering-o5-delivery.md`](ordering-o5-delivery.md), mockup [`mock
 Nghiên cứu: [`ordering-reference.md` mục U5](ordering-reference.md). **Quy ước chung** như mục đầu của
 [`ordering-o3-screens.md`](ordering-o3-screens.md).
 
+## Đã đổi khi code O5 (2026-10-12)
+
+- Tab vùng giao nằm ở `admin/src/pages/Branches/DeliveryTab.tsx`, trong màn Chi nhánh. Không có trang Settings riêng.
+- Sửa vùng là panel ngay trong tab, không phải Modal. Bậc phí dùng nút (Mọi đơn / Đơn từ / Đơn dưới). Tỉnh/thành dùng
+  `SingleSelect` ngoài Modal. Xã/phường là danh sách checkbox có ô tìm không dấu. Dropdown mới trong Modal đã treo
+  trang Admin ở O3.
+- API báo phí: `POST /ordering/branches/:code/delivery-quote` (không có `/admin`). Body
+  `{ communeCode, subtotal, zones? }`. `zones` là bản nháp trên màn hình; bỏ qua thì dùng vùng đã lưu.
+- Lưu chi nhánh vẫn là `PUT /ordering/branches/:code` (client Admin không có PATCH) và gửi cả `fulfillment.pickup`
+  lẫn `fulfillment.delivery`.
+
 ## D1. Tab "Giao tận nơi" trong Chi nhánh (S7 của O3)
 
 Phần cài đặt giống tab Tự lấy (theo TastyIgniter `deliverysettings`): Nhận giao `Switch`, Cho đặt ASAP/Đặt

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { resolvePickupSettings, validateBranchInput } from './branch-settings';
+import { resolveDeliverySettings, resolvePickupSettings, validateBranchInput } from './branch-settings';
 
 const options = { mode: 'update' as const, knownProviders: ['cash'], onlineProviders: [] };
 
@@ -92,6 +92,46 @@ describe('validateBranchInput', () => {
       { ...options, knownProviders: ['cash', 'sepay'], onlineProviders: ['sepay'] },
     );
     expect(withOnline.valid).toBe(true);
+  });
+
+  it('rejects duplicate zone codes, unknown communes, and delivery without a catalog', () => {
+    const zone = {
+      code: 'near',
+      label: 'Gần',
+      priority: 10,
+      match: { kind: 'commune' as const, communeCodes: ['XT01001'] },
+      rules: [{ when: 'any' as const, fee: 0 }],
+    };
+    const known = { ...options, catalogAvailable: true, knownCommuneCodes: new Set(['XT01001']) };
+    const duplicate = validateBranchInput(
+      { fulfillment: { delivery: { enabled: true, zones: [zone, { ...zone }] } } },
+      known,
+    );
+    expect(duplicate.valid).toBe(false);
+    if (!duplicate.valid) {
+      expect(duplicate.issues.some((issue) => issue.path === 'fulfillment.delivery.zones.1.code')).toBe(true);
+    }
+    const unknown = validateBranchInput(
+      {
+        fulfillment: {
+          delivery: { zones: [{ ...zone, match: { kind: 'commune' as const, communeCodes: ['NOPE'] } }] },
+        },
+      },
+      known,
+    );
+    expect(unknown.valid).toBe(false);
+    if (!unknown.valid) {
+      expect(unknown.issues[0]?.path).toBe('fulfillment.delivery.zones.0.match.communeCodes.0');
+    }
+    const missing = validateBranchInput(
+      { fulfillment: { delivery: { enabled: true, zones: [] } } },
+      { ...options, catalogAvailable: false },
+    );
+    expect(missing.valid).toBe(false);
+    if (!missing.valid) {
+      expect(missing.issues.map((issue) => issue.path)).toContain('fulfillment.delivery.zones');
+    }
+    expect(resolveDeliverySettings(undefined).zones).toEqual([]);
   });
 
   it('requires code and name on create and a real timezone', () => {

@@ -134,6 +134,54 @@ withApp(async (app) => {
     assert.deepEqual(items.find((row) => row.code === 'Q1').receiveMethods, [
       { kind: 'pickup', orderTiming: 'both' },
     ]);
+
+    // --- Delivery zones: saved on the branch, quoted on the server, change-logged ---------
+    const zoned = await lan('PUT', '/branches/Q1', {
+      fulfillment: {
+        delivery: {
+          enabled: true,
+          paymentTiming: 'pay-on-pickup',
+          paymentProviders: ['cash'],
+          schedule: { openingHours: { mode: '24_7' } },
+          zones: [
+            {
+              code: 'near',
+              label: 'Gần',
+              priority: 10,
+              match: { kind: 'commune', communeCodes: ['XT01001', 'xt01002'] },
+              rules: [
+                { when: 'subtotal-lt', subtotal: 100000, fee: 'unavailable' },
+                { when: 'subtotal-lt', subtotal: 300000, fee: 15000 },
+                { when: 'any', fee: 0 },
+              ],
+              minOrderAmount: 100000,
+              extraLeadTimeMinutes: 30,
+            },
+          ],
+        },
+      },
+    });
+    assert.equal(zoned.status, 200, JSON.stringify(zoned.body));
+    assert.equal(zoned.body.item.fulfillment.pickup.schedule.leadTimeMinutes, 60, 'pickup lead stays');
+    assert.deepEqual(zoned.body.item.fulfillment.delivery.zones[0].match.communeCodes, ['XT01001', 'XT01002']);
+    const quote = await lan('POST', '/branches/Q1/delivery-quote', { communeCode: 'XT01002', subtotal: 200000 });
+    assert.equal(quote.status, 200, JSON.stringify(quote.body));
+    assert.equal(quote.body.fee, 15000);
+    assert.equal(quote.body.freeFrom, 300000);
+    const outside = await lan('POST', '/branches/Q1/delivery-quote', { communeCode: 'XT02002', subtotal: 200000 });
+    assert.equal(outside.body.available, false);
+    assert.equal(outside.body.reason, 'outside');
+    const zoneLogs = await app.db.query('plugin::ordering.admin-change-log').findMany({
+      where: { action: 'branch.update', locationRef: 'Q1' },
+    });
+    assert.ok(zoneLogs.at(-1).changes.fulfillment, 'zone config is change-logged on fulfillment');
+    const published = await (await fetch(`${base}/api/v1/ordering/branches`)).json();
+    const q1public = published.items.find((row) => row.code === 'Q1');
+    assert.deepEqual(q1public.receiveMethods, [
+      { kind: 'pickup', orderTiming: 'both' },
+      { kind: 'delivery', orderTiming: 'both' },
+    ]);
+    assert.equal(JSON.stringify(q1public).includes('XT01001'), false, 'public list hides zone communes');
     // --- Staff scopes (screens S8) ------------------------------------------------------------
     const scoped = await seedAdminHttpStaff(app, {
       actions: ['scope.manage', 'order.read'],

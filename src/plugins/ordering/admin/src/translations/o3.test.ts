@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { o3Messages } from './o3';
 import { o4Messages } from './o4';
+import { o5Messages } from './o5';
 
 const ROOT = join(__dirname, '..');
 const O3_DIRS = ['inbox', 'components/orders', 'pages/Orders', 'pages/Branches', 'pages/Staff', 'pages/Settings', 'pages/PaymentReview', 'lib'];
@@ -29,6 +30,7 @@ const DYNAMIC: Record<string, string[]> = {
   day: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
   consent: ['web-checkout', 'phone-staff'],
   method: ['cash', 'sepay'],
+  'delivery.when': ['any', 'subtotal-gte', 'subtotal-lt'],
 };
 
 describe('O3 admin translations', () => {
@@ -47,10 +49,10 @@ describe('O3 admin translations', () => {
     for (const [prefix, values] of Object.entries(DYNAMIC)) {
       for (const value of values) used.add(`${prefix}.${value}`);
     }
-    const known = (key: string) => Boolean(o3Messages[key] || o4Messages[key]);
+    const known = (key: string) => Boolean(o3Messages[key] || o4Messages[key] || o5Messages[key]);
     const missing = [...used].filter((key) => !known(key));
     expect(missing).toEqual([]);
-    for (const [key, [vi, en]] of Object.entries({ ...o3Messages, ...o4Messages })) {
+    for (const [key, [vi, en]] of Object.entries({ ...o3Messages, ...o4Messages, ...o5Messages })) {
       expect(vi.trim(), key).not.toBe('');
       expect(en.trim(), key).not.toBe('');
     }

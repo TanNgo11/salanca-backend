@@ -3,6 +3,10 @@ import path from 'node:path';
 
 import { z } from '@strapi/utils';
 
+import { foldDiacritics } from '../../../../shared/text/fold';
+
+export const foldAdminUnitName = foldDiacritics;
+
 /**
  * Administrative-unit catalog (provinces and communes, two levels from 2025-07-01).
  * The official file is `server/src/data/admin-units/<version>.json`, supplied by the
@@ -94,17 +98,6 @@ export type AdminUnitCatalog = {
   provinces: ProvinceRecord[];
   communes: CommuneRecord[];
 };
-
-/** Accent-insensitive match key. `đ` is not a combining mark, so it is replaced explicitly. */
-export function foldAdminUnitName(value: string): string {
-  return value
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/\p{M}+/gu, '')
-    .replace(/đ/g, 'd')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
 
 export function emptyCatalog(): AdminUnitCatalog {
   return { version: null, source: null, effectiveFrom: null, provinces: [], communes: [] };

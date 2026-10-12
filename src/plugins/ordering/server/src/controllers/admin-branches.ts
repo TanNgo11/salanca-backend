@@ -29,6 +29,9 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     update: adminAction(strapi, async (ctx, serviceCtx) => ({
       item: await service().updateBranch(ctx.params.code ?? '', ctx.request.body ?? {}, serviceCtx),
     })),
+    deliveryQuote: adminAction(strapi, async (ctx, serviceCtx) =>
+      service().deliveryQuote(ctx.params.code ?? '', ctx.request.body ?? {}, serviceCtx),
+    ),
     // "Nhân viên và chi nhánh" (screens S8).
     staffList: adminAction(strapi, async (_ctx, serviceCtx) => ({ results: await staff().list(serviceCtx) })),
     staffPut: adminAction(strapi, async (ctx, serviceCtx) => ({

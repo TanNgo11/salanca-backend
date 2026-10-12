@@ -2,13 +2,17 @@ import type { Core } from '@strapi/strapi';
 
 import type { OrderingConfig } from '../config';
 import {
+  resolveDeliverySettings,
   resolvePickupSettings,
   validateBranchInput,
+  type DeliverySettings,
   type PickupSettings,
 } from '../domain/branch-settings';
+import { deliveryQuoteInputSchema, quoteDelivery } from '../domain/delivery/zones';
 import { OrderingError } from '../domain/errors';
 import { scopeIncludes } from '../domain/scope';
 import { isOnlinePaymentProvider } from '../providers/cash';
+import type adminUnitsFactory from './admin-units';
 import type changeLogFactory from './change-log';
 import type { ServiceContext } from './context';
 import type { OrderingRegistry } from './registry';
@@ -28,6 +32,14 @@ export type BranchRow = {
   fulfillment: Record<string, unknown> | null;
   tax: Record<string, unknown> | null;
   cashRounding: { enabled: boolean; multiple: number; providerCodes: string[] } | null;
+};
+
+/** Keys the client actually sent. Zod prefills omitted pickup/delivery, which must not overwrite storage. */
+const requestedFulfillment = (raw: unknown): Record<string, unknown> | null => {
+  if (typeof raw !== 'object' || raw === null || !('fulfillment' in raw)) return null;
+  const fulfillment = (raw as { fulfillment?: unknown }).fulfillment;
+  if (typeof fulfillment !== 'object' || fulfillment === null) return null;
+  return fulfillment as Record<string, unknown>;
 };
 
 const BRANCH_FIELDS = [
@@ -57,6 +69,7 @@ const branch = ({ strapi }: { strapi: Core.Strapi }) => {
   const scope = () => strapi.plugin('ordering').service('scope') as ReturnType<typeof scopeFactory>;
   const registry = () => strapi.plugin('ordering').service('registry') as OrderingRegistry;
   const config = () => strapi.config.get('plugin::ordering') as OrderingConfig;
+  const units = () => strapi.plugin('ordering').service('admin-units') as ReturnType<typeof adminUnitsFactory>;
 
   /** Registered payment providers the config does not explicitly disable. */
   const enabledPaymentProviders = (): { known: string[]; online: string[] } => {
@@ -88,8 +101,19 @@ const branch = ({ strapi }: { strapi: Core.Strapi }) => {
     fulfillment: {
       ...(row.fulfillment ?? {}),
       pickup: resolvePickupSettings(row.fulfillment?.pickup),
+      delivery: resolveDeliverySettings(row.fulfillment?.delivery),
     },
   });
+
+  /** Commune codes the loaded catalog accepts. A missing catalog blocks enabling delivery. */
+  const catalogGate = () => {
+    const resolved = units().load();
+    if (!resolved.available) return { catalogAvailable: false as const };
+    return {
+      catalogAvailable: true as const,
+      knownCommuneCodes: new Set(resolved.catalog.communes.map((commune) => commune.code)),
+    };
+  };
 
   const assertValid = (
     raw: unknown,
@@ -100,6 +124,7 @@ const branch = ({ strapi }: { strapi: Core.Strapi }) => {
       mode,
       knownProviders: providers.known,
       onlineProviders: providers.online,
+      ...catalogGate(),
     });
     if (!result.valid) {
       throw new OrderingError('VALIDATION_ERROR', 'branch settings are invalid', {
@@ -123,6 +148,11 @@ const branch = ({ strapi }: { strapi: Core.Strapi }) => {
     /** Resolved pickup settings for a branch row (defaults applied). */
     pickupSettings(row: Pick<BranchRow, 'fulfillment'>): PickupSettings {
       return resolvePickupSettings(row.fulfillment?.pickup);
+    },
+
+    /** Resolved delivery settings for a branch row (defaults applied). */
+    deliverySettings(row: Pick<BranchRow, 'fulfillment'>): DeliverySettings {
+      return resolveDeliverySettings(row.fulfillment?.delivery);
     },
 
     /** Admin list: only branches inside the staff scope (system actors see all). */
@@ -194,13 +224,16 @@ const branch = ({ strapi }: { strapi: Core.Strapi }) => {
       for (const field of BRANCH_FIELDS) {
         if (field !== 'code' && value[field] !== undefined) data[field] = value[field];
       }
-      if (value.fulfillment) {
-        // Kinds the request does not mention (delivery, later phases) are kept as stored.
-        data.fulfillment = {
-          ...(current.fulfillment ?? {}),
-          ...value.fulfillment,
-          ...(value.fulfillment.pickup ? { pickup: value.fulfillment.pickup } : {}),
-        };
+      const requested = requestedFulfillment(raw);
+      if (requested && value.fulfillment) {
+        // Kinds the request does not mention stay as stored.
+        const next: Record<string, unknown> = { ...(current.fulfillment ?? {}) };
+        if ('pickup' in requested) next.pickup = value.fulfillment.pickup;
+        if ('delivery' in requested) next.delivery = value.fulfillment.delivery;
+        for (const key of Object.keys(requested)) {
+          if (key !== 'pickup' && key !== 'delivery') next[key] = (value.fulfillment as Record<string, unknown>)[key];
+        }
+        data.fulfillment = next;
       }
       const row = (await branches().update({ where: { id: current.id }, data })) as BranchRow;
       await changeLog().record(
@@ -225,6 +258,10 @@ const branch = ({ strapi }: { strapi: Core.Strapi }) => {
       })) as BranchRow[];
       return rows.map((row) => {
         const pickup = resolvePickupSettings(row.fulfillment?.pickup);
+        const delivery = resolveDeliverySettings(row.fulfillment?.delivery);
+        const receiveMethods: Array<{ kind: 'pickup' | 'delivery'; orderTiming: string }> = [];
+        if (pickup.enabled) receiveMethods.push({ kind: 'pickup', orderTiming: pickup.orderTiming });
+        if (delivery.enabled) receiveMethods.push({ kind: 'delivery', orderTiming: delivery.orderTiming });
         return {
           code: row.code,
           name: row.name ?? {},
@@ -232,8 +269,33 @@ const branch = ({ strapi }: { strapi: Core.Strapi }) => {
           phone: row.phone ?? null,
           email: row.email ?? null,
           timezone: row.timezone,
-          receiveMethods: pickup.enabled ? [{ kind: 'pickup', orderTiming: pickup.orderTiming }] : [],
+          receiveMethods,
         };
+      });
+    },
+
+    /**
+     * Fee preview for the branch editor. A `zones` body quotes the draft on screen;
+     * otherwise the saved zones are used. The response is the quote only — no address.
+     */
+    async deliveryQuote(code: string, raw: unknown, ctx: ServiceContext) {
+      const row = await service.findByCode(code);
+      if (!row || !scopeIncludes(await scope().loadScope(ctx), row.code)) throw notFound(code);
+      const parsed = deliveryQuoteInputSchema.safeParse(raw ?? {});
+      if (!parsed.success) {
+        throw new OrderingError('VALIDATION_ERROR', 'delivery quote is invalid', {
+          details: {
+            issues: parsed.error.issues.map((issue) => ({
+              path: issue.path.join('.'),
+              message: issue.message,
+            })),
+          },
+        });
+      }
+      const zones = parsed.data.zones ?? service.deliverySettings(row).zones;
+      return quoteDelivery(zones, {
+        communeCode: parsed.data.communeCode,
+        subtotal: parsed.data.subtotal,
       });
     },
 

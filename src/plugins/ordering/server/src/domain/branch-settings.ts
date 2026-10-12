@@ -1,5 +1,7 @@
 import { z } from '@strapi/utils';
 
+import { deliveryZoneListSchema } from './delivery/zones';
+
 /**
  * Per-branch ordering settings (contracts §19.6 `LocationOrderingSettings`, §21.1; screens S7).
  * Stored as JSON on `branch.fulfillment[kind]`. Every field has a default so rows written by
@@ -67,7 +69,23 @@ export const pickupSettingsSchema = z
   })
   .prefault({});
 
+export const deliverySettingsSchema = z
+  .object({
+    enabled: z.boolean().default(false),
+    orderTiming: z.enum(['asap', 'scheduled', 'both']).default('both'),
+    paymentTiming: z.enum(PAYMENT_TIMINGS).default('pay-on-pickup'),
+    paymentProviders: z.array(z.string().min(1)).max(10).default(['cash']),
+    paymentTimeoutMinutes: z.number().int().min(1).max(1440).default(15),
+    minOrderAmount: z.number().int().min(0).max(1_000_000_000).default(0),
+    customerCancelBeforeMinutes: z.number().int().min(0).max(10_080).default(30),
+    slaMinutes: z.number().int().min(1).max(1440).default(10),
+    schedule: scheduleSchema,
+    zones: deliveryZoneListSchema.default([]),
+  })
+  .prefault({});
+
 export type PickupSettings = z.infer<typeof pickupSettingsSchema>;
+export type DeliverySettings = z.infer<typeof deliverySettingsSchema>;
 export type ScheduleSettings = z.infer<typeof scheduleSchema>;
 export type TimeRange = z.infer<typeof timeRange>;
 
@@ -101,7 +119,10 @@ export const branchInputSchema = z.object({
   rank: z.number().int().optional(),
   cashRounding: cashRoundingSchema.optional(),
   fulfillment: z
-    .object({ pickup: pickupSettingsSchema.optional() })
+    .object({
+      pickup: pickupSettingsSchema.optional(),
+      delivery: deliverySettingsSchema.optional(),
+    })
     .loose()
     .optional(),
 });
@@ -119,15 +140,66 @@ export const isValidTimezone = (timezone: string): boolean => {
   }
 };
 
+type ReceiveSettings = {
+  enabled: boolean;
+  paymentTiming: PaymentTiming;
+  paymentProviders: string[];
+  schedule: ScheduleSettings;
+};
+
+const receiveIssues = (
+  kind: 'pickup' | 'delivery',
+  settings: ReceiveSettings,
+  options: { knownProviders: string[]; onlineProviders: string[] },
+): ValidationIssue[] => {
+  const issues: ValidationIssue[] = [];
+  const base = `fulfillment.${kind}`;
+  for (const [index, code] of settings.paymentProviders.entries()) {
+    if (!options.knownProviders.includes(code)) {
+      issues.push({
+        path: `${base}.paymentProviders.${index}`,
+        message: `payment provider "${code}" is not enabled`,
+      });
+    }
+  }
+  if (settings.enabled && settings.paymentProviders.length === 0) {
+    issues.push({ path: `${base}.paymentProviders`, message: 'select at least one payment method' });
+  }
+  if (settings.paymentTiming !== 'pay-on-pickup') {
+    const online = settings.paymentProviders.filter((code) => options.onlineProviders.includes(code));
+    if (online.length === 0) {
+      issues.push({
+        path: `${base}.paymentTiming`,
+        message: `${settings.paymentTiming} needs an enabled online payment provider`,
+      });
+    }
+  } else if (!settings.paymentProviders.includes('cash')) {
+    issues.push({ path: `${base}.paymentProviders`, message: 'pay-on-pickup needs the cash provider' });
+  }
+  const hours = settings.schedule.openingHours;
+  if (settings.enabled && hours.mode === 'daily' && hours.daily.length === 0) {
+    issues.push({ path: `${base}.schedule.openingHours.daily`, message: 'add at least one opening range' });
+  }
+  return issues;
+};
+
 /**
  * Strict Admin-side validation. Returns field-addressed issues (path like
  * `fulfillment.pickup.schedule.leadTimeMinutes`) so the screen can show them under each field.
  * `onlineProviders` are the registered, enabled non-cash payment providers: `prepay` and
  * `accept-then-pay` need at least one (contracts §19.6); `knownProviders` are every enabled code.
+ * `knownCommuneCodes` is set when the administrative-unit catalog is loaded; delivery zones
+ * may only name communes from that catalog.
  */
 export function validateBranchInput(
   raw: unknown,
-  options: { mode: 'create' | 'update'; knownProviders: string[]; onlineProviders: string[] },
+  options: {
+    mode: 'create' | 'update';
+    knownProviders: string[];
+    onlineProviders: string[];
+    catalogAvailable?: boolean;
+    knownCommuneCodes?: ReadonlySet<string>;
+  },
 ): { valid: true; value: BranchInput } | { valid: false; issues: ValidationIssue[] } {
   const parsed = branchInputSchema.safeParse(raw);
   if (!parsed.success) {
@@ -149,41 +221,28 @@ export function validateBranchInput(
     issues.push({ path: 'timezone', message: 'unknown IANA timezone' });
   }
   const pickup = value.fulfillment?.pickup;
-  if (pickup) {
-    for (const [index, code] of pickup.paymentProviders.entries()) {
-      if (!options.knownProviders.includes(code)) {
-        issues.push({
-          path: `fulfillment.pickup.paymentProviders.${index}`,
-          message: `payment provider "${code}" is not enabled`,
-        });
+  if (pickup) issues.push(...receiveIssues('pickup', pickup, options));
+  const delivery = value.fulfillment?.delivery;
+  if (delivery) {
+    issues.push(...receiveIssues('delivery', delivery, options));
+    const wantsDelivery = delivery.enabled || delivery.zones.length > 0;
+    if (wantsDelivery && options.catalogAvailable === false) {
+      issues.push({
+        path: 'fulfillment.delivery.zones',
+        message: 'administrative-unit catalog is not loaded',
+      });
+    }
+    if (options.knownCommuneCodes) {
+      for (const [zoneIndex, zone] of delivery.zones.entries()) {
+        for (const [communeIndex, code] of zone.match.communeCodes.entries()) {
+          if (!options.knownCommuneCodes.has(code)) {
+            issues.push({
+              path: `fulfillment.delivery.zones.${zoneIndex}.match.communeCodes.${communeIndex}`,
+              message: `commune ${code} is not in the catalog`,
+            });
+          }
+        }
       }
-    }
-    if (pickup.enabled && pickup.paymentProviders.length === 0) {
-      issues.push({
-        path: 'fulfillment.pickup.paymentProviders',
-        message: 'select at least one payment method',
-      });
-    }
-    if (pickup.paymentTiming !== 'pay-on-pickup') {
-      const online = pickup.paymentProviders.filter((code) => options.onlineProviders.includes(code));
-      if (online.length === 0) {
-        issues.push({
-          path: 'fulfillment.pickup.paymentTiming',
-          message: `${pickup.paymentTiming} needs an enabled online payment provider`,
-        });
-      }
-    } else if (!pickup.paymentProviders.includes('cash')) {
-      issues.push({
-        path: 'fulfillment.pickup.paymentProviders',
-        message: 'pay-on-pickup needs the cash provider',
-      });
-    }
-    const hours = pickup.schedule.openingHours;
-    if (pickup.enabled && hours.mode === 'daily' && hours.daily.length === 0) {
-      issues.push({
-        path: 'fulfillment.pickup.schedule.openingHours.daily',
-        message: 'add at least one opening range',
-      });
     }
   }
   return issues.length > 0 ? { valid: false, issues } : { valid: true, value };
@@ -193,4 +252,9 @@ export function validateBranchInput(
 export function resolvePickupSettings(raw: unknown): PickupSettings {
   const parsed = pickupSettingsSchema.safeParse(raw ?? {});
   return parsed.success ? parsed.data : pickupSettingsSchema.parse({});
+}
+
+export function resolveDeliverySettings(raw: unknown): DeliverySettings {
+  const parsed = deliverySettingsSchema.safeParse(raw ?? {});
+  return parsed.success ? parsed.data : deliverySettingsSchema.parse({});
 }
