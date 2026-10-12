@@ -32,6 +32,7 @@ import alert from './alert';
 import alertRules from './alert-rules';
 import alertRecipients from './alert-recipients';
 import opsStatus from './ops-status';
+import auditLog from './audit-log';
 import orderStream from './order-stream';
 import staffScope from './staff-scope';
 import webhook from './webhook';
@@ -69,6 +70,7 @@ export default {
   'alert-rules': alertRules,
   'alert-recipients': alertRecipients,
   'ops-status': opsStatus,
+  'audit-log': auditLog,
   'cash-closing': cashClosing,
   'order-export': orderExport,
   reports,

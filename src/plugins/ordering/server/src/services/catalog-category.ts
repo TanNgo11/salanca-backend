@@ -6,6 +6,7 @@ import {
   siblingRanks,
   wouldCreateCycle,
 } from '../domain/catalog/category-tree';
+import { withAuditSuppressed } from '../domain/audit/suppress';
 import { resolveLocalizedText } from '../domain/catalog/localized-text';
 import { OrderingError } from '../domain/errors';
 import type { ServiceContext } from './context';
@@ -182,7 +183,7 @@ const catalogCategory = ({ strapi }: { strapi: Core.Strapi }) => {
     async create(data: Record<string, unknown>, ctx: ServiceContext) {
       const parentId = (data.parent as string | null | undefined) ?? null;
       const created = await strapi.db.transaction(async () => {
-        const entry = (await strapi.documents(CATEGORY).create({
+        const entry = (await withAuditSuppressed(CATEGORY, () => strapi.documents(CATEGORY).create({
           data: {
             name: data.name,
             description: data.description,
@@ -192,7 +193,7 @@ const catalogCategory = ({ strapi }: { strapi: Core.Strapi }) => {
             ...(data.image !== undefined ? { image: data.image } : {}),
             ...(parentId ? { parent: parentId } : {}),
           } as Record<string, unknown>,
-        })) as { documentId: string };
+        }))) as { documentId: string };
         // New children append at the end of the sibling list.
         const rows = await allRows();
         await moveRow(rows, entry.documentId, parentId, Number.MAX_SAFE_INTEGER);
@@ -213,7 +214,7 @@ const catalogCategory = ({ strapi }: { strapi: Core.Strapi }) => {
     async update(documentId: string, data: Record<string, unknown>, ctx: ServiceContext) {
       const before = await findOr404(documentId);
       const updated = await strapi.db.transaction(async () => {
-        const entry = (await strapi.documents(CATEGORY).update({
+        const entry = (await withAuditSuppressed(CATEGORY, () => strapi.documents(CATEGORY).update({
           documentId,
           data: {
             ...(data.name !== undefined ? { name: data.name } : {}),
@@ -223,7 +224,7 @@ const catalogCategory = ({ strapi }: { strapi: Core.Strapi }) => {
             ...(data.isInternal !== undefined ? { isInternal: data.isInternal } : {}),
             ...(data.image !== undefined ? { image: data.image } : {}),
           } as Record<string, unknown>,
-        })) as { documentId: string };
+        }))) as { documentId: string };
         if (data.parent !== undefined) {
           const rows = await allRows();
           await moveRow(
@@ -344,7 +345,7 @@ const catalogCategory = ({ strapi }: { strapi: Core.Strapi }) => {
         const remaining = new Map(
           otherLinks.map((row) => [row.catalog_product_id, Number(row.cnt)]),
         );
-        await strapi.documents(CATEGORY).delete({ documentId });
+        await withAuditSuppressed(CATEGORY, () => strapi.documents(CATEGORY).delete({ documentId }));
         return {
           unlinked: linked.map((product) => ({
             documentId: product.documentId,

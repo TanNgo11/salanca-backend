@@ -1,6 +1,6 @@
 /**
- * The eight operational alert codes (contracts §12) and their staff-facing labels. The set is
- * fixed: alert rules, the alert engine and the ops-alert email all key off this list.
+ * The operational alert codes (contracts §12, + O15 `audit-tampered`) and their staff-facing
+ * labels. The set is fixed: alert rules, the alert engine and the ops-alert email all key off this list.
  */
 export const ALERT_CODES = [
   'webhook-failing',
@@ -11,6 +11,7 @@ export const ALERT_CODES = [
   'reconciliation-mismatch',
   'manual-payment-unconfirmed',
   'cash-closing-mismatch',
+  'audit-tampered',
 ] as const;
 
 export type AlertCode = (typeof ALERT_CODES)[number];
@@ -30,6 +31,7 @@ const labels: Record<AlertCode, { vi: string; en: string }> = {
     en: 'Manual transfer unconfirmed',
   },
   'cash-closing-mismatch': { vi: 'Chốt tiền mặt chênh lệch', en: 'Cash closing mismatch' },
+  'audit-tampered': { vi: 'Lịch sử thay đổi bị sửa ngoài hệ thống', en: 'Audit log tampered' },
 };
 
 export const alertLabel = (code: string, locale: string | null | undefined): string =>

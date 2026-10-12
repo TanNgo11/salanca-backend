@@ -7,6 +7,7 @@ import { OrderingInboxProvider, useOrderingInbox } from '../inbox/OrderingInboxP
 import { useT } from '../lib/i18n';
 import {
   RBAC_ALERTS,
+  RBAC_AUDIT,
   RBAC_CATALOG_ACCESS,
   RBAC_CATALOG_MANAGE,
   RBAC_OPS,
@@ -28,6 +29,7 @@ const AlertsPage = lazy(() => import('./Alerts'));
 const OpsPage = lazy(() => import('./Ops'));
 const CashClosingPage = lazy(() => import('./CashClosing'));
 const ReportsPage = lazy(() => import('./Reports'));
+const AuditLogPage = lazy(() => import('./AuditLog'));
 
 type Section =
   | 'orders'
@@ -40,7 +42,8 @@ type Section =
   | 'categories'
   | 'availability'
   | 'branches'
-  | 'staff';
+  | 'staff'
+  | 'audit-log';
 
 /**
  * One "Bán hàng" entry in the main menu; every ordering screen lives under it with its own
@@ -120,10 +123,11 @@ const SideNav = ({
             {visible.availability ? link('availability', t('nav.availability')) : null}
           </SubNavSection>
         ) : null}
-        {visible.branches || visible.staff || visible.settings ? (
+        {visible.branches || visible.staff || visible.settings || visible['audit-log'] ? (
           <SubNavSection label={t('nav.setup')}>
             {visible.branches ? link('branches', t('nav.branches')) : null}
             {visible.staff ? link('staff', t('nav.staff')) : null}
+            {visible['audit-log'] ? link('audit-log', t('nav.auditLog')) : null}
             {visible.settings ? (
               <SubNavLink tag={NavLink} to="/settings/ordering">
                 {t('nav.settings')}
@@ -146,7 +150,8 @@ const OrderingApp = () => {
   const catalogAccess = useRBAC(RBAC_CATALOG_ACCESS);
   const settings = useRBAC(RBAC_SETTINGS);
   const scope = useRBAC(RBAC_SCOPE);
-  const loading = [orders, reviews, alerts, ops, report, catalogManage, catalogAccess, settings, scope].some(
+  const audit = useRBAC(RBAC_AUDIT);
+  const loading = [orders, reviews, alerts, ops, report, catalogManage, catalogAccess, settings, scope, audit].some(
     (item) => item.isLoading,
   );
   if (loading) {
@@ -169,6 +174,7 @@ const OrderingApp = () => {
     availability: any(catalogAccess.allowedActions),
     branches: any(settings.allowedActions),
     staff: any(scope.allowedActions),
+    'audit-log': any(audit.allowedActions),
     settings: any(settings.allowedActions),
   };
   const first = (
@@ -184,6 +190,7 @@ const OrderingApp = () => {
       'availability',
       'branches',
       'staff',
+      'audit-log',
     ] as Section[]
   ).find((key) => visible[key]);
 
@@ -212,6 +219,7 @@ const OrderingApp = () => {
             <Route path="availability/*" element={<AvailabilityPage />} />
             <Route path="branches/*" element={<BranchesPage />} />
             <Route path="staff/*" element={<StaffPage />} />
+            <Route path="audit-log/*" element={<AuditLogPage />} />
           </Routes>
         </Suspense>
       </Layouts.Root>

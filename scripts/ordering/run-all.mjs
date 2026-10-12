@@ -40,6 +40,8 @@ const scripts = [
   'reports.mjs',
   'order-export.mjs',
   'retention.mjs',
+  'audit-log.mjs',
+  'audit-coverage.mjs',
   'lookup-drafts.mjs',
   'stream.mjs',
   'sepay-webhook.mjs',

@@ -64,6 +64,7 @@ export type OrderingErrorCode =
   | 'CASH_CLOSING_EXISTS'
   | 'CASH_CLOSING_NOT_FOUND'
   | 'EXPORT_TOO_LARGE'
+  | 'AUDIT_ENTRY_NOT_FOUND'
   | 'INTERNAL';
 
 const defaultStatus: Record<OrderingErrorCode, number> = {
@@ -127,6 +128,7 @@ const defaultStatus: Record<OrderingErrorCode, number> = {
   CASH_CLOSING_EXISTS: 409,
   CASH_CLOSING_NOT_FOUND: 404,
   EXPORT_TOO_LARGE: 400,
+  AUDIT_ENTRY_NOT_FOUND: 404,
   INTERNAL: 500,
 };
 

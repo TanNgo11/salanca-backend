@@ -15,6 +15,7 @@ export const PERMISSIONS = {
   report: action('report.read'),
   export: action('export'),
   ops: action('ops.read'),
+  audit: action('audit.read'),
 } as const;
 
 /** Stable arrays for `useRBAC` (a new array each render makes it re-check every time). */
@@ -46,6 +47,7 @@ export const RBAC_PAYMENT_REVIEW = [...PERMISSIONS.review];
 export const RBAC_OPS = [...PERMISSIONS.ops];
 export const RBAC_REPORT = [...PERMISSIONS.report];
 export const RBAC_EXPORT = [...PERMISSIONS.export];
+export const RBAC_AUDIT = [...PERMISSIONS.audit];
 /** O6 alert list: anyone a rule could notify (ops, reports, payment review or branch staff). */
 export const RBAC_ALERTS = [
   ...PERMISSIONS.ops,
@@ -62,4 +64,5 @@ export const RBAC_ANY_ORDERING = [
   ...RBAC_PAYMENT_REVIEW,
   ...RBAC_OPS,
   ...RBAC_REPORT,
+  ...RBAC_AUDIT,
 ];

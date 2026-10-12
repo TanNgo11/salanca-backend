@@ -2984,12 +2984,15 @@ export interface PluginOrderingAdminChangeLog
   attributes: {
     action: Schema.Attribute.String & Schema.Attribute.Required;
     actorRef: Schema.Attribute.String & Schema.Attribute.Required;
+    category: Schema.Attribute.String;
     changes: Schema.Attribute.JSON & Schema.Attribute.Required;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     entityId: Schema.Attribute.String & Schema.Attribute.Required;
+    entityLabel: Schema.Attribute.String;
     entityType: Schema.Attribute.String & Schema.Attribute.Required;
+    hash: Schema.Attribute.String;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -2998,7 +3001,10 @@ export interface PluginOrderingAdminChangeLog
       Schema.Attribute.Private;
     locationRef: Schema.Attribute.String;
     occurredAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    orderId: Schema.Attribute.Integer;
+    prevHash: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
+    requestId: Schema.Attribute.String;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

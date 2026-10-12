@@ -2,6 +2,7 @@ import adminBranches from './admin-branches';
 import adminOrders from './admin-orders';
 import adminUnits from './admin-units';
 import adminStream from './admin-stream';
+import auditLog from './audit-log';
 import availability from './availability';
 import cashClosing from './cash-closing';
 import catalog from './catalog';
@@ -26,4 +27,5 @@ export default {
   ops,
   'cash-closing': cashClosing,
   reports,
+  'audit-log': auditLog,
 };

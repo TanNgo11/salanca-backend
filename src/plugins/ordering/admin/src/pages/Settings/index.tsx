@@ -37,7 +37,7 @@ type AlertRule = {
 
 type AlertRules = Record<string, AlertRule>;
 
-/** The eight fixed codes (mirrors server `domain/alert-codes.ts` — Admin never imports server). */
+/** The fixed codes (mirrors server `domain/alert-codes.ts` — Admin never imports server). */
 const ALERT_CODES = [
   'webhook-failing',
   'payment-unmatched',
@@ -47,6 +47,7 @@ const ALERT_CODES = [
   'reconciliation-mismatch',
   'manual-payment-unconfirmed',
   'cash-closing-mismatch',
+  'audit-tampered',
 ] as const;
 
 const RECIPIENT_CHOICES = ['branch-email', 'ops.read', 'report.read', 'payment.review', 'order.read'];

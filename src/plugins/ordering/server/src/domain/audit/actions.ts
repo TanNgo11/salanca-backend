@@ -1,0 +1,158 @@
+/**
+ * Catalog of admin change-log actions (O15). Every `change-log.record` call uses a code from this
+ * list; the code fixes the category (screen filter) and the label staff read. Unknown codes are
+ * still recorded (category `other`, a warning) — a missing label must never fail a money write —
+ * and `actions.test.ts` scans the source tree so new call sites add their code here.
+ */
+export const AUDIT_CATEGORIES = [
+  'money',
+  'order',
+  'catalog',
+  'delivery',
+  'config',
+  'access',
+  'ops',
+  'other',
+] as const;
+export type AuditCategory = (typeof AUDIT_CATEGORIES)[number];
+
+type ActionDef = { category: AuditCategory; label: [vi: string, en: string] };
+
+/** Catalog content types written through the Document Service middleware (register.ts). */
+export const CATALOG_AUDITED_TYPES = [
+  ['catalog-category', 'danh mục', 'category'],
+  ['catalog-product', 'món', 'product'],
+  ['catalog-variant', 'biến thể', 'variant'],
+  ['catalog-price', 'giá', 'price'],
+  ['catalog-modifier-group', 'nhóm tùy chọn', 'option group'],
+  ['catalog-modifier', 'tùy chọn', 'option'],
+  ['catalog-availability-window', 'khung giờ bán', 'selling window'],
+  ['catalog-location-state', 'trạng thái bán theo chi nhánh', 'branch selling state'],
+] as const;
+
+const catalogActions = Object.fromEntries(
+  CATALOG_AUDITED_TYPES.flatMap(([type, vi, en]) => [
+    [`${type}.create`, { category: 'catalog', label: [`Tạo ${vi}`, `Create ${en}`] }],
+    [`${type}.update`, { category: 'catalog', label: [`Sửa ${vi}`, `Update ${en}`] }],
+    [`${type}.delete`, { category: 'catalog', label: [`Xóa ${vi}`, `Delete ${en}`] }],
+  ]),
+) as Record<string, ActionDef>;
+
+export const AUDIT_ACTIONS: Record<string, ActionDef> = {
+  ...catalogActions,
+  'catalog-category.move': { category: 'catalog', label: ['Đổi vị trí danh mục', 'Move category'] },
+  'catalog-availability.toggle': {
+    category: 'catalog',
+    label: ['Bật/tắt tạm hết', 'Toggle out of stock'],
+  },
+  // Money
+  'refund.create': { category: 'money', label: ['Tạo phiếu hoàn', 'Create refund'] },
+  'refund.settle': { category: 'money', label: ['Ghi nhận đã hoàn', 'Settle refund'] },
+  'payment-manual.record': {
+    category: 'money',
+    label: ['Ghi chuyển khoản tay', 'Record transfer manually'],
+  },
+  'payment.cash-capture': { category: 'money', label: ['Thu tiền mặt', 'Collect cash'] },
+  'payment-link.issue': { category: 'money', label: ['Tạo link thanh toán', 'Issue payment link'] },
+  'payment-review.assign': {
+    category: 'money',
+    label: ['Gán chuyển khoản vào đơn', 'Assign transfer to order'],
+  },
+  'payment-review.refund-due': {
+    category: 'money',
+    label: ['Đánh dấu cần hoàn', 'Mark transfer refund due'],
+  },
+  'payment-review.ignore': { category: 'money', label: ['Bỏ qua chuyển khoản', 'Ignore transfer'] },
+  'payment-review.reopen': { category: 'money', label: ['Mở lại chuyển khoản', 'Reopen transfer'] },
+  'cash-closing.close': { category: 'money', label: ['Chốt tiền mặt', 'Close cash'] },
+  'cash-closing.adjust': { category: 'money', label: ['Sửa chốt tiền mặt', 'Adjust cash closing'] },
+  // Orders
+  'order.transition': { category: 'order', label: ['Chuyển bước đơn', 'Move order step'] },
+  'order.reject': { category: 'order', label: ['Từ chối đơn', 'Reject order'] },
+  'order.cancel': { category: 'order', label: ['Hủy đơn', 'Cancel order'] },
+  'order.complete': { category: 'order', label: ['Hoàn tất đơn', 'Complete order'] },
+  'order.line-cancel': { category: 'order', label: ['Hủy bớt món', 'Cancel line items'] },
+  'order.confirm-draft': {
+    category: 'order',
+    label: ['Xác nhận đơn hộ khách', 'Confirm phone order'],
+  },
+  // Delivery
+  'delivery.dispatch': { category: 'delivery', label: ['Bắt đầu giao', 'Start delivery'] },
+  'delivery.fail': { category: 'delivery', label: ['Giao thất bại', 'Delivery failed'] },
+  'delivery.retry': { category: 'delivery', label: ['Giao lại', 'Retry delivery'] },
+  // Configuration
+  'branch.create': { category: 'config', label: ['Tạo chi nhánh', 'Create branch'] },
+  'branch.update': { category: 'config', label: ['Sửa chi nhánh', 'Update branch'] },
+  'settings.update': { category: 'config', label: ['Sửa cài đặt bán hàng', 'Update sales settings'] },
+  'alert-rules.update': { category: 'config', label: ['Sửa ngưỡng cảnh báo', 'Update alert rules'] },
+  // Access
+  'scope.update': { category: 'access', label: ['Gán chi nhánh cho nhân viên', 'Update staff scope'] },
+  // Ops
+  'ops.job-run': { category: 'ops', label: ['Chạy job', 'Run job'] },
+  'ops.outbox-retry': { category: 'ops', label: ['Gửi lại sự kiện', 'Retry outbox event'] },
+};
+
+export const auditActionDef = (action: string): ActionDef | undefined => AUDIT_ACTIONS[action];
+
+export const auditCategoryOf = (action: string): AuditCategory =>
+  AUDIT_ACTIONS[action]?.category ?? 'other';
+
+export const auditLabelOf = (action: string, locale: string | null | undefined): string => {
+  const def = AUDIT_ACTIONS[action];
+  if (!def) return action;
+  return locale?.toLowerCase().startsWith('en') ? def.label[1] : def.label[0];
+};
+
+/**
+ * Staff order-flow audit derived from a timeline event (one place instead of a `record` call in
+ * every order service). Returns null when the event is not a staff action worth auditing.
+ */
+export const auditActionForTimeline = (
+  type: string,
+  payload: Record<string, unknown> | undefined,
+): { action: string; before?: Record<string, unknown>; after?: Record<string, unknown> } | null => {
+  const data = payload ?? {};
+  if (type === 'fulfillment-group.transitioned') {
+    const from = typeof data.from === 'string' ? data.from : null;
+    const to = typeof data.to === 'string' ? data.to : null;
+    if (!to) return null;
+    // Only the reason *code* — free-text reasons/notes may carry customer data.
+    const reason = typeof data.reasonCode === 'string' ? data.reasonCode : undefined;
+    const action =
+      to === 'canceled'
+        ? 'order.cancel'
+        : to === 'rejected'
+          ? 'order.reject'
+          : to === 'out-for-delivery'
+            ? 'delivery.dispatch'
+            : to === 'failed'
+              ? 'delivery.fail'
+              : from === 'failed' && to === 'ready'
+                ? 'delivery.retry'
+                : to === 'delivered'
+                  ? 'order.complete'
+                  : 'order.transition';
+    return {
+      action,
+      before: { status: from },
+      after: { status: to, ...(reason ? { reasonCode: reason } : {}) },
+    };
+  }
+  if (type === 'order.line.canceled') {
+    return {
+      action: 'order.line-cancel',
+      after: {
+        lineId: data.lineId,
+        quantity: data.quantity,
+        amount: data.amount,
+      },
+    };
+  }
+  if (type === 'payment.captured' && data.providerCode === 'cash') {
+    return { action: 'payment.cash-capture', after: { amount: data.amount, paymentId: data.paymentId } };
+  }
+  if (type === 'order.confirmed') {
+    return { action: 'order.confirm-draft' };
+  }
+  return null;
+};

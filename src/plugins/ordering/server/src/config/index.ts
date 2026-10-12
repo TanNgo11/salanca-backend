@@ -58,6 +58,7 @@ export const configSchema = z.object({
     manualConfirmCron: z.string().min(1),
     opsCheckCron: z.string().min(1),
     retentionCron: z.string().min(1),
+    auditChainCron: z.string().min(1),
     /** Expected run period in minutes per job for `job-heartbeat-missed` (ops-check). */
     heartbeatMinutes: z.record(z.string(), z.number().int().positive()),
   }),
@@ -69,6 +70,16 @@ export const configSchema = z.object({
     alertResolvedDays: z.number().int().positive(),
     batchSize: z.number().int().positive(),
     maxBatchesPerRun: z.number().int().positive(),
+  }),
+  /** O15 change-log tamper evidence: hash chain filled after commit + verification sample. */
+  audit: z.object({
+    hashChain: z.boolean(),
+    /** Rows newer than this are left for the next run (a slow transaction may still commit). */
+    settleSeconds: z.number().int().min(0),
+    batchSize: z.number().int().positive(),
+    maxBatchesPerRun: z.number().int().positive(),
+    verifyRecent: z.number().int().min(0),
+    verifySample: z.number().int().min(0),
   }),
   /** Trusted visitor-IP forwarding for rate limits / captcha (domain/client-ip.ts). */
   clientIp: z.object({
@@ -145,6 +156,7 @@ export default {
       manualConfirmCron: '0 15 * * * *',
       opsCheckCron: '0 * * * * *',
       retentionCron: '0 30 3 * * *',
+      auditChainCron: '0 */5 * * * *',
       heartbeatMinutes: {
         outbox: 2,
         'hold-expiry': 2,
@@ -154,7 +166,16 @@ export default {
         'sepay-reconciliation': 150,
         'manual-payment-check': 150,
         retention: 1500,
+        'audit-chain': 15,
       },
+    },
+    audit: {
+      hashChain: true,
+      settleSeconds: 30,
+      batchSize: 1000,
+      maxBatchesPerRun: 20,
+      verifyRecent: 2000,
+      verifySample: 200,
     },
     // Defaults pending legal confirmation (contracts §19.9).
     retention: {

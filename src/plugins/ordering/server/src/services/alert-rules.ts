@@ -91,6 +91,14 @@ export const ALERT_RULE_DEFAULTS: AlertRules = {
     aggregationMinutes: 1440,
     recipients: ['report.read'],
   },
+  // O15: a change-log row whose hash or chain link no longer verifies. Always critical.
+  'audit-tampered': {
+    enabled: true,
+    threshold: 1,
+    criticalThreshold: 1,
+    aggregationMinutes: 1440,
+    recipients: ['ops.read'],
+  },
 };
 
 /** Unknown codes (custom callers) behave as a minimal warning rule rather than being dropped. */

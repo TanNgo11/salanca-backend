@@ -247,6 +247,11 @@ export default {
       adminRoute('POST', '/cash-closing/:id/adjust', 'cash-closing.adjust', 'report.read'),
       // Sales report (screens V4): ledger revenue + sold-order grouping by business date.
       adminRoute('GET', '/reports/sales', 'reports.sales', 'report.read'),
+      // O15 "Lịch sử thay đổi" — scope filtered in the service; export needs both actions.
+      adminRoute('GET', '/audit-log', 'audit-log.list', 'audit.read'),
+      adminRoute('GET', '/audit-log/actors', 'audit-log.actors', 'audit.read'),
+      adminRoute('GET', '/audit-log/export', 'audit-log.exportCsv', 'audit.read', 'export'),
+      adminRoute('GET', '/audit-log/:id', 'audit-log.detail', 'audit.read'),
     ],
   },
 };

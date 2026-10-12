@@ -1,5 +1,8 @@
+import { randomUUID } from 'node:crypto';
+
 import type { Core } from '@strapi/strapi';
 
+import { auditActionDef, auditCategoryOf } from '../domain/audit/actions';
 import { maskPayload } from '../domain/pii';
 import type { ServiceContext } from './context';
 import { actorRefOf, nowOf } from './context';
@@ -14,8 +17,23 @@ import { actorRefOf, nowOf } from './context';
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
 
+const REQUEST_ID = Symbol.for('ordering.auditRequestId');
+const MAX_LABEL = 120;
+
 const changeLog = ({ strapi }: { strapi: Core.Strapi }) => {
   const logs = () => strapi.db.query('plugin::ordering.admin-change-log');
+  const warned = new Set<string>();
+
+  /**
+   * One id per admin HTTP request, so a cancel that also refunds and releases stock shows as one
+   * operation. Lazily stored on the Koa context; jobs/scripts without a request get null.
+   */
+  const requestIdOf = (): string | null => {
+    const ctx = strapi.requestContext?.get?.() as Record<symbol, unknown> | undefined;
+    if (!ctx) return null;
+    if (typeof ctx[REQUEST_ID] !== 'string') ctx[REQUEST_ID] = randomUUID();
+    return ctx[REQUEST_ID] as string;
+  };
 
   const diff = (before: unknown, after: unknown): Record<string, { before: unknown; after: unknown }> => {
     // Changed keys are detected on the RAW values (two distinct phone numbers must register
@@ -41,12 +59,21 @@ const changeLog = ({ strapi }: { strapi: Core.Strapi }) => {
         entityType: string;
         entityId: number | string;
         locationRef?: string;
+        /** Order code / item name at write time — never customer data. */
+        entityLabel?: string | null;
+        orderId?: number | null;
         before?: Record<string, unknown> | null;
         after?: Record<string, unknown> | null;
       },
       ctx: ServiceContext,
     ): Promise<number> {
       const occurredAt = nowOf(ctx);
+      // An unknown code is still recorded (category `other`): a missing catalog entry must never
+      // fail the money write this log row rides along with. actions.test.ts catches it in CI.
+      if (!auditActionDef(input.action) && !warned.has(input.action)) {
+        warned.add(input.action);
+        strapi.log.warn(`[ordering] change-log action "${input.action}" is not in domain/audit/actions.ts`);
+      }
       const row = await logs().create({
         data: {
           actorRef: actorRefOf(ctx),
@@ -56,6 +83,10 @@ const changeLog = ({ strapi }: { strapi: Core.Strapi }) => {
           locationRef: input.locationRef ?? null,
           occurredAt,
           changes: diff(input.before, input.after),
+          category: auditCategoryOf(input.action),
+          entityLabel: input.entityLabel ? input.entityLabel.slice(0, MAX_LABEL) : null,
+          orderId: input.orderId ?? null,
+          requestId: requestIdOf(),
         },
       });
       // Refs only — no before/after values, no payload.
