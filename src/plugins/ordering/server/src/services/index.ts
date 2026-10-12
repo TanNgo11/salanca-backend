@@ -23,6 +23,7 @@ import catalogSlug from './catalog-slug';
 import changeLog from './change-log';
 import jobLock from './job-lock';
 import lineCancel from './line-cancel';
+import orderEdit from './order-edit';
 import pickupScheduling from './pickup-scheduling';
 import storefront from './storefront';
 import adminOrders from './admin-orders';
@@ -60,6 +61,7 @@ export default {
   'change-log': changeLog,
   'job-lock': jobLock,
   'line-cancel': lineCancel,
+  'order-edit': orderEdit,
   'pickup-scheduling': pickupScheduling,
   storefront,
   'admin-orders': adminOrders,

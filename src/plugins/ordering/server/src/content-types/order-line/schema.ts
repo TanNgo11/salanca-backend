@@ -37,6 +37,8 @@ export default collection(
     fulfilledQuantity: { type: 'integer', required: true, default: 0 },
     returnedQuantity: { type: 'integer', required: true, default: 0 },
     canceledQuantity: { type: 'integer', required: true, default: 0 },
+    /** Null on lines placed with the order. A staff edit stamps the revision that added the line. */
+    addedInRevision: { type: 'integer' },
     unitAmount: big(),
     optionAmount: big(),
     baseAmount: big(),

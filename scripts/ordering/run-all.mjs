@@ -31,6 +31,7 @@ const scripts = [
   'branches.mjs',
   'special-hours.mjs',
   'daily-stock.mjs',
+  'order-edit.mjs',
   'pickup-slots.mjs',
   'storefront.mjs',
   'admin-orders.mjs',

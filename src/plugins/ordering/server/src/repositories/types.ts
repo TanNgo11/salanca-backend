@@ -30,6 +30,8 @@ export type OrderRow = {
   origin: { kind: 'storefront' | 'staff-draft' | 'import'; actorRef?: string };
   cartHash: string | null;
   draftConfirmedAt: string | null;
+  /** Absent on a row loaded before the column existed. Readers treat that as 0. */
+  editRevision?: number;
 };
 
 export type OrderLineRow = {
@@ -55,6 +57,8 @@ export type OrderLineRow = {
   fulfilledQuantity: number;
   returnedQuantity: number;
   canceledQuantity: number;
+  /** Null when the line was on the order at placement. */
+  addedInRevision?: number | null;
   unitAmount: number;
   optionAmount: number;
   baseAmount: number;

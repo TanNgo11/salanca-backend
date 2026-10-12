@@ -122,6 +122,7 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
   type NotificationService = {
     onOrderPlaced: (event: never) => Promise<void>;
     onOrderTransitioned: (event: never) => Promise<void>;
+    onOrderEdited: (event: never) => Promise<void>;
     onGroupTransitioned: (event: never) => Promise<void>;
     onOpsAlert: (event: never) => Promise<void>;
   };
@@ -130,6 +131,7 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
   registry.registerOutboxConsumer('order.transitioned', (event) =>
     notifications().onOrderTransitioned(event as never),
   );
+  registry.registerOutboxConsumer('order.edited', (event) => notifications().onOrderEdited(event as never));
   registry.registerOutboxConsumer('fulfillment-group.transitioned', (event) =>
     notifications().onGroupTransitioned(event as never),
   );

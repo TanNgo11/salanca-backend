@@ -103,6 +103,22 @@ const paymentLink = ({ strapi }: { strapi: Core.Strapi }) => {
     },
 
     /**
+     * Live payment-link URL, or null. Callers must not log it: the URL carries the bearer token.
+     */
+    async currentUrl(orderId: number, now: Date): Promise<string | null> {
+      const link = asLink(await store().get({ key: paymentLinkStoreKey(orderId) }));
+      if (!link || !live(link, now)) return null;
+      try {
+        const token = decryptSecret(link.cipher, encryptionKey());
+        if (!TOKEN_PATTERN.test(token) || sha256Hex(token) !== link.tokenHash) return null;
+        return paymentUrl(token);
+      } catch (error) {
+        if (isOrderingError(error) && error.code === 'CONFIG_INVALID') throw error;
+        return null;
+      }
+    },
+
+    /**
      * Order id for a payment-link bearer, or null when the token is unknown or expired.
      * Callers that already resolved an order token must not call this.
      */
@@ -178,6 +194,66 @@ const paymentLink = ({ strapi }: { strapi: Core.Strapi }) => {
       const issuedAt = new Date(expiresAt);
       const next = issuedAt.getTime() > current.getTime() ? issuedAt : current;
       await store().set({ key: paymentDeadlineStoreKey(orderId), value: next.toISOString() });
+      return { url: paymentUrl(token), expiresAt, replayed: false };
+    },
+
+    /**
+     * Link for the extra amount on an order that is already in the kitchen. Unlike `issue`,
+     * this does not require `awaiting-payment` and does not move the payment-deadline store,
+     * so a preparing order is not pulled back into the payment-expiry window.
+     */
+    async issueForBalance(
+      orderId: number,
+      providerCode: string,
+      ctx: ServiceContext,
+    ): Promise<{ url: string; expiresAt: string; replayed: boolean }> {
+      const aggregate = await orders().getOrder(orderId, ctx);
+      if (!registry().hasPaymentProvider(providerCode)) {
+        throw new OrderingError('PROVIDER_NOT_REGISTERED', 'payment provider is not registered', {
+          details: { providerCode },
+        });
+      }
+      const provider = registry().paymentProvider(providerCode);
+      if (!isOnlinePaymentProvider(provider)) {
+        throw new OrderingError('VALIDATION_ERROR', 'payment link needs an online provider', {
+          details: { providerCode },
+        });
+      }
+      const branch = await branches().findByCode(aggregate.order.locationRef);
+      const kind = (aggregate.order.receiveMethod as { kind?: string }).kind;
+      const settings =
+        kind === 'delivery'
+          ? branches().deliverySettings(branch ?? { fulfillment: null })
+          : branches().pickupSettings(branch ?? { fulfillment: null });
+      if (!settings.paymentProviders.includes(providerCode)) {
+        throw new OrderingError('VALIDATION_ERROR', 'this branch does not offer that payment provider', {
+          details: { providerCode },
+        });
+      }
+
+      const now = nowOf(ctx);
+      const existing = asLink(await store().get({ key: paymentLinkStoreKey(orderId) }));
+      if (existing && live(existing, now)) {
+        try {
+          const token = decryptSecret(existing.cipher, encryptionKey());
+          if (TOKEN_PATTERN.test(token) && sha256Hex(token) === existing.tokenHash) {
+            return { url: paymentUrl(token), expiresAt: existing.expiresAt, replayed: true };
+          }
+        } catch (error) {
+          if (isOrderingError(error)) throw error;
+        }
+      }
+      if (existing?.tokenHash) {
+        await store().delete({ key: paymentTokenStoreKey(existing.tokenHash) });
+      }
+      const token = randomBytes(32).toString('base64url');
+      const tokenHash = sha256Hex(token);
+      const expiresAt = new Date(now.getTime() + settings.paymentTimeoutMinutes * 60_000).toISOString();
+      await store().set({ key: paymentTokenStoreKey(tokenHash), value: orderId });
+      await store().set({
+        key: paymentLinkStoreKey(orderId),
+        value: { tokenHash, expiresAt, cipher: encryptSecret(token, encryptionKey()) },
+      });
       return { url: paymentUrl(token), expiresAt, replayed: false };
     },
   };

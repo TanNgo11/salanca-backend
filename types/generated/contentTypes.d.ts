@@ -4240,6 +4240,9 @@ export interface PluginOrderingOrder extends Struct.CollectionTypeSchema {
       'plugin::ordering.catalog-daily-reservation'
     >;
     draftConfirmedAt: Schema.Attribute.DateTime;
+    editRevision: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
     fulfillmentAmount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
     fulfillmentGroups: Schema.Attribute.Relation<
       'oneToMany',
@@ -4483,6 +4486,7 @@ export interface PluginOrderingOrderLine extends Struct.CollectionTypeSchema {
     };
   };
   attributes: {
+    addedInRevision: Schema.Attribute.Integer;
     allocations: Schema.Attribute.Relation<
       'oneToMany',
       'plugin::ordering.adjustment-allocation'
