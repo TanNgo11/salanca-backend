@@ -26,6 +26,8 @@ import orderingSettings from './ordering-settings';
 import notification from './notification';
 import adminUnits from './admin-units';
 import alert from './alert';
+import alertRules from './alert-rules';
+import alertRecipients from './alert-recipients';
 import orderStream from './order-stream';
 import staffScope from './staff-scope';
 import webhook from './webhook';
@@ -60,6 +62,8 @@ export default {
   notification,
   'admin-units': adminUnits,
   alert,
+  'alert-rules': alertRules,
+  'alert-recipients': alertRecipients,
   'order-stream': orderStream,
   'staff-scope': staffScope,
   webhook,

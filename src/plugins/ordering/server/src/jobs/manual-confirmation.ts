@@ -1,11 +1,11 @@
 import type { Core } from '@strapi/strapi';
 
 import type alertFactory from '../services/alert';
+import type alertRulesFactory from '../services/alert-rules';
 import type { ServiceContext } from '../services/context';
 import type jobLockFactory from '../services/job-lock';
 
 const HOUR_MS = 60 * 60 * 1000;
-const UNCONFIRMED_AFTER_MS = 24 * HOUR_MS;
 const LIMIT = 200;
 
 type ManualEvent = {
@@ -35,7 +35,8 @@ const ageOf = (row: ManualEvent): Date | null => {
 
 /**
  * `manual-payment-unconfirmed` (contracts §19.1): a staff-recorded transfer SePay has not
- * confirmed within 24 hours opens one alert per event. Confirmation resolves it.
+ * confirmed within the rule's `threshold` hours (default 24) opens one alert per event;
+ * `criticalThreshold` hours escalates it to critical. Confirmation resolves it.
  * The bank reference stays out of the alert and the log.
  */
 export const runManualPaymentCheck = async (
@@ -45,9 +46,11 @@ export const runManualPaymentCheck = async (
   const plugin = strapi.plugin('ordering');
   const jobLock = plugin.service('job-lock') as ReturnType<typeof jobLockFactory>;
   const alerts = plugin.service('alert') as ReturnType<typeof alertFactory>;
+  const alertRules = plugin.service('alert-rules') as ReturnType<typeof alertRulesFactory>;
+  const rule = await alertRules.ruleOf('manual-payment-unconfirmed');
   const now = options.now ?? new Date();
   const ctx: ServiceContext = { actor: { kind: 'system', actorRef: 'job:manual-payment-check' }, now };
-  const cutoff = now.getTime() - UNCONFIRMED_AFTER_MS;
+  const cutoff = now.getTime() - rule.threshold * HOUR_MS;
 
   const outcome = await jobLock.withLock(
     { jobName: 'manual-payment-check', owner: options.owner, now },
@@ -66,11 +69,15 @@ export const runManualPaymentCheck = async (
         if (!at || at.getTime() > cutoff) continue;
         const key = `manual-payment-unconfirmed:${row.id}`;
         still.add(key);
+        const ageHours = (now.getTime() - at.getTime()) / HOUR_MS;
         const result = await alerts.open(
           {
             alertCode: 'manual-payment-unconfirmed',
             dedupeKey: key,
-            severity: 'warning',
+            severity:
+              rule.criticalThreshold !== undefined && ageHours > rule.criticalThreshold
+                ? 'critical'
+                : 'warning',
             aggregateRef: `payment-event:${row.id}`,
           },
           ctx,

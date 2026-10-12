@@ -210,6 +210,26 @@ export default {
       // General sales settings (screens S9).
       adminRoute('GET', '/settings', 'admin-orders.getSettings', 'settings.manage'),
       adminRoute('PUT', '/settings', 'admin-orders.putSettings', 'settings.manage'),
+      adminRoute('GET', '/settings/alert-rules', 'ops.getAlertRules', 'settings.manage'),
+      adminRoute('PUT', '/settings/alert-rules', 'ops.putAlertRules', 'settings.manage'),
+      // Alert inbox (screens V2). `has-alert-access` admits any alert-recipient role; the
+      // service narrows the rows to the caller's rules and location scope.
+      {
+        method: 'GET',
+        path: '/alerts',
+        handler: 'ops.listAlerts',
+        config: {
+          policies: ['admin::isAuthenticatedAdmin', 'plugin::ordering.has-alert-access'],
+        },
+      },
+      {
+        method: 'POST',
+        path: '/alerts/:id/acknowledge',
+        handler: 'ops.acknowledgeAlert',
+        config: {
+          policies: ['admin::isAuthenticatedAdmin', 'plugin::ordering.has-alert-access'],
+        },
+      },
     ],
   },
 };

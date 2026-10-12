@@ -58,6 +58,7 @@ export type OrderingErrorCode =
   | 'PAYMENT_ALREADY_RECEIVED'
   | 'ORDER_CLOSED'
   | 'REFUND_NOT_FOUND'
+  | 'ALERT_NOT_FOUND'
   | 'INTERNAL';
 
 const defaultStatus: Record<OrderingErrorCode, number> = {
@@ -115,6 +116,7 @@ const defaultStatus: Record<OrderingErrorCode, number> = {
   PAYMENT_ALREADY_RECEIVED: 409,
   ORDER_CLOSED: 409,
   REFUND_NOT_FOUND: 404,
+  ALERT_NOT_FOUND: 404,
   INTERNAL: 500,
 };
 

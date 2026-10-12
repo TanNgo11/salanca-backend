@@ -2,17 +2,22 @@ import type { Core } from '@strapi/strapi';
 
 import type { OrderingConfig } from '../config';
 import type { OutboxEvent } from '../contracts';
+import { alertLabel, isAlertCode } from '../domain/alert-codes';
 import { sha256Hex } from '../domain/hashing';
 import {
   customerTemplateFor,
   deliveryFailureReason,
   formatLocalTime,
+  renderOpsAlert,
   renderTemplate,
+  type OpsAlertData,
   type TemplateCode,
   type TemplateData,
 } from '../domain/notifications/templates';
 import orderRepository from '../repositories/order';
 import type { OrderAggregate } from '../repositories/types';
+import type alertRecipientsFactory from './alert-recipients';
+import type alertRulesFactory from './alert-rules';
 import type branchFactory from './branch';
 import type idempotencyFactory from './idempotency';
 import type orderingSettingsFactory from './ordering-settings';
@@ -37,6 +42,9 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
   const branches = () => plugin().service('branch') as ReturnType<typeof branchFactory>;
   const idempotency = () => plugin().service('idempotency') as ReturnType<typeof idempotencyFactory>;
   const settings = () => plugin().service('ordering-settings') as ReturnType<typeof orderingSettingsFactory>;
+  const alertRules = () => plugin().service('alert-rules') as ReturnType<typeof alertRulesFactory>;
+  const alertRecipients = () =>
+    plugin().service('alert-recipients') as ReturnType<typeof alertRecipientsFactory>;
   const repo = orderRepository({ strapi });
 
   const deliver = async (input: {
@@ -44,9 +52,10 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
     template: TemplateCode;
     email: string;
     role: 'staff' | 'customer';
-    orderId: number;
+    /** Alerts carry no order; the delivery log column is nullable. */
+    orderId?: number | null;
     locale: string;
-    data: TemplateData;
+    data: TemplateData | OpsAlertData;
   }) => {
     const recipientHash = sha256Hex(input.email.trim().toLowerCase());
     const key = { eventId: String(input.event.id), template: input.template, recipientHash };
@@ -63,7 +72,7 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
             ...key,
             channel: 'email',
             recipientRole: input.role,
-            orderId: input.orderId,
+            orderId: input.orderId ?? null,
             messageLocale: input.locale,
             status: 'pending',
             attempts: 0,
@@ -79,7 +88,10 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
       await deliveries().update({ where: { id: row.id }, data: { status: 'skipped' } });
       return;
     }
-    const rendered = renderTemplate(input.template, input.locale, input.data);
+    const rendered =
+      input.template === 'staff.ops-alert'
+        ? renderOpsAlert(input.locale, input.data as OpsAlertData)
+        : renderTemplate(input.template, input.locale, input.data as TemplateData);
     try {
       await registry()
         .notificationProvider('email')
@@ -168,16 +180,15 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
       }
     },
 
-    /** `ops-alert.opened` for an overdue order: email the branch once per alert. */
-    async onAlertOpened(event: OutboxEvent): Promise<void> {
-      if (event.payload.alertCode !== 'order-awaiting-acceptance') return;
+    /** `order-awaiting-acceptance` keeps its rich order template for the branch mailbox. */
+    async sendOrderOverdue(event: OutboxEvent, branchEmails: string[]): Promise<void> {
       const ref = /^order:(\d+)$/.exec(String(event.payload.aggregateRef ?? ''));
       if (!ref) return;
       const orderId = Number(ref[1]);
       const aggregate = await repo.loadOrderAggregate(orderId);
       if (!aggregate) return;
       const { branch, data } = await baseData(aggregate);
-      if (!branch?.email) return;
+      if (!branch?.email || !branchEmails.includes(branch.email)) return;
       await deliver({
         event,
         template: 'staff.order-overdue',
@@ -187,6 +198,59 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
         locale: 'vi',
         data,
       });
+    },
+
+    /**
+     * `ops-alert.opened` / `ops-alert.escalated`: resolve the alert rule's recipients — branch
+     * mailbox for 'branch-email', active admin holders of each listed action otherwise — and
+     * send one `staff.ops-alert` per address (deduped across actions and by the delivery log).
+     */
+    async onOpsAlert(event: OutboxEvent): Promise<void> {
+      const alertCode = String(event.payload.alertCode ?? '');
+      const locationRef =
+        typeof event.payload.locationRef === 'string' ? event.payload.locationRef : undefined;
+      const rule = isAlertCode(alertCode) ? (await alertRules().get())[alertCode] : undefined;
+      if (!rule || !rule.enabled) return;
+      const { emails, branchEmails } = await alertRecipients().resolve(rule, locationRef);
+      const generic = new Set(emails);
+      // The overdue order keeps its detailed template; everything else gets the alert summary.
+      if (alertCode === 'order-awaiting-acceptance' && event.type === 'ops-alert.opened') {
+        await service.sendOrderOverdue(event, branchEmails);
+        for (const email of branchEmails) generic.delete(email);
+      }
+      if (generic.size === 0) return;
+      const row = (await strapi.db.query('plugin::ordering.ops-alert').findOne({
+        where: { id: Number(event.payload.alertId) },
+      })) as {
+        severity?: string;
+        count?: number;
+        firstSeenAt?: string;
+        lastSeenAt?: string;
+      } | null;
+      const severity = (['info', 'warning', 'critical'].includes(String(event.payload.severity))
+        ? event.payload.severity
+        : row?.severity ?? 'warning') as OpsAlertData['severity'];
+      const data: OpsAlertData = {
+        label: alertLabel(alertCode, 'vi'),
+        severity,
+        count: Number(event.payload.count ?? row?.count ?? 1),
+        firstSeen: row?.firstSeenAt ? formatLocalTime(String(row.firstSeenAt), 'Asia/Ho_Chi_Minh') : '—',
+        lastSeen: row?.lastSeenAt ? formatLocalTime(String(row.lastSeenAt), 'Asia/Ho_Chi_Minh') : '—',
+        branchRef: locationRef,
+        aggregateRef:
+          typeof event.payload.aggregateRef === 'string' ? event.payload.aggregateRef : undefined,
+      };
+      for (const email of generic) {
+        await deliver({
+          event,
+          template: 'staff.ops-alert',
+          email,
+          role: 'staff',
+          orderId: null,
+          locale: 'vi',
+          data,
+        });
+      }
     },
 
     /** `order.transitioned` from draft = staff confirmed a phone order. */

@@ -18,12 +18,16 @@ Nghiên cứu: [`ordering-reference.md` mục U6](ordering-reference.md). **Quy 
 
 ## V2. Cảnh báo
 
-- Route: `/plugins/ordering/alerts`. Quyền: xem theo vai trò người nhận (mục 19.2); `ops.read` thấy hết.
-- API: `GET /ordering/admin/alerts?status=open|acknowledged|resolved`, `POST /ordering/admin/alerts/:id/acknowledge`.
+- Route: `/plugins/ordering/alerts`. Quyền: xem theo vai trò người nhận (mục 19.2) — server lọc theo `recipients`
+  của rule (`ops.read`/`report.read`/`payment.review`/`order.read` hoặc `branch-email`+`order.read`) và theo scope
+  chi nhánh (`staff-location-scope`); `ops.read` thấy hết. Route đi qua policy `has-alert-access`.
+- API (đã có ở bước 1): `GET /ordering/alerts?status=open|acknowledged|resolved&page=&pageSize=` →
+  `{ rows, total, page, pageSize }` (mỗi row kèm `recipients` từ rule), `POST /ordering/alerts/:id/acknowledge`
+  (ngoài scope trả 404), `GET`/`PUT /ordering/settings/alert-rules` (quyền `settings.manage`).
 - Bảng (theo Saleor AppProblem): mức (`Badge` Nghiêm trọng / Cảnh báo), nội dung, số lần, lần đầu / gần nhất, gửi tới,
   trạng thái; thao tác **Đã biết** (ghi người và thời điểm).
 - Ngưỡng: Settings → Bán hàng (S9 của O3) thêm khối "Cảnh báo": bảng rule (bật, ngưỡng, ngưỡng nghiêm trọng, cửa sổ
-  gộp, người nhận theo vai trò).
+  gộp, người nhận theo vai trò), đọc/ghi qua `/ordering/settings/alert-rules`.
 
 ## V3. Chốt tiền mặt cuối ngày
 

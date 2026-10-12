@@ -56,6 +56,9 @@ export const configSchema = z.object({
     reconciliationCron: z.string().min(1),
     paymentExpiryCron: z.string().min(1),
     manualConfirmCron: z.string().min(1),
+    opsCheckCron: z.string().min(1),
+    /** Expected run period in minutes per job for `job-heartbeat-missed` (ops-check). */
+    heartbeatMinutes: z.record(z.string(), z.number().int().positive()),
   }),
   /** Trusted visitor-IP forwarding for rate limits / captcha (domain/client-ip.ts). */
   clientIp: z.object({
@@ -130,6 +133,16 @@ export default {
       reconciliationCron: '0 0 * * * *',
       paymentExpiryCron: '*/30 * * * * *',
       manualConfirmCron: '0 15 * * * *',
+      opsCheckCron: '0 * * * * *',
+      heartbeatMinutes: {
+        outbox: 2,
+        'hold-expiry': 2,
+        'payment-expiry': 2,
+        'sla-check': 3,
+        'idempotency-cleanup': 45,
+        'sepay-reconciliation': 150,
+        'manual-payment-check': 150,
+      },
     },
     clientIp: { secretHeader: 'x-ordering-client-secret', ipHeader: 'x-ordering-client-ip' },
     notifications: { email: { enabled: false }, orderLinkTemplate: '' },

@@ -110,12 +110,14 @@ try {
     }
     assert.equal((await openOf('webhook-failing')).length, 0, 'a reset streak of four does not open');
 
+    // O6: inside the 60-minute aggregation window the same key reopens the resolved row
+    // silently (anti-flapping) instead of creating a second alert.
     const reopened = await reject();
     assert.equal(reopened.status, 401);
     failing = await ofCode('webhook-failing');
-    assert.equal(failing.filter((row) => row.status === 'open').length, 1);
-    assert.equal(failing.filter((row) => row.status === 'resolved').length, 1);
-    assert.equal(failing.find((row) => row.status === 'open').count, 1);
+    assert.equal(failing.length, 1);
+    assert.equal(failing[0].status, 'open');
+    assert.equal(failing[0].count, 3, 'the reopened row keeps its earlier count and adds one');
 
     const noCode = (id, reference) =>
       post({

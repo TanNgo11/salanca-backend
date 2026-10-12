@@ -12,6 +12,8 @@ export default collection(
       default: 'warning',
     },
     aggregateRef: { type: 'string' },
+    // Branch code the alert belongs to; null for platform-level alerts (outbox, jobs, webhooks).
+    locationRef: { type: 'string' },
     status: {
       type: 'enumeration',
       enum: ['open', 'acknowledged', 'resolved'],

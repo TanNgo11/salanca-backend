@@ -6,6 +6,7 @@
 export type TemplateCode =
   | 'staff.order-created'
   | 'staff.order-overdue'
+  | 'staff.ops-alert'
   | 'customer.order-placed'
   | 'customer.order-accepted'
   | 'customer.order-delayed'
@@ -62,6 +63,11 @@ const copy: Record<TemplateCode, Record<Locale, { subject: string; lead: string 
   'staff.order-overdue': {
     vi: { subject: 'Đơn {code} đang chờ nhận quá lâu', lead: 'Đơn tại {branch} chưa được nhận, khách đang chờ.' },
     en: { subject: 'Order {code} is waiting too long', lead: 'An order at {branch} has not been accepted yet.' },
+  },
+  // `staff.ops-alert` renders through `renderOpsAlert`; this entry only satisfies the copy record.
+  'staff.ops-alert': {
+    vi: { subject: '[Bán hàng] Cảnh báo', lead: '' },
+    en: { subject: '[Ordering] Alert', lead: '' },
   },
   'customer.order-placed': {
     vi: { subject: 'Đã nhận đơn {code}', lead: 'Cảm ơn bạn! {branch} đã nhận đơn và sẽ xác nhận sớm.' },
@@ -173,6 +179,70 @@ export function renderTemplate(
       : '',
   ].join('\n');
   return { subject: fill(subject), text, html };
+}
+
+/** Ops-alert mail data: refs and counts only, never PII (contracts §12). */
+export type OpsAlertData = {
+  label: string;
+  severity: 'info' | 'warning' | 'critical';
+  count: number;
+  firstSeen: string;
+  lastSeen: string;
+  branchRef?: string;
+  aggregateRef?: string;
+};
+
+const opsAlertLabels: Record<Locale, Record<string, string>> = {
+  vi: {
+    lead: 'Hệ thống bán hàng vừa ghi nhận một cảnh báo vận hành.',
+    type: 'Loại',
+    count: 'Số lần',
+    first: 'Lần đầu',
+    last: 'Gần nhất',
+    branch: 'Chi nhánh',
+    ref: 'Tham chiếu',
+    action: 'Vào Admin → Bán hàng → Cảnh báo để xem và bấm Đã biết.',
+  },
+  en: {
+    lead: 'The ordering system recorded an operational alert.',
+    type: 'Type',
+    count: 'Occurrences',
+    first: 'First seen',
+    last: 'Last seen',
+    branch: 'Branch',
+    ref: 'Reference',
+    action: 'Open Admin → Ordering → Alerts to review and press Acknowledge.',
+  },
+};
+
+/** Renders `staff.ops-alert` — a plain alert summary; critical marks the subject. */
+export function renderOpsAlert(
+  localeInput: string | null | undefined,
+  data: OpsAlertData,
+): { subject: string; text: string; html: string } {
+  const locale: Locale = localeInput === 'en' ? 'en' : 'vi';
+  const words = opsAlertLabels[locale];
+  const subject =
+    locale === 'en'
+      ? `[Ordering] Alert: ${data.label}${data.severity === 'critical' ? ' (CRITICAL)' : ''}`
+      : `[Bán hàng] Cảnh báo: ${data.label}${data.severity === 'critical' ? ' (NGHIÊM TRỌNG)' : ''}`;
+  const rows: Array<[string, string]> = [
+    [words.type, data.label],
+    [words.count, String(data.count)],
+    [words.first, data.firstSeen],
+    [words.last, data.lastSeen],
+  ];
+  if (data.branchRef) rows.push([words.branch, data.branchRef]);
+  if (data.aggregateRef) rows.push([words.ref, data.aggregateRef]);
+  const text = [words.lead, '', ...rows.map(([key, value]) => `${key}: ${value}`), '', words.action]
+    .join('\n')
+    .trim();
+  const html = [
+    `<p>${escapeHtml(words.lead)}</p>`,
+    `<table>${rows.map(([key, value]) => `<tr><td>${escapeHtml(key)}</td><td><strong>${escapeHtml(value)}</strong></td></tr>`).join('')}</table>`,
+    `<p>${escapeHtml(words.action)}</p>`,
+  ].join('\n');
+  return { subject, text, html };
 }
 
 /** Customer-facing label for a delivery failure code (delivery-assignment.ts). */

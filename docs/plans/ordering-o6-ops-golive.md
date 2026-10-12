@@ -1,6 +1,6 @@
 # O6 — Vận hành và go-live: kế hoạch thực hiện
 
-Status: Draft
+Status: In progress
 Owner: tan_ngo (duyệt), Claude (thực hiện)
 Last updated: 2026-10-10
 Related phase: [`phases/phase-ordering-6-ops-golive.md`](../phases/phase-ordering-6-ops-golive.md)
@@ -17,7 +17,8 @@ Related phase: [`phases/phase-ordering-6-ops-golive.md`](../phases/phase-orderin
 
 ## Current evidence
 
-- O1–O5 xong; `ops-alert`, outbox, job lock, `cash-closing` đã có từ O1.
+- O1–O5 xong; `ops-alert`, outbox, job lock đã có từ O1; `cash-closing` chưa có — O6 thêm content type +
+  migration 0004 ở bước 3.
 - App đã có: xuất CSV lead theo khoảng ngày Việt Nam với giới hạn 10.000 dòng (`src/shared/csv`, lead
   export); runbook Cloudflare qua `cf` CLI (bộ nhớ dự án).
 - Tham khảo cảnh báo: Saleor `AppProblem`, WooCommerce tự tắt webhook, Action Scheduler (reference C17.3).
@@ -25,6 +26,15 @@ Related phase: [`phases/phase-ordering-6-ops-golive.md`](../phases/phase-orderin
 ## Decisions and assumptions
 
 - Decision: ngưỡng cảnh báo mặc định theo bảng contracts mục 12; chỉnh trong Admin.
+- Decision: cửa sổ gộp (`aggregationMinutes`) áp cả cho bản ghi đã `resolved` — mở lại trong cửa sổ tái dùng
+  cùng bản ghi và **không gửi** thông báo mới; qua cửa sổ mới tạo bản ghi mới.
+- Decision: `acknowledged` chỉ chặn nhắc lại cùng mức; không chặn leo thang — còn mở/đã biết mà `count` đạt
+  `criticalThreshold` vẫn lên `critical` và gửi `ops-alert.escalated`.
+- Decision: người nhận rule = `branch-email` hoặc action plugin (`ops.read`, `report.read`, `payment.review`,
+  `order.read`); email trùng giữa nhiều action chỉ gửi một lần.
+- Decision: giới hạn 500 bản ghi `ops-alert`, dọn bản `resolved` cũ nhất trước.
+- Decision: nhịp job qua `order-job-lock` (`lastRunAt`, `lastDurationMs`); job không dùng lock (outbox
+  dispatcher) gọi `heartbeat`; `ops-check` so nhịp theo `heartbeatMinutes`.
 - Decision: thời hạn lưu mặc định (raw payload 180 ngày, outbox 30/90 ngày, alert 90 ngày) là cấu hình,
   chờ pháp lý xác nhận.
 - Owner decision required: kết quả của kế toán (hóa đơn điện tử, VAT) và pháp lý (thời hạn lưu, nội dung
