@@ -43,11 +43,26 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       }
     },
 
-    /** GET /availability?locationRef= — flat entity list + current state. */
+    /** GET /availability?locationRef= — flat entity list + current state. `branch` is an alias. */
     async list(ctx: AdminCtx) {
       try {
-        const locationRef = typeof ctx.query.locationRef === 'string' ? ctx.query.locationRef : '';
+        const locationRef =
+          typeof ctx.query.locationRef === 'string' && ctx.query.locationRef !== ''
+            ? ctx.query.locationRef
+            : typeof ctx.query.branch === 'string'
+              ? ctx.query.branch
+              : '';
         ctx.body = await service().list(locationRef, await ctxOf(ctx));
+      } catch (error) {
+        fail(ctx, error);
+      }
+    },
+
+    /** PUT /availability/daily-limit — { locationRef, entityType, entityDocumentId, dailyLimit } */
+    async dailyLimit(ctx: AdminCtx) {
+      try {
+        const body = (ctx.request.body ?? {}) as Parameters<CatalogAvailabilityService['setDailyLimit']>[0];
+        ctx.body = await service().setDailyLimit(body, await ctxOf(ctx));
       } catch (error) {
         fail(ctx, error);
       }

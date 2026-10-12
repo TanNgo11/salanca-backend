@@ -10,6 +10,7 @@ import orderRepository from '../repositories/order';
 import type { OrderAggregate } from '../repositories/types';
 import type { ServiceContext } from './context';
 import { actorRefOf } from './context';
+import type dailyStockFactory from './daily-stock';
 import type orderServiceFactory from './order';
 import type outboxFactory from './outbox';
 import type refundFactory from './refund';
@@ -20,6 +21,7 @@ type Services = {
   refund: ReturnType<typeof refundFactory>;
   timeline: ReturnType<typeof timelineFactory>;
   outbox: ReturnType<typeof outboxFactory>;
+  dailyStock: ReturnType<typeof dailyStockFactory>;
 };
 
 type LineRow = {
@@ -50,6 +52,7 @@ const lineCancel = ({ strapi }: { strapi: Core.Strapi }) => {
       refund: plugin.service('refund') as Services['refund'],
       timeline: plugin.service('timeline') as Services['timeline'],
       outbox: plugin.service('outbox') as Services['outbox'],
+      dailyStock: plugin.service('daily-stock') as Services['dailyStock'],
     };
   };
   const repo = orderRepository({ strapi });
@@ -95,6 +98,7 @@ const lineCancel = ({ strapi }: { strapi: Core.Strapi }) => {
           where: { id: line.id },
           data: { canceledQuantity: line.canceledQuantity + input.quantity },
         });
+        await services().dailyStock.releaseForLine(trx, input.lineId, input.quantity);
 
         // Telescoped amount for the units just moved to canceled.
         const due =

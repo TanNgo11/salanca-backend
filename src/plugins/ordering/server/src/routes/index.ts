@@ -161,6 +161,10 @@ export default {
           policies: ['admin::isAuthenticatedAdmin', 'plugin::ordering.has-catalog-access'],
         },
       },
+      // Daily portion limit. The permission is specifically `catalog.toggle-availability`
+      // (a catalog manager without that action cannot change the number). Out of scope
+      // is 404 from the service.
+      adminRoute('PUT', '/availability/daily-limit', 'availability.dailyLimit', 'catalog.toggle-availability'),
       // "Chi nhánh" (screens S7). Scope is enforced in the branch service.
       adminRoute('GET', '/admin-units', 'admin-units.list', 'settings.manage'),
       adminRoute('GET', '/branches', 'admin-branches.list', 'settings.manage'),

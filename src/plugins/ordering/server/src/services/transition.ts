@@ -8,6 +8,8 @@ import orderRepository from '../repositories/order';
 import type { OrderAggregate } from '../repositories/types';
 import type { ServiceContext } from './context';
 import { actorRefOf, nowOf } from './context';
+import type { TransactionClient } from '../migrations/runner';
+import type dailyStockFactory from './daily-stock';
 import type holdFactory from './hold';
 import type orderServiceFactory from './order';
 import type outboxFactory from './outbox';
@@ -22,6 +24,7 @@ type Services = {
   timeline: ReturnType<typeof timelineFactory>;
   hold: ReturnType<typeof holdFactory>;
   outbox: ReturnType<typeof outboxFactory>;
+  dailyStock: ReturnType<typeof dailyStockFactory>;
 };
 
 type GroupRow = {
@@ -47,6 +50,7 @@ const transition = ({ strapi }: { strapi: Core.Strapi }) => {
       timeline: plugin.service('timeline') as Services['timeline'],
       hold: plugin.service('hold') as Services['hold'],
       outbox: plugin.service('outbox') as Services['outbox'],
+      dailyStock: plugin.service('daily-stock') as Services['dailyStock'],
     };
   };
   const repo = orderRepository({ strapi });
@@ -93,6 +97,16 @@ const transition = ({ strapi }: { strapi: Core.Strapi }) => {
         await groups().update({ where: { id: input.groupId }, data: { status: input.to } });
         if (isTerminal(definition, input.to) === 'canceled') {
           await hold.releaseForGroup(input.groupId, 'group-canceled', ctx);
+          // Cancel, reject, and payment expiry all land here. Releasing the order is
+          // idempotent, so a later group of the same cancel is a no-op. A completed
+          // group never takes this branch. Mixed-workflow orders are off unless
+          // allowMixedProductTypes is set; the first canceled group then returns every
+          // portion of the order.
+          await services().dailyStock.releaseForOrder(
+            trx as TransactionClient,
+            input.orderId,
+            'group-canceled',
+          );
           // A canceled group cancels its open fulfillment rows too (O5 delivery legs); a row
           // already delivered or canceled is left alone. Pickup groups have no rows — no-op.
           const legs = (await strapi.db.query('plugin::ordering.fulfillment').findMany({

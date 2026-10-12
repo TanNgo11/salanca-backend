@@ -25,6 +25,10 @@ export type DailyEntityRef = {
 export type DailyReservationItem = DailyEntityRef & {
   lineId: number;
   quantity: number;
+  /** Copied onto ITEM_SOLD_OUT so the storefront can point at the cart line. */
+  sellableUid?: string;
+  variantUid?: string;
+  modifierUid?: string;
 };
 
 export type DailyRemaining = {
@@ -364,6 +368,7 @@ const dailyStock = ({ strapi }: { strapi: Core.Strapi }) => {
         );
         if (usageReserved === null) {
           const already = await readReserved(trx, input.locationRef, input.businessDate, group);
+          const sample = group.items[0];
           throw new OrderingError('ITEM_SOLD_OUT', 'sold out for the business day', {
             details: {
               entityType: group.entityType,
@@ -371,6 +376,9 @@ const dailyStock = ({ strapi }: { strapi: Core.Strapi }) => {
               locationRef: input.locationRef,
               remaining: Math.max(0, limit - already),
               businessDate: input.businessDate,
+              ...(sample?.sellableUid ? { sellableUid: sample.sellableUid } : {}),
+              ...(sample?.variantUid ? { variantUid: sample.variantUid } : {}),
+              ...(sample?.modifierUid ? { modifierUid: sample.modifierUid } : {}),
             },
           });
         }

@@ -14,6 +14,15 @@ import type {
   Sellable,
 } from '../contracts';
 import { businessDate } from '../domain/business-date';
+import {
+  dailyStockKey,
+  receiveBusinessDate,
+  soldOutDetails,
+  stockTargetsForLine,
+  sumStockTargets,
+  type StockLineInput,
+  type StockTarget,
+} from '../domain/daily-stock-lines';
 import { bundleComponentsFromSellable } from '../domain/catalog/bundle-components';
 import { OrderingError } from '../domain/errors';
 import { sha256Hex } from '../domain/hashing';
@@ -41,6 +50,7 @@ import type { ServiceContext } from './context';
 import { actorRefOf, nowOf } from './context';
 import type adminUnitsFactory from './admin-units';
 import type branchFactory from './branch';
+import type dailyStockFactory from './daily-stock';
 import type holdFactory from './hold';
 import type pickupSchedulingFactory from './pickup-scheduling';
 import type { PickupTiming, PickupTimingInput } from './pickup-scheduling';
@@ -156,6 +166,7 @@ type Services = {
   outbox: ReturnType<typeof outboxFactory>;
   branch: ReturnType<typeof branchFactory>;
   scheduling: ReturnType<typeof pickupSchedulingFactory>;
+  dailyStock: ReturnType<typeof dailyStockFactory>;
 };
 
 type BranchRow = {
@@ -184,7 +195,172 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
       outbox: plugin.service('outbox') as Services['outbox'],
       branch: plugin.service('branch') as Services['branch'],
       scheduling: plugin.service('pickup-scheduling') as Services['scheduling'],
+      dailyStock: plugin.service('daily-stock') as Services['dailyStock'],
     };
+  };
+  const cutoffFromFulfillment = (fulfillment: unknown, kind: string): string => {
+    const root = fulfillment && typeof fulfillment === 'object' ? (fulfillment as JsonObject) : {};
+    const method = root[kind] as JsonObject | undefined;
+    const policy = (method?.schedule as JsonObject | undefined)?.businessDayPolicy as
+      | JsonObject
+      | undefined;
+    const cutoff = policy?.cutoffLocalTime;
+    return typeof cutoff === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(cutoff)
+      ? cutoff
+      : config().businessDay.cutoffLocalTime;
+  };
+  const stockDateFor = (
+    branch: BranchRow,
+    kind: string,
+    placedAt: Date,
+    timing: PickupTiming | null,
+  ): string =>
+    receiveBusinessDate({
+      placedAt,
+      timezone: branch.timezone,
+      cutoff: cutoffFromFulfillment(branch.fulfillment, kind),
+      slotStartsAt: timing?.mode === 'scheduled' ? timing.slot.startsAt : null,
+    });
+  const lineTargets = (line: StockLineInput): StockTarget[] => stockTargetsForLine(line);
+  const assertDailyStock = async (prepared: PreparedOrder, input: OrderDraftInput) => {
+    const date = stockDateFor(
+      prepared.branch,
+      input.receiveMethod.kind,
+      prepared.placedAt,
+      prepared.timing,
+    );
+    const targets = sumStockTargets(
+      prepared.priced.flatMap((line, index) =>
+        lineTargets({
+          sellableUid: line.sellable.ref.uid,
+          sourceDocumentId: line.sellable.ref.sourceDocumentId,
+          variantUid: input.lines[index]?.variantUid ?? line.sellable.variant?.uid ?? null,
+          selected: input.lines[index]?.selected ?? [],
+          quantity: line.quantity,
+        }),
+      ),
+    );
+    if (targets.length === 0) return;
+    const left = await services().dailyStock.remaining(
+      prepared.branch.code,
+      date,
+      targets.map((target) => ({
+        entityType: target.entityType,
+        entityDocumentId: target.entityDocumentId,
+      })),
+    );
+    for (const target of [...targets].sort((a, b) =>
+      dailyStockKey(a.entityType, a.entityDocumentId).localeCompare(
+        dailyStockKey(b.entityType, b.entityDocumentId),
+      ),
+    )) {
+      const row = left.get(dailyStockKey(target.entityType, target.entityDocumentId));
+      if (!row || target.quantity <= row.remaining) continue;
+      throw new OrderingError('ITEM_SOLD_OUT', 'sold out for the business day', {
+        details: soldOutDetails(target, row.remaining, date, prepared.branch.code),
+      });
+    }
+  };
+  const reserveDailyStock = async (
+    trx: TransactionClient,
+    prepared: PreparedOrder,
+    input: OrderDraftInput,
+    orderId: number,
+    lineIds: Map<string, number>,
+  ) => {
+    // A staff draft stays unlimited until confirmDraft. The reserve runs inside this
+    // transaction, so a sold-out upsert rolls the new order back.
+    if (input.origin.kind === 'staff-draft') return;
+    const date = stockDateFor(
+      prepared.branch,
+      input.receiveMethod.kind,
+      prepared.placedAt,
+      prepared.timing,
+    );
+    const items = prepared.priced.flatMap((line, index) => {
+      const lineId = lineIds.get(line.key);
+      if (!lineId) return [];
+      return lineTargets({
+        sellableUid: line.sellable.ref.uid,
+        sourceDocumentId: line.sellable.ref.sourceDocumentId,
+        variantUid: input.lines[index]?.variantUid ?? line.sellable.variant?.uid ?? null,
+        selected: input.lines[index]?.selected ?? [],
+        quantity: line.quantity,
+      }).map((target) => ({
+        entityType: target.entityType,
+        entityDocumentId: target.entityDocumentId,
+        quantity: target.quantity,
+        lineId,
+        sellableUid: target.sellableUid,
+        ...(target.variantUid ? { variantUid: target.variantUid } : {}),
+        ...(target.modifierUid ? { modifierUid: target.modifierUid } : {}),
+      }));
+    });
+    if (items.length === 0) return;
+    await services().dailyStock.reserveInTransaction(trx, {
+      orderId,
+      locationRef: prepared.branch.code,
+      businessDate: date,
+      items,
+    });
+  };
+  const reserveConfirmedDraft = async (
+    trx: TransactionClient,
+    orderId: number,
+    order: { locationRef: string; businessDate: unknown; receiveMethod: Record<string, unknown> },
+  ) => {
+    const branch = await services().branch.findByCode(order.locationRef);
+    const timezone = branch?.timezone ?? 'Asia/Ho_Chi_Minh';
+    const receive = order.receiveMethod as {
+      kind?: string;
+      timing?: { mode?: string; slot?: { startsAt?: string } };
+    };
+    const kind = receive.kind === 'delivery' ? 'delivery' : 'pickup';
+    const cutoff = cutoffFromFulfillment(branch?.fulfillment, kind);
+    const slotStartsAt = receive.timing?.mode === 'scheduled' ? receive.timing.slot?.startsAt ?? null : null;
+    const date = slotStartsAt
+      ? receiveBusinessDate({ placedAt: new Date(), timezone, cutoff, slotStartsAt })
+      : String(order.businessDate).slice(0, 10);
+    const rows = (await strapi.db.query('plugin::ordering.order-line').findMany({
+      where: { order: orderId },
+    })) as Array<{
+      id: number;
+      sellableUid: string;
+      sourceDocumentId: string | null;
+      variantUid: string | null;
+      selectedOptionsSnapshot: unknown;
+      quantity: number;
+      canceledQuantity: number;
+    }>;
+    const items = rows.flatMap((line) => {
+      const live = line.quantity - (line.canceledQuantity ?? 0);
+      if (live <= 0) return [];
+      const selected = Array.isArray(line.selectedOptionsSnapshot)
+        ? (line.selectedOptionsSnapshot as StockLineInput['selected'])
+        : [];
+      return lineTargets({
+        sellableUid: line.sellableUid,
+        sourceDocumentId: line.sourceDocumentId,
+        variantUid: line.variantUid,
+        selected,
+        quantity: live,
+      }).map((target) => ({
+        entityType: target.entityType,
+        entityDocumentId: target.entityDocumentId,
+        quantity: target.quantity,
+        lineId: line.id,
+        sellableUid: target.sellableUid,
+        ...(target.variantUid ? { variantUid: target.variantUid } : {}),
+        ...(target.modifierUid ? { modifierUid: target.modifierUid } : {}),
+      }));
+    });
+    if (items.length === 0) return;
+    await services().dailyStock.reserveInTransaction(trx, {
+      orderId,
+      locationRef: order.locationRef,
+      businessDate: date,
+      items,
+    });
   };
   const repo = orderRepository({ strapi });
   const config = () => strapi.config.get('plugin::ordering') as OrderingConfig;
@@ -500,6 +676,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
     /** POST /quote: server-side prices for a cart; never trusts client amounts. */
     async quote(input: OrderDraftInput, ctx: ServiceContext) {
       const prepared = await service.prepareOrder(input, ctx);
+      await assertDailyStock(prepared, input);
       return {
         currency: prepared.pricing.currency,
         cartHash: prepared.pricing.cartHash,
@@ -719,6 +896,8 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
             lineIds.set(line.key, created.id as number);
           }
 
+          await reserveDailyStock(trx as TransactionClient, prepared, payload, orderId, lineIds);
+
           for (const adjustment of pricing.adjustments) {
             const created = await strapi.db.query('plugin::ordering.order-adjustment').create({
               data: {
@@ -847,7 +1026,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
 
     /** Confirms a staff draft into the live flow. */
     async confirmDraft(orderId: number, ctx: ServiceContext): Promise<ProjectionChange> {
-      return strapi.db.transaction(async () => {
+      return strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
         const { scope, timeline, outbox } = services();
         const order = await repo.findOrderById(orderId);
         if (!order) {
@@ -861,6 +1040,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
             details: { status: order.status },
           });
         }
+        await reserveConfirmedDraft(trx, orderId, order);
         await repo.updateOrder(orderId, { draftConfirmedAt: nowOf(ctx) });
         const projection = await service.recomputeProjection(orderId);
         await timeline.record(

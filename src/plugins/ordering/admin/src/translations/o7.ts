@@ -36,4 +36,18 @@ export const o7Messages: Record<string, [string, string]> = {
     'Add at least one range, or mark the day closed',
   ],
   'error.ITEM_SOLD_OUT': ['Món này đã hết phần trong ngày', 'This item is sold out for today'],
+  'availability.col.limit': ['Giới hạn/ngày', 'Daily limit'],
+  'availability.col.today': ['Hôm nay', 'Today'],
+  'availability.onlyLimited': ['Chỉ món có giới hạn', 'Limited items only'],
+  'availability.unlimited': ['—', '—'],
+  'availability.saveLimit': ['Lưu', 'Save'],
+  'availability.cancelLimit': ['Hủy', 'Cancel'],
+  'availability.soldOutBadge': ['Hết hôm nay', 'Sold out today'],
+  'availability.soldOutHint': [
+    'Tự bán lại từ ngày kinh doanh mai',
+    'Selling resumes on the next business day',
+  ],
+  'availability.saved': ['Đã lưu giới hạn', 'Daily limit saved'],
+  'availability.missingBranch': ['Không thấy chi nhánh', 'Branch not found'],
+  'availability.editLimit': ['Sửa giới hạn mỗi ngày', 'Edit the daily limit'],
 };

@@ -144,6 +144,44 @@ describe('serializeProduct', () => {
     expect(out.resumesAt).toBe('2026-10-10T14:00:00.000Z');
     expect(serializeProduct(fixtureSellable()).reasons).toBeUndefined();
   });
+
+  it('marks a product sold out for the day without treating a sold-out variant as the product', () => {
+    const view = {
+      date: '2026-10-17',
+      remainingByKey: new Map([
+        ['product\u0000prod-1', 0],
+        ['variant\u0000v2', 0],
+        ['modifier\u0000m1', 2],
+      ]),
+    };
+    const out = serializeProduct(fixtureSellable(), view);
+    expect(out.available).toBe(false);
+    expect(out.unavailableReason).toBe('sold-out-today');
+    expect(out.dailyLimit).toEqual({ remaining: 0, date: '2026-10-17' });
+    expect(out.reasons).toBeUndefined();
+
+    const variantOnly = serializeProduct(fixtureSellable(), {
+      date: '2026-10-17',
+      remainingByKey: new Map([['variant\u0000v1', 0]]),
+    });
+    expect(variantOnly.available).toBe(true);
+    expect(variantOnly.unavailableReason).toBeUndefined();
+    const variants = variantOnly.variants as Record<string, unknown>[];
+    expect(variants[0].available).toBe(false);
+    expect(variants[0].dailyLimit).toEqual({ remaining: 0, date: '2026-10-17' });
+    expect(variants[1].dailyLimit).toBeUndefined();
+
+    const topping = serializeProduct(fixtureSellable(), {
+      date: '2026-10-17',
+      remainingByKey: new Map([['modifier\u0000m1', 0]]),
+    });
+    const choices = ((topping.options as Record<string, unknown>[])[0].choices) as Record<string, unknown>[];
+    expect(choices[0]).toMatchObject({
+      available: false,
+      dailyLimit: { remaining: 0, date: '2026-10-17' },
+    });
+    expect(topping.available).toBe(true);
+  });
 });
 
 describe('serializeCategoryTree', () => {
