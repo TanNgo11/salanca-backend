@@ -5,6 +5,7 @@ import type { Core } from '@strapi/strapi';
 import type { OrderingConfig } from '../config';
 import type {
   AdapterContext,
+  AddressSnapshot,
   FulfillmentGroup,
   JsonObject,
   Order,
@@ -22,6 +23,7 @@ import { projectPaymentStatus } from '../domain/payment-status';
 import { appliesCashRounding, type CashRoundingPolicy } from '../domain/pricing/cash-rounding';
 import { normalizeVietnamesePhone } from '../../../shared/contact/phone';
 import type { DeliverySettings, PickupSettings } from '../domain/branch-settings';
+import { snapshotDeliveryAddress, type DeliveryAddressInput } from '../domain/contact/address';
 import { quoteDelivery } from '../domain/delivery/zones';
 import { describeSelectedOptions } from '../domain/storefront/serialize';
 import { priceCart, type PricingAdjustmentInput } from '../domain/pricing/pipeline';
@@ -111,6 +113,8 @@ export type PreparedOrder = {
   pickupSettings: PickupSettings | null;
   deliverySettings: DeliverySettings | null;
   delivery: DeliveryQuote | null;
+  /** Catalog names at quote time. Create stores this object and does not read the client names again. */
+  deliveryAddress: AddressSnapshot | null;
   priced: PricedLine[];
   pricing: ReturnType<typeof priceCart>;
   groupsByWorkflow: Map<string, { name: string; version: string }>;
@@ -168,26 +172,6 @@ type BranchRow = {
 
 const MAX_CUSTOMER_NOTE = 500;
 
-/** Names come from the catalog at placement. A later catalog edit does not rewrite this snapshot. */
-const deliverySnapshot = (
-  strapi: Core.Strapi,
-  address: { recipientName: string; line1: string; wardCode?: string; note?: string },
-  phone: string,
-) => {
-  const units = strapi.plugin('ordering').service('admin-units') as ReturnType<typeof adminUnitsFactory>;
-  const commune = units.lookupCommune(address.wardCode ?? '');
-  return {
-    recipientName: address.recipientName,
-    phone,
-    line1: address.line1,
-    wardCode: commune?.code ?? (address.wardCode ?? '').toUpperCase(),
-    ...(commune
-      ? { provinceCode: commune.provinceCode, provinceName: commune.provinceName, wardName: commune.name }
-      : {}),
-    ...(address.note ? { note: address.note } : {}),
-  };
-};
-
 const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
   const services = (): Services => {
     const plugin = strapi.plugin('ordering');
@@ -204,6 +188,16 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
   };
   const repo = orderRepository({ strapi });
   const config = () => strapi.config.get('plugin::ordering') as OrderingConfig;
+  const requireDeliveryAddress = (address: DeliveryAddressInput): AddressSnapshot => {
+    const units = strapi.plugin('ordering').service('admin-units') as ReturnType<typeof adminUnitsFactory>;
+    const resolved = snapshotDeliveryAddress(address, units.catalog());
+    if (!resolved.ok) {
+      throw new OrderingError('VALIDATION_ERROR', resolved.message, {
+        details: { field: resolved.field, reason: resolved.reason },
+      });
+    }
+    return resolved.address;
+  };
 
   const service = {
     /**
@@ -399,13 +393,15 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
       }
 
       let delivery: DeliveryQuote | null = null;
+      let deliveryAddress: AddressSnapshot | null = null;
       let fulfillmentAmount = input.fulfillmentAmount ?? 0;
       if (kind === 'delivery' && deliverySettings && input.receiveMethod.kind === 'delivery') {
+        deliveryAddress = requireDeliveryAddress(input.receiveMethod.address);
         const merchandise = priced.reduce(
           (sum, line) => sum + (line.unitAmount + line.optionAmount) * line.quantity,
           0,
         );
-        const communeCode = input.receiveMethod.address.wardCode ?? '';
+        const communeCode = deliveryAddress.wardCode ?? '';
         const provider = registry.fulfillmentProvider('self-delivery');
         const money = await provider.calculatePrice({
           order: { locationRef: branch.code, subtotalAmount: merchandise } as Order,
@@ -490,6 +486,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         pickupSettings,
         deliverySettings,
         delivery,
+        deliveryAddress,
         priced,
         pricing,
         groupsByWorkflow,
@@ -543,15 +540,8 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
           details: { field: 'contact.phone', reason: phone.reason },
         });
       }
-      let deliveryPhone: string | undefined;
       if (input.receiveMethod.kind === 'delivery') {
-        const parsed = normalizeVietnamesePhone(input.receiveMethod.address.phone);
-        if (!parsed.valid) {
-          throw new OrderingError('VALIDATION_ERROR', 'receiveMethod.address.phone must be a Vietnamese phone number', {
-            details: { field: 'receiveMethod.address.phone', reason: parsed.reason },
-          });
-        }
-        deliveryPhone = parsed.e164;
+        requireDeliveryAddress(input.receiveMethod.address);
       }
       if ((input.customerNote?.length ?? 0) > MAX_CUSTOMER_NOTE) {
         throw new OrderingError('VALIDATION_ERROR', 'customerNote is too long', {
@@ -594,10 +584,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
           const cutoffLocalTime =
             (businessDayPolicy?.cutoffLocalTime as string | undefined) ??
             cfg.businessDay.cutoffLocalTime;
-          const deliveryAddress =
-            input.receiveMethod.kind === 'delivery'
-              ? deliverySnapshot(strapi, input.receiveMethod.address, deliveryPhone ?? '')
-              : null;
+          const deliveryAddress = prepared.deliveryAddress;
           const receiveMethod = {
             ...input.receiveMethod,
             ...(kind === 'pickup' ? { locationRef: branch.code } : {}),

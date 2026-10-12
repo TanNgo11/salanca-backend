@@ -18,7 +18,8 @@ Nghiên cứu: [`ordering-reference.md` mục U5](ordering-reference.md). **Quy 
 - `POST /api/v1/ordering/quote` và `POST /api/v1/ordering/orders` nhận `receiveMethod.kind = "delivery"` với
   `address.communeCode` (hoặc `wardCode`), `line1`, `recipientName`, `phone`. Phí do provider `self-delivery` tính
   và nằm trong `totals.fulfillmentTotal` / `totals.grandTotal`. Báo giá thêm `delivery.freeFrom` khi có bậc miễn
-  phí. Tên xã/phường client gửi bị bỏ; server ghi tên từ danh mục lúc đặt.
+  phí. Tên xã/phường client gửi bị bỏ; server ghi tên từ danh mục lúc đặt. Mã không có trong danh mục
+  trả `VALIDATION_ERROR` với `reason: unknown-commune` (không phải `DELIVERY_UNAVAILABLE`).
 
 ## D1. Tab "Giao tận nơi" trong Chi nhánh (S7 của O3)
 

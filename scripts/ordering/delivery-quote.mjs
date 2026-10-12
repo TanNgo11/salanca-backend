@@ -103,6 +103,14 @@ withApp(async (app) => {
   assert.equal(JSON.stringify(low.body).includes('Bí Mật'), false);
   assert.equal(JSON.stringify(low.body).includes('Lan'), false);
 
+  const unknown = await call('POST', '/quote', {
+    body: cart({ receiveMethod: { kind: 'delivery', address: { ...address, communeCode: 'XT99999' } } }),
+  });
+  assert.equal(unknown.status, 400);
+  assert.equal(unknown.body.error.code, 'VALIDATION_ERROR');
+  assert.equal(unknown.body.error.details.reason, 'unknown-commune');
+  assert.equal(JSON.stringify(unknown.body).includes('Bí Mật'), false);
+
   const outside = await call('POST', '/quote', {
     body: cart({ receiveMethod: { kind: 'delivery', address: { ...address, communeCode: 'XT02002' } } }),
   });
