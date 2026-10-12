@@ -202,7 +202,7 @@ Related phase: [`phases/phase-ordering-6-ops-golive.md`](../phases/phase-orderin
 
 - Bước 7 (hạ tầng + go-live) và bước 9 (kiểm email/UAT quyết định): chủ dự án chạy theo checklist
   trong `docs/phases/phase-ordering-6-ops-golive.md` và `docs/ordering-ops-runbook.md`.
-- UAT tay của các màn O6 (seed sẵn trong `scripts/ordering/uat-server.mjs`).
+- UAT tay của các màn O6: chủ dự án quyết định bỏ qua và coi O6 là xong (2026-10-12). Seed vẫn có trong `scripts/ordering/uat-server.mjs`.
 - Quyết định kế toán (hóa đơn điện tử, VAT), pháp lý (thời hạn lưu, nội dung đồng ý),
   SePay thật.
 - Gate (2026-10-12, sau `78e4ae1`, tuần tự, DB `salanca_ordering_o6_review`): lint, typecheck, test 160 file / 1106,
