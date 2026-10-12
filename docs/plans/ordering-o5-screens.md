@@ -15,6 +15,10 @@ Nghiên cứu: [`ordering-reference.md` mục U5](ordering-reference.md). **Quy 
   `{ communeCode, subtotal, zones? }`. `zones` là bản nháp trên màn hình; bỏ qua thì dùng vùng đã lưu.
 - Lưu chi nhánh vẫn là `PUT /ordering/branches/:code` (client Admin không có PATCH) và gửi cả `fulfillment.pickup`
   lẫn `fulfillment.delivery`.
+- `POST /api/v1/ordering/quote` và `POST /api/v1/ordering/orders` nhận `receiveMethod.kind = "delivery"` với
+  `address.communeCode` (hoặc `wardCode`), `line1`, `recipientName`, `phone`. Phí do provider `self-delivery` tính
+  và nằm trong `totals.fulfillmentTotal` / `totals.grandTotal`. Báo giá thêm `delivery.freeFrom` khi có bậc miễn
+  phí. Tên xã/phường client gửi bị bỏ; server ghi tên từ danh mục lúc đặt.
 
 ## D1. Tab "Giao tận nơi" trong Chi nhánh (S7 của O3)
 

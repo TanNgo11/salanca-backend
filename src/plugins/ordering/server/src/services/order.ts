@@ -5,7 +5,9 @@ import type { Core } from '@strapi/strapi';
 import type { OrderingConfig } from '../config';
 import type {
   AdapterContext,
+  FulfillmentGroup,
   JsonObject,
+  Order,
   ReceiveMethod,
   SelectedOptionInput,
   Sellable,
@@ -19,7 +21,8 @@ import { formatOrderCode } from '../domain/order-code';
 import { projectPaymentStatus } from '../domain/payment-status';
 import { appliesCashRounding, type CashRoundingPolicy } from '../domain/pricing/cash-rounding';
 import { normalizeVietnamesePhone } from '../../../shared/contact/phone';
-import type { PickupSettings } from '../domain/branch-settings';
+import type { DeliverySettings, PickupSettings } from '../domain/branch-settings';
+import { quoteDelivery } from '../domain/delivery/zones';
 import { describeSelectedOptions } from '../domain/storefront/serialize';
 import { priceCart, type PricingAdjustmentInput } from '../domain/pricing/pipeline';
 import { scopeIncludes } from '../domain/scope';
@@ -34,6 +37,7 @@ import orderRepository from '../repositories/order';
 import type { OrderAggregate } from '../repositories/types';
 import type { ServiceContext } from './context';
 import { actorRefOf, nowOf } from './context';
+import type adminUnitsFactory from './admin-units';
 import type branchFactory from './branch';
 import type holdFactory from './hold';
 import type pickupSchedulingFactory from './pickup-scheduling';
@@ -95,9 +99,18 @@ type PricedLine = {
   leadTimeMinutes: number;
 };
 
+export type DeliveryQuote = {
+  fee: number;
+  zoneCode: string;
+  extraLeadTimeMinutes: number;
+  freeFrom: number | null;
+};
+
 export type PreparedOrder = {
   branch: BranchRow;
   pickupSettings: PickupSettings | null;
+  deliverySettings: DeliverySettings | null;
+  delivery: DeliveryQuote | null;
   priced: PricedLine[];
   pricing: ReturnType<typeof priceCart>;
   groupsByWorkflow: Map<string, { name: string; version: string }>;
@@ -154,6 +167,26 @@ type BranchRow = {
 };
 
 const MAX_CUSTOMER_NOTE = 500;
+
+/** Names come from the catalog at placement. A later catalog edit does not rewrite this snapshot. */
+const deliverySnapshot = (
+  strapi: Core.Strapi,
+  address: { recipientName: string; line1: string; wardCode?: string; note?: string },
+  phone: string,
+) => {
+  const units = strapi.plugin('ordering').service('admin-units') as ReturnType<typeof adminUnitsFactory>;
+  const commune = units.lookupCommune(address.wardCode ?? '');
+  return {
+    recipientName: address.recipientName,
+    phone,
+    line1: address.line1,
+    wardCode: commune?.code ?? (address.wardCode ?? '').toUpperCase(),
+    ...(commune
+      ? { provinceCode: commune.provinceCode, provinceName: commune.provinceName, wardName: commune.name }
+      : {}),
+    ...(address.note ? { note: address.note } : {}),
+  };
+};
 
 const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
   const services = (): Services => {
@@ -277,12 +310,17 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
       const kind = input.receiveMethod.kind;
       const pickupSettings: PickupSettings | null =
         kind === 'pickup' ? branchService.pickupSettings(branch) : null;
-      // O3 storefront/staff callers pass `pickup`; those get the branch's receive rules.
-      const enforce = kind === 'pickup' && input.pickup !== undefined;
-      if (enforce && !pickupSettings?.enabled) {
-        throw new OrderingError('FULFILLMENT_UNAVAILABLE', 'this branch does not offer pickup', {
-          details: { kind },
-        });
+      const deliverySettings: DeliverySettings | null =
+        kind === 'delivery' ? branchService.deliverySettings(branch) : null;
+      const receiveSettings = pickupSettings ?? deliverySettings;
+      // Pickup callers pass `pickup`. A delivery cart always carries an address, so its rules apply.
+      const enforce = (kind === 'pickup' && input.pickup !== undefined) || kind === 'delivery';
+      if (enforce && !receiveSettings?.enabled) {
+        throw new OrderingError(
+          kind === 'delivery' ? 'DELIVERY_UNAVAILABLE' : 'FULFILLMENT_UNAVAILABLE',
+          kind === 'delivery' ? 'this branch does not offer delivery' : 'this branch does not offer pickup',
+          { details: kind === 'delivery' ? { reason: 'disabled' } : { kind } },
+        );
       }
 
       const placedAt = input.placedAt ? new Date(input.placedAt) : nowOf(ctx);
@@ -294,7 +332,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
       const catalog = registry.catalogAdapter(cfg.catalog.adapter);
       const branchMethod = branch.fulfillment?.[kind] as JsonObject | undefined;
       const paymentTiming =
-        (pickupSettings?.paymentTiming as string | undefined) ??
+        (receiveSettings?.paymentTiming as string | undefined) ??
         (branchMethod?.paymentTiming as string | undefined);
 
       const priced: PricedLine[] = [];
@@ -351,13 +389,45 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
       }
 
       let providerCode = input.payment?.providerCode;
-      if (enforce && pickupSettings) {
-        providerCode ??= pickupSettings.paymentTiming === 'pay-on-pickup' ? 'cash' : undefined;
-        if (!providerCode || !pickupSettings.paymentProviders.includes(providerCode)) {
+      if (enforce && receiveSettings) {
+        providerCode ??= receiveSettings.paymentTiming === 'pay-on-pickup' ? 'cash' : undefined;
+        if (!providerCode || !receiveSettings.paymentProviders.includes(providerCode)) {
           throw new OrderingError('VALIDATION_ERROR', 'payment method is not offered here', {
-            details: { field: 'payment.providerCode', allowed: pickupSettings.paymentProviders },
+            details: { field: 'payment.providerCode', allowed: receiveSettings.paymentProviders },
           });
         }
+      }
+
+      let delivery: DeliveryQuote | null = null;
+      let fulfillmentAmount = input.fulfillmentAmount ?? 0;
+      if (kind === 'delivery' && deliverySettings && input.receiveMethod.kind === 'delivery') {
+        const merchandise = priced.reduce(
+          (sum, line) => sum + (line.unitAmount + line.optionAmount) * line.quantity,
+          0,
+        );
+        const communeCode = input.receiveMethod.address.wardCode ?? '';
+        const provider = registry.fulfillmentProvider('self-delivery');
+        const money = await provider.calculatePrice({
+          order: { locationRef: branch.code, subtotalAmount: merchandise } as Order,
+          group: {} as FulfillmentGroup,
+          option: { communeCode, subtotal: merchandise },
+        });
+        if (money.currency !== cfg.currency) {
+          throw new OrderingError('CURRENCY_MISMATCH', 'delivery fee currency differs from config');
+        }
+        const quoted = quoteDelivery(deliverySettings.zones, { communeCode, subtotal: merchandise });
+        if (!quoted.available || quoted.fee !== money.amount) {
+          throw new OrderingError('TOTALS_MISMATCH', 'delivery fee does not match the provider', {
+            details: { communeCode: communeCode.trim().toUpperCase() },
+          });
+        }
+        fulfillmentAmount = money.amount;
+        delivery = {
+          fee: money.amount,
+          zoneCode: quoted.zoneCode,
+          extraLeadTimeMinutes: quoted.extraLeadTimeMinutes,
+          freeFrom: quoted.freeFrom,
+        };
       }
 
       const cashRounding =
@@ -374,7 +444,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
           taxGroupRef: line.taxGroupRef,
         })),
         adjustments: input.adjustments ?? [],
-        fulfillmentAmount: input.fulfillmentAmount ?? 0,
+        fulfillmentAmount,
         tax: { ...cfg.tax, ...(branch.tax ?? {}) },
         at: placedAt.toISOString(),
         cashRounding,
@@ -394,22 +464,23 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         registry.workflow(workflow.name, workflow.version);
       }
 
-      if (enforce && pickupSettings && pricing.totals.subtotal < pickupSettings.minOrderAmount) {
+      if (enforce && receiveSettings && pricing.totals.subtotal < receiveSettings.minOrderAmount) {
         throw new OrderingError('MIN_ORDER_NOT_MET', 'the order is below the branch minimum', {
-          details: { minOrderAmount: pickupSettings.minOrderAmount, subtotal: pricing.totals.subtotal },
+          details: { minOrderAmount: receiveSettings.minOrderAmount, subtotal: pricing.totals.subtotal },
         });
       }
 
       let timing: PickupTiming | null = null;
-      if (enforce && pickupSettings && input.pickup) {
+      if (enforce && receiveSettings && input.pickup) {
         timing = await scheduling.resolveTiming({
           branch,
-          settings: pickupSettings,
+          settings: receiveSettings,
           request: input.pickup,
-          leadTimeMinutes: scheduling.leadTimeFor(
-            pickupSettings,
-            priced.map((line) => line.leadTimeMinutes),
-          ),
+          leadTimeMinutes:
+            scheduling.leadTimeFor(
+              receiveSettings,
+              priced.map((line) => line.leadTimeMinutes),
+            ) + (delivery?.extraLeadTimeMinutes ?? 0),
           now: nowOf(ctx),
         });
       }
@@ -417,6 +488,8 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
       return {
         branch,
         pickupSettings,
+        deliverySettings,
+        delivery,
         priced,
         pricing,
         groupsByWorkflow,
@@ -451,6 +524,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         totals: prepared.pricing.totals,
         payment: { providerCode: prepared.providerCode ?? null },
         timing: timingSnapshot(prepared.timing),
+        delivery: prepared.delivery,
       };
     },
 
@@ -468,6 +542,16 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         throw new OrderingError('VALIDATION_ERROR', 'contact.phone must be a Vietnamese phone number', {
           details: { field: 'contact.phone', reason: phone.reason },
         });
+      }
+      let deliveryPhone: string | undefined;
+      if (input.receiveMethod.kind === 'delivery') {
+        const parsed = normalizeVietnamesePhone(input.receiveMethod.address.phone);
+        if (!parsed.valid) {
+          throw new OrderingError('VALIDATION_ERROR', 'receiveMethod.address.phone must be a Vietnamese phone number', {
+            details: { field: 'receiveMethod.address.phone', reason: parsed.reason },
+          });
+        }
+        deliveryPhone = parsed.e164;
       }
       if ((input.customerNote?.length ?? 0) > MAX_CUSTOMER_NOTE) {
         throw new OrderingError('VALIDATION_ERROR', 'customerNote is too long', {
@@ -510,9 +594,14 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
           const cutoffLocalTime =
             (businessDayPolicy?.cutoffLocalTime as string | undefined) ??
             cfg.businessDay.cutoffLocalTime;
+          const deliveryAddress =
+            input.receiveMethod.kind === 'delivery'
+              ? deliverySnapshot(strapi, input.receiveMethod.address, deliveryPhone ?? '')
+              : null;
           const receiveMethod = {
             ...input.receiveMethod,
             ...(kind === 'pickup' ? { locationRef: branch.code } : {}),
+            ...(deliveryAddress ? { address: deliveryAddress } : {}),
             ...(timing ? { timing: timingSnapshot(timing) } : {}),
           };
 
@@ -572,6 +661,29 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
             });
             groupIds.set(key, group.id as number);
             first = false;
+          }
+
+          if (receiveMethod.kind === 'delivery') {
+            const groupId = groupIds.values().next().value as number;
+            const provider = services().registry.fulfillmentProvider('self-delivery');
+            await provider.create({
+              order: { locationRef: branch.code, subtotalAmount: pricing.totals.subtotal } as Order,
+              group: { id: String(groupId) } as FulfillmentGroup,
+              option: { communeCode: receiveMethod.address.wardCode ?? '', subtotal: pricing.totals.subtotal },
+            });
+            await strapi.db.query('plugin::ordering.fulfillment').create({
+              data: {
+                order: orderId,
+                group: groupId,
+                providerCode: 'self-delivery',
+                status: 'pending',
+                addressSnapshot: receiveMethod.address,
+                metadata: {
+                  zoneCode: prepared.delivery?.zoneCode ?? null,
+                  fee: pricing.totals.fulfillmentTotal,
+                },
+              },
+            });
           }
 
           const lineIds = new Map<string, number>();
@@ -646,7 +758,8 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
             }
           }
 
-          if (timing?.mode === 'scheduled' && prepared.pickupSettings) {
+          const slotSettings = prepared.pickupSettings ?? prepared.deliverySettings;
+          if (timing?.mode === 'scheduled' && slotSettings) {
             await scheduling.reserveInTransaction(
               trx as TransactionClient,
               {
@@ -654,7 +767,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
                 groupId: groupIds.values().next().value,
                 locationRef: branch.code,
                 slot: timing.slot,
-                capacity: prepared.pickupSettings.schedule.capacity,
+                capacity: slotSettings.schedule.capacity,
               },
               ctx,
             );

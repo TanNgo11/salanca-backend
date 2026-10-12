@@ -18,7 +18,9 @@ import { foodProductType } from './domain/product-types/food';
 import { testFoodProductType } from './domain/product-types/test-food';
 import { testServiceProductType } from './domain/product-types/test-service';
 import { builtinWorkflows } from './domain/workflow/definitions';
+import type branchFactory from './services/branch';
 import { createCashPaymentProvider } from './providers/cash';
+import { createSelfDeliveryProvider } from './providers/self-delivery';
 import { createFixtureSepayClient, createSepayTransactionClient } from './providers/sepay/client';
 import { createSepayPaymentProvider, sepaySettingsFromConfig } from './providers/sepay/provider';
 import {
@@ -86,6 +88,15 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
   registry.registerCatalogAdapter(createOrderingCatalogAdapter({ strapi }));
   registry.registerProductType(foodProductType);
   registry.registerPaymentProvider(createCashPaymentProvider());
+  registry.registerFulfillmentProvider(
+    createSelfDeliveryProvider({
+      zonesFor: async (locationRef) => {
+        const branches = strapi.plugin('ordering').service('branch') as ReturnType<typeof branchFactory>;
+        const row = await branches.findByCode(locationRef);
+        return row ? branches.deliverySettings(row).zones : [];
+      },
+    }),
+  );
   const sepaySettings = sepaySettingsFromConfig(config.providers.payment);
   if (sepaySettings) {
     const currentSepay = () =>

@@ -21,6 +21,31 @@ describe('parseCartRequest', () => {
       pickup: { slot: { startsAt: '2026-10-12T05:00:00.000Z' } },
     });
     expect(JSON.stringify(parsed)).not.toContain('unitAmount');
+    const delivery = parseCartRequest({
+      ...cart,
+      receiveMethod: {
+        kind: 'delivery',
+        address: {
+          communeCode: 'xt01002',
+          line1: '12 đường thử',
+          recipientName: 'Lan',
+          phone: '0901234567',
+          wardName: 'HACKED',
+          provinceName: 'HACKED',
+        },
+      },
+    });
+    expect(delivery.receiveMethod).toEqual({
+      kind: 'delivery',
+      providerCode: 'self-delivery',
+      address: {
+        recipientName: 'Lan',
+        phone: '0901234567',
+        line1: '12 đường thử',
+        wardCode: 'XT01002',
+      },
+    });
+    expect(JSON.stringify(delivery)).not.toContain('HACKED');
     expect(JSON.stringify(parsed)).not.toContain('adjustments');
   });
 
@@ -30,7 +55,8 @@ describe('parseCartRequest', () => {
     expect(() => parseCartRequest({ ...cart, lines: [{ sellableUid: 'x', quantity: 0 }] })).toThrow(
       /quantity/,
     );
-    expect(() => parseCartRequest({ ...cart, receiveMethod: { kind: 'delivery' } })).toThrow(/pickup/);
+    expect(() => parseCartRequest({ ...cart, receiveMethod: { kind: 'delivery' } })).toThrow(/communeCode/);
+    expect(() => parseCartRequest({ ...cart, receiveMethod: { kind: 'ship' } })).toThrow(/not available/);
     expect(() => parseCartRequest('nope')).toThrow(/JSON object/);
   });
 });

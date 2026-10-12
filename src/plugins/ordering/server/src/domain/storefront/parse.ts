@@ -1,3 +1,4 @@
+import type { AddressSnapshot } from '../../contracts/common';
 import { OrderingError } from '../errors';
 
 /**
@@ -24,7 +25,9 @@ export type CartRequest = {
     selected: Array<{ groupUid: string; optionUid: string; quantity: number }>;
     note?: string;
   }>;
-  receiveMethod: { kind: 'pickup'; locationRef: string };
+  receiveMethod:
+    | { kind: 'pickup'; locationRef: string }
+    | { kind: 'delivery'; address: AddressSnapshot; providerCode: 'self-delivery' };
   pickup: { asap?: boolean; slot?: { startsAt: string } };
   payment?: { providerCode: string };
 };
@@ -92,14 +95,40 @@ export function parseCartRequest(body: unknown): CartRequest {
     };
   });
   const receive = isObject(body.receiveMethod) ? body.receiveMethod : {};
-  if (receive.kind !== 'pickup') {
-    throw new OrderingError('FULFILLMENT_UNAVAILABLE', 'only pickup is available', {
-      details: { field: 'receiveMethod.kind' },
-    });
-  }
   const slot = isObject(receive.slot) ? receive.slot : undefined;
   const startsAt = slot ? str(slot.startsAt, 'receiveMethod.slot.startsAt', 40, true) : undefined;
   const pickup = startsAt ? { slot: { startsAt } } : { asap: true };
+  let receiveMethod: CartRequest['receiveMethod'];
+  if (receive.kind === 'pickup') {
+    receiveMethod = { kind: 'pickup', locationRef };
+  } else if (receive.kind === 'delivery') {
+    const address = isObject(receive.address) ? receive.address : {};
+    // Names are filled from the catalog at placement. Client-sent names are ignored.
+    const communeCode = str(
+      address.communeCode ?? address.wardCode,
+      'receiveMethod.address.communeCode',
+      16,
+      true,
+    ) as string;
+    if (!/^[0-9A-Za-z]{1,16}$/.test(communeCode)) {
+      throw invalid('receiveMethod.address.communeCode', 'receiveMethod.address.communeCode must be a commune code');
+    }
+    receiveMethod = {
+      kind: 'delivery',
+      providerCode: 'self-delivery',
+      address: {
+        recipientName: str(address.recipientName, 'receiveMethod.address.recipientName', LIMITS.name, true) as string,
+        phone: str(address.phone, 'receiveMethod.address.phone', 32, true) as string,
+        line1: str(address.line1, 'receiveMethod.address.line1', 200, true) as string,
+        wardCode: communeCode.toUpperCase(),
+        ...(str(address.note, 'receiveMethod.address.note', 200) ? { note: str(address.note, 'receiveMethod.address.note', 200) } : {}),
+      },
+    };
+  } else {
+    throw new OrderingError('FULFILLMENT_UNAVAILABLE', 'this receive method is not available', {
+      details: { field: 'receiveMethod.kind' },
+    });
+  }
   const payment = isObject(body.payment)
     ? { providerCode: str(body.payment.providerCode, 'payment.providerCode', 40, true) as string }
     : undefined;
@@ -107,7 +136,7 @@ export function parseCartRequest(body: unknown): CartRequest {
     locationRef,
     locale,
     lines,
-    receiveMethod: { kind: 'pickup', locationRef },
+    receiveMethod,
     pickup,
     ...(payment ? { payment } : {}),
   };

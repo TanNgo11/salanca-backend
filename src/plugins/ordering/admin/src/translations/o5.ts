@@ -58,4 +58,8 @@ export const o5Messages: Record<string, [string, string]> = {
   'delivery.quote.ok': ['Phí giao {fee}. Thêm {extra} phút.', 'Delivery fee {fee}. Adds {extra} minutes.'],
   'delivery.quote.freeFrom': ['Mua thêm {more} để được miễn phí giao.', 'Add {more} for free delivery.'],
   'delivery.catalogLoadFailed': ['Không tải được danh mục xã/phường.', 'The commune catalog could not be loaded.'],
+  'error.DELIVERY_UNAVAILABLE': [
+    'Chưa giao được tới địa chỉ này',
+    'Delivery is not available for this address',
+  ],
 };
