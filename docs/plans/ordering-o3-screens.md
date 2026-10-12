@@ -147,7 +147,7 @@ chối/hoàn), nút "Hủy bỏ" bên trái. Gửi xong → `useNotification` th
 | --- | --- | --- | --- |
 | Chuyển bước (khi bước có `requires`) | Ghi chú (tùy chọn), **Báo khách** `Switch` (mặc định bật nếu bước `isPublic`) | `transition { to, note, notifyCustomer }` | theo TastyIgniter `orderstatus` |
 | Từ chối | Lý do `Select` từ setting, "Lý do khác" `Textarea` | `transition { to: rejected, reasonCode, note }` | bắt buộc lý do; đã thu tiền thì hoàn (chuyển khoản: phiếu `pending`) |
-| Hủy đơn | Lý do, ghi chú; nếu đã thu tiền: hiện "Sẽ hoàn X đ tiền mặt" | `POST .../cancel { reasonCode, note }` | quyền `order.cancel`; chỉ khi workflow cho phép; `transition { to: canceled }` bị từ chối |
+| Hủy đơn | Lý do, ghi chú; nếu đã thu tiền: hiện "Sẽ hoàn X đ tiền mặt" | `POST .../cancel { reasonCode, note }` | quyền `order.cancel`; chỉ khi workflow cho phép; `transition { to: canceled }` bị từ chối; chuyển khoản đã thu thành phiếu hoàn `pending` |
 | **Thu tiền và giao** | Số cần thu (chỉ đọc), cách trả `Toggle` Tiền mặt / Chuyển khoản tại quầy | `POST .../cash-handover { method }` | một transaction; lỗi thì không đổi gì |
 | **Hủy món** | Số lượng `NumberInput` (1..còn lại), lý do bắt buộc; hiện số tiền hoàn tính trước | `POST .../lines/:lineId/cancel { quantity, reason }` | quyền `order.edit-lines`; hoàn theo số đã phân bổ |
 | Hoàn tiền mặt | Số tiền (≤ tối đa được hoàn, hiện "tối đa X đ"), lý do | `POST .../refunds { method: 'cash', amount, reason }` | theo Vendure `refund-order-dialog`; quyền `refund.manage` |

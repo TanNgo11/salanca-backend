@@ -87,7 +87,8 @@ tạo phiếu hoàn chờ; `paymentStatus` đổi khi ghi mã ngân hàng.
 
 ## Hoàn tiền
 
-SePay không hoàn qua API. Nhân viên chuyển trả ngoài hệ thống rồi ghi mã trên đơn. Phiếu hoàn ở trạng
+SePay không hoàn qua API. Hủy hoặc từ chối đơn đã nhận chuyển khoản tự tạo phiếu hoàn chờ cho số đó.
+Nhân viên chuyển trả ngoài hệ thống rồi ghi mã trên đơn. Phiếu hoàn ở trạng
 thái chờ và **chưa** đổi `paymentStatus`. Khi ghi mã, sổ mới cộng và trạng thái thành hoàn một phần
 hoặc hoàn đủ. Cùng mã trên đúng phiếu đó không cộng lần hai.
 

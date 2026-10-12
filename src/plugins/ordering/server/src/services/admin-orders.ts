@@ -158,16 +158,12 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
 
   /**
    * Gives back the money still held when an order closes as canceled (contracts §19.1, §19.8).
-   * Cash is refunded now; with `transfers`, a captured transfer becomes a refund row the bank
-   * provider leaves `pending` until staff settle it.
+   * Cash is refunded now; a captured transfer becomes a refund row the bank provider leaves
+   * `pending` until staff settle it. Call it after the close took the group locks: payments are
+   * re-read here, so a transfer captured just before the close is not missed.
    */
-  const refundHeld = async (
-    trx: TransactionClient,
-    payments: OrderAggregate['payments'],
-    reason: string,
-    options: { transfers: boolean },
-    ctx: ServiceContext,
-  ) => {
+  const refundHeld = async (trx: TransactionClient, orderId: number, reason: string, ctx: ServiceContext) => {
+    const payments = (await repo.loadOrderAggregate(orderId))?.payments ?? [];
     let refunded = 0;
     let refundPending = 0;
     for (const payment of payments) {
@@ -178,7 +174,7 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
           .refund()
           .createRefundInTransaction(trx, { paymentId: payment.id, amount: held, reason }, ctx);
         refunded += amount;
-      } else if (options.transfers) {
+      } else {
         const room = held - (await pendingRefundSum(strapi, payment.id));
         if (room <= 0) continue;
         const { amount, status } = await s
@@ -786,13 +782,7 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
         // A prepaid order rejected (or expired) by staff owes the customer their money back.
         const refunds =
           terminal === 'canceled'
-            ? await refundHeld(
-                trx,
-                aggregate.payments,
-                `${input.to}: ${input.reasonCode ?? note}`,
-                { transfers: true },
-                ctx,
-              )
+            ? await refundHeld(trx, orderId, `${input.to}: ${input.reasonCode ?? note}`, ctx)
             : { refunded: 0, refundPending: 0 };
         return {
           from: result.from,
@@ -865,10 +855,9 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
 
     /**
      * POST /orders/:id/cancel — staff cancel. Captured cash still held is refunded through the
-     * cash provider in the same transaction as the cancel (contracts §19.3). On a delivery
-     * order (§19.8 — e.g. failed → hủy và hoàn) a captured transfer becomes a refund row that
-     * the bank provider leaves `pending` for the settlement flow; pickup orders keep refunding
-     * cash only.
+     * cash provider in the same transaction as the cancel (contracts §19.3). A captured transfer
+     * (pickup or delivery, §19.8 — e.g. failed → hủy và hoàn) becomes a refund row that the
+     * bank provider leaves `pending` for the settlement flow.
      */
     async cancel(orderId: number, input: { reasonCode?: string; note?: string }, ctx: ServiceContext) {
       const reason = input.reasonCode ?? input.note?.trim();
@@ -882,18 +871,11 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
             details: { status: before.order.status },
           });
         }
-        const isDelivery = before.groups.some(isDeliveryGroup);
         await s.transition().cancelOrder(
           { orderId, reason, payload: input.note?.trim() ? { note: input.note.trim() } : undefined },
           ctx,
         );
-        const refunds = await refundHeld(
-          trx,
-          before.payments,
-          `cancel: ${reason}`,
-          { transfers: isDelivery },
-          ctx,
-        );
+        const refunds = await refundHeld(trx, orderId, `cancel: ${reason}`, ctx);
         return { ...refunds, detail: await service.detail(orderId, ctx) };
       });
     },

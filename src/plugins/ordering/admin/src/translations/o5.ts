@@ -123,4 +123,8 @@ export const o5Messages: Record<string, [string, string]> = {
   'deliveries.empty.out': ['Không có đơn đang giao', 'Nothing is on the road'],
   'deliveries.empty.failed': ['Không có đơn giao thất bại', 'No failed delivery'],
   'deliveries.empty.filtered': ['Không có đơn khớp bộ lọc', 'No delivery matches the filters'],
+  'dialog.cancel.refundPending': [
+    'Tạo phiếu hoàn chờ {amount} tiền chuyển khoản; ghi mã ngân hàng khi đã chuyển trả',
+    'A pending refund of {amount} is created for the transfer; record the bank reference once paid back',
+  ],
 };

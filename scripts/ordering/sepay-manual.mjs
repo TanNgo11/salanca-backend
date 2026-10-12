@@ -1,6 +1,7 @@
 // O4 step 7: staff record a transfer by bank reference. A later webhook with the same
 // reference and the same amount confirms that row and does not capture again. A transfer the
-// webhook already stored cannot be recorded again by hand. No call to SePay.
+// webhook already stored cannot be recorded again by hand. A paid order rejected or canceled
+// by staff gets a pending transfer refund. No call to SePay.
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 
@@ -298,7 +299,58 @@ withApp(async (app) => {
     assert.equal(denied.body.error.code, 'ORDER_NOT_FOUND');
     assert.equal((await rowsFor('FT9009')).length, 0);
 
-    console.log('[ordering-test] sepay manual: record, attach, mismatch, webhook first, scope');
+    // A paid pickup order closed by staff owes the transfer back as a pending refund, whether
+    // it is rejected or canceled; cancel through the transition endpoint is refused.
+    const paidPickup = async (reference) => {
+      const placedPaid = await place();
+      const paidId = placedPaid.order.order.id;
+      const paid = await http.as.lan('POST', `/orders/${paidId}/manual-payments`, {
+        reference,
+        amount: placedPaid.order.order.totalAmount,
+      });
+      assert.equal(paid.status, 200, JSON.stringify(paid.body));
+      assert.equal((await load(paidId)).groups[0].status, 'awaiting-acceptance');
+      return { id: paidId, total: placedPaid.order.order.totalAmount };
+    };
+    const rejectedPickup = await paidPickup('FT9401');
+    const viaTransition = await http.as.lan('POST', `/orders/${rejectedPickup.id}/transition`, {
+      to: 'canceled',
+      reasonCode: 'other',
+      note: 'hủy',
+    });
+    assert.equal(viaTransition.status, 409);
+    assert.equal(viaTransition.body.error.code, 'INVALID_TRANSITION');
+    assert.equal(viaTransition.body.error.details.use, 'cancel');
+    assert.equal((await load(rejectedPickup.id)).refunds.length, 0);
+    const reject = await http.as.lan('POST', `/orders/${rejectedPickup.id}/transition`, {
+      to: 'rejected',
+      reasonCode: 'other',
+      note: 'hết món',
+    });
+    assert.equal(reject.status, 200, JSON.stringify(reject.body));
+    assert.equal(reject.body.refundPending, rejectedPickup.total);
+    const rejectedAgg = await load(rejectedPickup.id);
+    assert.equal(rejectedAgg.order.status, 'canceled');
+    assert.deepEqual(
+      rejectedAgg.refunds.map((refund) => [refund.status, refund.amount]),
+      [['pending', rejectedPickup.total]],
+    );
+    const canceledPickup = await paidPickup('FT9402');
+    const cancel = await http.as.lan('POST', `/orders/${canceledPickup.id}/cancel`, {
+      reasonCode: 'other',
+      note: 'khách đổi ý',
+    });
+    assert.equal(cancel.status, 200, JSON.stringify(cancel.body));
+    assert.equal(cancel.body.refunded, 0);
+    assert.equal(cancel.body.refundPending, canceledPickup.total);
+    assert.deepEqual(
+      (await load(canceledPickup.id)).refunds.map((refund) => refund.status),
+      ['pending'],
+    );
+
+    console.log(
+      '[ordering-test] sepay manual: record, attach, mismatch, webhook first, scope, paid reject/cancel refunds',
+    );
   } finally {
     await http.cleanup();
   }

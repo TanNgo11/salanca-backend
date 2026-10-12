@@ -182,9 +182,12 @@ export const CancelDialog = ({
   const t = useT();
   const [code, setCode] = useState('');
   const [note, setNote] = useState('');
-  const held = detail.payments
-    .filter((payment) => payment.providerCode === 'cash')
-    .reduce((sum, payment) => sum + payment.capturedAmount - payment.refundedAmount, 0);
+  const heldOf = (cash: boolean) =>
+    detail.payments
+      .filter((payment) => (payment.providerCode === 'cash') === cash)
+      .reduce((sum, payment) => sum + payment.capturedAmount - payment.refundedAmount, 0);
+  const held = heldOf(true);
+  const transferHeld = heldOf(false);
   return (
     <Frame
       title={t('dialog.cancel.title', { code: detail.order.code })}
@@ -202,6 +205,11 @@ export const CancelDialog = ({
     >
       <ReasonPicker reasons={reasons} value={code} onChange={setCode} note={note} onNote={setNote} />
       {held > 0 ? <Typography textColor="danger600">{t('dialog.cancel.refund', { amount: formatMoney(held) })}</Typography> : null}
+      {transferHeld > 0 ? (
+        <Typography textColor="danger600">
+          {t('dialog.cancel.refundPending', { amount: formatMoney(transferHeld) })}
+        </Typography>
+      ) : null}
     </Frame>
   );
 };

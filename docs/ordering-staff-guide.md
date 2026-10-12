@@ -37,7 +37,7 @@ Dành cho nhân viên và quản lý chi nhánh dùng Admin để nhận đơn o
   cùng lúc; nếu lỗi thì không có gì thay đổi, bấm lại. Không giao được khi chưa thu đủ.
 - **Hủy món** (biểu tượng thùng rác ở dòng món): chọn số lượng và lý do; số tiền hoàn hiện trước khi bấm,
   tính theo phần giảm giá đã chia lúc đặt. Đơn đã thu tiền thì phiếu hoàn tiền mặt ghi tên bạn.
-- **…** → Hủy đơn (bắt buộc lý do; đã thu tiền thì hoàn tiền mặt cùng lúc), Hoàn tiền mặt (tối đa số
+- **…** → Hủy đơn (bắt buộc lý do; tiền mặt đã thu hoàn cùng lúc, tiền chuyển khoản thành phiếu hoàn chờ), Hoàn tiền mặt (tối đa số
   còn giữ), Sao chép mã đơn.
 - **Lịch sử**: chấm "Khách thấy" là bước khách thấy trên trang đơn; ghi chú nội bộ khách không thấy.
 

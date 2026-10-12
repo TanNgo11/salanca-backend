@@ -31,7 +31,8 @@ Nghiên cứu: [`ordering-reference.md` mục U5](ordering-reference.md). **Quy 
 - Sửa sau review (2026-10-12): `transition { to: "canceled" }` bị từ chối (`INVALID_TRANSITION`,
   `details.use: "cancel"`) vì nó bỏ qua hoàn tiền và quyền `order.cancel`; hủy chỉ qua `/cancel`. Từ chối
   (`rejected`) hoặc hết hạn (`expired`) khi đơn đã thu tiền thì hoàn luôn trong cùng transaction: tiền mặt
-  `settled`, chuyển khoản phiếu `pending`. Response `transition` thêm `refunded`, `refundPending`.
+  `settled`, chuyển khoản phiếu `pending`. Response `transition` thêm `refunded`, `refundPending`. `/cancel` giờ
+  tạo phiếu hoàn `pending` cho chuyển khoản ở cả đơn tự lấy (trước chỉ đơn giao); hộp thoại hủy hiện số đó.
 - Bước 6 (2026-10-12): combobox người giao tải qua `GET /ordering/orders/delivery-staff?branch=<code>`
   (quyền `order.read`, trả `[{ ref, name }]`, chỉ nhân viên active trong scope). Filter `assignee` nhận
   `unassigned | mine | other | admin:<id>` — `mine`/`other` so với `actorRef` của người xem. Mỗi row của
