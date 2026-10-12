@@ -19,9 +19,10 @@ withApp(async (app) => {
 
   await app.listen();
 
-  const event = (days, rawPayload) =>
+  const event = (days, rawPayload, reviewStatus = 'auto-matched') =>
     paymentEvent().create({
       data: {
+        reviewStatus,
         providerCode: 'sepay',
         providerTransactionId: `txn-${randomUUID()}`,
         amount: '175000',
@@ -71,6 +72,8 @@ withApp(async (app) => {
       description: 'x',
     });
     const fresh = await event(10, { id: '2', referenceCode: 'FT2', content: 'keep me' });
+    // Old but still unresolved in the review queue: staff need the memo to match it.
+    const pending = await event(200, { id: '3', content: 'SLC-000003 chua duyet' }, 'needs-review');
 
     await mail(40, 'deliveredAt');
     await mail(10, 'deliveredAt');
@@ -82,6 +85,12 @@ withApp(async (app) => {
     const first = await runRetention(app, { owner, now: NOW });
     assert.equal(first.ran, true, 'first run must acquire the lock');
     assert.equal(first.redacted, 1, 'only the past-window payload redacts');
+    const pendingPayload = (await paymentEvent().findOne({ where: { id: pending.id } })).rawPayload;
+    assert.equal(
+      (typeof pendingPayload === 'string' ? JSON.parse(pendingPayload) : pendingPayload).content,
+      'SLC-000003 chua duyet',
+      'a needs-review transfer keeps its memo',
+    );
     assert.equal(first.outboxDeleted, 2, 'old delivered + old failed rows go');
     assert.equal(first.alertsDeleted, 1, 'only the resolved-alert past window goes');
 

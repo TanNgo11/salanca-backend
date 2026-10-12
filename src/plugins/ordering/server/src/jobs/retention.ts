@@ -17,7 +17,7 @@ const daysAgo = (now: Date, days: number): Date =>
 
 /**
  * Data-retention job (O6 step 6, contracts §19.9). Redacts payment-event raw payloads to
- * the reconciliation allowlist and deletes aged outbox/alert rows — bounded batches so a
+ * the reconciliation allowlist (except transfers still `needs-review`) and deletes aged outbox/alert rows — bounded batches so a
  * backlog never turns into one giant transaction; reruns are no-ops once caught up.
  */
 export const runRetention = async (
@@ -46,6 +46,8 @@ export const runRetention = async (
           .where('received_at', '<', payloadCutoff)
           .whereNotNull('raw_payload')
           .whereRaw(`raw_payload ->> 'redactedAt' IS NULL`)
+          // A transfer still waiting in "Duyệt chuyển khoản" keeps its memo until staff resolve it.
+          .whereNot('review_status', 'needs-review')
           .orderBy('id')
           .limit(config.batchSize)
           .select('id', 'raw_payload')) as Array<{ id: number; raw_payload: unknown }>;
