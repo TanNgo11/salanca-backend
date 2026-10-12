@@ -25,6 +25,7 @@ const PaymentReviewPage = lazy(() => import('./PaymentReview'));
 const BranchesPage = lazy(() => import('./Branches'));
 const StaffPage = lazy(() => import('./Staff'));
 const CategoriesPage = lazy(() => import('./Categories'));
+const CatalogImportPage = lazy(() => import('./CatalogImport'));
 const AvailabilityPage = lazy(() => import('./Availability'));
 const AlertsPage = lazy(() => import('./Alerts'));
 const OpsPage = lazy(() => import('./Ops'));
@@ -42,6 +43,7 @@ type Section =
   | 'reports'
   | 'cash-closing'
   | 'categories'
+  | 'catalog-import'
   | 'availability'
   | 'branches'
   | 'staff'
@@ -120,9 +122,10 @@ const SideNav = ({
             {visible['cash-closing'] ? link('cash-closing', t('nav.cashClosing')) : null}
           </SubNavSection>
         ) : null}
-        {visible.categories || visible.availability ? (
+        {visible.categories || visible['catalog-import'] || visible.availability ? (
           <SubNavSection label={t('nav.catalog')}>
             {visible.categories ? link('categories', t('nav.categories')) : null}
+            {visible['catalog-import'] ? link('catalog-import', t('nav.catalogImport')) : null}
             {visible.availability ? link('availability', t('nav.availability')) : null}
           </SubNavSection>
         ) : null}
@@ -176,6 +179,7 @@ const OrderingApp = () => {
     reports: any(report.allowedActions),
     'cash-closing': any(report.allowedActions),
     categories: any(catalogManage.allowedActions),
+    'catalog-import': any(catalogManage.allowedActions),
     availability: any(catalogAccess.allowedActions),
     branches: any(settings.allowedActions),
     staff: any(scope.allowedActions),
@@ -193,6 +197,7 @@ const OrderingApp = () => {
       'reports',
       'cash-closing',
       'categories',
+      'catalog-import',
       'availability',
       'branches',
       'staff',
@@ -223,6 +228,7 @@ const OrderingApp = () => {
             <Route path="reports/*" element={<ReportsPage />} />
             <Route path="cash-closing/*" element={<CashClosingPage />} />
             <Route path="categories/*" element={<CategoriesPage />} />
+            <Route path="catalog-import/*" element={<CatalogImportPage />} />
             <Route path="availability/*" element={<AvailabilityPage />} />
             <Route path="branches/*" element={<BranchesPage />} />
             <Route path="staff/*" element={<StaffPage />} />

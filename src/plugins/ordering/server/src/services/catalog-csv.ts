@@ -453,7 +453,11 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
 
   const validateProducts = async (
     rows: { line: number; cells: Record<string, string> }[],
-  ): Promise<{ parsed: ProductCsvRow[]; errors: CsvRowError[] }> => {
+  ): Promise<{
+    parsed: ProductCsvRow[];
+    errors: CsvRowError[];
+    predicted: { created: Record<string, number>; updated: Record<string, number> };
+  }> => {
     const errors: CsvRowError[] = [];
     const groups = await loadGroupIndex();
     const categoryPaths = await loadCategoryPaths();
@@ -566,7 +570,44 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
         );
       }
     }
-    return { parsed, errors };
+
+    // Predicted counts drive the apply dialog ("Sẽ tạo n, sửa m món") before anything writes.
+    const productVariants = new Map<string, VariantRow[]>();
+    for (const variant of variantsBySku.values()) {
+      const ref = variant.product?.documentId;
+      if (!ref) continue;
+      const list = productVariants.get(ref) ?? [];
+      list.push(variant);
+      productVariants.set(ref, list);
+    }
+    const predicted = { created: {} as Record<string, number>, updated: {} as Record<string, number> };
+    for (const [slug, lines] of groupRowsBySlug(parsed)) {
+      const productRef = slugIndex.get(slug);
+      bump(predicted[productRef ? 'updated' : 'created'], 'products');
+      const existing = productRef ? productVariants.get(productRef) ?? [] : [];
+      for (const row of lines) {
+        const match = row.sku
+          ? variantsBySku.get(row.sku)
+          : existing.length === 1 && !existing[0].sku
+            ? existing[0]
+            : undefined;
+        const belongs = match?.product?.documentId === productRef;
+        bump(predicted[belongs ? 'updated' : 'created'], 'variants');
+      }
+    }
+    return { parsed, errors, predicted };
+  };
+
+  const groupRowsBySlug = (
+    parsed: ProductCsvRow[],
+  ): Map<string, ProductCsvRow[]> => {
+    const bySlug = new Map<string, ProductCsvRow[]>();
+    for (const row of parsed) {
+      const list = bySlug.get(row.slug) ?? [];
+      list.push(row);
+      bySlug.set(row.slug, list);
+    }
+    return bySlug;
   };
 
   // ── modifiers.csv ───────────────────────────────────────────────────────
@@ -587,8 +628,22 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
 
   const validateModifiers = async (
     rows: { line: number; cells: Record<string, string> }[],
-  ): Promise<{ parsed: ModifierCsvRow[]; errors: CsvRowError[] }> => {
+  ): Promise<{
+    parsed: ModifierCsvRow[];
+    errors: CsvRowError[];
+    predicted: { created: Record<string, number>; updated: Record<string, number> };
+  }> => {
     const errors: CsvRowError[] = [];
+    const groups = await loadGroupIndex();
+    const modifiers = await loadModifiers();
+    const optionsByGroup = new Map<string, Map<string, ModifierRow>>();
+    for (const row of modifiers) {
+      const ref = row.group?.documentId ?? '';
+      const index = optionsByGroup.get(ref) ?? new Map<string, ModifierRow>();
+      index.set(row.documentId, row);
+      if (row.code) index.set(row.code, row);
+      optionsByGroup.set(ref, index);
+    }
     const seenOptions = new Map<string, number>();
     const groupAttrs = new Map<string, { line: number; signature: string }>();
     const parsed: ModifierCsvRow[] = [];
@@ -672,7 +727,24 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
         });
       }
     }
-    return { parsed, errors };
+
+    // Predicted counts for the apply dialog — a group key present in the file creates or
+    // updates exactly once, then each option row counts against its group's members.
+    const predicted = { created: {} as Record<string, number>, updated: {} as Record<string, number> };
+    const countedGroups = new Set<string>();
+    const groupRefOf = new Map<string, string>();
+    for (const row of parsed) {
+      if (!countedGroups.has(row.groupKey)) {
+        countedGroups.add(row.groupKey);
+        const existing = groups.get(row.groupKey);
+        bump(predicted[existing ? 'updated' : 'created'], 'modifierGroups');
+        groupRefOf.set(row.groupKey, existing?.documentId ?? `new:${row.groupKey}`);
+      }
+      if (!row.optionKey) continue;
+      const index = optionsByGroup.get(groupRefOf.get(row.groupKey) ?? '');
+      bump(predicted[index?.has(row.optionKey) ? 'updated' : 'created'], 'modifiers');
+    }
+    return { parsed, errors, predicted };
   };
 
   // ── Apply ───────────────────────────────────────────────────────────────
@@ -986,6 +1058,9 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     }
     const report = row.report ?? emptyReport();
     report.errors = [];
+    // The stored report carries predicted counts — apply recomputes the real numbers.
+    report.created = {};
+    report.updated = {};
 
     await strapi.db.transaction(async () => {
       // Document Service writes log per-entity audit rows; an import only needs its summary.
@@ -1084,6 +1159,10 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
           : await validateModifiers(grid.rows);
       const report = emptyReport();
       report.errors = checked.errors;
+      // Predicted create/update counts let the apply dialog say "Sẽ tạo n, sửa m" up front;
+      // applyImport overwrites them with the real numbers.
+      report.created = checked.predicted.created;
+      report.updated = checked.predicted.updated;
       const status = checked.errors.length > 0 ? 'failed' : 'validated';
       const created = (await query(IMPORT).create({
         data: {

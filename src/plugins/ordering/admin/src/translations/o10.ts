@@ -1,5 +1,5 @@
 /**
- * O10 "Webhook" (X1) strings, `[vi, en]`, merged in `registerTrads` like o3–o15.
+ * O10 "Webhook" (X1) + "Nhập/xuất menu" (X3) strings, `[vi, en]`, merged in `registerTrads` like o3–o15.
  */
 export const o10Messages: Record<string, [string, string]> = {
   'nav.webhooks': ['Webhook', 'Webhooks'],
@@ -104,5 +104,66 @@ export const o10Messages: Record<string, [string, string]> = {
   'error.WEBHOOK_SECRET_UNAVAILABLE': [
     'Chưa cấu hình khóa mã hóa nên không tạo được bí mật.',
     'No encryption key configured, so a secret cannot be issued.',
+  ],
+
+  // ── X3 Nhập/xuất menu ────────────────────────────────────────────────────
+  'nav.catalogImport': ['Nhập/xuất menu', 'Menu import/export'],
+  'x3.title': ['Nhập/xuất menu', 'Menu import/export'],
+  'x3.subtitle': [
+    'Tải menu ra CSV để sửa bằng Excel rồi nhập lại; mỗi lần nhập đều kiểm tra trước khi áp dụng.',
+    'Download the menu as CSV, edit in Excel and import back; every import is checked before applying.',
+  ],
+  'x3.loadFailed': ['Không tải được trang nhập/xuất.', 'Could not load the import/export page.'],
+  'x3.export.title': ['Xuất CSV', 'Export CSV'],
+  'x3.export.hint': [
+    'Mở bằng Excel, giữ nguyên dòng tiêu đề. Nhập tùy chọn (modifiers) trước khi nhập món.',
+    'Open with Excel and keep the header row. Import modifiers before products.',
+  ],
+  'x3.export.products': ['Tải products.csv', 'Download products.csv'],
+  'x3.export.modifiers': ['Tải modifiers.csv', 'Download modifiers.csv'],
+  'x3.export.needPermission': [
+    'Cần thêm quyền Xuất dữ liệu để tải CSV.',
+    'The Export permission is required to download CSV.',
+  ],
+  'x3.import.title': ['Nhập CSV', 'Import CSV'],
+  'x3.import.hint': [
+    'Nên nhập modifiers.csv trước, sau đó tới products.csv.',
+    'Import modifiers.csv first, then products.csv.',
+  ],
+  'x3.kind': ['Loại file', 'File type'],
+  'x3.kind.products': ['Món (products)', 'Products'],
+  'x3.kind.modifiers': ['Tùy chọn (modifiers)', 'Modifiers'],
+  'x3.file': ['File CSV', 'CSV file'],
+  'x3.file.hint': ['Chỉ nhận .csv, tối đa 2 MB.', 'Only .csv, up to 2 MB.'],
+  'x3.file.tooBig': ['File vượt quá 2 MB.', 'The file exceeds 2 MB.'],
+  'x3.check': ['Kiểm tra', 'Validate'],
+  'x3.apply': ['Áp dụng', 'Apply'],
+  'x3.stale': ['Menu vừa thay đổi, kiểm tra lại file', 'The menu just changed, validate the file again'],
+  'x3.report.created': ['Tạo mới {n}', 'Create {n}'],
+  'x3.report.updated': ['Sửa {n}', 'Update {n}'],
+  'x3.report.errors': ['Lỗi {n}', 'Errors {n}'],
+  'x3.err.line': ['Dòng', 'Line'],
+  'x3.err.field': ['Cột', 'Column'],
+  'x3.err.message': ['Lỗi', 'Error'],
+  'x3.confirm.title': ['Áp dụng nhập menu?', 'Apply menu import?'],
+  'x3.confirm.body': [
+    'Sẽ tạo {created}, sửa {updated} món. Nên tải bản xuất hiện tại trước.',
+    'This will create {created} and update {updated} items. Export the current menu first.',
+  ],
+  'x3.history.title': ['Lịch sử nhập', 'Import history'],
+  'x3.history.empty': ['Chưa có lần nhập nào.', 'No imports yet.'],
+  'x3.history.at': ['Lúc', 'At'],
+  'x3.history.by': ['Người nhập', 'By'],
+  'x3.history.kind': ['Loại', 'Type'],
+  'x3.history.file': ['File', 'File'],
+  'x3.history.result': ['Kết quả', 'Result'],
+  'x3.status.validated': ['Đã kiểm tra', 'Validated'],
+  'x3.status.applied': ['Đã áp dụng', 'Applied'],
+  'x3.status.failed': ['Có lỗi', 'Failed'],
+  'error.CSV_INVALID': ['File CSV không hợp lệ.', 'The CSV file is invalid.'],
+  'error.CATALOG_IMPORT_NOT_FOUND': ['Không tìm thấy lần nhập.', 'Import not found.'],
+  'error.CATALOG_IMPORT_STALE': [
+    'Menu vừa thay đổi, kiểm tra lại file',
+    'The menu just changed, validate the file again',
   ],
 };
