@@ -8,6 +8,7 @@ const EXPECTED_TABLES = [
   'plugins_ordering_adjustment_allocation',
   'plugins_ordering_admin_change_log',
   'plugins_ordering_branch',
+  'plugins_ordering_cash_closing',
   'plugins_ordering_catalog_availability_window',
   'plugins_ordering_catalog_category',
   'plugins_ordering_catalog_location_state',
@@ -60,6 +61,9 @@ const EXPECTED_INDEXES = [
   'plugins_ordering_notification_delivery_uq',
   'plugins_ordering_fulfillment_group_status_idx',
   'plugins_ordering_hold_resource_open_idx',
+  'plugins_ordering_cash_closing_current_uq',
+  'plugins_ordering_payment_cash_day_idx',
+  'plugins_ordering_ops_alert_status_seen_idx',
 ];
 
 // Catalog types staff edit in Content Manager (O2 step 1).
@@ -79,7 +83,7 @@ const CM_HIDDEN_CATALOG_UIDS = [
   'plugin::ordering.catalog-location-state',
 ];
 
-// Every manyToOne owner side produces one link table (28 relations across the 30 types).
+// Every manyToOne owner side produces one link table (28 relations across the 31 types).
 const MIN_LINK_TABLES = 28;
 
 await withApp(async (app) => {
@@ -129,7 +133,7 @@ await withApp(async (app) => {
     .connection('plugins_ordering_migrations')
     .select('name')
     .orderBy('name');
-  for (const migration of ['0001-o1-core', '0002-o2-catalog', '0003-o3-pickup']) {
+  for (const migration of ['0001-o1-core', '0002-o2-catalog', '0003-o3-pickup', '0004-o6-ops']) {
     assert.ok(
       applied.some((row) => row.name === migration),
       `migration ${migration} is not recorded`,

@@ -43,7 +43,12 @@ Nghiên cứu: [`ordering-reference.md` mục U6](ordering-reference.md). **Quy 
 ## V3. Chốt tiền mặt cuối ngày
 
 - Route: `/plugins/ordering/cash-closing`. Quyền `report.read`.
-- API: `GET /ordering/admin/cash-closing?branch=&businessDate=` → số theo người thu; `POST /ordering/admin/cash-closing`.
+- API (đã có ở bước 3): `GET /ordering/reports/branches` → `{ branches: [{ code, name, timezone, businessDateToday }] }`
+  (chi nhánh trong scope, ngày kinh doanh hôm nay của từng chi nhánh); `GET /ordering/cash-closing?branch=&businessDate=`
+  (alias `/cash-closing/summary`) → `{ branch, businessDate, isToday, rows, totals }`; `POST /ordering/cash-closing`
+  `{ branch, businessDate, collectorRef, countedAmount, note? }` — chênh ≠ 0 mà thiếu `note` → 400 `field: 'note'`,
+  trùng chốt → 409 `CASH_CLOSING_EXISTS`; `POST /ordering/cash-closing/:id/adjust` `{ countedAmount, note?, reason }`
+  — thiếu `reason` → 400, tạo bản `revision + 1` và bản cũ `superseded`.
 
 Bố cục (theo Odoo "Closing Register"):
 

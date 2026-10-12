@@ -2,7 +2,9 @@ import { randomUUID } from 'node:crypto';
 
 import type { Core } from '@strapi/strapi';
 
+import type { OrderingConfig } from '../config';
 import type { Payment as ContractPayment } from '../contracts/payment';
+import { businessDate } from '../domain/business-date';
 import { OrderingError } from '../domain/errors';
 import { amountFromDb, toMoney } from '../domain/money';
 import { allocateLargestRemainder } from '../domain/pricing/allocation';
@@ -10,6 +12,7 @@ import { refundLineAmount } from '../domain/refund-amount';
 import type { TransactionClient } from '../migrations/runner';
 import orderRepository from '../repositories/order';
 import type { PaymentRow, RefundRow } from '../repositories/types';
+import type branchFactory from './branch';
 import type changeLogFactory from './change-log';
 import type { ServiceContext } from './context';
 import { actorRefOf, nowOf } from './context';
@@ -28,6 +31,7 @@ type Services = {
   outbox: ReturnType<typeof outboxFactory>;
   changeLog: ReturnType<typeof changeLogFactory>;
   scope: ReturnType<typeof scopeFactory>;
+  branch: ReturnType<typeof branchFactory>;
 };
 
 const BANK_REFERENCE = /^[A-Za-z0-9][A-Za-z0-9-]{3,40}$/;
@@ -93,6 +97,7 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
       outbox: plugin.service('outbox') as Services['outbox'],
       changeLog: plugin.service('change-log') as Services['changeLog'],
       scope: plugin.service('scope') as Services['scope'],
+      branch: plugin.service('branch') as Services['branch'],
     };
   };
   const repo = orderRepository({ strapi });
@@ -100,6 +105,21 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
   const lines = () => strapi.db.query('plugin::ordering.order-line');
   const refunds = () => strapi.db.query('plugin::ordering.refund');
   const refundLines = () => strapi.db.query('plugin::ordering.refund-line');
+
+  /**
+   * Business date of a settlement in the order's branch (O6 cash closing sums refunds per
+   * collector per business day). Same resolution order as order placement: branch
+   * `businessDayPolicy.cutoffLocalTime`, falling back to the configured default.
+   */
+  const businessDateFor = async (locationRef: string, at: Date): Promise<string> => {
+    const { branch } = services();
+    const row = await branch.findByCode(locationRef);
+    const cutoff =
+      branch.pickupSettings(row ?? { fulfillment: null }).schedule.businessDayPolicy
+        .cutoffLocalTime ??
+      (strapi.config.get('plugin::ordering') as OrderingConfig).businessDay.cutoffLocalTime;
+    return businessDate(at, row?.timezone ?? 'Asia/Ho_Chi_Minh', cutoff);
+  };
 
   /** The idempotency-free core; MUST run inside the caller's transaction. */
   const createRefundInTransaction = async (
@@ -243,6 +263,10 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
         providerReference: result.providerReference ?? null,
         status: result.status,
         settledAt: settled ? nowOf(ctx) : null,
+        businessDate:
+          settled && orderId !== null
+            ? await businessDateFor(aggregate.order.locationRef, nowOf(ctx))
+            : null,
       },
     });
     for (const lineRefund of lineRefunds) {
@@ -399,7 +423,13 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
       }
       const updated = (await refunds().update({
         where: { id: refundId },
-        data: { status: 'settled', providerReference: reference, settledAt },
+        data: {
+          status: 'settled',
+          providerReference: reference,
+          settledAt,
+          businessDate:
+            locationRef !== undefined ? await businessDateFor(locationRef, settledAt) : null,
+        },
       })) as RefundRow;
       if (orderId !== null) {
         await order.recomputeProjection(orderId);

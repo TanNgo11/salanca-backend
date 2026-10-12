@@ -61,6 +61,8 @@ export type OrderingErrorCode =
   | 'ALERT_NOT_FOUND'
   | 'JOB_NOT_FOUND'
   | 'OUTBOX_EVENT_NOT_FOUND'
+  | 'CASH_CLOSING_EXISTS'
+  | 'CASH_CLOSING_NOT_FOUND'
   | 'INTERNAL';
 
 const defaultStatus: Record<OrderingErrorCode, number> = {
@@ -121,6 +123,8 @@ const defaultStatus: Record<OrderingErrorCode, number> = {
   ALERT_NOT_FOUND: 404,
   JOB_NOT_FOUND: 404,
   OUTBOX_EVENT_NOT_FOUND: 404,
+  CASH_CLOSING_EXISTS: 409,
+  CASH_CLOSING_NOT_FOUND: 404,
   INTERNAL: 500,
 };
 

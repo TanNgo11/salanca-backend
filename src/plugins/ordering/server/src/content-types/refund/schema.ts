@@ -28,6 +28,8 @@ export default collection(
       default: 'pending',
     },
     settledAt: { type: 'datetime' },
+    // Business date of the settlement (O6 cash closing); null while the refund is pending.
+    businessDate: { type: 'date' },
     lines: {
       type: 'relation',
       relation: 'oneToMany',

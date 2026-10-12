@@ -12,6 +12,7 @@ import {
   RBAC_OPS,
   RBAC_ORDERS_READ,
   RBAC_PAYMENT_REVIEW,
+  RBAC_REPORT,
   RBAC_SCOPE,
   RBAC_SETTINGS,
 } from '../lib/permissions';
@@ -25,6 +26,7 @@ const CategoriesPage = lazy(() => import('./Categories'));
 const AvailabilityPage = lazy(() => import('./Availability'));
 const AlertsPage = lazy(() => import('./Alerts'));
 const OpsPage = lazy(() => import('./Ops'));
+const CashClosingPage = lazy(() => import('./CashClosing'));
 
 type Section =
   | 'orders'
@@ -32,6 +34,7 @@ type Section =
   | 'payment-review'
   | 'alerts'
   | 'ops'
+  | 'cash-closing'
   | 'categories'
   | 'availability'
   | 'branches'
@@ -103,6 +106,11 @@ const SideNav = ({
             {visible.ops ? link('ops', t('nav.ops')) : null}
           </SubNavSection>
         ) : null}
+        {visible['cash-closing'] ? (
+          <SubNavSection label={t('nav.reports')}>
+            {link('cash-closing', t('nav.cashClosing'))}
+          </SubNavSection>
+        ) : null}
         {visible.categories || visible.availability ? (
           <SubNavSection label={t('nav.catalog')}>
             {visible.categories ? link('categories', t('nav.categories')) : null}
@@ -130,11 +138,12 @@ const OrderingApp = () => {
   const reviews = useRBAC(RBAC_PAYMENT_REVIEW);
   const alerts = useRBAC(RBAC_ALERTS);
   const ops = useRBAC(RBAC_OPS);
+  const report = useRBAC(RBAC_REPORT);
   const catalogManage = useRBAC(RBAC_CATALOG_MANAGE);
   const catalogAccess = useRBAC(RBAC_CATALOG_ACCESS);
   const settings = useRBAC(RBAC_SETTINGS);
   const scope = useRBAC(RBAC_SCOPE);
-  const loading = [orders, reviews, alerts, ops, catalogManage, catalogAccess, settings, scope].some(
+  const loading = [orders, reviews, alerts, ops, report, catalogManage, catalogAccess, settings, scope].some(
     (item) => item.isLoading,
   );
   if (loading) {
@@ -151,6 +160,7 @@ const OrderingApp = () => {
     'payment-review': any(reviews.allowedActions),
     alerts: any(alerts.allowedActions),
     ops: any(ops.allowedActions),
+    'cash-closing': any(report.allowedActions),
     categories: any(catalogManage.allowedActions),
     availability: any(catalogAccess.allowedActions),
     branches: any(settings.allowedActions),
@@ -164,6 +174,7 @@ const OrderingApp = () => {
       'payment-review',
       'alerts',
       'ops',
+      'cash-closing',
       'categories',
       'availability',
       'branches',
@@ -190,6 +201,7 @@ const OrderingApp = () => {
             <Route path="payment-review/*" element={<PaymentReviewPage />} />
             <Route path="alerts/*" element={<AlertsPage />} />
             <Route path="ops/*" element={<OpsPage />} />
+            <Route path="cash-closing/*" element={<CashClosingPage />} />
             <Route path="categories/*" element={<CategoriesPage />} />
             <Route path="availability/*" element={<AvailabilityPage />} />
             <Route path="branches/*" element={<BranchesPage />} />

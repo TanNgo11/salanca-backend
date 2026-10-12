@@ -3063,6 +3063,64 @@ export interface PluginOrderingBranch extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface PluginOrderingCashClosing extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_cash_closing';
+  info: {
+    displayName: 'Ch\u1ED1t ti\u1EC1n m\u1EB7t';
+    pluralName: 'cash-closings';
+    singularName: 'cash-closing';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    adjustmentReason: Schema.Attribute.Text;
+    businessDate: Schema.Attribute.Date & Schema.Attribute.Required;
+    closedAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    closedBy: Schema.Attribute.String & Schema.Attribute.Required;
+    collectorRef: Schema.Attribute.String & Schema.Attribute.Required;
+    countedAmount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    differenceAmount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
+    expectedAmount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.cash-closing'
+    > &
+      Schema.Attribute.Private;
+    locationRef: Schema.Attribute.String & Schema.Attribute.Required;
+    note: Schema.Attribute.Text;
+    orderCount: Schema.Attribute.Integer & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    refundAmount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
+    revision: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<1>;
+    status: Schema.Attribute.Enumeration<['current', 'superseded']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'current'>;
+    supersedesId: Schema.Attribute.Integer;
+    systemAmount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface PluginOrderingCatalogAvailabilityWindow
   extends Struct.CollectionTypeSchema {
   collectionName: 'plugins_ordering_catalog_availability_window';
@@ -3939,6 +3997,7 @@ export interface PluginOrderingOpsAlert extends Struct.CollectionTypeSchema {
       'plugin::ordering.ops-alert'
     > &
       Schema.Attribute.Private;
+    locationRef: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
     resolvedAt: Schema.Attribute.DateTime;
     severity: Schema.Attribute.Enumeration<['info', 'warning', 'critical']> &
@@ -4197,7 +4256,9 @@ export interface PluginOrderingOrderJobLock
       Schema.Attribute.Private;
     expiresAt: Schema.Attribute.DateTime;
     jobName: Schema.Attribute.String & Schema.Attribute.Required;
+    lastDurationMs: Schema.Attribute.Integer;
     lastError: Schema.Attribute.Text;
+    lastRunAt: Schema.Attribute.DateTime;
     lastSuccessAt: Schema.Attribute.DateTime;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
@@ -4509,6 +4570,7 @@ export interface PluginOrderingRefund extends Struct.CollectionTypeSchema {
   attributes: {
     actorRef: Schema.Attribute.String;
     amount: Schema.Attribute.BigInteger & Schema.Attribute.Required;
+    businessDate: Schema.Attribute.Date;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -5030,6 +5092,7 @@ declare module '@strapi/strapi' {
       'plugin::ordering.adjustment-allocation': PluginOrderingAdjustmentAllocation;
       'plugin::ordering.admin-change-log': PluginOrderingAdminChangeLog;
       'plugin::ordering.branch': PluginOrderingBranch;
+      'plugin::ordering.cash-closing': PluginOrderingCashClosing;
       'plugin::ordering.catalog-availability-window': PluginOrderingCatalogAvailabilityWindow;
       'plugin::ordering.catalog-category': PluginOrderingCatalogCategory;
       'plugin::ordering.catalog-location-state': PluginOrderingCatalogLocationState;

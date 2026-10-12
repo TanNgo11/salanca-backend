@@ -3,10 +3,12 @@ import adminOrders from './admin-orders';
 import adminUnits from './admin-units';
 import adminStream from './admin-stream';
 import availability from './availability';
+import cashClosing from './cash-closing';
 import catalog from './catalog';
 import categories from './categories';
 import ops from './ops';
 import paymentReview from './payment-review';
+import reports from './reports';
 import storefront from './storefront';
 import webhook from './webhook';
 
@@ -22,4 +24,6 @@ export default {
   webhook,
   'payment-review': paymentReview,
   ops,
+  'cash-closing': cashClosing,
+  reports,
 };

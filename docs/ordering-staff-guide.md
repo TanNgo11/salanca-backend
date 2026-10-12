@@ -84,10 +84,25 @@ Dành cho nhân viên và quản lý chi nhánh dùng Admin để nhận đơn o
   thiểu của vùng và thời gian cộng thêm. Vùng ưu tiên cao thắng khi địa chỉ khớp nhiều vùng. Cần có danh
   mục đơn vị hành chính trước khi bật.
 
+## Chốt tiền mặt cuối ngày (quản lý)
+
+Mục **Báo cáo → Chốt tiền mặt** (quyền Báo cáo) đối chiếu tiền mặt hệ thống ghi nhận với tiền đếm
+được, theo từng người thu và ngày kinh doanh:
+
+1. Chọn **chi nhánh** và **ngày kinh doanh** (mặc định hôm nay; đơn sau 04:00 sáng mới tính sang
+   ngày mới — đơn nửa đêm vẫn thuộc ngày hôm trước).
+2. Bảng liệt kê từng người thu: số đơn, tiền hệ thống ghi nhận, tiền đã hoàn mặt, số **phải có**.
+3. Đếm tiền mặt thực tế, nhập vào ô **Đếm được**. Nếu khác số phải có thì **bắt buộc ghi chú** lý
+   do chênh lệch rồi bấm **Chốt** và xác nhận.
+4. Chênh lệch ≠ 0 sẽ mở cảnh báo "Chốt tiền mặt chênh lệch" và gửi mail cho nhân sự có quyền Báo
+   cáo trong chi nhánh (quản lý, kế toán).
+5. Sai sau khi chốt: bấm **Điều chỉnh**, nhập lại số đếm và **lý do bắt buộc** — hệ thống tạo bản
+   mới (tăng revision), bản cũ giữ lại trong lịch sử. Điều chỉnh về đúng số sẽ tự đóng cảnh báo.
+
 ## Giới hạn hiện tại
 
 - Chạy một máy chủ (một instance): báo đơn realtime và giới hạn tần suất nằm trong bộ nhớ của tiến trình.
 - Giao tận nơi là quán **tự giao** (O5): hãng xe chỉ là thông tin kèm theo, chưa có tích hợp GHN/Ahamove/
   Grab (dự kiến O6). Danh mục đơn vị hành chính hiện là **dữ liệu mẫu (XT…)** — cần nguồn chính thức trước
   khi bật cho chi nhánh thật.
-- Chưa có chốt tiền cuối ngày và báo cáo (O6).
+- Chưa có báo cáo tổng hợp và xuất CSV (O6 các bước sau).

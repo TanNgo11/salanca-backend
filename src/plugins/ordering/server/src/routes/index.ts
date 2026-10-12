@@ -235,6 +235,14 @@ export default {
       adminRoute('GET', '/ops/status', 'ops.status', 'ops.read'),
       adminRoute('POST', '/ops/jobs/:name/run', 'ops.runJob', 'ops.read'),
       adminRoute('POST', '/ops/outbox/:id/retry', 'ops.retryOutbox', 'ops.read'),
+      // Cash closing (screens V3, contracts §19.3): branch/day summary plus close & adjust.
+      // `report.read` for all three; the service still enforces the caller's location scope.
+      adminRoute('GET', '/reports/branches', 'reports.branches', 'report.read'),
+      adminRoute('GET', '/cash-closing', 'cash-closing.summary', 'report.read'),
+      // Alias kept for the screens V3 contract spelling `/cash-closing/summary`.
+      adminRoute('GET', '/cash-closing/summary', 'cash-closing.summary', 'report.read'),
+      adminRoute('POST', '/cash-closing', 'cash-closing.close', 'report.read'),
+      adminRoute('POST', '/cash-closing/:id/adjust', 'cash-closing.adjust', 'report.read'),
     ],
   },
 };

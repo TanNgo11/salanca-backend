@@ -6,6 +6,7 @@
 import adjustmentAllocation from './adjustment-allocation';
 import adminChangeLog from './admin-change-log';
 import branch from './branch';
+import cashClosing from './cash-closing';
 import catalogAvailabilityWindow from './catalog-availability-window';
 import catalogCategory from './catalog-category';
 import catalogLocationState from './catalog-location-state';
@@ -38,6 +39,7 @@ export default {
   'adjustment-allocation': adjustmentAllocation,
   'admin-change-log': adminChangeLog,
   branch,
+  'cash-closing': cashClosing,
   'catalog-availability-window': catalogAvailabilityWindow,
   'catalog-category': catalogCategory,
   'catalog-location-state': catalogLocationState,

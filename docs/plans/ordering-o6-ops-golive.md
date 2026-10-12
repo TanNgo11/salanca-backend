@@ -45,6 +45,19 @@ Related phase: [`phases/phase-ordering-6-ops-golive.md`](../phases/phase-orderin
   ghi change-log `ops.outbox-retry`.
 - Decision: thời hạn lưu mặc định (raw payload 180 ngày, outbox 30/90 ngày, alert 90 ngày) là cấu hình,
   chờ pháp lý xác nhận.
+- Decision: chốt tiền mặt gộp một bản `current` cho bộ (chi nhánh, ngày kinh doanh, người thu) —
+  unique index dạng partial `plugins_ordering_cash_closing_current_uq`; chốt hai lần cùng bộ bị từ chối
+  409 `CASH_CLOSING_EXISTS`. Sửa chỉ qua bản điều chỉnh có `adjustmentReason` bắt buộc: bản cũ chuyển
+  `superseded` (giữ lịch sử), bản mới `revision + 1`, `supersedesId` trỏ bản trước.
+- Decision: số hệ thống chốt luôn tính lại phía server lúc chốt/điều chỉnh (không tin số client gửi):
+  tiền mặt = `payment` `provider_code 'cash'` + `status 'captured'` theo `business_date` và
+  `actor_ref` (người thu — đơn giao gán cho người giao qua `assigneeCtxFor`); hoàn = `refund`
+  `status 'settled'` trên payment cash theo `refund.business_date` (cột mới, ghi khi settle theo
+  timezone + cutoff chi nhánh; backfill migration 0004 giả định `Asia/Ho_Chi_Minh` + 04:00 vì dữ liệu
+  cũ chỉ ở DB test).
+- Decision: chênh lệch ≠ 0 mở/bump alert `cash-closing-mismatch:<branch>:<date>:<collectorRef>`
+  (severity warning, aggregateRef `cash-closing:<id>`); điều chỉnh về 0 thì `alert.resolve` cùng key.
+  `actor_ref` null của payment nhóm thành người thu `'system'`.
 - Owner decision required: kết quả của kế toán (hóa đơn điện tử, VAT) và pháp lý (thời hạn lưu, nội dung
   đồng ý) trước go-live.
 
@@ -101,7 +114,9 @@ Related phase: [`phases/phase-ordering-6-ops-golive.md`](../phases/phase-orderin
 
 ## Data and rollback
 
-- Migration/backfill: bảng `cash-closing` đã có từ O1; setting cảnh báo mới.
+- Migration/backfill: `0004-o6-ops` tạo index cho `cash-closing` (bảng mới ở O6, không phải O1 như bản
+  nháp trước ghi), `payment(provider_code, business_date)`, `ops-alert(status, last_seen_at)` và
+  backfill `refund.business_date` cho refund đã settled; setting cảnh báo mới.
 - Rollback: tắt từng job; tắt `ORDERING_ENABLED` trên production nếu cần dừng bán.
 
 ## Verification
@@ -122,4 +137,9 @@ Related phase: [`phases/phase-ordering-6-ops-golive.md`](../phases/phase-orderin
 
 ## Completion record
 
-- Chưa bắt đầu.
+- Bước 1 (bộ máy cảnh báo) xong — commit `97b72ae`.
+- Bước 2 (trang vận hành + Admin V1/V2 + khối Cảnh báo trong Settings) xong — commit `d84ed09`.
+- Bước 3 (chốt tiền mặt) xong: content type `cash-closing`, `refund.business_date`, migration
+  `0004-o6-ops`, `services/cash-closing.ts`, routes `report.read`, trang Admin `CashClosing`,
+  test `scripts/ordering/cash-closing.mjs`. Chọn: chốt hai lần cùng (chi nhánh, ngày, người thu) bị
+  từ chối 409; sửa qua bản điều chỉnh có lý do, bản cũ giữ `superseded`.
