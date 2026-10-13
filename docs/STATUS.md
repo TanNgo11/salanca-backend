@@ -2,6 +2,16 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
+2026-10-13: **Ordering O8 (khuyến mãi, đánh giá đơn) — targeted gates** trên `feat/ordering-o8`. Mã giảm giá
+(một mã / sinh hàng loạt), khuyến mãi tự động, miễn phí/giảm phí giao, giảm theo món/danh mục, giới hạn tổng /
+mỗi mã / mỗi khách, đơn đầu, chọn phương án giảm nhiều nhất; giữ lượt dưới khóa (`promotion-race.mjs` 2 process),
+trả lượt khi hủy, sửa đơn giữ khuyến mãi. Quote **không nhận số điện thoại** (khuyến mãi theo số ở
+`pendingPromotions`, quyết ở create). Đánh giá 1–5 sao theo token đơn, email mời 60 phút sau hoàn tất, alert
+`low-rating` (≤ 2★), xóa ghi chú sau 365 ngày. Màn K1–K4, R1–R2, thêm vào chi tiết đơn, báo cáo, cài đặt, tạo đơn
+hộ. Sửa luôn `Dialog.Title` không tồn tại ở 3 dialog cũ và 4 route O7 thiếu trong OpenAPI. Gate: lint, typecheck,
+vitest 620, `build:ordering`, `strapi build`, 16 script PASS. Chưa UAT giao diện. Plan + Completion record:
+[`plans/ordering-o8-promotions-rating.md`](plans/ordering-o8-promotions-rating.md).
+
 2026-10-13: **Ordering O7 (giờ đặc biệt, giới hạn phần mỗi ngày, sửa đơn, trang người giao) — automated gate** trên
 `feat/ordering-o7`, đã merge vào `feat/ordering` (`f7e8da4`). Review fix `faefa33`: trang người giao lọc ngày/trạng thái
 bằng SQL (tối đa 200), bỏ nút "Bắt đầu giao" (giao do quản lý trên bảng giao). Merge thêm mã audit `order.edit`,

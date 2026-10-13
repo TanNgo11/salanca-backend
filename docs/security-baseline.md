@@ -159,6 +159,24 @@ Webhook endpoints are operator-registered outbound HTTP targets — the plugin's
 - **OpenAPI.** `GET /api/v1/ordering/openapi.json` is public `auth: false` and read-only (document,
   not data); cached 1 hour.
 
+## Ordering promotions and ratings (O8)
+
+- **Code guessing.** Codes are 4–32 characters; generated ones use `crypto.randomInt` over an alphabet
+  without 0/O/1/I/L. Per IP, after 3 wrong codes (unknown, switched off, not started, ended, used up) a
+  quote with a code needs a captcha, and the `rateLimits.promotionCode` limit (20 / 10 min) answers 429.
+  Eligibility misses on a real code are not counted. Create always needs a captcha. Codes are logged by
+  their last 4 characters only (change log, app logs).
+- **No phone-history oracle.** The public quote takes no phone: first-order and per-customer promotions
+  are listed as pending and decided at create, which is captcha-gated and rate-limited, so a stranger
+  cannot ask the quote whether a number has ordered before. A redemption stores
+  `HMAC-SHA256(ORDERING_ENCRYPTION_KEY, phone E.164)`, never the number.
+- **Use limits.** Reservation locks the promotion then the code rows in id order (`FOR UPDATE`) inside the
+  order transaction; `usedCount` has a `CHECK (≥ 0)`; first-order-only is one use per phone under the
+  same lock. `promotion-race.mjs` proves one use goes to exactly one of two processes.
+- **Ratings.** Rated through the order token only; comments (customer text) never reach logs, alerts,
+  webhooks or the change log (staff notes are logged as "changed", not their text) and are cleared after
+  `retention.ratingCommentDays` (365); the stars stay for reports.
+
 ## Form intake rate limiting
 
 Contact and reservation intake are rate limited in-process per client IP (default 5 per 10 minutes).
