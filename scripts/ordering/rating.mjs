@@ -195,9 +195,13 @@ withApp(async (app) => {
     assert.equal(orderDetail.body.rating.stars, 1, 'S4 shows the rating');
     const today = await plugin.service('admin-orders').todayFor('Q1');
     const report = await staff.as.quanly('GET', `/reports/sales?branch=Q1&from=${today}&to=${today}`);
-    assert.equal(report.body.ratings.count, 2);
-    assert.equal(report.body.ratings.average, 3);
-    console.log('[ordering-test] rating staff: scope 404, hide needs rating.manage, note not logged, report average 3');
+    assert.equal(report.body.ratings.count, 1, 'the hidden 1★ rating leaves the report average');
+    assert.equal(report.body.ratings.average, 5);
+    const afterHide = await staff.as.quanly('GET', '/ratings');
+    assert.equal(afterHide.body.items.length, 2, 'hidden ratings stay listed');
+    assert.equal(afterHide.body.summary.count, 1);
+    assert.equal(afterHide.body.summary.average, 5);
+    console.log('[ordering-test] rating staff: scope 404, hide needs rating.manage, note not logged, hidden ratings out of the average');
   } finally {
     await staff.cleanup();
     await readers.cleanup();

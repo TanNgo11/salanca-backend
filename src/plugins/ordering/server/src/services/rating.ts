@@ -364,7 +364,7 @@ const rating = ({ strapi }: { strapi: Core.Strapi }) => {
           offset: (page - 1) * PAGE_SIZE,
           limit: PAGE_SIZE,
         }) as Promise<RatingRow[]>,
-        rows().findMany({ where: filter, select: ['stars'] }) as Promise<Array<{ stars: number }>>,
+        rows().findMany({ where: filter, select: ['stars', 'status'] }) as Promise<Array<{ stars: number; status: string }>>,
       ]);
       const codes = new Map(
         (
@@ -375,7 +375,8 @@ const rating = ({ strapi }: { strapi: Core.Strapi }) => {
         ).map((row) => [row.id, row.code]),
       );
       return {
-        summary: summarize(all.map((row) => row.stars)),
+        // Hidden ratings stay listed for staff but leave the average (spam, abuse, test orders).
+        summary: summarize(all.filter((row) => row.status !== 'hidden').map((row) => row.stars)),
         items: items.map((row) => staffView(row, codes.get(row.orderId))),
         pagination: { page, pageSize: PAGE_SIZE, total: all.length },
       };
@@ -466,12 +467,13 @@ const rating = ({ strapi }: { strapi: Core.Strapi }) => {
       return { rating: staffView(updated, order?.code) };
     },
 
-    /** Report card: ratings of sold orders whose business date falls in the range. */
+    /** Report card: visible ratings of orders whose business date falls in the range. */
     async summaryFor(from: string, to: string, locations: string[] | null): Promise<RatingSummary> {
       const knex = strapi.db.connection;
       const query = knex('plugins_ordering_order_rating as r')
         .join('plugins_ordering_order as o', 'o.id', 'r.order_id')
-        .whereBetween('o.business_date', [from, to]);
+        .whereBetween('o.business_date', [from, to])
+        .whereNot('r.status', 'hidden');
       if (locations !== null) query.whereIn('o.location_ref', locations);
       const found = (await query.select('r.stars')) as Array<{ stars: number }>;
       return summarize(found.map((row) => Number(row.stars)));

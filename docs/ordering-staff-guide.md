@@ -275,7 +275,8 @@ Sửa đơn (O7) giữ khuyến mãi đã áp và tính lại số giảm trên 
   Email mời gửi 60 phút sau khi hoàn tất (đổi ở **Cài đặt bán hàng → Đánh giá**, cùng danh sách nhãn).
 - Đánh giá ≤ 2 sao mở cảnh báo **Khách đánh giá thấp** cho người xem báo cáo của chi nhánh (đổi ngưỡng ở
   Cảnh báo).
-- Danh sách lọc theo chi nhánh, sao, ngày, có ghi chú, trạng thái. Bấm dòng để xem đầy đủ; người có quyền
+- Danh sách lọc theo chi nhánh, sao, ngày, có ghi chú, trạng thái. Đánh giá đã ẩn vẫn hiện trong danh sách
+  nhưng không tính vào điểm trung bình (trang Đánh giá và báo cáo). Bấm dòng để xem đầy đủ; người có quyền
   "Quản lý đánh giá" ẩn/hiện đánh giá và ghi chú nội bộ (không gửi khách). Chi tiết đơn có khối đánh giá;
   báo cáo có điểm trung bình. Ghi chú của khách tự xóa sau 365 ngày, số sao giữ lại.
 
