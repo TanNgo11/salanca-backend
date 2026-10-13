@@ -46,6 +46,7 @@ import manualPayment from './manual-payment';
 import paymentLink from './payment-link';
 import customerAuth from './customer-auth';
 import customer from './customer';
+import cart from './cart';
 
 export default {
   registry,
@@ -93,6 +94,7 @@ export default {
   'payment-link': paymentLink,
   'customer-auth': customerAuth,
   customer,
+  cart,
   migrations: ({ strapi }: { strapi: Core.Strapi }) => ({
     run: (migrations: OrderingMigration[]) => runOrderingMigrations(strapi, migrations),
   }),

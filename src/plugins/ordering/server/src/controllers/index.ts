@@ -10,6 +10,7 @@ import catalogImport from './catalog-import';
 import categories from './categories';
 import customerAuth from './customer-auth';
 import customer from './customer';
+import cart from './cart';
 import notificationTemplates from './notification-templates';
 import openapi from './openapi';
 import ops from './ops';
@@ -40,4 +41,5 @@ export default {
   'notification-templates': notificationTemplates,
   'customer-auth': customerAuth,
   customer,
+  cart,
 };

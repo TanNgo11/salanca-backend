@@ -67,7 +67,7 @@ const pathParam = (name: string, description?: string): Parameter => ({
   in: 'path',
   required: true,
   schema: str,
-  description,
+  ...(description ? { description } : {}),
 });
 
 const orderToken: Parameter = {
@@ -85,6 +85,25 @@ const customerToken: Parameter = {
   schema: str,
   description: 'Customer session token returned by POST /auth/verify (header only, never query).',
 };
+
+const customerTokenOptional: Parameter = { ...customerToken, required: false };
+
+const cartToken: Parameter = {
+  name: 'X-Cart-Token',
+  in: 'header',
+  required: false,
+  schema: str,
+  description: 'Guest cart token returned by POST /carts (header only, never query).',
+};
+
+const cartView = obj(
+  {
+    cart: generic,
+    quote: { anyOf: [generic, { type: 'null' }] } as unknown as JsonSchema,
+    issues: arr(obj({ lineId: str, code: str, message: str }, ['code', 'message'])),
+  },
+  ['cart', 'quote', 'issues'],
+);
 
 const errorBody = obj(
   {
@@ -277,6 +296,64 @@ export const OPERATIONS: Operation[] = [
   pub('get', '/me/orders/:code', 'Customer', 'Own order by code (404 for foreign codes)', {
     parameters: [customerToken, pathParam('code', 'e.g. SLC-20261013-0001')],
     response: obj({ order: generic }, ['order']),
+  }),
+  // O11 step 4 — server carts. X-Cart-Token (guest) and/or X-Customer-Token (session); both
+  // together merge the guest cart into the customer's. Every response re-quotes server-side.
+  pub('post', '/carts', 'Carts', 'Create a cart (guests get a cartToken; sessions reuse theirs)', {
+    parameters: [customerTokenOptional],
+    requestBody: obj({
+      locationRef: str,
+      receiveMethod: obj({ kind: str, address: generic }),
+      pickup: obj({ asap: bool, slot: obj({ startsAt: str }, ['startsAt']) }),
+      locale: str,
+      contact: obj({ name: str, phone: str, email: str }),
+    }),
+    response: obj({ cartToken: str, cart: generic, quote: generic, issues: arr(generic) }, ['cart']),
+  }),
+  pub('get', '/carts/current', 'Carts', 'Current cart re-quoted with per-line issues', {
+    parameters: [cartToken, customerTokenOptional],
+    response: cartView,
+  }),
+  pub('patch', '/carts/current', 'Carts', 'Patch branch / receiveMethod / pickup / contact / locale', {
+    parameters: [cartToken, customerTokenOptional],
+    requestBody: generic,
+    response: cartView,
+  }),
+  pub('post', '/carts/current/lines', 'Carts', 'Add a line (identical signature tops up quantity)', {
+    parameters: [cartToken, customerTokenOptional],
+    requestBody: obj(
+      {
+        sellableUid: str,
+        variantUid: str,
+        selected: arr(obj({ groupUid: str, optionUid: str, quantity: int }, ['groupUid', 'optionUid'])),
+        quantity: int,
+        note: str,
+      },
+      ['sellableUid', 'quantity'],
+    ),
+    response: cartView,
+  }),
+  pub('patch', '/carts/current/lines/:lineId', 'Carts', 'Update a line (404 for foreign ids)', {
+    parameters: [cartToken, customerTokenOptional, pathParam('lineId')],
+    requestBody: generic,
+    response: cartView,
+  }),
+  pub('delete', '/carts/current/lines/:lineId', 'Carts', 'Remove a line (404 for foreign ids)', {
+    parameters: [cartToken, customerTokenOptional, pathParam('lineId')],
+    response: cartView,
+  }),
+  pub('post', '/carts/current/checkout', 'Carts', 'Checkout → POST /orders shape (token shown once)', {
+    parameters: [cartToken, customerTokenOptional],
+    requestBody: obj(
+      {
+        consent: obj({ policyVersion: str, accepted: bool, marketingOptIn: bool }, ['policyVersion', 'accepted']),
+        payment: obj({ providerCode: str }, ['providerCode']),
+        captchaToken: str,
+        idempotencyKey: str,
+      },
+      ['consent'],
+    ),
+    response: obj({ order: generic, token: str, replayed: bool }, ['order', 'token', 'replayed']),
   }),
   pub('post', '/webhooks/:providerCode', 'Webhooks', 'Inbound payment-provider webhook (raw signed body)', {
     parameters: [pathParam('providerCode', 'e.g. sepay')],

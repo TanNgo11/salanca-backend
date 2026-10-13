@@ -71,6 +71,15 @@ export default {
       publicRoute('DELETE', '/me/addresses/:id', 'customer.deleteAddress'),
       publicRoute('GET', '/me/orders', 'customer.myOrders'),
       publicRoute('GET', '/me/orders/:code', 'customer.myOrder'),
+      // O11 step 4: server-side carts — X-Cart-Token for guests, X-Customer-Token for
+      // sessions; when both arrive the guest cart merges into the customer's.
+      publicRoute('POST', '/carts', 'cart.create'),
+      publicRoute('GET', '/carts/current', 'cart.current'),
+      publicRoute('PATCH', '/carts/current', 'cart.patch'),
+      publicRoute('POST', '/carts/current/lines', 'cart.addLine'),
+      publicRoute('PATCH', '/carts/current/lines/:lineId', 'cart.updateLine'),
+      publicRoute('DELETE', '/carts/current/lines/:lineId', 'cart.removeLine'),
+      publicRoute('POST', '/carts/current/checkout', 'cart.checkout'),
       publicRoute('POST', '/webhooks/:providerCode', 'webhook.receive'),
       // O10: the public contract, self-served (cached 1h by the controller).
       publicRoute('GET', '/openapi.json', 'openapi.document'),

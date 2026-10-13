@@ -2,6 +2,7 @@ import type { Core } from '@strapi/strapi';
 
 import type { OrderingConfig } from '../config';
 import { runAuditChain } from './audit-chain';
+import { runCartExpiry } from './cart-expiry';
 import { runHoldExpiry } from './hold-expiry';
 import { runIdempotencyCleanup } from './idempotency-cleanup';
 import { runManualPaymentCheck } from './manual-confirmation';
@@ -68,6 +69,8 @@ export const ORDERING_JOBS: OrderingJob[] = [
     run: runWebhookDispatcher,
     runnable: true,
   },
+  // O11: server-cart lifecycle (expiry + retention). Reminder/data-request jobs land in steps 5/6.
+  { name: 'cart-expiry', cronKey: 'cartExpiryCron', run: runCartExpiry, runnable: true },
 ];
 
 export const jobByName = (name: string): OrderingJob | undefined =>

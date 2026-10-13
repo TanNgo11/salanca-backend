@@ -65,6 +65,9 @@ const scripts = [
   'customers.mjs',
   // O11 step 2: OTP sign-in + sessions (email channel until O13).
   'customer-auth.mjs',
+  // O11 step 4: server carts (lifecycle) + checkout.
+  'cart.mjs',
+  'cart-checkout.mjs',
 ];
 
 const results = [];
