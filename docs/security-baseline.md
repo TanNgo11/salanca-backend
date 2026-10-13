@@ -50,8 +50,11 @@ consumption: `GET /api/v1/ordering/catalog/categories`, `/catalog/products`,
   (`X-Forwarded-For` only with `TRUST_PROXY=true`). Same model as form intake. **Open for OW:**
   salanca-web must send both headers on its server-side calls to `/api/v1/ordering/*`, or all
   visitors share the web server's bucket.
-- Response size: short `Cache-Control` TTL; product list is paginated — no unbounded
-  dump endpoint.
+- Response size: short `Cache-Control: public, max-age=30` when the request has no live customer
+  session. A resolved `X-Customer-Token` prices that profile's groups and answers
+  `Cache-Control: private, no-store`, so a group price is never stored in a shared cache. A missing or
+  dead token stays on the public price. The catalog does not infer a group from a phone number.
+  Product list is paginated — no unbounded dump endpoint.
 - Admin routes (`/ordering/categories*`, `/ordering/availability*`) require
   `admin::isAuthenticatedAdmin` plus `plugin::ordering.catalog.manage` /
   `catalog.toggle-availability`, and staff scope is enforced per `locationRef` —
@@ -194,6 +197,8 @@ nhạy nhất — chỉ cấp cho vai trò quản lý/kế toán.
   `promotion-redemption.customerKey` được giữ dưới dạng HMAC có khóa để bảo toàn giới hạn lượt
   theo khách và dữ liệu đối chiếu khuyến mãi; đây là định danh giả, không phải dữ liệu đã mất mọi
   khả năng liên kết. Lý do và regression được ghi trong Completion record O11.
+  Xóa hồ sơ cũng xóa mọi dòng `customer-group-member` của khách đó. Job `customer-group-refresh` không
+  thêm lại khách đã xóa.
 - **Giỏ server** (`X-Cart-Token`): token khách vãng lai ngẫu nhiên, lưu SHA-256 — sở hữu giỏ giống
   order token, không lộ trong URL/log. Giá luôn re-quote phía server; `cartHash` chỉ theo dõi nội dung.
 - `X-Customer-Token` và `X-Cart-Token` nằm trong CORS allowlist của `/api/v1/ordering` — không route

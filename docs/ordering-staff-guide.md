@@ -269,6 +269,30 @@ Khuyến mãi "đơn đầu" và "mỗi khách N lần" không hiện số giả
 điện thoại khi lưu đơn, nên tổng thật có thể thấp hơn tổng báo. Tạo đơn hộ khách có ô **Mã khuyến mãi**.
 Sửa đơn (O7) giữ khuyến mãi đã áp và tính lại số giảm trên món còn lại.
 
+## Bảng giá (Món → Bảng giá — quyền "Quản lý bảng giá và nhóm khách")
+
+1. **Bảng giá mới.** Đặt tên. Chọn **Giá riêng** (một giá cho từng món) hoặc **Điều chỉnh** (giảm % hoặc số
+   tiền trên giá đang bán).
+2. **Áp khi:** kênh (mang về, giao, tại bàn, nhân viên đặt), chi nhánh, nhóm khách, thứ, một khung giờ.
+   Bỏ trống một ô nghĩa là mọi giá trị của ô đó. Giờ theo đồng hồ chi nhánh; khung qua đêm khi giờ kết thúc
+   nhỏ hơn giờ bắt đầu.
+3. **Ưu tiên.** Nhiều bảng cùng khớp: bảng điều chỉnh không cộng dồn — ưu tiên cao hơn thắng, hòa thì giá
+   thấp hơn thắng. Giảm không bao giờ âm.
+4. **Xem thử giá** trên cùng trang: chọn món, kênh, chi nhánh, nhóm và thời điểm để thấy bảng nào thắng.
+5. Tắt bảng bằng công tắc. Đơn đã đặt giữ giá lúc đặt. Sửa đơn chỉ tính giá mới cho dòng thêm vào.
+
+## Nhóm khách (Vận hành → Nhóm khách)
+
+1. Mã viết thường, số và gạch ngang. Mã không sửa được sau khi tạo.
+2. **Thêm tự động:** tổng chi, số đơn hoàn tất, hoặc trong số ngày gần đây. Ít nhất một điều kiện. Job chạy
+   03:15 mỗi ngày. Thành viên thêm tay giữ nguyên; thành viên tự động hết điều kiện thì bị gỡ. Nếu bạn gỡ một
+   khách tự động mà khách vẫn đủ điều kiện, job hôm sau thêm lại.
+   Điều kiện chỉ có "trong N ngày" nghĩa là có ít nhất 1 đơn hoàn tất trong N ngày đó.
+3. Tìm khách theo tên hoặc số để thêm/bớt. Màn hình chỉ hiện số đã che. Nhật ký chỉ ghi số người thêm và bớt,
+   không ghi tên hay số điện thoại.
+4. Khách phải đăng nhập mới được giá nhóm trên web. Đơn hộ dùng nhóm của hồ sơ trùng số điện thoại. Khách
+   không đăng nhập luôn trả giá thường.
+
 ## Đánh giá đơn (Bán hàng → Đánh giá)
 
 - Khách đánh giá 1–5 sao, chọn nhãn, ghi chú trong 7 ngày sau khi đơn hoàn tất; sửa được trong 24 giờ.

@@ -16,6 +16,8 @@ contract có sẵn, cấu hình qua env, có đối soát/kiểm tra trạng th�
 
 - **Chủ dự án đăng ký và cấp tài khoản sandbox** cho từng provider được chọn (MoMo, VNPay, Ahamove, Zalo OA + ZNS mẫu đã
   duyệt, nhà cung cấp SMS). Thiếu provider nào thì bỏ provider đó khỏi lần làm này — không code đoán.
+- **Thay bởi quyết định 2026-10-13** ([`plans/ordering-decisions-2026-10-13.md`](../plans/ordering-decisions-2026-10-13.md)): build adapter trước theo tài liệu công khai + server giả lập,
+  tắt mặc định, bật thật sau UAT sandbox. MoMo, VNPay, Ahamove (không GHN), Zalo ZNS, SMS **eSMS.vn**.
 - O11 xong nếu muốn OTP qua SMS/Zalo; O12 không bắt buộc.
 
 ## Scope

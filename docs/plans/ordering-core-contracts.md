@@ -1545,6 +1545,10 @@ Chủ dự án giao thiết kế tự đặt mặc định. Mọi giá trị dư
 | 11. Giảm giá và VAT | Giảm giá áp trên giá niêm yết (đã gồm VAT khi `pricesIncludeTax`), phân bổ xuống line rồi mới tách thuế; hoàn một món dùng số đã phân bổ lúc đặt, không chia lại | Không, quyết định kỹ thuật |
 | 15. Cảnh báo | Ngưỡng ở bảng rule mục 12; người nhận theo vai trò ở 19.2; kênh v1 là email qua SMTP hiện có của app; Zalo/Telegram là `NotificationProvider` về sau | Không, chỉnh trong Admin |
 
+### 19.10. O9, O13, O16 (2026-10-13)
+
+Mặc định cho thẻ quà tặng, provider và tích điểm: [`ordering-decisions-2026-10-13.md`](ordering-decisions-2026-10-13.md).
+
 ## 20. Catalog thuộc plugin (quyết định 2026-10-10)
 
 Chủ dự án chốt: plugin là plugin bán hàng generic, cài vào nhiều Strapi khác nhau, giống WooCommerce

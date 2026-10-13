@@ -123,6 +123,17 @@ withApp(async (app) => {
   const session = await login('erase-me@example.com');
   const auth = { 'x-customer-token': session.token };
   const customer = await customers().findOne({ where: { documentId: session.customer.id } });
+  const eraseGroup = await app.db.query('plugin::ordering.customer-group').create({
+    data: { code: 'erase-me', name: { vi: 'Nhóm xóa' }, active: true },
+  });
+  await app.db.query('plugin::ordering.customer-group-member').create({
+    data: {
+      customerId: customer.id,
+      customerDocumentId: customer.documentId,
+      groupDocumentId: eraseGroup.documentId,
+      source: 'manual',
+    },
+  });
   // Give the profile a phone (the OTP flow only captures email; phone comes from orders).
   const hashing = (await import(
     '../../src/plugins/ordering/dist/server/src/domain/customers/identity.js'
@@ -302,6 +313,11 @@ withApp(async (app) => {
   assert.equal(await carts().count({ where: { customer: customer.id } }), 0);
   assert.equal(await sessions().count({ where: { customer: customer.id } }), 0);
   assert.equal(await otps().count({ where: { customer: customer.id } }), 0);
+  assert.equal(
+    await app.db.query('plugin::ordering.customer-group-member').count({ where: { customerId: customer.id } }),
+    0,
+    'erasure removes every customer-group membership',
+  );
   const erasedOrder = await orders().findOne({ where: { id: openId }, populate: { customer: true } });
   assert.equal(erasedOrder.contactSnapshot.name, 'Khách đã xóa');
   assert.equal(erasedOrder.customer, null);

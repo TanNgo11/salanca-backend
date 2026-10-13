@@ -15,6 +15,8 @@ Chủ dự án chọn tính năng này sau review 2026-10-12.
 ## Điều kiện bắt đầu
 
 - O8 (khuyến mãi, pipeline `target`), O11 (khách + OTP), O14 (nhóm khách) đã merge.
+- **Tham số đã chốt mặc định 2026-10-13** ([`plans/ordering-decisions-2026-10-13.md`](../plans/ordering-decisions-2026-10-13.md)): 1 điểm/10.000đ, 1 điểm = 100đ, dùng tối đa 50%,
+  hạn 12 tháng, hạng Thành viên / Bạc 2tr ×1.2 / Vàng 5tr ×1.5, ân hạn 30 ngày. Tất cả là cấu hình.
 - **Chủ dự án chốt tham số chương trình** (tỉ lệ tích, giá trị điểm, trần dùng điểm, hạn điểm, mốc hạng) — code để cấu hình,
   không chặn code; chặn mở cho khách thật.
 

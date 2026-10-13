@@ -87,6 +87,14 @@ product, variant, or option includes `dailyLimit: { remaining, date }`. `remaini
 `available: false`). No branch in the query means no portion overlay. Pausing a product with the "Đang bán"
 switch is separate and still uses `reasons` / `resumesAt`.
 
+**Price context (O14).** Optional `receiveKind` is `pickup`, `delivery` or `dine-in` (`staff` and any other
+value → `400 VALIDATION_ERROR`). Omitted means no channel, so only channel-free prices match. Optional `at`
+(ISO) is the catalog clock; omitted, the server uses now. The branch timezone is the location's; with no
+branch the clock is `Asia/Ho_Chi_Minh`. A request that resolves `X-Customer-Token` is priced with that
+profile's active groups and answers `Cache-Control: private, no-store`. A missing or dead token stays
+`Cache-Control: public, max-age=30` and pays the regular price — the phone is never used to guess a group.
+`dine-in` is accepted as a price channel only; there is no dine-in order flow yet (O12).
+
 `POST /quote` and `POST /orders` answer `409 ITEM_SOLD_OUT` when the requested quantity is above `remaining`
 for the receive business date (ASAP uses the order's business date; a slot uses the business date of
 `slot.startsAt`).
@@ -122,6 +130,9 @@ every discount. The quote adds `promotions[] { code, label, amount, target }` (a
 `fulfillment`, `not-best` (a better offer was chosen). **The quote never reads the phone**: first-order
 and per-customer promotions appear in `pendingPromotions` at full price and are decided at create, so
 the created order's total can only be lower than the quote (show "Ưu đãi đơn đầu — kiểm khi đặt").
+A signed-in quote (`X-Customer-Token`) uses the same customer groups as create, so the merchandise price
+matches. Promotions run after the price list: a 10% code on a happy-hour item discounts 10% of the
+happy-hour price. The price clock is `placedAt` when the caller sends it, otherwise now — not the pickup slot.
 Wrong codes are counted per IP: after 3 a quote with a code needs `captchaToken`
 (`CAPTCHA_FAILED` otherwise), after `rateLimits.promotionCode.max` (20 / 10 min) → `429 RATE_LIMITED`.
 Eligibility misses on a real code are not counted.

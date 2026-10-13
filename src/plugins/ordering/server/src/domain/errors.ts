@@ -96,6 +96,9 @@ export type OrderingErrorCode =
   | 'RATING_NOT_AVAILABLE'
   | 'RATING_LOCKED'
   | 'RATING_NOT_FOUND'
+  | 'PRICE_LIST_INVALID'
+  | 'PRICE_LIST_NOT_FOUND'
+  | 'CUSTOMER_GROUP_NOT_FOUND'
   | 'INTERNAL';
 
 const defaultStatus: Record<OrderingErrorCode, number> = {
@@ -191,6 +194,9 @@ const defaultStatus: Record<OrderingErrorCode, number> = {
   RATING_NOT_AVAILABLE: 409,
   RATING_LOCKED: 409,
   RATING_NOT_FOUND: 404,
+  PRICE_LIST_INVALID: 400,
+  PRICE_LIST_NOT_FOUND: 404,
+  CUSTOMER_GROUP_NOT_FOUND: 404,
   INTERNAL: 500,
 };
 

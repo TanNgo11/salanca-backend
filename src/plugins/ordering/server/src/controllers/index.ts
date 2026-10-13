@@ -18,6 +18,8 @@ import openapi from './openapi';
 import ops from './ops';
 import paymentReview from './payment-review';
 import promotions from './promotions';
+import priceLists from './price-lists';
+import customerGroups from './customer-groups';
 import ratings from './ratings';
 import reports from './reports';
 import storefront from './storefront';
@@ -45,6 +47,8 @@ export default {
   reports,
   ratings,
   promotions,
+  'price-lists': priceLists,
+  'customer-groups': customerGroups,
   'audit-log': auditLog,
   'notification-templates': notificationTemplates,
   'customer-auth': customerAuth,

@@ -206,7 +206,11 @@ withApp(async (app) => {
     return { status: res.status, body: await res.json() };
   };
   const config = await (await fetch(`${base}/config?branch=Q1`)).json();
-  const slotDate = config.branch.pickup.bookableFrom;
+  // bookableFrom is today. After closing time every slot is too-early, so quote on the next day.
+  const today = config.branch.pickup.bookableFrom;
+  const next = new Date(`${today}T00:00:00Z`);
+  next.setUTCDate(next.getUTCDate() + 1);
+  const slotDate = next.toISOString().slice(0, 10);
   const slots = await (await fetch(`${base}/slots?branch=Q1&date=${slotDate}`)).json();
   const slot = slots.items.find((row) => row.available);
   assert.ok(slot, 'an open slot for the HTTP quotes');

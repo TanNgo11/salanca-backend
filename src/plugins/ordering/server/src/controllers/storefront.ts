@@ -142,6 +142,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
           );
         }
       }
+      const session = await sessionFor(strapi, ctx, serviceCtx);
       const quoted = await storefront()
         .orders()
         .quote(
@@ -150,6 +151,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
             contact: { phone: '' },
             consent: { policyVersion: config().consent.policyVersion, channel: 'web-checkout' },
             origin: { kind: 'storefront' },
+            ...(session ? { customerId: session.customer.id } : {}),
           },
           serviceCtx,
         );

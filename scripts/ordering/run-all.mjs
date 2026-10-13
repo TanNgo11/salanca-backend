@@ -85,6 +85,8 @@ const scripts = [
   'data-rights.mjs',
   // O11 step 7: the staff customer book — masked directory/detail, scope 404s, logged reveal.
   'admin-customers.mjs',
+  // O14: channel, group and time-window prices.
+  'price-lists.mjs',
 ];
 
 const results = [];

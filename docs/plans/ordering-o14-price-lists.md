@@ -143,6 +143,57 @@ Quy ước chung như [`ordering-o3-screens.md`](ordering-o3-screens.md); chuỗ
 
 Ước lượng thô: 1,5–2 tuần (1: 2 ngày; 2: 1 ngày; 3–4: 3–4 ngày; 5: 3 ngày; 6: 1 ngày).
 
+## Đã đổi khi code O14
+
+- Migration tên `0009-o14-price-lists` (kế hoạch ghi `0012`; runner sắp theo tên, migration cuối trước O14 là `0008`).
+- Thành viên là content type `customer-group-member` (`customerId`, `customerDocumentId`, `groupDocumentId`,
+  `source: manual|auto`), không phải quan hệ `customer.groups`. Cặp (khách, nhóm) unique và huy hiệu tự động/tay
+  không nằm vừa trên hai bảng link của Strapi.
+- L2 xem trước nằm trên màn bảng giá và `POST /price-preview`, không nhúng vào form món Content Manager.
+  Schema `catalog-product` không đổi.
+- Đơn hẹn (`appointment`) không có kênh giá. Đơn hộ luôn là kênh `staff`, kể cả khi nhận hàng bằng giao.
+- `receiveKind` công khai chỉ `pickup|delivery|dine-in`. `dine-in` chỉ là giá trị kênh (luồng O12 chưa có).
+  `staff` không phải query công khai. Không có chi nhánh thì timezone là `Asia/Ho_Chi_Minh`.
+- Đồng hồ giá trong `prepareOrder` là `placedAt` nếu có, không thì now. Giá theo lúc đặt, không theo slot nhận.
+- Báo giá storefront gọi `sessionFor` và truyền `customerId`. Giỏ `view` và báo giá đặt lại cũng truyền `customerId`.
+  Báo giá đơn hộ giữ số điện thoại để khớp hồ sơ; storefront không tra nhóm theo số.
+- Sửa đơn (O7) dùng kênh của đơn và nhóm hiện tại của `order.customer` nếu hồ sơ chưa bị xóa. Đơn không có hồ sơ
+  thì dòng mới không có nhóm. Không tra số lúc sửa. Dòng đã đặt giữ `unitAmount`.
+- `unitAmount` của dòng lấy giá biến thể trong ngữ cảnh (helper `unitAmountOf`). Không có giá biến thể thì dùng
+  `listPrice` để các script `test-catalog` giữ nguyên.
+- Bảng điều chỉnh không được nhân thành nhiều dòng. `channels` / `locationRefs` / `customerGroups` là OR trong
+  một chiều và AND giữa các chiều. Bảng giá riêng được nhân kênh × chi nhánh × nhóm, tối đa 2000 dòng.
+- Nhóm khách ghi change-log ở category `promotion` (phân khúc bán hàng, cùng loại với khuyến mãi, không phải ACL).
+  Bảng giá ghi category `catalog`. Log thành viên chỉ có số thêm/bớt.
+- Tìm khách cho L3 là `GET /customer-groups/search` dưới `price.manage` (không cần `customer.read`, không log câu tìm).
+- Job tự động: nhóm không có `sinceDays` dùng `orderCount`/`totalSpent`. Có `sinceDays` thì cộng đơn `completed`
+  trong cửa sổ, từng lô 200 khách. Đầu job xóa thành viên của khách đã xóa. Không có danh sách chặn: gỡ tay một
+  thành viên tự động vẫn đủ điều kiện thì job hôm sau thêm lại.
+
 ## Completion record
 
-- Chưa bắt đầu.
+Review fix (2026-10-13): nhóm tự động chỉ có `sinceDays` trước đây nhận mọi khách (kể cả chưa từng đặt) — giờ nghĩa là
+≥ 1 đơn hoàn tất trong N ngày (`price-lists.mjs` có ca). Giá dòng lại đi qua `productType.quoteLine`: giá biến thể đã
+chọn theo ngữ cảnh đưa vào `sellable.listPrice` (`sellableForLine`), `unitAmount` lấy từ quote — product type riêng
+không bị ghi đè. Gate: lint, typecheck, vitest 660, `build:ordering`, `price-lists`, `create-order`, `promotions`,
+`order-edit` PASS.
+
+- Bước 1: `f21652f` `feat(ordering): select prices by channel, group and time`. Không amend.
+- Bước 2–4: `1e272cb` `feat(ordering): price orders from lists, groups and the branch clock`.
+  Bước 5: `727d962` `feat(ordering): add price-list and customer-group admin screens`.
+  Cây làm việc đã trộn các bước này trước khi commit, nên không có sáu commit trung gian còn build được.
+- Bước 6 là commit scripts, OpenAPI, types và tài liệu ngay sau `727d962`.
+- `promotions.mjs` lấy slot ngày sau `bookableFrom`. Sau giờ đóng cửa mọi slot hôm nay là `too-early`
+  (lead time 60 phút), không phải hồi quy giá. `storefront.mjs` đã làm cùng cách đó.
+- Gate trên `salanca_ordering_o14`, không chạy `check:ordering` / `check:phase3` / smoke:
+  - `pnpm run lint` exit 0
+  - `pnpm run typecheck` exit 0
+  - `pnpm run typecheck:admin` exit 0
+  - `pnpm exec vitest run src/plugins/ordering` exit 0, 61 files, 657 tests
+  - `pnpm run build:ordering` xong rồi các script boot dist mới
+  - PASS: `schema.mjs`, `price-lists.mjs`, `catalog-api.mjs`, `catalog-adapter.mjs`, `create-order.mjs`,
+    `storefront.mjs`, `promotions.mjs`, `promotion-money.mjs`, `cart.mjs`, `data-rights.mjs`, `audit-coverage.mjs`
+  - `node scripts/ordering/openapi.mjs --write` exit 0, 103 paths
+  - `ORDERING_ENABLED=true pnpm exec strapi build` exit 0
+  - `ORDERING_ENABLED=true pnpm exec strapi ts:generate-types` exit 0, 0 warning, 0 error.
+    `types/generated/contentTypes.d.ts` thêm price-list, customer-group, customer-group-member.

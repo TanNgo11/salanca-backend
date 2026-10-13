@@ -48,6 +48,8 @@ import type { OrderAggregate } from '../repositories/types';
 import type adminUnitsFactory from './admin-units';
 import type branchFactory from './branch';
 import type changeLogFactory from './change-log';
+import { priceChannelOf } from '../domain/catalog/price-selection';
+import { sellableForLine } from '../providers/ordering-catalog/adapter';
 import type { ServiceContext } from './context';
 import { nowOf } from './context';
 import type dailyStockFactory from './daily-stock';
@@ -375,6 +377,18 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
 
     const now = nowOf(ctx);
     const locale = orderRow.placedLocale ?? config().catalog.defaultLocale;
+    const linked = (await strapi.db.query('plugin::ordering.order').findOne({
+      where: { id: orderId },
+      populate: { customer: { select: ['id', 'status'] } },
+    })) as { customer?: { id: number; status?: string } | null } | null;
+    const customerGroups =
+      linked?.customer && linked.customer.status !== 'erased'
+        ? await (
+            strapi.plugin('ordering').service('customer-group') as {
+              codesForCustomer(customerId: number): Promise<string[]>;
+            }
+          ).codesForCustomer(linked.customer.id)
+        : [];
     const quoted = await quoteAdded(input.add ?? [], {
       registry,
       kind,
@@ -385,6 +399,12 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
       locale,
       now,
       openGroups,
+      channel: priceChannelOf({
+        originKind: (orderRow.origin as { kind?: string } | undefined)?.kind,
+        receiveKind: kind,
+      }),
+      customerGroups,
+      timezone: branch.timezone,
     });
 
     const merchandise = merchandiseOf(reduced, quoted);
@@ -891,11 +911,20 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
       locale: string;
       now: Date;
       openGroups: OrderAggregate['groups'];
+      channel?: string;
+      customerGroups?: string[];
+      timezone?: string;
     },
   ): Promise<QuotedAdd[]> => {
     const cfg = config();
     const catalog = input.registry.catalogAdapter(cfg.catalog.adapter);
-    const adapterCtx = { now: input.now.toISOString(), locationRef: input.locationRef };
+    const adapterCtx = {
+      now: input.now.toISOString(),
+      locationRef: input.locationRef,
+      channel: input.channel,
+      customerGroups: input.customerGroups,
+      timezone: input.timezone,
+    };
     const receiveMethod = receiveMethodFor(input.kind, input.locationRef, input.receive, input.nextAddress);
     const quoted: QuotedAdd[] = [];
     for (const [index, line] of add.entries()) {
@@ -929,7 +958,7 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
       }
       const productType = input.registry.productType(sellable.productType);
       const configuration = {
-        sellable,
+        sellable: sellableForLine(sellable, line.variantUid),
         selected,
         quantity: line.quantity,
         context: { locale: input.locale, locationRef: input.locationRef, at: input.now.toISOString() },

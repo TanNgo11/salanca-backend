@@ -19,7 +19,11 @@ import type { BundleSlot } from '../../domain/catalog/bundle-slots';
 import { resolveLocalizedText } from '../../domain/catalog/localized-text';
 import type { ProductModifierGroup } from '../../domain/catalog/modifier-groups';
 import {
+  applyAdjustLists,
+  type AdjustList,
   type CatalogPriceRow,
+  type PriceContext,
+  type VariantPriceContext,
   selectCatalogPrice,
 } from '../../domain/catalog/price-selection';
 import { amountFromDb, toMoney, DEFAULT_CURRENCY, type Money } from '../../domain/money';
@@ -157,6 +161,7 @@ const createLoader = (strapi: Core.Strapi, defaultLocale: string) => {
   const slugRows = new Map<string, Map<string, string>>();
   const branchTimezones = new Map<string, string | undefined>();
   let modifiersLoaded = false;
+  let adjustLists: AdjustList[] | null = null;
 
   const allCategories = async (): Promise<Map<string, CategoryRow>> => {
     if (!categoriesIndex) {
@@ -277,9 +282,20 @@ const createLoader = (strapi: Core.Strapi, defaultLocale: string) => {
     return windows;
   };
 
+  const loadAdjustLists = async (): Promise<AdjustList[]> => {
+    if (!adjustLists) {
+      const service = strapi.plugin('ordering').service('price-list') as {
+        activeAdjustLists(locale?: string): Promise<AdjustList[]>;
+      };
+      adjustLists = await service.activeAdjustLists();
+    }
+    return adjustLists;
+  };
+
   return {
     defaultLocale,
     allCategories,
+    loadAdjustLists,
     ancestorsOf,
     collectGroups,
     collectVariants,
@@ -314,13 +330,6 @@ const toSellable = async (
       Number(b.isDefault === true) - Number(a.isDefault === true) || (a.rank ?? 0) - (b.rank ?? 0),
   );
   const variant = variants[0];
-  const selectedPrice = variant?.prices?.length
-    ? selectCatalogPrice(variant.prices, {
-        at: new Date(ctx.now),
-        locationRef: ctx.locationRef,
-        channel: ctx.channel,
-      })
-    : null;
 
   // Category snapshots: every direct category, path rendered root → leaf.
   const categorySnapshots: Sellable['categories'] = [];
@@ -397,8 +406,28 @@ const toSellable = async (
   await loader.collectVariants(variantRefs);
   await loader.collectStates(ctx.locationRef, variantRefs);
 
-  const timezone = await loader.branchTimezone(ctx.locationRef);
+  const timezone = ctx.timezone ?? (await loader.branchTimezone(ctx.locationRef));
   const nowLocal = branchLocal(ctx.now, timezone);
+  const adjustLists = await loader.loadAdjustLists();
+  const priceCtx: PriceContext = {
+    at: new Date(ctx.now),
+    locationRef: ctx.locationRef,
+    channel: ctx.channel,
+    customerGroups: ctx.customerGroups,
+    timezone,
+  };
+  const priceOf = (row: VariantRow): ReturnType<typeof selectCatalogPrice> => {
+    if (!row.prices?.length) return null;
+    const base = selectCatalogPrice(row.prices, priceCtx);
+    if (!base) return null;
+    const variantContext: VariantPriceContext = {
+      variantRef: row.documentId,
+      productRef: product.documentId,
+      categoryRefs: categorySnapshots.map((category) => category.ref),
+    };
+    return applyAdjustLists(base, adjustLists, variantContext, priceCtx);
+  };
+  const selectedPrice = variant ? priceOf(variant) : null;
   const componentAvailable = (variantRef: string): boolean => {
     const row = loader.variantsByRef.get(variantRef);
     if (!row) return false;
@@ -470,13 +499,7 @@ const toSellable = async (
       ...(verdict.resumesAt ? { resumesAt: verdict.resumesAt.toISOString() } : {}),
     },
     variants: variants.map((row) => {
-      const price = row.prices?.length
-        ? selectCatalogPrice(row.prices, {
-            at: new Date(ctx.now),
-            locationRef: ctx.locationRef,
-            channel: ctx.channel,
-          })
-        : null;
+      const price = priceOf(row);
       return {
         ref: row.documentId,
         ...(row.sku ? { sku: row.sku } : {}),
@@ -536,9 +559,35 @@ const toSellable = async (
 
 const PRODUCT_POPULATE = {
   image: true,
-  variants: { populate: { prices: true } },
+  variants: { populate: { prices: { populate: { priceList: true } } } },
   categories: { select: ['documentId'] },
   availabilityWindows: true,
+};
+
+/** Unit price of the requested variant, or the headline variant when the line names none. */
+export const unitAmountOf = (sellable: Sellable, variantUid?: string | null): number => {
+  const variants =
+    (
+      sellable.metadata as {
+        catalog?: { variants?: Array<{ ref?: string; isDefault?: boolean; price?: number | null }> };
+      }
+    )?.catalog?.variants ?? [];
+  const chosen = variantUid
+    ? variants.find((row) => row.ref === variantUid)
+    : (variants.find((row) => row.isDefault) ?? variants[0]);
+  return typeof chosen?.price === 'number' ? chosen.price : sellable.listPrice.amount;
+};
+
+/**
+ * The sellable a product type prices for one line: its list price is the context-selected price
+ * of the chosen variant (price lists, groups, time), so `quoteLine` stays the only place that
+ * decides `unitAmount` — a custom product type keeps its own pricing on top of it.
+ */
+export const sellableForLine = (sellable: Sellable, variantUid?: string | null): Sellable => {
+  const amount = unitAmountOf(sellable, variantUid);
+  return amount === sellable.listPrice.amount
+    ? sellable
+    : { ...sellable, listPrice: { ...sellable.listPrice, amount } };
 };
 
 const cursorOf = (offset: number): string =>

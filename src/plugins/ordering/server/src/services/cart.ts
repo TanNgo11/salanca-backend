@@ -540,6 +540,7 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
               contact: { phone: '' },
               consent: { policyVersion: config().consent.policyVersion, channel: 'web-checkout' },
               origin: { kind: 'storefront' },
+              ...(row.customer?.id ? { customerId: row.customer.id } : {}),
               ...(row.pickup ? { pickup: row.pickup as never } : {}),
               ...(row.promotionCode ? { promotionCode: row.promotionCode } : {}),
             },
@@ -735,6 +736,7 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
               contact: { phone: '' },
               consent: { policyVersion: config().consent.policyVersion, channel: 'web-checkout' },
               origin: { kind: 'storefront' },
+              customerId,
             },
             ctx,
           );

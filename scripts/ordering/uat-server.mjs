@@ -137,7 +137,7 @@ const role = await app.admin.services.role.create({ name: `UAT ordering ${random
 const actions = [
   'order.read', 'order.process', 'order.cancel', 'order.create', 'order.edit-lines', 'order.edit', 'payment.record-cash',
   'payment.review', 'refund.manage', 'settings.manage', 'scope.manage', 'catalog.toggle-availability',
-  'promotion.manage', 'rating.manage', 'report.read', 'export',
+  'promotion.manage', 'rating.manage', 'price.manage', 'report.read', 'export',
 ];
 await app.admin.services.role.assignPermissions(
   role.id,
@@ -163,6 +163,55 @@ for (const [name, scope] of [
 // Sample orders so the boards are not empty: one pickup awaiting acceptance, one delivery ready to
 // dispatch and one already out with lan-q1. All go through the same services the API uses.
 const ordering = app.plugin('ordering');
+const drinkVariant = (
+  await app.db.query('plugin::ordering.catalog-variant').findMany({ populate: { product: true } })
+).find((row) => row.product?.documentId === traDao.documentId);
+const priceLists = ordering.service('price-list');
+const customerGroups = ordering.service('customer-group');
+await priceLists.create(
+  {
+    name: { vi: 'Happy hour đồ uống' },
+    kind: 'adjust',
+    rules: {
+      channels: ['pickup', 'delivery'],
+      locationRefs: [],
+      customerGroups: [],
+      weekdays: ['mon', 'tue', 'wed', 'thu', 'fri'],
+      timeRanges: [{ start: '14:00', end: '17:00' }],
+    },
+    adjust: { type: 'percent', value: 20, target: { kind: 'categories', refs: [drinks.documentId] } },
+    lines: [],
+    priority: 10,
+    active: true,
+  },
+  systemCtx,
+);
+const uatCustomerId = await ordering.service('customer').linkForOrder({ phoneE164: '+84900000099' });
+const uatCustomer = await app.db.query('plugin::ordering.customer').findOne({ where: { id: uatCustomerId } });
+const uatGroup = await customerGroups.create(
+  { code: 'khach-quen', name: { vi: 'Khách quen' }, active: true, auto: null },
+  systemCtx,
+);
+await customerGroups.setMembers(uatGroup.item.id, { add: [uatCustomer.documentId], remove: [] }, systemCtx);
+if (drinkVariant) {
+  await priceLists.create(
+    {
+      name: { vi: 'Giá khách quen' },
+      kind: 'override',
+      rules: {
+        channels: ['pickup', 'staff'],
+        locationRefs: ['Q1'],
+        customerGroups: ['khach-quen'],
+        weekdays: [],
+        timeRanges: [],
+      },
+      lines: [{ variantId: drinkVariant.documentId, amount: 39000 }],
+      priority: 20,
+      active: true,
+    },
+    systemCtx,
+  );
+}
 const orders = ordering.service('order');
 const transitions = ordering.service('transition');
 const adminOrders = ordering.service('admin-orders');

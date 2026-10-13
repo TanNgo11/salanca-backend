@@ -47,6 +47,8 @@ import type { TransactionClient } from '../migrations/runner';
 import orderRepository from '../repositories/order';
 import type { OrderAggregate } from '../repositories/types';
 import type { ServiceContext } from './context';
+import { priceChannelOf } from '../domain/catalog/price-selection';
+import { sellableForLine } from '../providers/ordering-catalog/adapter';
 import { actorRefOf, nowOf } from './context';
 import type adminUnitsFactory from './admin-units';
 import type branchFactory from './branch';
@@ -528,9 +530,25 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
 
       const placedAt = input.placedAt ? new Date(input.placedAt) : nowOf(ctx);
       const locale = input.locale ?? cfg.catalog.defaultLocale;
+      const customerGroups = await (
+        strapi.plugin('ordering').service('customer-group') as {
+          codesForPricing(input: {
+            customerId?: number | null;
+            originKind?: string | null;
+            phone?: string | null;
+          }): Promise<string[]>;
+        }
+      ).codesForPricing({
+        customerId: input.customerId,
+        originKind: input.origin.kind,
+        phone: input.origin.kind === 'staff-draft' ? input.contact.phone : undefined,
+      });
       const adapterCtx: AdapterContext = {
-        now: nowOf(ctx).toISOString(),
+        now: placedAt.toISOString(),
         locationRef: input.locationRef,
+        channel: priceChannelOf({ originKind: input.origin.kind, receiveKind: input.receiveMethod.kind }),
+        customerGroups,
+        timezone: branch.timezone,
       };
       const catalog = registry.catalogAdapter(cfg.catalog.adapter);
       const branchMethod = branch.fulfillment?.[kind] as JsonObject | undefined;
@@ -554,7 +572,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         }
         const productType = registry.productType(sellable.productType);
         const configuration = {
-          sellable,
+          sellable: sellableForLine(sellable, line.variantUid),
           selected: line.selected ?? [],
           quantity: line.quantity,
           context: { locale, locationRef: input.locationRef, at: placedAt.toISOString() },

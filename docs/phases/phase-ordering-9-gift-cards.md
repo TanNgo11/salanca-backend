@@ -36,10 +36,14 @@ bán thẻ (nợ phải trả) và tiền dùng thẻ.
 ## Non-goals
 
 - Mệnh giá tự chọn, nạp thêm, chuyển số dư, đổi ra tiền mặt; dùng thẻ ở POS ngoài plugin.
-- Thẻ giấy in sẵn mã (chờ quyết định — nếu có sẽ thêm bước nhập lô mã).
+- ~~Thẻ giấy in sẵn mã~~ — đã chốt **có** (2026-10-13): thêm bước nhập/sinh lô mã, kích hoạt khi bán ở quầy.
 - Hóa đơn điện tử.
 
 ## Cổng mở bán (quyết định của chủ dự án/kế toán/pháp lý — không chặn code)
+
+**Đã chốt mặc định 2026-10-13** ([`plans/ordering-decisions-2026-10-13.md`](../plans/ordering-decisions-2026-10-13.md)): hạn 12 tháng, không xuất hóa đơn lúc bán thẻ (nhận trước),
+thẻ giấy **có** (nhập lô, kích hoạt khi bán ở quầy), không hoàn tiền thẻ chưa dùng. Kế toán/pháp lý xác nhận trước mở bán.
+Danh sách gốc:
 
 - Hạn dùng (đề xuất 12 tháng từ ngày phát).
 - Xuất hóa đơn lúc bán thẻ hay lúc dùng; xử lý số dư hết hạn.

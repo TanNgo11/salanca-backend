@@ -289,6 +289,20 @@ export default {
       adminRoute('GET', '/reports/sales', 'reports.sales', 'report.read'),
       // O15 "Lịch sử thay đổi" — scope filtered in the service; export needs both actions.
       // O8 "Khuyến mãi" (screens K1–K4). Literal segments precede `/:id` routes.
+      // O14 price lists and customer groups. Literal segments precede `/:id`.
+      adminRoute('GET', '/price-lists', 'price-lists.list', 'price.manage'),
+      adminRoute('POST', '/price-lists', 'price-lists.create', 'price.manage'),
+      adminRoute('GET', '/price-lists/options', 'price-lists.options', 'price.manage'),
+      adminRoute('GET', '/price-lists/:id', 'price-lists.get', 'price.manage'),
+      adminRoute('PUT', '/price-lists/:id', 'price-lists.update', 'price.manage'),
+      adminRoute('POST', '/price-lists/:id/active', 'price-lists.setActive', 'price.manage'),
+      adminRoute('POST', '/price-preview', 'price-lists.preview', 'price.manage'),
+      adminRoute('GET', '/customer-groups', 'customer-groups.list', 'price.manage'),
+      adminRoute('POST', '/customer-groups', 'customer-groups.create', 'price.manage'),
+      adminRoute('GET', '/customer-groups/search', 'customer-groups.search', 'price.manage'),
+      adminRoute('GET', '/customer-groups/:id', 'customer-groups.get', 'price.manage'),
+      adminRoute('PUT', '/customer-groups/:id', 'customer-groups.update', 'price.manage'),
+      adminRoute('POST', '/customer-groups/:id/members', 'customer-groups.members', 'price.manage'),
       adminRoute('GET', '/promotions', 'promotions.list', 'promotion.manage'),
       adminRoute('POST', '/promotions', 'promotions.create', 'promotion.manage'),
       adminRoute('GET', '/promotions/targets', 'promotions.targets', 'promotion.manage'),
