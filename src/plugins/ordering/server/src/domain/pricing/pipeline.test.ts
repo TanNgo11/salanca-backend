@@ -313,8 +313,7 @@ describe('priceCart — tax edge cases', () => {
   });
 });
 
-describe('priceCart — validation', () => {
-  const throwsWith = (input: PricingInput, code: string) => {
+const throwsWith = (input: PricingInput, code: string) => {
     try {
       priceCart(input);
       expect.unreachable('priceCart should have thrown');
@@ -324,6 +323,7 @@ describe('priceCart — validation', () => {
     }
   };
 
+describe('priceCart — validation', () => {
   it('throws when a discount exceeds the subtotal', () => {
     throwsWith(
       mockupInput({
@@ -376,6 +376,167 @@ describe('priceCart — validation', () => {
       'MONEY_INVALID',
     );
     throwsWith(mockupInput({ fulfillmentAmount: -1, adjustments: [] }), 'VALIDATION_ERROR');
+  });
+});
+
+describe('priceCart — adjustment target', () => {
+  it('allocates a line discount only onto the selected lines', () => {
+    const result = priceCart(
+      mockupInput({
+        adjustments: [
+          {
+            kind: 'discount',
+            code: 'pho',
+            label: 'Giảm phở',
+            amount: -10000,
+            target: { kind: 'lines', lineIndexes: [0] },
+          },
+        ],
+      }),
+    );
+    expect(result.adjustments[0].target).toEqual({ kind: 'lines', lineIndexes: [0] });
+    expect(result.adjustments[0].allocations).toEqual([
+      { lineKey: 'bun-bo', weight: 130000, amount: -10000 },
+    ]);
+    expect(result.lines.map((line) => line.discountAmount)).toEqual([-10000, 0, 0]);
+    expect(result.lines[1].allocations).toEqual([]);
+    expect(result.totals.adjustmentTotal).toBe(-10000);
+    expect(result.totals.grandTotal).toBe(210000);
+  });
+
+  it('prices a percent discount on the selected lines only', () => {
+    const result = priceCart(
+      mockupInput({
+        adjustments: [
+          {
+            kind: 'discount',
+            code: 'p10',
+            label: 'Giảm 10% món',
+            percent: 10,
+            target: { kind: 'lines', lineIndexes: [1, 2] },
+          },
+        ],
+      }),
+    );
+    // tra-dao 45000 + goi-cuon 45000 = 90000; 10% = 9000.
+    expect(result.adjustments[0].amount).toBe(-9000);
+    expect(result.adjustments[0].allocations.map((row) => row.amount)).toEqual([-4500, -4500]);
+    expect(result.lines[0].discountAmount).toBe(0);
+    expect(result.totals.grandTotal).toBe(211000);
+  });
+
+  it('reduces the delivery fee without a line allocation', () => {
+    const result = priceCart(
+      mockupInput({
+        fulfillmentAmount: 30000,
+        adjustments: [
+          {
+            kind: 'discount',
+            code: 'ship',
+            label: 'Giảm phí giao',
+            amount: -30000,
+            target: { kind: 'fulfillment' },
+          },
+        ],
+      }),
+    );
+    expect(result.adjustments[0].allocations).toEqual([]);
+    expect(result.lines.every((line) => line.discountAmount === 0)).toBe(true);
+    expect(result.totals.adjustmentTotal).toBe(0);
+    expect(result.totals.fulfillmentTotal).toBe(0);
+    expect(result.totals.grandTotal).toBe(220000);
+  });
+
+  it('prices a percent delivery discount against the fee', () => {
+    const result = priceCart(
+      mockupInput({
+        fulfillmentAmount: 25000,
+        adjustments: [
+          {
+            kind: 'discount',
+            code: 'ship50',
+            label: 'Giảm nửa phí',
+            percent: 50,
+            target: { kind: 'fulfillment' },
+          },
+        ],
+      }),
+    );
+    expect(result.adjustments[0].amount).toBe(-12500);
+    expect(result.totals.fulfillmentTotal).toBe(12500);
+    expect(result.totals.grandTotal).toBe(232500);
+  });
+
+  it('rejects a line discount larger than the selected lines', () => {
+    throwsWith(
+      mockupInput({
+        adjustments: [
+          {
+            kind: 'discount',
+            code: 'too-much',
+            label: 'Quá',
+            amount: -45001,
+            target: { kind: 'lines', lineIndexes: [1] },
+          },
+        ],
+      }),
+      'VALIDATION_ERROR',
+    );
+  });
+
+  it('rejects a delivery discount larger than the fee', () => {
+    throwsWith(
+      mockupInput({
+        fulfillmentAmount: 10000,
+        adjustments: [
+          {
+            kind: 'discount',
+            code: 'ship',
+            label: 'Phí',
+            amount: -10001,
+            target: { kind: 'fulfillment' },
+          },
+        ],
+      }),
+      'VALIDATION_ERROR',
+    );
+  });
+
+  it('rejects an empty or duplicate line target', () => {
+    throwsWith(
+      mockupInput({
+        adjustments: [
+          {
+            kind: 'discount',
+            code: 'x',
+            label: 'X',
+            amount: -1,
+            target: { kind: 'lines', lineIndexes: [] },
+          },
+        ],
+      }),
+      'VALIDATION_ERROR',
+    );
+    throwsWith(
+      mockupInput({
+        adjustments: [
+          {
+            kind: 'discount',
+            code: 'x',
+            label: 'X',
+            amount: -1,
+            target: { kind: 'lines', lineIndexes: [0, 0] },
+          },
+        ],
+      }),
+      'VALIDATION_ERROR',
+    );
+  });
+
+  it('keeps an order-wide discount on every line when target is omitted', () => {
+    const result = priceCart(mockupInput());
+    expect(result.adjustments[0].target).toEqual({ kind: 'order' });
+    expect(result.adjustments[0].allocations).toHaveLength(3);
   });
 });
 
