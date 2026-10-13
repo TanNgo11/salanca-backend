@@ -388,15 +388,32 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
      * guest cart is expired — leftovers beyond the cap are dropped.
      */
     async merge(customerId: number, guest: CartRow, ctx: ServiceContext): Promise<CartRow> {
-      const target = await loadForCustomer(customerId);
-      if (!target) {
-        await carts().update({ where: { id: guest.id }, data: { customer: customerId } });
-        return reload(guest.id);
-      }
-      return mutateLocked(target, ctx, async (fresh) => {
+      return strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
+        // Serialize merges for a customer even before their target cart exists.
+        await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [`ordering-cart-merge:${customerId}`]);
+        const target = await loadForCustomer(customerId);
+        const ids = [...new Set([guest.id, ...(target ? [target.id] : [])])].sort((a, b) => a - b);
+        for (const id of ids) {
+          const locked = await trx('plugins_ordering_cart').where({ id }).forUpdate().first('id');
+          if (!locked) throw new OrderingError('CART_NOT_FOUND', 'cart not found');
+        }
+        const source = await reload(guest.id);
+        const fresh = target ? await reload(target.id) : null;
+        const sourceOwner = source.customer?.id ?? null;
+        if (sourceOwner !== null && sourceOwner !== customerId) {
+          throw new OrderingError('CART_NOT_FOUND', 'cart not found');
+        }
+        if (fresh && fresh.status !== 'active') expiredOrMissing(fresh);
+        if (source.status !== 'active') return fresh ?? expiredOrMissing(source);
+        if (!fresh || fresh.id === source.id) {
+          if (sourceOwner === null) {
+            await carts().update({ where: { id: source.id }, data: { customer: customerId } });
+          }
+          return reload(source.id);
+        }
         const merged = linesOf(fresh);
         const byKey = new Map(merged.map((line) => [lineKey(line), line]));
-        for (const line of linesOf(guest)) {
+        for (const line of linesOf(source)) {
           const existing = byKey.get(lineKey(line));
           if (existing) {
             existing.quantity = Math.min(existing.quantity + line.quantity, QUANTITY_CAP);
@@ -407,11 +424,11 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
             byKey.set(lineKey(mergedLine), mergedLine);
           }
         }
-        await carts().update({ where: { id: guest.id }, data: { status: 'expired' } });
-        return {
+        await carts().update({ where: { id: source.id }, data: { status: 'expired' } });
+        return save(fresh, {
           lines: merged,
-          ...(!fresh.promotionCode && guest.promotionCode ? { promotionCode: guest.promotionCode } : {}),
-        };
+          ...(!fresh.promotionCode && source.promotionCode ? { promotionCode: source.promotionCode } : {}),
+        }, ctx);
       });
     },
 
