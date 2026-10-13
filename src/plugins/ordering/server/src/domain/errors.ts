@@ -99,6 +99,9 @@ export type OrderingErrorCode =
   | 'PRICE_LIST_INVALID'
   | 'PRICE_LIST_NOT_FOUND'
   | 'CUSTOMER_GROUP_NOT_FOUND'
+  | 'PROVIDER_UNAVAILABLE'
+  | 'CARRIER_BOOKING_FAILED'
+  | 'CARRIER_NOT_CONFIGURED'
   | 'INTERNAL';
 
 const defaultStatus: Record<OrderingErrorCode, number> = {
@@ -197,6 +200,9 @@ const defaultStatus: Record<OrderingErrorCode, number> = {
   PRICE_LIST_INVALID: 400,
   PRICE_LIST_NOT_FOUND: 404,
   CUSTOMER_GROUP_NOT_FOUND: 404,
+  PROVIDER_UNAVAILABLE: 503,
+  CARRIER_BOOKING_FAILED: 409,
+  CARRIER_NOT_CONFIGURED: 400,
   INTERNAL: 500,
 };
 

@@ -182,6 +182,12 @@ export const assertEnabledCodesRegistered = (
     ['scheduling provider', config.providers.scheduling, (code) => registry.hasSchedulingProvider(code)],
     ['voucher provider', config.providers.voucher, (code) => registry.hasVoucherProvider(code)],
     ['captcha provider', config.providers.captcha, (code) => registry.hasCaptchaProvider(code)],
+    // O13: keyed by channel ('zalo', 'sms'), matching registerNotificationProvider.
+    [
+      'notification provider',
+      config.providers.notification,
+      (code) => registry.hasNotificationProvider(code),
+    ],
   ];
   for (const [kind, providers, has] of providerChecks) {
     for (const [code, settings] of Object.entries(providers)) {
