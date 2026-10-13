@@ -329,6 +329,12 @@ and parks in `waiting` while an order is open — the `data-request-waiting` job
 
 ### `/carts*`
 
+Checkout locks and reloads the cart: concurrent different-key requests produce at most one order;
+the cart conversion and order creation commit together. A converted cart only replays a key tied
+to its linked order. Promotion-code guessing guards apply to create, read, patch, line mutations and reorder,
+including a code stored before any lines were added. Send `captchaToken` in the request body when
+required; GET and DELETE cart routes accept this transient captcha proof in their query.
+
 `POST /carts { locationRef, receiveMethod, contact?, marketingOptIn? }` → `{ cartToken, cart, quote,
 issues }` (the guest token comes back once here). `GET /carts/current`, `PATCH /carts/current`
 (`receiveMethod`/`contact`/`marketingOptIn`/`promotionCode` — `null` clears it; a new code counts toward the

@@ -34,13 +34,11 @@ export type IdempotencyRunResult<T> =
   | { result: JsonObject; replayed: true; secret?: string };
 
 /**
- * Idempotent command wrapper. `run` opens the business transaction, claims (scope, key) with
- * status `in-progress`, executes `work`, then marks the row completed with a redaction-safe
- * response snapshot (never store tokens or contact data in it). A `secret` the work returns is
- * stored only AES-256-GCM sealed in `resultCipher` and handed back on replay; expired rows (and
- * their ciphertext) are deleted by the cleanup job. On a unique-conflict it re-reads the
- * row after rollback: a different payload hash → IDEMPOTENCY_PAYLOAD_MISMATCH, a still-open row
- * → IDEMPOTENCY_IN_PROGRESS, a completed row → the stored snapshot replayed.
+ * Idempotent command wrapper. A transaction advisory lock serializes each (scope, key),
+ * including commands joining an outer transaction. Existing rows replay without a failed
+ * INSERT; new commands claim the key, execute work and complete atomically. Response
+ * snapshots omit contact data; secrets are AES-256-GCM sealed and returned again on replay.
+ * A changed payload fails with IDEMPOTENCY_PAYLOAD_MISMATCH; in-progress rows remain guarded.
  */
 const idempotency = ({ strapi }: { strapi: Core.Strapi }) => {
   const query = () => strapi.db.query('plugin::ordering.idempotency-key');
@@ -136,48 +134,32 @@ const idempotency = ({ strapi }: { strapi: Core.Strapi }) => {
       }>,
     ): Promise<IdempotencyRunResult<T>> {
       const requestHash = hashPayload(input.payload);
-      try {
-        return await strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
+      return strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
+        // Serialize the key without provoking a unique violation: run() may join an outer
+        // checkout transaction, where a failed INSERT would abort the entire transaction.
+        await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [
+          JSON.stringify(['ordering-idempotency', input.scope, input.key]),
+        ]);
+        const row = await query().findOne({ where: { scope: input.scope, key: input.key } });
+        if (!row) {
           await begin({ ...input }, ctx);
           const { result, responseRef, responseSnapshot, secret } = await work(trx);
           await complete({ scope: input.scope, key: input.key, responseRef, responseSnapshot, secret });
           return { result, replayed: false as const };
-        });
-      } catch (error) {
-        if (!(error instanceof IdempotencyConflict)) throw error;
-        // The losing transaction rolled back; re-read the committed row outside it.
-        const row = await query().findOne({
-          where: { scope: input.scope, key: input.key },
-        });
-        if (!row) {
-          throw new OrderingError('INTERNAL', 'idempotency conflict without a stored row', {
-            cause: error,
-          });
         }
         if (row.requestHash !== requestHash) {
-          throw new OrderingError(
-            'IDEMPOTENCY_PAYLOAD_MISMATCH',
-            'idempotency key was used with a different payload',
-            { details: { scope: input.scope } },
-          );
+          throw new OrderingError('IDEMPOTENCY_PAYLOAD_MISMATCH',
+            'idempotency key was used with a different payload', { details: { scope: input.scope } });
         }
         if (row.status === 'in-progress') {
-          throw new OrderingError(
-            'IDEMPOTENCY_IN_PROGRESS',
-            'a request with this idempotency key is still running',
-            { details: { scope: input.scope } },
-          );
+          throw new OrderingError('IDEMPOTENCY_IN_PROGRESS',
+            'a request with this idempotency key is still running', { details: { scope: input.scope } });
         }
-        const secret =
-          typeof row.resultCipher === 'string' && row.resultCipher !== ''
-            ? decryptSecret(row.resultCipher, encryptionKey())
-            : undefined;
-        return {
-          result: row.responseSnapshot as JsonObject,
-          replayed: true as const,
-          ...(secret === undefined ? {} : { secret }),
-        };
-      }
+        const secret = typeof row.resultCipher === 'string' && row.resultCipher !== ''
+          ? decryptSecret(row.resultCipher, encryptionKey()) : undefined;
+        return { result: row.responseSnapshot as JsonObject, replayed: true as const,
+          ...(secret === undefined ? {} : { secret }) };
+      });
     },
 
     /** Deletes expired rows; the Step-12 cleanup job calls this. */

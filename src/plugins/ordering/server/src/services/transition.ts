@@ -228,20 +228,26 @@ const transition = ({ strapi }: { strapi: Core.Strapi }) => {
       if (!input.reason?.trim()) {
         throw new OrderingError('VALIDATION_ERROR', 'cancel reason is required');
       }
-      const { order, registry } = services();
-      const aggregate = await order.getOrder(input.orderId, ctx);
-      for (const group of aggregate.groups) {
-        const definition = registry.workflow(group.workflowName, group.workflowVersion);
-        if (isTerminal(definition, group.status) !== null) continue;
-        if (!definition.states[group.status]?.customerCancellable) {
-          throw new OrderingError(
-            'INVALID_TRANSITION',
-            `group state "${group.status}" is not customer-cancellable`,
-            { details: { groupId: group.id, status: group.status } },
-          );
+      return strapi.db.transaction(async ({ trx }) => {
+        const { order, registry } = services();
+        const aggregate = await order.getOrder(input.orderId, ctx);
+        // Lock in stable order before checking any state; keep every lock through cancellation.
+        for (const group of [...aggregate.groups].sort((a, b) => a.id - b.id)) {
+          const locked = await repo.lockGroup(trx, group.id);
+          if (!locked) throw new OrderingError('ORDER_NOT_FOUND', 'fulfillment group not found');
+          const status = (locked as { status: string }).status;
+          const definition = registry.workflow(group.workflowName, group.workflowVersion);
+          if (isTerminal(definition, status) !== null) continue;
+          if (!definition.states[status]?.customerCancellable) {
+            throw new OrderingError(
+              'INVALID_TRANSITION',
+              `group state "${status}" is not customer-cancellable`,
+              { details: { groupId: group.id, status } },
+            );
+          }
         }
-      }
-      return service.cancelOrder(input, ctx);
+        return service.cancelOrder(input, ctx);
+      });
     },
   };
 

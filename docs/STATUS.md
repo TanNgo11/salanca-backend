@@ -2,6 +2,14 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
+2026-10-13: **Ordering review fixes** (`feat/ordering-finish`) ? cart checkout now locks/reloads the cart
+and atomically creates the order + converted link; same-key replay remains supported. Customer cancellation
+checks locked fulfillment states. Promotion guessing guards cover cart creation, deferred quotes, reads,
+line mutations and customer reorder. Automated verification: build:ordering, lint, typecheck, typecheck:admin,
+171 Vitest files / 1298 tests, and 9 targeted integration scripts passed on isolated
+`salanca_ordering_review_fixes`. Full check:ordering and browser UAT were not run; existing pg query
+deprecation warning remains. Evidence: [review fix record](plans/ordering-review-fixes.md).
+
 2026-10-13: **Ordering hoàn thiện sau O8/O11** (`feat/ordering-finish`): pnpm audit 6 critical / 38 high → 2 / 3
 (overrides trong major; còn vite 6, webpack-dev-middleware 7, tinypool 2 chỉ dùng lúc build/dev/test và braces chưa có
 bản vá), nodemailer 10.1.0; bỏ `minimumReleaseAge: 0` tạm, `.npmrc` trỏ npm công khai. Giỏ hàng nhận `promotionCode`

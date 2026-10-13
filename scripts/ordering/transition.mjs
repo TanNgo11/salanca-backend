@@ -92,6 +92,32 @@ withApp(async (app) => {
   assert.equal(customerCanceled.order.status, 'canceled');
   console.log('[ordering-test] customerCancel from awaiting-acceptance → canceled');
 
+  // A staff transition commits after the customer's initial read, before its row locks.
+  const cancelRace = await order.createOrder(basicOrderInput(), systemCtx);
+  const racedId = cancelRace.order.order.id;
+  const originalGetOrder = order.getOrder;
+  let signalRead;
+  const read = new Promise((resolve) => { signalRead = resolve; });
+  let releaseRead;
+  const advanced = new Promise((resolve) => { releaseRead = resolve; });
+  let paused = false;
+  order.getOrder = async (...args) => {
+    const aggregate = await originalGetOrder.apply(order, args);
+    if (args[0] === racedId && !paused) { paused = true; signalRead(); await advanced; }
+    return aggregate;
+  };
+  const cancelOutcome = transition.customerCancel({ orderId: racedId, reason: 'race' }, systemCtx)
+    .then((value) => ({ value }), (error) => ({ error }));
+  try {
+    await read;
+    await transition.transitionGroup({ orderId: racedId, groupId: cancelRace.order.groups[0].id, to: 'preparing' }, systemCtx);
+    releaseRead();
+    const outcome = await cancelOutcome;
+    assert.equal(outcome.error?.code, 'INVALID_TRANSITION');
+    assert.equal((await originalGetOrder.call(order, racedId, systemCtx)).groups[0].status, 'preparing');
+  } finally { releaseRead(); await cancelOutcome; order.getOrder = originalGetOrder; }
+  console.log('[ordering-test] customerCancel: preparing state wins over stale eligibility read');
+
   // Timeline/outbox evidence from the first lifecycle.
   const events = await app.db
     .query('plugin::ordering.order-event')

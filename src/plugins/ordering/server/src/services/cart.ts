@@ -40,7 +40,7 @@ type CartRow = {
   contact: { name?: string; phone?: string; email?: string } | null;
   lines: CartLine[] | null;
   status: 'active' | 'converted' | 'expired';
-  order: number | null;
+  order: number | { id: number } | null;
   locale: string | null;
   promotionCode: string | null;
   lastActivityAt: string | Date;
@@ -220,7 +220,7 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
   const reload = async (rowId: number): Promise<CartRow> =>
     (await carts().findOne({
       where: { id: rowId },
-      populate: { customer: true },
+      populate: { customer: true, order: true },
     })) as CartRow;
 
   const save = async (
@@ -539,7 +539,7 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
 
     /**
      * POST /carts/current/checkout → createOrder with the cart's live contents (the order
-     * re-prices inside its own transaction; no `expectedCartHash` is enforced — reads re-quote
+     * re-prices in the cart checkout transaction; no `expectedCartHash` is enforced — reads re-quote
      * continuously). The cart flips to `converted` and stores the order link — also on replay,
      * so a crash between order-create and cart-update self-heals.
      */
@@ -553,67 +553,77 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
       },
       ctx: ServiceContext,
     ): Promise<CreateOrderResult> {
-      // A converted cart may only replay: the presented key must be the original one —
-      // `createOrder` then answers the stored order (or mismatches → IDEMPOTENCY_PAYLOAD_MISMATCH).
-      // Any other key would mint a duplicate order, so it reads as a dead cart.
-      if (row.status === 'converted') {
-        const seen = await strapi.db.query('plugin::ordering.idempotency-key').findOne({
-          where: { scope: 'order.create', key: input.idempotencyKey },
-          select: ['id'],
-        });
-        if (!seen) throw new OrderingError('CART_EXPIRED', 'this cart is no longer active');
-      }
-      if (!row.locationRef || !row.receiveMethod) {
-        throw new OrderingError('VALIDATION_ERROR', 'cart needs a branch and a receive method', {
-          details: { field: 'locationRef' },
-        });
-      }
-      const contact = row.contact?.phone
-        ? row.contact
-        : input.customerId
-          ? await service.contactForCustomer(input.customerId)
-          : null;
-      if (!contact?.phone) {
-        throw new OrderingError('VALIDATION_ERROR', 'contact.phone is required', {
-          details: { field: 'contact.phone' },
-        });
-      }
-      const result = await orders().createOrder(
-        {
-          idempotencyKey: input.idempotencyKey,
-          locationRef: row.locationRef,
-          ...(row.locale ? { locale: row.locale } : {}),
-          lines: linesOf(row).map((line) => ({
-            sellableUid: line.sellableUid,
-            quantity: line.quantity,
-            selected: line.selected,
-            ...(line.variantUid ? { variantUid: line.variantUid } : {}),
-            ...(line.note ? { note: line.note } : {}),
-          })),
-          receiveMethod: row.receiveMethod as never,
-          contact: {
-            name: contact.name,
-            phone: contact.phone as string,
-            ...(contact.email ? { email: contact.email } : {}),
+      return strapi.db.transaction(async ({ trx }) => {
+        // Serialize checkout by cart, then read its committed status and live contents.
+        const locked = await trx('plugins_ordering_cart').where({ id: row.id }).forUpdate().first('id');
+        if (!locked) throw new OrderingError('CART_NOT_FOUND', 'cart not found');
+        row = await reload(row.id);
+        if (row.status !== 'active' && row.status !== 'converted') expiredOrMissing(row);
+        // A converted cart may only replay: the presented key must be the original one —
+        // `createOrder` then answers the stored order (or mismatches → IDEMPOTENCY_PAYLOAD_MISMATCH).
+        // Any other key would mint a duplicate order, so it reads as a dead cart.
+        if (row.status === 'converted') {
+          const seen = await strapi.db.query('plugin::ordering.idempotency-key').findOne({
+            where: { scope: 'order.create', key: input.idempotencyKey },
+            select: ['id', 'responseRef'],
+          });
+          const orderId = typeof row.order === 'object' ? row.order?.id : row.order;
+          if (!seen || seen.responseRef !== `order:${orderId}`) {
+            throw new OrderingError('CART_EXPIRED', 'this cart is no longer active');
+          }
+        }
+        if (!row.locationRef || !row.receiveMethod) {
+          throw new OrderingError('VALIDATION_ERROR', 'cart needs a branch and a receive method', {
+            details: { field: 'locationRef' },
+          });
+        }
+        const contact = row.contact?.phone
+          ? row.contact
+          : input.customerId
+            ? await service.contactForCustomer(input.customerId)
+            : null;
+        if (!contact?.phone) {
+          throw new OrderingError('VALIDATION_ERROR', 'contact.phone is required', {
+            details: { field: 'contact.phone' },
+          });
+        }
+        const result = await orders().createOrder(
+          {
+            idempotencyKey: input.idempotencyKey,
+            locationRef: row.locationRef,
+            ...(row.locale ? { locale: row.locale } : {}),
+            lines: linesOf(row).map((line) => ({
+              sellableUid: line.sellableUid,
+              quantity: line.quantity,
+              selected: line.selected,
+              ...(line.variantUid ? { variantUid: line.variantUid } : {}),
+              ...(line.note ? { note: line.note } : {}),
+            })),
+            receiveMethod: row.receiveMethod as never,
+            contact: {
+              name: contact.name,
+              phone: contact.phone as string,
+              ...(contact.email ? { email: contact.email } : {}),
+            },
+            consent: {
+              policyVersion: input.consent.policyVersion,
+              marketingOptIn: input.consent.marketingOptIn,
+              channel: 'web-checkout',
+            },
+            ...(input.payment ? { payment: input.payment } : {}),
+            origin: { kind: 'storefront' },
+            ...(input.customerId ? { customerId: input.customerId } : {}),
+            ...(row.pickup ? { pickup: row.pickup as never } : {}),
+            ...(row.promotionCode ? { promotionCode: row.promotionCode } : {}),
           },
-          consent: {
-            policyVersion: input.consent.policyVersion,
-            marketingOptIn: input.consent.marketingOptIn,
-            channel: 'web-checkout',
-          },
-          ...(input.payment ? { payment: input.payment } : {}),
-          origin: { kind: 'storefront' },
-          ...(input.customerId ? { customerId: input.customerId } : {}),
-          ...(row.pickup ? { pickup: row.pickup as never } : {}),
-          ...(row.promotionCode ? { promotionCode: row.promotionCode } : {}),
-        },
-        ctx,
-      );
-      await carts().update({
-        where: { id: row.id },
-        data: { status: 'converted', order: result.order.order.id },
+          ctx,
+        );
+        await carts().update({
+          where: { id: row.id },
+          data: { status: 'converted', order: result.order.order.id },
+        });
+        return result;
       });
-      return result;
     },
 
     /** Customer profile phone/name/email for a signed-in checkout without `cart.contact`. */
