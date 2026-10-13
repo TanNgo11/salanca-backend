@@ -288,14 +288,22 @@ const promotionService = ({ strapi }: { strapi: Core.Strapi }) => {
     ): Promise<{ dropped: number[] }> {
       const dropped: number[] = [];
       const ordered = [...applied].sort((a, b) => a.promotionId - b.promotionId);
-      const lockedPromos = new Map<number, { used_count: number; usage_limit: number | null; per_customer_limit: number | null }>();
+      const lockedPromos = new Map<
+        number,
+        { kind: string; used_count: number; usage_limit: number | null; per_customer_limit: number | null }
+      >();
       for (const promo of ordered) {
         const row = await trx('plugins_ordering_promotion').where({ id: promo.promotionId }).forUpdate().first();
         if (!row || row.active === false) {
+          // An entered code switched off since pricing must not turn into a silent full-price order.
+          if (row?.kind === 'code') {
+            throw new OrderingError('PROMOTION_INVALID', 'promotion code is not valid');
+          }
           dropped.push(promo.promotionId);
           continue;
         }
         lockedPromos.set(promo.promotionId, {
+          kind: String(row.kind),
           used_count: Number(row.used_count ?? 0),
           usage_limit: row.usage_limit == null ? null : Number(row.usage_limit),
           per_customer_limit: row.per_customer_limit == null ? null : Number(row.per_customer_limit),
@@ -304,8 +312,8 @@ const promotionService = ({ strapi }: { strapi: Core.Strapi }) => {
       const codeIds = new Map<number, number>();
       for (const promo of ordered) {
         if (dropped.includes(promo.promotionId)) continue;
-        const isCode = promo.code !== `P${promo.promotionId}`;
-        if (!isCode) continue;
+        // The locked row's kind decides; an auto promotion's synthetic `P<id>` can equal a real code.
+        if (lockedPromos.get(promo.promotionId)?.kind !== 'code') continue;
         const codeRow = await trx('plugins_ordering_promotion_code')
           .where({ promotion_id: promo.promotionId, code: promo.code })
           .forUpdate()
@@ -326,7 +334,7 @@ const promotionService = ({ strapi }: { strapi: Core.Strapi }) => {
       for (const promo of ordered) {
         if (dropped.includes(promo.promotionId)) continue;
         const locked = lockedPromos.get(promo.promotionId);
-        const isCode = promo.code !== `P${promo.promotionId}`;
+        const isCode = locked?.kind === 'code';
         if (!locked || (locked.usage_limit != null && locked.used_count >= locked.usage_limit)) {
           if (isCode) {
             throw new OrderingError('PROMOTION_EXHAUSTED', 'promotion code has no uses left', {

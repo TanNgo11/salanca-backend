@@ -47,6 +47,14 @@ export const rateLimited = (
 const CODE_WINDOW_MS = 10 * 60 * 1000;
 const codeFailures = new Map<string, { count: number; resetAt: number }>();
 
+/**
+ * Reasons that answer "does this code exist / is it live" — the guessing signal. Eligibility
+ * misses (minimum subtotal, per-customer, receive kind…) on a real code do not count.
+ */
+const GUESS_REASONS = new Set(['invalid', 'not-started', 'ended', 'code-used', 'usage-limit']);
+
+export const isWrongPromotionCode = (reason: string): boolean => GUESS_REASONS.has(reason);
+
 /** Wrong promotion codes for this IP in the current 10-minute window. */
 export const promotionCodeFailureCount = (ip: string, now = Date.now()): number => {
   const entry = codeFailures.get(ip);

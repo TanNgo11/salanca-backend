@@ -18,6 +18,7 @@ import type { HttpCtx } from './http';
 import { sendError, text } from './http';
 import {
   clientIpOf,
+  isWrongPromotionCode,
   notePromotionCodeFailure,
   promotionCodeFailureCount,
   rateLimited,
@@ -144,7 +145,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
           serviceCtx,
         );
       const rejected = (quoted as { rejectedPromotions?: Array<{ reason: string }> }).rejectedPromotions ?? [];
-      if (cart.promotionCode && rejected.some((row) => row.reason !== 'not-best')) {
+      if (cart.promotionCode && rejected.some((row) => isWrongPromotionCode(row.reason))) {
         const ip = clientIpOf(strapi, ctx);
         const count = notePromotionCodeFailure(ip);
         if (count >= 20) {
