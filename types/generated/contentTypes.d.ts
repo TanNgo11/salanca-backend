@@ -4330,6 +4330,7 @@ export interface PluginOrderingOrder extends Struct.CollectionTypeSchema {
     code: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.Unique;
+    completedAt: Schema.Attribute.DateTime;
     consentSnapshot: Schema.Attribute.JSON & Schema.Attribute.Required;
     contactSnapshot: Schema.Attribute.JSON & Schema.Attribute.Required;
     createdAt: Schema.Attribute.DateTime;

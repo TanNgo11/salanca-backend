@@ -115,6 +115,14 @@ export const ALERT_RULE_DEFAULTS: AlertRules = {
     aggregationMinutes: 60,
     recipients: ['ops.read'],
   },
+  // O8: one alert per order rated at or below `threshold` stars (default 2), for the branch's
+  // report readers. Not count-based: `threshold` is the star ceiling, not an occurrence count.
+  'low-rating': {
+    enabled: true,
+    threshold: 2,
+    aggregationMinutes: 1440,
+    recipients: ['report.read'],
+  },
 };
 
 /** Unknown codes (custom callers) behave as a minimal warning rule rather than being dropped. */

@@ -48,6 +48,7 @@ import paymentReview from './payment-review';
 import manualPayment from './manual-payment';
 import paymentLink from './payment-link';
 import promotion from './promotion';
+import rating from './rating';
 
 export default {
   registry,
@@ -97,6 +98,7 @@ export default {
   'manual-payment': manualPayment,
   'payment-link': paymentLink,
   promotion,
+  rating,
   migrations: ({ strapi }: { strapi: Core.Strapi }) => ({
     run: (migrations: OrderingMigration[]) => runOrderingMigrations(strapi, migrations),
   }),

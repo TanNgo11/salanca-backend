@@ -135,6 +135,11 @@ export type PreparedOrder = {
   providerCode?: string;
   timing: PickupTiming | null;
   promotions: import('./promotion').ResolvedPromotions;
+  /**
+   * O8: the cart priced without phone-history promotions — what the public quote shows and what
+   * `expectedCartHash` is checked against. `pricing` adds the history-dependent ones for create.
+   */
+  quotePricing: ReturnType<typeof priceCart>;
 };
 
 /** Stored on order/group `receiveMethod.timing`; UTC instants. */
@@ -455,6 +460,12 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
           if (after.status === 'completed') await promotion.markApplied(trx, orderId, now);
           if (after.status === 'canceled') await promotion.releaseForOrder(trx, orderId, 'order-canceled', now);
         });
+        if (after.status === 'completed') {
+          // Order-level (not group-level), so a multi-group order invites once.
+          await (
+            strapi.plugin('ordering').service('rating') as ReturnType<typeof import('./rating').default>
+          ).onOrderCompleted(orderId, { actor: { kind: 'system' }, requestId: `rating:${orderId}`, now });
+        }
       }
       return { before, after };
     },
@@ -648,21 +659,24 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         })(),
         ...(input.promotionCode ? { code: input.promotionCode } : {}),
       });
-      const pricing = priceCart({
-        currency: cfg.currency,
-        lines: priced.map((line) => ({
-          key: line.key,
-          quantity: line.quantity,
-          unitAmount: line.unitAmount,
-          optionAmount: line.optionAmount,
-          taxGroupRef: line.taxGroupRef,
-        })),
-        adjustments: [...(input.adjustments ?? []), ...promotions.adjustments],
-        fulfillmentAmount,
-        tax: { ...cfg.tax, ...(branch.tax ?? {}) },
-        at: placedAt.toISOString(),
-        cashRounding,
-      });
+      const priceWith = (promotionAdjustments: PricingAdjustmentInput[]) =>
+        priceCart({
+          currency: cfg.currency,
+          lines: priced.map((line) => ({
+            key: line.key,
+            quantity: line.quantity,
+            unitAmount: line.unitAmount,
+            optionAmount: line.optionAmount,
+            taxGroupRef: line.taxGroupRef,
+          })),
+          adjustments: [...(input.adjustments ?? []), ...promotionAdjustments],
+          fulfillmentAmount,
+          tax: { ...cfg.tax, ...(branch.tax ?? {}) },
+          at: placedAt.toISOString(),
+          cashRounding,
+        });
+      const pricing = priceWith(promotions.adjustments);
+      const quotePricing = priceWith(promotions.quote.adjustments);
 
       const groupsByWorkflow = new Map<string, { name: string; version: string }>();
       for (const line of priced) {
@@ -713,6 +727,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         providerCode,
         timing,
         promotions,
+        quotePricing,
       };
     },
 
@@ -721,36 +736,38 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
       const prepared = await service.prepareOrder(input, ctx);
       await assertDailyStock(prepared, input);
       return {
-        currency: prepared.pricing.currency,
-        cartHash: prepared.pricing.cartHash,
+        currency: prepared.quotePricing.currency,
+        cartHash: prepared.quotePricing.cartHash,
         lines: prepared.priced.map((line, index) => ({
           index,
           sellableUid: line.sellable.ref.uid,
           title: line.sellable.title,
           quantity: line.quantity,
-          unitAmount: prepared.pricing.lines[index].unitAmount,
-          optionAmount: prepared.pricing.lines[index].optionAmount,
-          lineTotalAmount: prepared.pricing.lines[index].lineTotalAmount,
+          unitAmount: prepared.quotePricing.lines[index].unitAmount,
+          optionAmount: prepared.quotePricing.lines[index].optionAmount,
+          lineTotalAmount: prepared.quotePricing.lines[index].lineTotalAmount,
         })),
-        adjustments: prepared.pricing.adjustments.map((adjustment) => ({
+        adjustments: prepared.quotePricing.adjustments.map((adjustment) => ({
           kind: adjustment.kind,
           code: adjustment.code,
           label: adjustment.label,
           amount: adjustment.amount,
         })),
         totals: {
-          ...prepared.pricing.totals,
-          discountTotal: prepared.pricing.adjustments
+          ...prepared.quotePricing.totals,
+          discountTotal: prepared.quotePricing.adjustments
             .filter((adjustment) => adjustment.kind === 'discount')
             .reduce((sum, adjustment) => sum + adjustment.amount, 0),
         },
-        promotions: prepared.promotions.applied.map((promo) => ({
+        promotions: prepared.promotions.quote.applied.map((promo) => ({
           code: promo.code,
           label: promo.label,
           amount: promo.amount,
           target: promo.target.kind,
         })),
-        rejectedPromotions: prepared.promotions.rejected,
+        rejectedPromotions: prepared.promotions.quote.rejected,
+        // First-order / per-customer promotions: checked against the phone at order time only.
+        pendingPromotions: prepared.promotions.quote.pending,
         payment: { providerCode: prepared.providerCode ?? null },
         timing: timingSnapshot(prepared.timing),
         delivery: prepared.delivery,
@@ -802,9 +819,11 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
           }
           let { pricing } = prepared;
           const { branch, priced, groupsByWorkflow, placedAt, locale, timing } = prepared;
-          if (input.expectedCartHash && input.expectedCartHash !== pricing.cartHash) {
+          // Compared with the quote view: phone-history promotions applied below can only lower
+          // the total, and the quote must not depend on the phone (no "has ordered" oracle).
+          if (input.expectedCartHash && input.expectedCartHash !== prepared.quotePricing.cartHash) {
             throw new OrderingError('PRICE_CHANGED', 'the quoted cart no longer matches', {
-              details: { cartHash: pricing.cartHash },
+              details: { cartHash: prepared.quotePricing.cartHash },
             });
           }
 

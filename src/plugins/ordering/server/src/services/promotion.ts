@@ -6,6 +6,7 @@ import type { OrderingConfig } from '../config';
 import { OrderingError } from '../domain/errors';
 import {
   evaluate,
+  rejectionReason,
   type AppliedPromotion,
   type EvaluateInput,
   type PromotionLine,
@@ -49,13 +50,31 @@ type CodeRow = {
   active: boolean;
 };
 
+/** A promotion whose outcome depends on the phone's history (first order, per-customer limit). */
+export type PendingPromotion = { code: string; label: string; condition: 'first-order' | 'per-customer' };
+
 export type ResolvedPromotions = {
+  /** Decision with the phone's real history — what create applies. */
   adjustments: PricingAdjustmentInput[];
   applied: AppliedPromotion[];
   rejected: RejectedPromotion[];
   customerKey: string | null;
   entered?: PromotionSnapshot | null;
+  /**
+   * Decision without any phone history — what the public quote shows. Phone-dependent promotions
+   * are left out and listed in `pending`, so a quote never tells a stranger whether a number has
+   * ordered before; create checks them for real and can only lower the quoted total.
+   */
+  quote: {
+    adjustments: PricingAdjustmentInput[];
+    applied: AppliedPromotion[];
+    rejected: RejectedPromotion[];
+    pending: PendingPromotion[];
+  };
 };
+
+const phoneDependent = (promo: PromotionSnapshot): boolean =>
+  promo.firstOrderOnly || promo.perCustomerLimit !== null;
 
 const asObject = <T>(value: T | string | null | undefined, fallback: T): T => {
   if (value == null) return fallback;
@@ -184,7 +203,14 @@ const promotionService = ({ strapi }: { strapi: Core.Strapi }) => {
     }): Promise<ResolvedPromotions> {
       const normalized = input.code ? normalizePromotionCode(input.code) : null;
       if (input.code && !normalized) {
-        return { adjustments: [], applied: [], rejected: [{ code: input.code.trim().slice(0, 4), reason: 'invalid' }], customerKey: null };
+        const rejected = [{ code: input.code.trim().slice(0, 4), reason: 'invalid' }];
+        return {
+          adjustments: [],
+          applied: [],
+          rejected,
+          customerKey: null,
+          quote: { adjustments: [], applied: [], rejected, pending: [] },
+        };
       }
 
       const rows = (await promotions().findMany({ where: { active: true } })) as PromotionRow[];
@@ -246,7 +272,7 @@ const promotionService = ({ strapi }: { strapi: Core.Strapi }) => {
         });
       }
 
-      const decision = evaluate({
+      const base = {
         now: input.now,
         timezone: input.timezone,
         locationRef: input.locationRef,
@@ -254,10 +280,39 @@ const promotionService = ({ strapi }: { strapi: Core.Strapi }) => {
         lines: input.lines,
         fulfillmentAmount: input.fulfillmentAmount,
         subtotal: input.subtotal,
+      };
+      const decision = evaluate({
+        ...base,
         candidates,
         ...(normalized ? { code: normalized } : {}),
         customer,
       } satisfies EvaluateInput);
+
+      // Quote view: no phone history at all. Phone-dependent promotions are listed as pending
+      // when everything else about them holds; create decides them with the real history.
+      const guest = { isFirstOrder: true, usedByPromotion: {} as Record<number, number> };
+      const enteredPending = entered !== undefined && phoneDependent(entered);
+      const quoteDecision = evaluate({
+        ...base,
+        candidates: candidates.filter((promo) => !phoneDependent(promo)),
+        ...(normalized && !enteredPending ? { code: normalized } : {}),
+        customer: guest,
+      } satisfies EvaluateInput);
+      const pending: PendingPromotion[] = [];
+      const quoteRejected: RejectedPromotion[] = [...rejected, ...quoteDecision.rejected];
+      for (const promo of candidates.filter(phoneDependent)) {
+        const reason = rejectionReason(promo, { ...base, candidates, customer: guest });
+        const isEntered = promo === entered;
+        if (reason === null) {
+          pending.push({
+            code: promo.code,
+            label: promo.label,
+            condition: promo.firstOrderOnly ? 'first-order' : 'per-customer',
+          });
+        } else if (isEntered) {
+          quoteRejected.push({ code: promo.code, reason });
+        }
+      }
 
       return {
         adjustments: decision.applied.map(adjustmentOf),
@@ -265,6 +320,12 @@ const promotionService = ({ strapi }: { strapi: Core.Strapi }) => {
         rejected: [...rejected, ...decision.rejected],
         customerKey,
         entered: entered ?? null,
+        quote: {
+          adjustments: quoteDecision.applied.map(adjustmentOf),
+          applied: quoteDecision.applied,
+          rejected: quoteRejected,
+          pending,
+        },
       };
     },
 

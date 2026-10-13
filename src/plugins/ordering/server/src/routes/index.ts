@@ -54,6 +54,8 @@ export default {
       publicRoute('POST', '/orders', 'storefront.create'),
       publicRoute('GET', '/orders', 'storefront.show'),
       publicRoute('GET', '/orders/payment', 'storefront.payment'),
+      publicRoute('GET', '/orders/rating', 'storefront.rating'),
+      publicRoute('POST', '/orders/rating', 'storefront.rate'),
       publicRoute('POST', '/orders/cancel', 'storefront.cancel'),
       publicRoute('POST', '/orders/lookup', 'storefront.lookup'),
       publicRoute('POST', '/webhooks/:providerCode', 'webhook.receive'),
@@ -258,6 +260,11 @@ export default {
       // Sales report (screens V4): ledger revenue + sold-order grouping by business date.
       adminRoute('GET', '/reports/sales', 'reports.sales', 'report.read'),
       // O15 "Lịch sử thay đổi" — scope filtered in the service; export needs both actions.
+      // O8 "Đánh giá" (screens R1–R2): reading follows order scope, changes need `rating.manage`.
+      adminRoute('GET', '/ratings', 'ratings.list', 'order.read'),
+      adminRoute('GET', '/ratings/:id', 'ratings.detail', 'order.read'),
+      adminRoute('POST', '/ratings/:id/hide', 'ratings.hide', 'order.read', 'rating.manage'),
+      adminRoute('POST', '/ratings/:id/note', 'ratings.note', 'order.read', 'rating.manage'),
       adminRoute('GET', '/audit-log', 'audit-log.list', 'audit.read'),
       adminRoute('GET', '/audit-log/actors', 'audit-log.actors', 'audit.read'),
       adminRoute('GET', '/audit-log/export', 'audit-log.exportCsv', 'audit.read', 'export'),

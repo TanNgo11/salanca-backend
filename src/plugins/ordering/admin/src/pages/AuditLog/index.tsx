@@ -49,7 +49,7 @@ type ListBody = { range: { from: string; to: string }; page: number; hasNext: bo
 type Actor = { ref: string; name: string | null };
 type BranchOption = { code: string; name?: Record<string, string> };
 
-const CATEGORIES = ['all', 'money', 'order', 'catalog', 'delivery', 'config', 'access', 'ops'] as const;
+const CATEGORIES = ['all', 'money', 'order', 'catalog', 'delivery', 'config', 'access', 'ops', 'promotion'] as const;
 const ALL = '__all__';
 const HIDDEN = '[redacted]';
 

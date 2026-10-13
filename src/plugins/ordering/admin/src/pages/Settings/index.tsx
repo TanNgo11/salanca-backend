@@ -52,6 +52,7 @@ const ALERT_CODES = [
   'cash-closing-mismatch',
   'audit-tampered',
   'notification-template-broken',
+  'low-rating',
 ] as const;
 
 const RECIPIENT_CHOICES = ['branch-email', 'ops.read', 'report.read', 'payment.review', 'order.read'];

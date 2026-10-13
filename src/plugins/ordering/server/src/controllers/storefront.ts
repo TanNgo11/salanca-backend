@@ -40,6 +40,8 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
   const branches = () => strapi.plugin('ordering').service('branch') as BranchService;
   const storefront = () => strapi.plugin('ordering').service('storefront') as StorefrontService;
   const config = () => strapi.config.get('plugin::ordering') as OrderingConfig;
+  const ratings = () =>
+    strapi.plugin('ordering').service('rating') as ReturnType<typeof import('../services/rating').default>;
 
   const customerCtx = (): ServiceContext => ({
     actor: { kind: 'customer' },
@@ -116,8 +118,9 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     /** POST /quote */
     quote: action('quote', async (ctx, serviceCtx) => {
       const cart = parseCartRequest(ctx.request.body);
-      const body = (ctx.request.body ?? {}) as { contact?: { phone?: unknown }; captchaToken?: unknown };
-      const phone = typeof body.contact?.phone === 'string' ? body.contact.phone.slice(0, 32) : '';
+      // No phone on the quote: promotion outcomes that depend on a number's history are decided
+      // at create (captcha-gated), so the quote cannot be used to probe whether a number ordered.
+      const body = (ctx.request.body ?? {}) as { captchaToken?: unknown };
       const ip = clientIpOf(strapi, ctx);
       const codeLimit = promotionCodeLimit(strapi);
       const tooMany = () => {
@@ -143,7 +146,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
         .quote(
           {
             ...cart,
-            contact: { phone },
+            contact: { phone: '' },
             consent: { policyVersion: config().consent.policyVersion, channel: 'web-checkout' },
             origin: { kind: 'storefront' },
           },
@@ -198,6 +201,14 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       await verifyCaptcha(ctx, typeof input.captchaToken === 'string' ? input.captchaToken : undefined, 'order-lookup');
       return { order: await storefront().lookup({ code, phone }) };
     }),
+
+    /** GET /orders/rating — X-Order-Token (O8). */
+    rating: action('rating', async (ctx, serviceCtx) => ratings().viewByToken(orderToken(ctx), serviceCtx)),
+
+    /** POST /orders/rating — `{ stars, tags?, comment? }` + X-Order-Token (O8). */
+    rate: action('rating', async (ctx, serviceCtx) =>
+      ratings().submitByToken(orderToken(ctx), ctx.request.body, serviceCtx),
+    ),
 
     /** POST /orders/cancel — X-Order-Token; only while customer-cancellable. */
     cancel: action('create', async (ctx, serviceCtx) => {

@@ -13,6 +13,7 @@ import notificationTemplates from './notification-templates';
 import openapi from './openapi';
 import ops from './ops';
 import paymentReview from './payment-review';
+import ratings from './ratings';
 import reports from './reports';
 import storefront from './storefront';
 import webhook from './webhook';
@@ -36,6 +37,7 @@ export default {
   'cash-closing': cashClosing,
   courier,
   reports,
+  ratings,
   'audit-log': auditLog,
   'notification-templates': notificationTemplates,
 };

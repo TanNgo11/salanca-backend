@@ -466,6 +466,10 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
           discount,
         },
         rows: rowsFor(groupBy, data),
+        // O8: average stars of the period's orders (by order business date).
+        ratings: await (
+          strapi.plugin('ordering').service('rating') as ReturnType<typeof import('./rating').default>
+        ).summaryFor(from, to, locations),
         generatedAt: nowOf(ctx).toISOString(),
       };
     },

@@ -48,7 +48,7 @@ withApp(async (app) => {
     // ── List: every template code × vi/en with "customized" flags ─────────────────────────
     const list = await staff.as.quanly('GET', '/notification-templates');
     assert.equal(list.status, 200, JSON.stringify(list.body));
-    assert.equal(list.body.results.length, 15, 'all 15 template codes listed');
+    assert.equal(list.body.results.length, 16, 'all 16 template codes listed');
     for (const row of list.body.results) {
       assert.equal(row.locales.vi.customized, false);
       assert.equal(row.locales.en.customized, false);

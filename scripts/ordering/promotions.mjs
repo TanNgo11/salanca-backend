@@ -70,16 +70,24 @@ withApp(async (app) => {
       ...extra,
     });
 
-  const first = inputFor(PHONE, 'giam10');
-  const { idempotencyKey: _key, ...draft } = first;
-  const quoted = await order.quote(draft, systemCtx);
-  const created = await order.createOrder(first, systemCtx);
-  assert.equal(quoted.totals.grandTotal, 198000);
-  assert.equal(created.order.order.totalAmount, quoted.totals.grandTotal);
-  assert.equal(created.order.order.adjustmentAmount, -22000);
-  assert.equal(quoted.promotions[0].code, 'GIAM10');
+  // GIAM10 has a per-customer limit: the quote never reads the phone's history, so it lists the
+  // code as pending at full price, and create applies it for real (the total only goes down).
+  const quoteFor = async (phone) => {
+    const { idempotencyKey: _key, ...draft } = inputFor(phone, 'giam10');
+    return order.quote({ ...draft, contact: { phone: '' } }, systemCtx);
+  };
+  const quoted = await quoteFor(PHONE);
+  assert.equal(quoted.totals.grandTotal, 220000);
+  assert.equal(quoted.promotions.length, 0);
+  assert.deepEqual(quoted.pendingPromotions, [{ code: 'GIAM10', label: 'Giảm 10%', condition: 'per-customer' }]);
   assert.equal(quoted.rejectedPromotions.length, 0);
-  console.log('[ordering-test] quote matches create for GIAM10, total', created.order.order.totalAmount);
+  const created = await order.createOrder({ ...inputFor(PHONE, 'giam10'), expectedCartHash: quoted.cartHash }, systemCtx);
+  assert.equal(created.order.order.totalAmount, 198000);
+  assert.equal(created.order.order.adjustmentAmount, -22000);
+  const again = await quoteFor(PHONE);
+  assert.equal(again.cartHash, quoted.cartHash, 'a quote is the same before and after the number ordered');
+  assert.deepEqual(again.pendingPromotions, quoted.pendingPromotions);
+  console.log('[ordering-test] per-customer code: quote pending at full price, create applies it, quote reveals no history');
 
   await assert.rejects(
     () => order.createOrder(inputFor(PHONE, 'GIAM10'), systemCtx),
@@ -143,6 +151,33 @@ withApp(async (app) => {
     (error) => error.code === 'PROMOTION_INVALID',
   );
   console.log('[ordering-test] an unknown code is rejected on the quote and refused on create');
+  // First-order automatic promotion: quote shows it pending for everyone; create applies it only
+  // to a number with no earlier order.
+  const firstOrder = await createPromotion(
+    app,
+    basePromotion({
+      name: { vi: 'Đơn đầu giảm 50.000đ' },
+      kind: 'auto',
+      discountType: 'amount',
+      value: 50000,
+      firstOrderOnly: true,
+      stackable: true,
+      priority: 5,
+    }),
+  );
+  const firstQuote = await order.quote(
+    basicOrderInput({ adjustments: [], contact: { phone: '' }, placedAt: '2026-10-13T04:30:00.000Z' }),
+    systemCtx,
+  );
+  assert.ok(firstQuote.pendingPromotions.some((row) => row.condition === 'first-order'));
+  const hasFirstOrder = (created) =>
+    created.order.adjustments.some((row) => row.sourceRef === `promotion:${firstOrder.id}`);
+  const newcomer = await order.createOrder(inputFor('+84901110009', undefined), systemCtx);
+  assert.equal(hasFirstOrder(newcomer), true, 'a new number gets the first-order promotion');
+  const returning = await order.createOrder(inputFor(PHONE, undefined), systemCtx);
+  assert.equal(hasFirstOrder(returning), false, 'a number that ordered before does not');
+  console.log('[ordering-test] first-order promotion: pending on the quote, applied at create to new numbers only');
+
   // --- HTTP: wrong-code guard ------------------------------------------------------------
   app.config.set('plugin::ordering.storefront.rateLimits.promotionCode', { max: 6, windowMs: 600_000 });
   app.config.set('plugin::ordering.storefront.rateLimits.quote', { max: 100, windowMs: 60_000 });
