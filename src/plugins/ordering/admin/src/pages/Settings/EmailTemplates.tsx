@@ -238,7 +238,7 @@ const EmailTemplatesBlock = ({ t }: { t: Translate }) => {
           {t('x4.loadFailed')}
         </Alert>
       ) : (
-        <Table colCount={5}>
+        <Table colCount={5} rowCount={rows.length + 1}>
           <Thead>
             <Tr>
               <Th><Typography variant="sigma">{t('x4.col.name')}</Typography></Th>

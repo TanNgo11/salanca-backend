@@ -187,7 +187,9 @@ const DataRequestsPage = () => {
                 <Loader>{t('common.loading')}</Loader>
               </Flex>
             ) : state === 'scope' ? (
-              <Alert variant="danger" closeLabel={t('common.close')} title={t('common.forbidden.title')} />
+              <Alert variant="danger" closeLabel={t('common.close')} title={t('common.forbidden.title')}>
+                {t('common.forbidden.body')}
+              </Alert>
             ) : state === 'error' ? (
               <Alert
                 variant="danger"
@@ -201,7 +203,7 @@ const DataRequestsPage = () => {
               <EmptyStateLayout content={t('dataRequests.empty')} />
             ) : (
               <Flex direction="column" alignItems="stretch" gap={3}>
-                <Table colCount={8}>
+                <Table colCount={8} rowCount={rows.length + 1}>
                   <Thead>
                     <Tr>
                       <Th><Typography variant="sigma">{t('dataRequests.col.at')}</Typography></Th>
@@ -281,9 +283,7 @@ const DataRequestsPage = () => {
       </Page.Main>
       <Dialog.Root open={processing !== null} onOpenChange={(open: boolean) => !open && setProcessing(null)}>
         <Dialog.Content>
-          <Dialog.Header>
-            <Dialog.Title>{t('dataRequests.process.title')}</Dialog.Title>
-          </Dialog.Header>
+          <Dialog.Header>{t('dataRequests.process.title')}</Dialog.Header>
           <Dialog.Body>
             <Typography>{t('dataRequests.process.consequences')}</Typography>
           </Dialog.Body>
@@ -301,9 +301,7 @@ const DataRequestsPage = () => {
       </Dialog.Root>
       <Dialog.Root open={rejecting !== null} onOpenChange={(open: boolean) => !open && setRejecting(null)}>
         <Dialog.Content>
-          <Dialog.Header>
-            <Dialog.Title>{t('dataRequests.reject.title')}</Dialog.Title>
-          </Dialog.Header>
+          <Dialog.Header>{t('dataRequests.reject.title')}</Dialog.Header>
           <Dialog.Body>
             <Field.Root required>
               <Field.Label>{t('dataRequests.reject.reason')}</Field.Label>
@@ -334,9 +332,7 @@ const DataRequestsPage = () => {
       </Dialog.Root>
       <Dialog.Root open={createOpen} onOpenChange={(open: boolean) => setCreateOpen(open)}>
         <Dialog.Content>
-          <Dialog.Header>
-            <Dialog.Title>{t('dataRequests.create.title')}</Dialog.Title>
-          </Dialog.Header>
+          <Dialog.Header>{t('dataRequests.create.title')}</Dialog.Header>
           <Dialog.Body>
             <Flex direction="column" alignItems="stretch" gap={3}>
               <Field.Root required>

@@ -145,7 +145,9 @@ export const CustomersList = () => {
               <Loader>{t('common.loading')}</Loader>
             </Flex>
           ) : state === 'scope' ? (
-            <Alert variant="danger" closeLabel={t('common.close')} title={t('common.forbidden.title')} />
+            <Alert variant="danger" closeLabel={t('common.close')} title={t('common.forbidden.title')}>
+              {t('common.forbidden.body')}
+            </Alert>
           ) : state === 'error' ? (
             <Alert
               variant="danger"
@@ -159,7 +161,7 @@ export const CustomersList = () => {
             <EmptyStateLayout content={t('customers.empty')} />
           ) : (
             <Flex direction="column" alignItems="stretch" gap={3}>
-              <Table colCount={7}>
+              <Table colCount={7} rowCount={rows.length + 1}>
                 <Thead>
                   <Tr>
                     <Th><Typography variant="sigma">{t('customers.col.customer')}</Typography></Th>

@@ -1,0 +1,19 @@
+{
+  // Type-checks the ordering plugin's admin screens. The root tsconfig excludes plugins and
+  // admin files, and `strapi build` (esbuild) strips types without checking them.
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "target": "es2020",
+    "lib": ["dom", "es2022"],
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "types": []
+  },
+  "include": ["src/plugins/ordering/admin/src/**/*.ts", "src/plugins/ordering/admin/src/**/*.tsx"],
+  "exclude": ["src/plugins/ordering/admin/src/**/*.test.ts"]
+}

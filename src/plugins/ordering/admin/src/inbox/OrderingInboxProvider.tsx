@@ -163,7 +163,7 @@ const InboxRuntime = ({ children }: { children: ReactNode }) => {
     };
     const open = async () => {
       try {
-        const response = await fetch(`${window.strapi.backendURL}/${PLUGIN}/orders/stream`, {
+        const response = await fetch(`${(window.strapi as typeof window.strapi & { backendURL: string }).backendURL}/${PLUGIN}/orders/stream`, {
           headers: { Authorization: `Bearer ${token}` },
           signal: abort.signal,
         });

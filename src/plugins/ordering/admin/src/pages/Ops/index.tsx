@@ -287,7 +287,7 @@ const OpsPage = () => {
               </Tabs.Root>
 
               {tab === 'jobs' ? (
-                <Table colCount={6}>
+                <Table colCount={6} rowCount={body.jobs.length + 1}>
                   <Thead>
                     <Tr>
                       <Th><Typography variant="sigma">{t('ops.job.col.name')}</Typography></Th>
@@ -353,7 +353,7 @@ const OpsPage = () => {
               ) : failedRows.length === 0 ? (
                 <EmptyStateLayout content={t('ops.failed.empty')} />
               ) : (
-                <Table colCount={5}>
+                <Table colCount={5} rowCount={failedRows.length + 1}>
                   <Thead>
                     <Tr>
                       <Th><Typography variant="sigma">{t('ops.failed.col.type')}</Typography></Th>

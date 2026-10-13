@@ -68,6 +68,7 @@ type Summary = {
 };
 
 type Draft = { counted: number | undefined; note: string };
+const DRAFT_DEFAULTS: Draft = { counted: undefined, note: '' };
 
 /**
  * "Chốt tiền mặt" (screens V3): one row per cash collector for a branch + business date. Open
@@ -167,7 +168,7 @@ const CashClosingPage = () => {
   const setDraft = (ref: string, next: Partial<Draft>) =>
     setDrafts((current) => ({
       ...current,
-      [ref]: { counted: undefined, note: '', ...current[ref], ...next },
+      [ref]: { ...DRAFT_DEFAULTS, ...current[ref], ...next },
     }));
 
   const closeRow = async () => {
@@ -293,7 +294,7 @@ const CashClosingPage = () => {
             ) : status === 'empty' || !summary ? (
               <EmptyStateLayout content={t('cash.empty')} />
             ) : (
-              <Table colCount={8}>
+              <Table colCount={8} rowCount={rows.length + 2}>
                 <Thead>
                   <Tr>
                     <Th><Typography variant="sigma">{t('cash.col.collector')}</Typography></Th>

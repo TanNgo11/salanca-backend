@@ -143,7 +143,7 @@ const AlertRulesBlock = ({ t }: { t: Translate }) => {
           {t('settings.alerts.save')}
         </Button>
       </Flex>
-      <Table colCount={6}>
+      <Table colCount={6} rowCount={ALERT_CODES.length + 1}>
         <Thead>
           <Tr>
             <Th><Typography variant="sigma">{t('settings.alerts.col.rule')}</Typography></Th>
@@ -174,7 +174,7 @@ const AlertRulesBlock = ({ t }: { t: Translate }) => {
                     >
                       <NumberInput
                         name={`${code}-threshold`}
-                        minValue={1}
+                        min={1}
                         value={rule.threshold}
                         onValueChange={(next?: number) =>
                           update(code, { threshold: numberOrUndefined(next) ?? rule.threshold })
@@ -190,7 +190,7 @@ const AlertRulesBlock = ({ t }: { t: Translate }) => {
                     <Field.Root error={alertErrors[`${code}.criticalThreshold`]} hint={t('settings.alerts.col.critical.none')}>
                       <NumberInput
                         name={`${code}-critical`}
-                        minValue={1}
+                        min={1}
                         value={rule.criticalThreshold}
                         onValueChange={(next?: number) =>
                           update(code, { criticalThreshold: numberOrUndefined(next) })
@@ -205,8 +205,8 @@ const AlertRulesBlock = ({ t }: { t: Translate }) => {
                     <Field.Root error={alertErrors[`${code}.aggregationMinutes`]}>
                       <NumberInput
                         name={`${code}-window`}
-                        minValue={1}
-                        maxValue={1440}
+                        min={1}
+                        max={1440}
                         value={rule.aggregationMinutes}
                         onValueChange={(next?: number) =>
                           update(code, { aggregationMinutes: numberOrUndefined(next) ?? rule.aggregationMinutes })

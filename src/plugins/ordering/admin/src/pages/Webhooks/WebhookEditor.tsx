@@ -22,6 +22,7 @@ import {
   Thead,
   Tr,
   Typography,
+  VisuallyHidden,
 } from '@strapi/design-system';
 import { ArrowLeft, Duplicate } from '@strapi/icons';
 import { Layouts, useFetchClient, useNotification } from '@strapi/strapi/admin';
@@ -168,7 +169,7 @@ const DeliveriesTab = ({ endpointId }: { endpointId: number }) => {
                   <Typography variant="sigma">{t(`webhook.delivery.col.${column}`)}</Typography>
                 </Th>
               ))}
-              <Th />
+              <Th><VisuallyHidden>{t('webhook.delivery.resend')}</VisuallyHidden></Th>
             </Tr>
           </Thead>
           <Tbody>

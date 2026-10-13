@@ -62,6 +62,7 @@ export const o11Messages: Record<string, [string, string]> = {
   'customers.detail.col.placed': ['Đặt lúc', 'Placed'],
   'customers.detail.col.branch': ['CN', 'Branch'],
   'customers.detail.col.label': ['Nhãn', 'Label'],
+  'customers.detail.defaultAddress': ['Mặc định', 'Default'],
   'customers.detail.col.recipient': ['Người nhận', 'Recipient'],
   'customers.detail.col.address': ['Địa chỉ', 'Address'],
   'customers.detail.col.at': ['Lúc', 'At'],

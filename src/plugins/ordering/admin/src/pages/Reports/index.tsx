@@ -318,7 +318,7 @@ const ReportsPage = () => {
                   </Grid.Item>
                 </Grid.Root>
 
-                <Table colCount={columns(report.groupBy).length}>
+                <Table colCount={columns(report.groupBy).length} rowCount={rows.length + 1}>
                   <Thead>
                     <Tr>
                       {columns(report.groupBy).map((key) => (

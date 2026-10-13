@@ -108,7 +108,7 @@ type EditBody = {
   revision: number;
   reason: string;
   notifyCustomer: boolean;
-  add?: Array<{ sellableUid: string; variantUid?: string; quantity: number; note?: string; options?: AddedLine['options'] }>;
+  add?: Array<{ sellableUid: string; variantUid?: string; quantity: number; note?: string; options?: Array<{ groupUid: string; optionUid: string; quantity: number }> }>;
   reduce?: Array<{ lineId: number; quantity: number }>;
   timing?: { kind: 'asap' } | { kind: 'scheduled'; startsAt: string };
   address?: { communeCode: string; line1: string; recipientName: string; phone: string };
@@ -511,7 +511,9 @@ export const OrderEditPage = () => {
   if (!can.canEdit) {
     return (
       <Box padding={6}>
-        <Alert variant="danger" closeLabel={t('common.close')} title={t('common.forbidden.title')} />
+        <Alert variant="danger" closeLabel={t('common.close')} title={t('common.forbidden.title')}>
+          {t('common.forbidden.body')}
+        </Alert>
       </Box>
     );
   }
@@ -523,7 +525,9 @@ export const OrderEditPage = () => {
           closeLabel={t('common.close')}
           title={status === 'missing' ? t('detail.missing') : t('common.error.title')}
           action={<Button onClick={() => void load(false)}>{t('common.retry')}</Button>}
-        />
+        >
+          {status === 'missing' ? t('detail.missing.body') : t('detail.loadFailed')}
+        </Alert>
       </Box>
     );
   }
@@ -782,13 +786,14 @@ export const OrderEditPage = () => {
                   <Alert
                     variant="danger"
                     closeLabel={t('common.close')}
-                    title={previewErrorText(errorCode, t)}
                     action={
                       errorCode === 'ORDER_CHANGED' ? (
                         <Button onClick={() => void load(true)}>{t('edit.reload')}</Button>
                       ) : undefined
                     }
-                  />
+                  >
+                    {previewErrorText(errorCode, t)}
+                  </Alert>
                 ) : null}
                 {preview ? (
                   <Flex direction="column" alignItems="stretch" gap={2} paddingTop={2}>
@@ -804,7 +809,9 @@ export const OrderEditPage = () => {
                     ))}
                     <MoneyLines preview={preview} t={t} />
                     {preview.warnings.map((code) => (
-                      <Alert key={code} variant="warning" closeLabel={t('common.close')} title={warningText(code, t)} />
+                      <Alert key={code} variant="warning" closeLabel={t('common.close')}>
+                        {warningText(code, t)}
+                      </Alert>
                     ))}
                   </Flex>
                 ) : null}

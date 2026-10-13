@@ -11,6 +11,7 @@ export const o3Messages: Record<string, [string, string]> = {
   'common.close': ['Đóng', 'Close'],
   'common.edit': ['Sửa', 'Edit'],
   'common.error.title': ['Có lỗi', 'Something went wrong'],
+  'common.forbidden.body': ['Tài khoản của bạn chưa có quyền xem mục này.', 'Your account does not have permission to view this.'],
   'common.forbidden.title': ['Không có quyền', 'No access'],
   'common.loading': ['Đang tải…', 'Loading…'],
   'common.next': ['Sau', 'Next'],

@@ -76,7 +76,7 @@ const PortionBar = ({
   );
 };
 
-const fmtUntil = (row: Row, t: (k: string, f: string, v?: Record<string, unknown>) => string): string => {
+const fmtUntil = (row: Row, t: (k: string, f: string, v?: Record<string, string | number>) => string): string => {
   if (row.outOfStockUntil === null) return '—';
   if (row.untilKind === 'end-of-business-day') return t('until.eod', 'Hết ngày kinh doanh');
   const at = new Date(row.outOfStockUntil);
@@ -111,7 +111,7 @@ const AvailabilityPage = () => {
   const [missingBranch, setMissingBranch] = useState(false);
 
   const t = useCallback(
-    (key: string, fallback: string, values?: Record<string, unknown>) =>
+    (key: string, fallback: string, values?: Record<string, string | number>) =>
       formatMessage({ id: `${PLUGIN_ID}.availability.${key}`, defaultMessage: fallback }, values),
     [formatMessage],
   );
@@ -135,7 +135,8 @@ const AvailabilityPage = () => {
     async (code: string) => {
       try {
         const { data } = await get(`/${PLUGIN_ID}/availability?locationRef=${encodeURIComponent(code)}`);
-        setRows(Array.isArray(data?.items) ? data.items : []);
+        const items = (data as { items?: Row[] } | undefined)?.items;
+        setRows(Array.isArray(items) ? items : []);
         setMissingBranch(false);
       } catch (error) {
         const api = (error as { response?: { data?: { error?: { code?: string } } } })?.response?.data
@@ -156,7 +157,8 @@ const AvailabilityPage = () => {
     (async () => {
       try {
         const { data } = await get(`/${PLUGIN_ID}/availability/locations`);
-        const items = (Array.isArray(data?.items) ? data.items : []) as BranchOption[];
+        const raw = (data as { items?: BranchOption[] } | undefined)?.items;
+        const items = Array.isArray(raw) ? raw : [];
         if (cancelled) return;
         setBranches(items);
         const first = items[0]?.code;

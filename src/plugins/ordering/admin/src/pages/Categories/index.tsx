@@ -146,7 +146,7 @@ const CategoriesPage = () => {
   const [busy, setBusy] = useState(false);
 
   const t = useCallback(
-    (key: string, fallback: string, values?: Record<string, unknown>) =>
+    (key: string, fallback: string, values?: Record<string, string | number>) =>
       formatMessage({ id: `${PLUGIN_ID}.categories.${key}`, defaultMessage: fallback }, values),
     [formatMessage],
   );
@@ -170,7 +170,8 @@ const CategoriesPage = () => {
     setLoading(true);
     try {
       const { data } = await get(`/${PLUGIN_ID}/categories?locale=vi`);
-      setTree(Array.isArray(data?.items) ? data.items : []);
+      const items = (data as { items?: TreeNode[] } | undefined)?.items;
+      setTree(Array.isArray(items) ? items : []);
     } catch (error) {
       notifyError(error);
     } finally {
@@ -265,7 +266,7 @@ const CategoriesPage = () => {
         `/${PLUGIN_ID}/categories/${deleting.item.ref}${deleting.linkedProducts.length > 0 ? '?confirm=true' : ''}`,
       );
       setDeleting(null);
-      const orphans = (data?.productsWithoutCategory ?? []) as { name: string }[];
+      const orphans = ((data as { productsWithoutCategory?: { name: string }[] } | undefined)?.productsWithoutCategory ?? []);
       toggleNotification({
         type: orphans.length > 0 ? 'warning' : 'success',
         message:
@@ -328,7 +329,7 @@ const CategoriesPage = () => {
         </Flex>
       </Flex>
 
-      <Flex alignItems="flex-start" gap={6} paddingTop={6} crossAlign="stretch">
+      <Flex alignItems="flex-start" gap={6} paddingTop={6}>
         {/* ------- Tree panel ------- */}
         <Box
           background="neutral0"
@@ -395,7 +396,7 @@ const CategoriesPage = () => {
                   }}
                 >
                   <Flex gap={2} alignItems="center">
-                    <Box textColor="neutral500" style={{ cursor: 'grab' }} aria-hidden>
+                    <Box color="neutral500" style={{ cursor: 'grab' }} aria-hidden>
                       <Drag />
                     </Box>
                     {node.children.length > 0 ? (

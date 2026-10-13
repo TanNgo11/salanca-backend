@@ -299,7 +299,7 @@ export const DeliveriesList = () => {
             <EmptyStateLayout content={t(assignee ? 'deliveries.empty.filtered' : `deliveries.empty.${tab}`)} />
           ) : (
             <>
-              <Table colCount={6}>
+              <Table colCount={6} rowCount={data.results.length + 1}>
                 <Thead>
                   <Tr>
                     <Th><Typography variant="sigma">{t('deliveries.col.code')}</Typography></Th>

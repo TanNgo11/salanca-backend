@@ -19,6 +19,7 @@ import {
   Thead,
   Tr,
   Typography,
+  VisuallyHidden,
 } from '@strapi/design-system';
 import { Layouts, useFetchClient, useNotification, useRBAC } from '@strapi/strapi/admin';
 import { Link, useParams } from 'react-router-dom';
@@ -314,7 +315,7 @@ export const CustomerDetailPage = () => {
             orders.length === 0 ? (
               <Typography variant="pi">{t('customers.detail.noOrders')}</Typography>
             ) : (
-              <Table colCount={6}>
+              <Table colCount={6} rowCount={orders.length + 1}>
                 <Thead>
                   <Tr>
                     <Th><Typography variant="sigma">{t('customers.detail.col.code')}</Typography></Th>
@@ -350,13 +351,13 @@ export const CustomerDetailPage = () => {
             addresses.length === 0 ? (
               <Typography variant="pi">{t('customers.detail.noAddresses')}</Typography>
             ) : (
-              <Table colCount={4}>
+              <Table colCount={4} rowCount={addresses.length + 1}>
                 <Thead>
                   <Tr>
                     <Th><Typography variant="sigma">{t('customers.detail.col.label')}</Typography></Th>
                     <Th><Typography variant="sigma">{t('customers.detail.col.recipient')}</Typography></Th>
                     <Th><Typography variant="sigma">{t('customers.detail.col.address')}</Typography></Th>
-                    <Th />
+                    <Th><VisuallyHidden>{t('x4.default')}</VisuallyHidden></Th>
                   </Tr>
                 </Thead>
                 <Tbody>
@@ -375,7 +376,7 @@ export const CustomerDetailPage = () => {
                             .join(', ')}
                         </Typography>
                       </Td>
-                      <Td>{address.isDefault ? <Badge>{t('customers.detail.col.label')}</Badge> : null}</Td>
+                      <Td>{address.isDefault ? <Badge>{t('customers.detail.defaultAddress')}</Badge> : null}</Td>
                     </Tr>
                   ))}
                 </Tbody>
@@ -386,7 +387,7 @@ export const CustomerDetailPage = () => {
             consentTrail.length === 0 ? (
               <Typography variant="pi">{t('customers.detail.noConsent')}</Typography>
             ) : (
-              <Table colCount={4}>
+              <Table colCount={4} rowCount={consentTrail.length + 1}>
                 <Thead>
                   <Tr>
                     <Th><Typography variant="sigma">{t('customers.detail.col.at')}</Typography></Th>
@@ -418,7 +419,7 @@ export const CustomerDetailPage = () => {
             requests.length === 0 ? (
               <Typography variant="pi">{t('customers.detail.noRequests')}</Typography>
             ) : (
-              <Table colCount={6}>
+              <Table colCount={6} rowCount={requests.length + 1}>
                 <Thead>
                   <Tr>
                     <Th><Typography variant="sigma">{t('customers.detail.col.at')}</Typography></Th>
@@ -448,9 +449,7 @@ export const CustomerDetailPage = () => {
       </Layouts.Content>
       <Dialog.Root open={editOpen} onOpenChange={(open: boolean) => setEditOpen(open)}>
         <Dialog.Content>
-          <Dialog.Header>
-            <Dialog.Title>{t('customers.detail.edit.title')}</Dialog.Title>
-          </Dialog.Header>
+          <Dialog.Header>{t('customers.detail.edit.title')}</Dialog.Header>
           <Dialog.Body>
             <Flex direction="column" alignItems="stretch" gap={3}>
               <Field.Root>
@@ -480,9 +479,7 @@ export const CustomerDetailPage = () => {
       </Dialog.Root>
       <Dialog.Root open={eraseOpen} onOpenChange={(open: boolean) => setEraseOpen(open)}>
         <Dialog.Content>
-          <Dialog.Header>
-            <Dialog.Title>{t('customers.detail.erase.title')}</Dialog.Title>
-          </Dialog.Header>
+          <Dialog.Header>{t('customers.detail.erase.title')}</Dialog.Header>
           <Dialog.Body>
             <Typography>
               {t('customers.detail.erase.consequences', { count: closedOrders })}

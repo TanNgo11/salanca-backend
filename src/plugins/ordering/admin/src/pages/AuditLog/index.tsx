@@ -311,7 +311,9 @@ const AuditLogPage = () => {
                 <Loader>{t('common.loading')}</Loader>
               </Flex>
             ) : status === 'scope' ? (
-              <Alert variant="danger" closeLabel={t('common.close')} title={t('common.forbidden.title')} />
+              <Alert variant="danger" closeLabel={t('common.close')} title={t('common.forbidden.title')}>
+                {t('common.forbidden.body')}
+              </Alert>
             ) : status === 'error' ? (
               <Alert
                 variant="danger"
@@ -325,7 +327,7 @@ const AuditLogPage = () => {
               <EmptyStateLayout content={t('audit.empty')} />
             ) : (
               <Flex direction="column" alignItems="stretch" gap={3}>
-                <Table colCount={6}>
+                <Table colCount={6} rowCount={rows.length + 1}>
                   <Thead>
                     <Tr>
                       <Th><Typography variant="sigma">{t('audit.col.at')}</Typography></Th>
@@ -398,7 +400,7 @@ const AuditLogPage = () => {
                 {Object.keys(detail.entry.changes ?? {}).length === 0 ? (
                   <Typography variant="pi">{t('audit.detail.noChanges')}</Typography>
                 ) : (
-                  <Table colCount={3}>
+                  <Table colCount={3} rowCount={Object.keys(detail.entry.changes ?? {}).length + 1}>
                     <Thead>
                       <Tr>
                         <Th><Typography variant="sigma">{t('audit.detail.field')}</Typography></Th>

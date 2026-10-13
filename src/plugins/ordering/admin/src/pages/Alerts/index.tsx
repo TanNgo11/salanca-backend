@@ -130,7 +130,9 @@ const AlertsPage = () => {
                 <Loader>{t('common.loading')}</Loader>
               </Flex>
             ) : status === 'scope' ? (
-              <Alert variant="danger" closeLabel={t('common.close')} title={t('common.forbidden.title')} />
+              <Alert variant="danger" closeLabel={t('common.close')} title={t('common.forbidden.title')}>
+                {t('common.forbidden.body')}
+              </Alert>
             ) : status === 'error' ? (
               <Alert
                 variant="danger"
@@ -144,7 +146,7 @@ const AlertsPage = () => {
               <EmptyStateLayout content={t(`alerts.empty.${tab}`)} />
             ) : (
               <Flex direction="column" alignItems="stretch" gap={3}>
-                <Table colCount={colCount}>
+                <Table colCount={colCount} rowCount={rows.length + 1}>
                   <Thead>
                     <Tr>
                       <Th><Typography variant="sigma">{t('alerts.col.level')}</Typography></Th>
