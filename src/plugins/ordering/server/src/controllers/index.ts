@@ -18,6 +18,7 @@ import notificationTemplates from './notification-templates';
 import openapi from './openapi';
 import ops from './ops';
 import paymentReview from './payment-review';
+import providers from './providers';
 import promotions from './promotions';
 import priceLists from './price-lists';
 import customerGroups from './customer-groups';
@@ -53,6 +54,7 @@ export default {
   'audit-log': auditLog,
   'notification-channels': notificationChannels,
   'notification-templates': notificationTemplates,
+  providers,
   'customer-auth': customerAuth,
   customer,
   cart,

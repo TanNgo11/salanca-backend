@@ -398,6 +398,9 @@ export default {
         'notification-templates.remove',
         'settings.manage',
       ),
+      // O13 "Nhà cung cấp" (screens P1): read-only grouped provider overview — masked
+      // identifiers only, secrets stay env-only.
+      adminRoute('GET', '/providers', 'providers.list', 'settings.manage'),
       // O13 "Kênh thông báo" (screens P3): ordered channel chain + ZNS mapping per template,
       // plus a staff test-send that writes a `test:*` delivery row.
       adminRoute('GET', '/notification-channels', 'notification-channels.list', 'settings.manage'),

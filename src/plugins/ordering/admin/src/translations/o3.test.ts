@@ -69,6 +69,11 @@ const DYNAMIC: Record<string, string[]> = {
   'price.adjust': ['percent', 'amount'],
   'price.target': ['all', 'categories', 'products'],
   'group.source': ['manual', 'auto'],
+  'ops.webhook': ['ok', 'slow', 'failing'],
+  'p1.provider': ['cash', 'sepay', 'momo', 'vnpay', 'gift-card', 'self-delivery', 'ahamove', 'ghn', 'email', 'zalo', 'sms'],
+  'p1.group': ['payment', 'fulfillment', 'notification'],
+  'p1.state': ['configured', 'unconfigured', 'error', 'not-implemented'],
+  'p1.env': ['sandbox', 'production'],
 };
 
 describe('O3 admin translations', () => {

@@ -78,40 +78,55 @@ const opsStatus = ({ strapi }: { strapi: Core.Strapi }) => {
       ? Math.max(0, (now.getTime() - new Date(stats.oldestAvailableAt).getTime()) / MINUTE_MS)
       : 0;
 
-    // Every provider that accepts signed webhooks (sepay today) gets a health row; the
-    // last-good/last-bad stamps come from noteWebhookSuccess/Failure (alert.ts).
+    // Every provider that accepts signed webhooks (sepay, momo, vnpay, ahamove) gets a health
+    // row; the stamps + 24h samples come from noteWebhookSuccess/Failure (alert.ts).
+    const webhookProviders = [
+      ...registry().paymentProviders(),
+      ...registry()
+        .fulfillmentProviderCodes()
+        .map((code) => registry().fulfillmentProvider(code)),
+    ].filter((provider) => provider.capabilities.includes(SIGNED_WEBHOOK_CAPABILITY));
     const webhooks = await Promise.all(
-      registry()
-        .paymentProviders()
-        .filter((provider) => provider.capabilities.includes(SIGNED_WEBHOOK_CAPABILITY))
-        .map(async (provider) => {
-          const code = provider.code;
-          const [lastSuccess, lastFailure, failures] = await Promise.all([
-            store().get({ key: `webhook-last-success:${code}` }),
-            store().get({ key: `webhook-last-failure:${code}` }),
-            store().get({ key: `webhook-failures:${code}` }),
-          ]);
-          const consecutiveFailures = Number(failures) || 0;
-          const lastSuccessAt = typeof lastSuccess === 'string' ? lastSuccess : null;
-          const stale =
-            lastSuccessAt !== null &&
-            now.getTime() - new Date(lastSuccessAt).getTime() > 24 * HOUR_MS;
-          return {
-            providerCode: code,
-            lastSuccessAt,
-            lastFailureAt: typeof lastFailure === 'string' ? lastFailure : null,
-            consecutiveFailures,
-            state: (consecutiveFailures >= webhookRule.threshold
-              ? 'failing'
-              : stale
-                ? 'slow'
-                : 'ok') as 'ok' | 'slow' | 'failing',
-          };
-        }),
+      webhookProviders.map(async (provider) => {
+        const code = provider.code;
+        const [lastSuccess, lastFailure, failures, samples] = await Promise.all([
+          store().get({ key: `webhook-last-success:${code}` }),
+          store().get({ key: `webhook-last-failure:${code}` }),
+          store().get({ key: `webhook-failures:${code}` }),
+          store().get({ key: `webhook-events-24h:${code}` }),
+        ]);
+        const consecutiveFailures = Number(failures) || 0;
+        const lastSuccessAt = typeof lastSuccess === 'string' ? lastSuccess : null;
+        const stale =
+          lastSuccessAt !== null &&
+          now.getTime() - new Date(lastSuccessAt).getTime() > 24 * HOUR_MS;
+        const cutoff = now.getTime() - 24 * HOUR_MS;
+        const window = (Array.isArray(samples) ? samples : []).filter((entry) => {
+          const at = (entry as { at?: unknown }).at;
+          return typeof at === 'string' && new Date(at).getTime() >= cutoff;
+        });
+        const failures24h = window.filter((entry) => (entry as { ok?: unknown }).ok === false).length;
+        return {
+          providerCode: code,
+          lastSuccessAt,
+          lastFailureAt: typeof lastFailure === 'string' ? lastFailure : null,
+          consecutiveFailures,
+          last24h: { total: window.length, failures: failures24h },
+          state: (consecutiveFailures >= webhookRule.threshold
+            ? 'failing'
+            : stale
+              ? 'slow'
+              : 'ok') as 'ok' | 'slow' | 'failing',
+        };
+      }),
     );
 
     const reconciliationLock = (await locks().findOne({
       where: { jobName: 'sepay-reconciliation', shardKey: 'default' },
+    })) as JobLockRow | null;
+    // O13: the wallet catch-up job polls pending MoMo/VNPay sessions via queryTransaction.
+    const walletLock = (await locks().findOne({
+      where: { jobName: 'wallet-status-check', shardKey: 'default' },
     })) as JobLockRow | null;
 
     const [openAlerts, criticalAlerts] = await Promise.all([
@@ -195,6 +210,14 @@ const opsStatus = ({ strapi }: { strapi: Core.Strapi }) => {
         lastSuccessAt: toIso(reconciliationLock?.lastSuccessAt),
         nextRunAt: nextInvocationOf(strapi, 'ordering.sepay-reconciliation'),
         enabled: registry().hasPaymentProvider('sepay'),
+      },
+      walletStatus: {
+        lastRunAt: toIso(walletLock?.lastRunAt),
+        lastSuccessAt: toIso(walletLock?.lastSuccessAt),
+        lastError: walletLock?.lastError ? walletLock.lastError.slice(0, 200) : null,
+        nextRunAt: nextInvocationOf(strapi, 'ordering.wallet-status-check'),
+        enabled:
+          registry().hasPaymentProvider('momo') || registry().hasPaymentProvider('vnpay'),
       },
       alerts: { open: Number(openAlerts), critical: Number(criticalAlerts) },
       jobs,

@@ -405,9 +405,24 @@ export const OPERATIONS: Operation[] = [
     ),
     response: obj({ order: generic, token: str, replayed: bool }, ['order', 'token', 'replayed']),
   }),
+  // O13 wallet checkout: staff/customer starts a redirect session; the return landing is
+  // display-only — capture always comes from the provider IPN, never the return URL.
+  pub('post', '/payments/session', 'Payments', 'Start a wallet payment session (X-Order-Token)', {
+    requestBody: obj({ orderCode: str, token: str }, ['orderCode', 'token']),
+    response: generic,
+  }),
+  pub('get', '/payments/return/:provider', 'Payments', 'Wallet return landing (no side effects)', {
+    parameters: [pathParam('provider', 'e.g. momo')],
+    response: generic,
+  }),
   pub('post', '/webhooks/:providerCode', 'Webhooks', 'Inbound payment-provider webhook (raw signed body)', {
     parameters: [pathParam('providerCode', 'e.g. sepay')],
     requestBody: generic,
+    response: generic,
+  }),
+  // VNPay sends its IPN as GET — the signature covers the query-param set itself.
+  pub('get', '/webhooks/:providerCode', 'Webhooks', 'Inbound provider IPN via signed query params (VNPay)', {
+    parameters: [pathParam('providerCode', 'e.g. vnpay')],
     response: generic,
   }),
   pub('get', '/openapi.json', 'Meta', 'This OpenAPI document (cached 1 hour)', {
@@ -905,4 +920,33 @@ export const OPERATIONS: Operation[] = [
     ['settings.manage'],
     { parameters: [pathParam('code'), pathParam('locale')] },
   ),
+
+  // O13 P3 "Kênh thông báo": per-template channel chain + ZNS mapping + staff test-send.
+  adm('get', '/notification-channels', 'Notification channels', 'Channel chain + counters per template', [
+    'settings.manage',
+  ]),
+  adm(
+    'put',
+    '/notification-channels/:template',
+    'Notification channels',
+    'Replace the channel chain / ZNS mapping / active flag of a template',
+    ['settings.manage'],
+    {
+      parameters: [pathParam('template', 'e.g. customer.order-placed')],
+      requestBody: obj({ channels: arr(str), zns: generic, active: bool }, ['channels']),
+    },
+  ),
+  adm(
+    'post',
+    '/notification-channels/test',
+    'Notification channels',
+    'Test-send one template over a chosen channel (writes a test:* delivery row)',
+    ['settings.manage'],
+    { requestBody: obj({ template: str, channel: str, target: str }, ['template', 'channel', 'target']) },
+  ),
+
+  // O13 P1 "Nhà cung cấp": read-only grouped provider overview — masked ids, never secrets.
+  adm('get', '/providers', 'Providers', 'Grouped provider cards with env/webhook status', [
+    'settings.manage',
+  ]),
 ];
