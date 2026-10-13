@@ -25,6 +25,7 @@ import {
 } from '../lib/permissions';
 
 const OrdersPage = lazy(() => import('./Orders'));
+const PrintPage = lazy(() => import('./Print'));
 const CustomersPage = lazy(() => import('./Customers'));
 const DataRequestsPage = lazy(() => import('./DataRequests'));
 const DeliveriesPage = lazy(() => import('./Deliveries'));
@@ -202,6 +203,7 @@ const OrderingApp = () => {
   const canProcess = !process.isLoading && process.allowedActions.canProcess === true;
   const canRecordCash = !recordCash.isLoading && recordCash.allowedActions.canRecordCash === true;
   const [hasAssigned, setHasAssigned] = useState(false);
+  const { pathname } = useLocation();
   useEffect(() => {
     if (!canProcess || canRecordCash) return undefined;
     let live = true;
@@ -283,6 +285,24 @@ const OrderingApp = () => {
       'api-docs',
     ] as Section[]
   ).find((key) => visible[key]);
+
+  // N1 print pages render raw — no Admin frame, no inbox/SSE. They run inside hidden
+  // auto-print iframes on counter machines, so anything heavy would print twice.
+  if (pathname.includes('/plugins/ordering/print')) {
+    return (
+      <Suspense
+        fallback={
+          <Flex justifyContent="center" padding={10}>
+            <Loader />
+          </Flex>
+        }
+      >
+        <Routes>
+          <Route path="print/:orderId" element={<PrintPage />} />
+        </Routes>
+      </Suspense>
+    );
+  }
 
   return (
     <OrderingInboxProvider>

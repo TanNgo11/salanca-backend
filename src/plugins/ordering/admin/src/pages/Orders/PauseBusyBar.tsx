@@ -15,6 +15,7 @@ import {
 import { useFetchClient } from '@strapi/strapi/admin';
 
 import { formatTime } from '../../lib/format';
+import { isCounterPrinter, setCounterPrinter } from '../../lib/print';
 import { useT } from '../../lib/i18n';
 
 const KINDS = ['pickup', 'delivery', 'dineIn'] as const;
@@ -61,6 +62,9 @@ export const PauseBusyBar = ({
   const [busyMinutes, setBusyMinutes] = useState(60);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // N1: "máy in quầy" — a per-browser flag, not server data. When set, the inbox
+  // auto-prints kitchen tickets for branches with `printing.autoKitchenTicket`.
+  const [counter, setCounter] = useState(isCounterPrinter);
 
   const paused = useMemo(
     () =>
@@ -137,6 +141,17 @@ export const PauseBusyBar = ({
             ) : null}
           </>
         ) : null}
+        <Box marginLeft="auto">
+          <Checkbox
+            checked={counter}
+            onCheckedChange={(checked: boolean) => {
+              setCounter(checked === true);
+              setCounterPrinter(checked === true);
+            }}
+          >
+            {t('print.counter')}
+          </Checkbox>
+        </Box>
       </Flex>
       {error ? (
         <Box paddingTop={2}>

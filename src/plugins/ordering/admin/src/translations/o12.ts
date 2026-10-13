@@ -57,6 +57,13 @@ export const o12Messages: Record<string, [string, string]> = {
   'print.auto': ['In tự động', 'Auto print'],
   'print.notReady': ['Đang chuẩn bị bản in…', 'Preparing the print view…'],
   'print.failed': ['Không tạo được bản in', 'Could not build the print view'],
+  'print.print': ['In', 'Print'],
+  'print.tax': ['Thuế', 'Tax'],
+  'print.paidBy': ['Đã thu ({method})', 'Paid ({method})'],
+  'print.notFiscal': ['Không phải hóa đơn GTGT', 'Not a VAT invoice'],
+  'print.printedAt': ['In {time} · lần {count}', 'Printed {time} · copy {count}'],
+  'print.scheduled': ['Hẹn {time}', 'Scheduled {time}'],
+  'print.counter': ['Máy in quầy', 'Counter printer'],
 
   // ── N4 branch editor: fees, auto-reject, print, dine-in ────────────────────
   'branch.tab.restaurant': ['Nhà hàng', 'Restaurant'],

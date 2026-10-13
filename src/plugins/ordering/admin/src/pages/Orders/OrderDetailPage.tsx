@@ -29,6 +29,7 @@ import { PaymentBadge, StateBadge } from '../../components/orders/StatusBadges';
 import { useOrderingInbox } from '../../inbox/OrderingInboxProvider';
 import { useErrorToast, httpStatusOf } from '../../lib/api';
 import { formatDateTime, formatMoney, formatTime, localized, minutesSince } from '../../lib/format';
+import { printUrl } from '../../lib/print';
 import { useLocale, useT, type Translate } from '../../lib/i18n';
 import { RBAC_AUDIT, RBAC_DETAIL } from '../../lib/permissions';
 import type { DeliveryStaff, InboxSettings, NextTransition, OrderDetail } from '../../lib/types';
@@ -299,6 +300,12 @@ export const OrderDetailPage = () => {
         : null}
       {editButton}
       <SimpleMenu label="…" variant="tertiary">
+        <MenuItem onSelect={() => window.open(printUrl(order.id, 'kitchen'), '_blank', 'noopener')}>
+          {t('print.kitchenTicket')}
+        </MenuItem>
+        <MenuItem onSelect={() => window.open(printUrl(order.id, 'receipt'), '_blank', 'noopener')}>
+          {t('print.receipt')}
+        </MenuItem>
         {can.canCancel && !closed ? <MenuItem onSelect={() => setDialog({ kind: 'cancel' })}>{t('detail.cancelOrder')}</MenuItem> : null}
         {can.canReview ? <MenuItem onSelect={() => setDialog({ kind: 'manual' })}>{t('review.manual')}</MenuItem> : null}
         {can.canManage && cashHeld > 0 ? <MenuItem onSelect={() => setDialog({ kind: 'refund' })}>{t('detail.refund')}</MenuItem> : null}

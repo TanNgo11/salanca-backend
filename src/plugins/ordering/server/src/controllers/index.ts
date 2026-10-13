@@ -17,6 +17,7 @@ import notificationTemplates from './notification-templates';
 import openapi from './openapi';
 import ops from './ops';
 import paymentReview from './payment-review';
+import print from './print';
 import promotions from './promotions';
 import priceLists from './price-lists';
 import customerGroups from './customer-groups';
@@ -40,6 +41,7 @@ export default {
   webhook,
   webhooks,
   'payment-review': paymentReview,
+  print,
   openapi,
   ops,
   'cash-closing': cashClosing,

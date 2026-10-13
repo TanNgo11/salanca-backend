@@ -56,6 +56,7 @@ import promotion from './promotion';
 import rating from './rating';
 import promotionAdmin from './promotion-admin';
 import priceList from './price-list';
+import print from './print';
 import customerGroup from './customer-group';
 
 export default {
@@ -115,6 +116,8 @@ export default {
   'promotion-admin': promotionAdmin,
   'price-list': priceList,
   'customer-group': customerGroup,
+  // O12 (plan step 5): kitchen-ticket / provisional-receipt print payloads.
+  print,
   migrations: ({ strapi }: { strapi: Core.Strapi }) => ({
     run: (migrations: OrderingMigration[]) => runOrderingMigrations(strapi, migrations),
   }),

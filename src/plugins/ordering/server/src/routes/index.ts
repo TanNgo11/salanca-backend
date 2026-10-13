@@ -225,6 +225,8 @@ export default {
       // CSV export (screens V5) — before `/orders/:id` so 'export' is not parsed as an id.
       adminRoute('GET', '/orders/export', 'admin-orders.exportOrders', 'export'),
       adminRoute('GET', '/orders/:id', 'admin-orders.detail', 'order.read'),
+      // O12 print pages (screens N1): kitchen ticket / provisional receipt payload.
+      adminRoute('GET', '/print/orders/:id', 'print.order', 'order.read'),
       adminRoute('POST', '/orders/:id/payment-link', 'admin-orders.paymentLink', 'order.read'),
       adminRoute('POST', '/orders/:id/transition', 'admin-orders.transition', 'order.process'),
       adminRoute('POST', '/orders/:id/notes', 'admin-orders.addNote', 'order.process'),

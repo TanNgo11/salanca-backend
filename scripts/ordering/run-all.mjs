@@ -94,6 +94,8 @@ const scripts = [
   'fees.mjs',
   // O12 step 4: allergen/dietary codes, filters, kitchenStation inheritance.
   'allergens.mjs',
+  // O12 step 5: kitchen-ticket / provisional-receipt print payloads (privacy + scope).
+  'print.mjs',
 ];
 
 const results = [];
