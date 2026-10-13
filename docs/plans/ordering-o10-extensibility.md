@@ -217,5 +217,7 @@ khai + `openapi.mjs` + `ordering:openapi` (`4f027cd`); `parseCsv` + `catalog-csv
   `retention.mjs`. (2) Mỗi lần POST webhook có hạn chót tổng `timeoutMs` (trước chỉ có timeout socket im lặng — receiver nhả từng
   byte giữ được request quá lease → worker khác gửi lại). Chạy lại: lint, typecheck, `retention.mjs`, `webhooks-out.mjs` — exit 0.
 - Ghi chú quy trình: lần chạy `check:phase3` đầu tiên của session O10 nhắm DB dev `salanca_cms` (trái prompt) trước khi chuyển
-  sang `salanca_cms_o10_smoke`; `smoke:i18n` từ chối ghi, `smoke:crud` tự dọn fixture. Chủ dự án quyết định có kiểm `salanca_cms`.
+  sang `salanca_cms_o10_smoke`; `smoke:i18n` từ chối ghi, `smoke:crud` tự dọn fixture. Đã kiểm `salanca_cms` chỉ đọc (2026-10-13,
+  transaction `READ ONLY`): 0 bảng `plugins_ordering_*`, 0 key `plugin_ordering*` trong core store, 0 admin test
+  `@example.invalid` — không để lại gì.
 - Merge vào `feat/ordering` và push (2026-10-13). UAT giao diện: chủ dự án làm sau.
