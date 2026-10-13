@@ -12,9 +12,10 @@ import { o15Messages } from './o15';
 import { o10Messages } from './o10';
 import { o8Messages } from './o8';
 import { o11Messages } from './o11';
+import { o14Messages } from './o14';
 
 const ROOT = join(__dirname, '..');
-const O3_DIRS = ['inbox', 'components/orders', 'pages/Orders', 'pages/Deliveries', 'pages/Courier', 'pages/Branches', 'pages/Staff', 'pages/Settings', 'pages/PaymentReview', 'pages/Ops', 'pages/Alerts', 'pages/CashClosing', 'pages/Reports', 'pages/AuditLog', 'pages/Webhooks', 'pages/CatalogImport', 'pages/ApiDocs', 'pages/Customers', 'pages/DataRequests', 'pages/Promotions', 'pages/Ratings', 'lib'];
+const O3_DIRS = ['inbox', 'components/orders', 'pages/Orders', 'pages/Deliveries', 'pages/Courier', 'pages/Branches', 'pages/Staff', 'pages/Settings', 'pages/PaymentReview', 'pages/Ops', 'pages/Alerts', 'pages/CashClosing', 'pages/Reports', 'pages/AuditLog', 'pages/Webhooks', 'pages/CatalogImport', 'pages/ApiDocs', 'pages/Customers', 'pages/DataRequests', 'pages/Promotions', 'pages/Ratings', 'pages/PriceLists', 'pages/CustomerGroups', 'lib'];
 const EXTRA_FILES = ['pages/App.tsx', 'components/OrderExportModal.tsx'];
 
 const files = (dir: string): string[] =>
@@ -62,6 +63,11 @@ const DYNAMIC: Record<string, string[]> = {
   'x3.kind': ['products', 'modifiers'],
   'x3.status': ['validated', 'applied', 'failed'],
   'x4.audience': ['staff', 'customer'],
+  'price.kind': ['override', 'adjust'],
+  'price.channel': ['pickup', 'delivery', 'dine-in', 'staff'],
+  'price.adjust': ['percent', 'amount'],
+  'price.target': ['all', 'categories', 'products'],
+  'group.source': ['manual', 'auto'],
 };
 
 describe('O3 admin translations', () => {
@@ -90,7 +96,8 @@ describe('O3 admin translations', () => {
           o15Messages[key] ||
           o10Messages[key] ||
           o11Messages[key] ||
-          o8Messages[key],
+          o8Messages[key] ||
+          o14Messages[key],
       );
     const missing = [...used].filter((key) => !known(key));
     expect(missing).toEqual([]);
@@ -104,6 +111,7 @@ describe('O3 admin translations', () => {
       ...o10Messages,
       ...o11Messages,
       ...o8Messages,
+      ...o14Messages,
     })) {
       expect(vi.trim(), key).not.toBe('');
       expect(en.trim(), key).not.toBe('');

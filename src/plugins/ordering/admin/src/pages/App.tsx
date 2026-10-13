@@ -16,6 +16,7 @@ import {
   RBAC_OPS,
   RBAC_ORDERS_READ,
   RBAC_PAYMENT_REVIEW,
+  RBAC_PRICE,
   RBAC_PROMOTION,
   RBAC_REPORT,
   RBAC_SCOPE,
@@ -42,6 +43,8 @@ const AuditLogPage = lazy(() => import('./AuditLog'));
 const WebhooksPage = lazy(() => import('./Webhooks'));
 const ApiDocsPage = lazy(() => import('./ApiDocs'));
 const PromotionsPage = lazy(() => import('./Promotions'));
+const PriceListsPage = lazy(() => import('./PriceLists'));
+const CustomerGroupsPage = lazy(() => import('./CustomerGroups'));
 const RatingsPage = lazy(() => import('./Ratings'));
 
 type Section =
@@ -57,6 +60,8 @@ type Section =
   | 'reports'
   | 'cash-closing'
   | 'promotions'
+  | 'price-lists'
+  | 'customer-groups'
   | 'categories'
   | 'catalog-import'
   | 'availability'
@@ -125,6 +130,7 @@ const SideNav = ({
       <SubNavSections>
         {visible.orders ||
         visible.customers ||
+        visible['customer-groups'] ||
         visible.deliveries ||
         visible.courier ||
         visible['payment-review'] ||
@@ -134,6 +140,7 @@ const SideNav = ({
           <SubNavSection label={t('nav.operations')}>
             {visible.orders ? link('orders', t('nav.orders'), inbox?.awaiting) : null}
             {visible.customers ? link('customers', t('nav.customers')) : null}
+            {visible['customer-groups'] ? link('customer-groups', t('nav.customerGroups')) : null}
             {visible.deliveries ? link('deliveries', t('nav.deliveries')) : null}
             {visible.courier ? link('courier', t('nav.courier')) : null}
             {visible['payment-review'] ? link('payment-review', t('nav.paymentReview'), openReviews) : null}
@@ -151,8 +158,9 @@ const SideNav = ({
         {visible.promotions ? (
           <SubNavSection label={t('nav.promotionsGroup')}>{link('promotions', t('nav.promotions'))}</SubNavSection>
         ) : null}
-        {visible.categories || visible['catalog-import'] || visible.availability ? (
+        {visible.categories || visible['catalog-import'] || visible.availability || visible['price-lists'] ? (
           <SubNavSection label={t('nav.catalog')}>
+            {visible['price-lists'] ? link('price-lists', t('nav.priceLists')) : null}
             {visible.categories ? link('categories', t('nav.categories')) : null}
             {visible['catalog-import'] ? link('catalog-import', t('nav.catalogImport')) : null}
             {visible.availability ? link('availability', t('nav.availability')) : null}
@@ -210,9 +218,10 @@ const OrderingApp = () => {
   const audit = useRBAC(RBAC_AUDIT);
   const webhook = useRBAC(RBAC_WEBHOOK);
   const promotion = useRBAC(RBAC_PROMOTION);
+  const price = useRBAC(RBAC_PRICE);
   const customers = useRBAC(RBAC_CUSTOMERS);
   const dataRequests = useRBAC(RBAC_DATA_REQUESTS);
-  const loading = [orders, process, recordCash, reviews, alerts, ops, report, catalogManage, catalogAccess, settings, scope, audit, webhook, customers, dataRequests, promotion].some(
+  const loading = [orders, process, recordCash, reviews, alerts, ops, report, catalogManage, catalogAccess, settings, scope, audit, webhook, customers, dataRequests, promotion, price].some(
     (item) => item.isLoading,
   );
   if (loading) {
@@ -226,6 +235,7 @@ const OrderingApp = () => {
   const visible = {
     orders: any(orders.allowedActions),
     customers: any(customers.allowedActions),
+    'customer-groups': any(price.allowedActions),
     'data-requests': any(dataRequests.allowedActions),
     deliveries: any(orders.allowedActions),
     courier: (canProcess && canRecordCash) || hasAssigned,
@@ -236,6 +246,7 @@ const OrderingApp = () => {
     reports: any(report.allowedActions),
     'cash-closing': any(report.allowedActions),
     promotions: any(promotion.allowedActions),
+    'price-lists': any(price.allowedActions),
     categories: any(catalogManage.allowedActions),
     'catalog-import': any(catalogManage.allowedActions),
     availability: any(catalogAccess.allowedActions),
@@ -250,6 +261,7 @@ const OrderingApp = () => {
     [
       'orders',
       'customers',
+      'customer-groups',
       'deliveries',
       'courier',
       'payment-review',
@@ -259,6 +271,7 @@ const OrderingApp = () => {
       'reports',
       'cash-closing',
       'promotions',
+      'price-lists',
       'categories',
       'catalog-import',
       'availability',
@@ -287,6 +300,7 @@ const OrderingApp = () => {
             <Route index element={first ? <Navigate to={first} replace /> : null} />
             <Route path="orders/*" element={<OrdersPage />} />
             <Route path="customers/*" element={<CustomersPage />} />
+            <Route path="customer-groups/*" element={<CustomerGroupsPage />} />
             <Route path="data-requests/*" element={<DataRequestsPage />} />
             <Route path="deliveries/*" element={<DeliveriesPage />} />
             <Route path="courier/*" element={<CourierPage />} />
@@ -304,6 +318,7 @@ const OrderingApp = () => {
             <Route path="webhooks/*" element={<WebhooksPage />} />
             <Route path="api-docs/*" element={<ApiDocsPage />} />
             <Route path="promotions/*" element={<PromotionsPage />} />
+            <Route path="price-lists/*" element={<PriceListsPage />} />
             <Route path="ratings/*" element={<RatingsPage />} />
           </Routes>
         </Suspense>
