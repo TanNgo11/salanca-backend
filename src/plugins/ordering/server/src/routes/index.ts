@@ -260,6 +260,17 @@ export default {
       // Sales report (screens V4): ledger revenue + sold-order grouping by business date.
       adminRoute('GET', '/reports/sales', 'reports.sales', 'report.read'),
       // O15 "Lịch sử thay đổi" — scope filtered in the service; export needs both actions.
+      // O8 "Khuyến mãi" (screens K1–K4). Literal segments precede `/:id` routes.
+      adminRoute('GET', '/promotions', 'promotions.list', 'promotion.manage'),
+      adminRoute('POST', '/promotions', 'promotions.create', 'promotion.manage'),
+      adminRoute('GET', '/promotions/:id', 'promotions.get', 'promotion.manage'),
+      adminRoute('PUT', '/promotions/:id', 'promotions.update', 'promotion.manage'),
+      adminRoute('POST', '/promotions/:id/active', 'promotions.setActive', 'promotion.manage'),
+      adminRoute('GET', '/promotions/:id/codes/export', 'promotions.exportCodes', 'promotion.manage', 'export'),
+      adminRoute('GET', '/promotions/:id/codes', 'promotions.codes', 'promotion.manage'),
+      adminRoute('POST', '/promotions/:id/codes', 'promotions.addCodes', 'promotion.manage'),
+      adminRoute('GET', '/promotions/:id/redemptions', 'promotions.redemptions', 'promotion.manage'),
+      adminRoute('POST', '/promotion-codes/:id/active', 'promotions.codeActive', 'promotion.manage'),
       // O8 "Đánh giá" (screens R1–R2): reading follows order scope, changes need `rating.manage`.
       adminRoute('GET', '/ratings', 'ratings.list', 'order.read'),
       adminRoute('GET', '/ratings/:id', 'ratings.detail', 'order.read'),

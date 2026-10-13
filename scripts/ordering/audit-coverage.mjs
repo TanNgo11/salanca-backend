@@ -144,7 +144,31 @@ withApp(async (app) => {
     const productRow = (await logs().findMany({ where: { action: 'catalog-product.create', entityId: product.documentId } }))[0];
     assert.equal(productRow.entityLabel, 'Trà O15', 'catalog rows carry the item name as label');
 
-    console.log('[ordering-test] audit coverage: order flow, cash, reject, cancel, payment link, catalog — one row each');
+    // O8: promotions have their own category; codes are logged by their last 4 characters only.
+    await expectOne(
+      'promotion.create',
+      async () => {
+        const res = await as('POST', '/promotions', {
+          name: { vi: 'Giảm O15' },
+          kind: 'code',
+          discountType: 'amount',
+          value: 10000,
+          target: { kind: 'order', refs: [] },
+          receiveKinds: ['pickup'],
+          startsAt: '2026-01-01T00:00:00.000Z',
+          code: 'AUDITMA2026',
+        });
+        assert.equal(res.status, 201, JSON.stringify(res.body));
+        return res;
+      },
+      (row) => {
+        assert.equal(row.category, 'promotion');
+        assert.equal(row.entityLabel, 'Giảm O15');
+        assert.doesNotMatch(JSON.stringify(row.changes ?? {}), /AUDITMA2026/, 'the full code stays out of the log');
+      },
+    );
+
+    console.log('[ordering-test] audit coverage: order flow, cash, reject, cancel, payment link, catalog, promotion — one row each');
   } finally {
     await staff.cleanup();
   }

@@ -49,6 +49,7 @@ import manualPayment from './manual-payment';
 import paymentLink from './payment-link';
 import promotion from './promotion';
 import rating from './rating';
+import promotionAdmin from './promotion-admin';
 
 export default {
   registry,
@@ -99,6 +100,7 @@ export default {
   'payment-link': paymentLink,
   promotion,
   rating,
+  'promotion-admin': promotionAdmin,
   migrations: ({ strapi }: { strapi: Core.Strapi }) => ({
     run: (migrations: OrderingMigration[]) => runOrderingMigrations(strapi, migrations),
   }),

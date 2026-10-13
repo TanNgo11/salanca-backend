@@ -17,6 +17,7 @@ const scripts = [
   'create-order.mjs',
   'promotions.mjs',
   'promotion-race.mjs',
+  'promotions-admin.mjs',
   'rating.mjs',
   'transition.mjs',
   'payment-refund.mjs',

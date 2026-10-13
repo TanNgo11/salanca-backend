@@ -13,6 +13,7 @@ import notificationTemplates from './notification-templates';
 import openapi from './openapi';
 import ops from './ops';
 import paymentReview from './payment-review';
+import promotions from './promotions';
 import ratings from './ratings';
 import reports from './reports';
 import storefront from './storefront';
@@ -38,6 +39,7 @@ export default {
   courier,
   reports,
   ratings,
+  promotions,
   'audit-log': auditLog,
   'notification-templates': notificationTemplates,
 };
