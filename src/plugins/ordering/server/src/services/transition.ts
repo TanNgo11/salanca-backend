@@ -246,7 +246,20 @@ const transition = ({ strapi }: { strapi: Core.Strapi }) => {
             );
           }
         }
-        return service.cancelOrder(input, ctx);
+        const canceled = await service.cancelOrder(input, ctx);
+        // A customer may cancel after paying (prepay transfer, test provider): give the money
+        // back in the same transaction, exactly like a staff cancel.
+        await (
+          strapi.plugin('ordering').service('admin-orders') as {
+            refundHeldInTransaction(
+              trx: TransactionClient,
+              orderId: number,
+              reason: string,
+              ctx: ServiceContext,
+            ): Promise<{ refunded: number; refundPending: number }>;
+          }
+        ).refundHeldInTransaction(trx as TransactionClient, input.orderId, `customer-cancel: ${input.reason}`, ctx);
+        return (await services().order.getOrder(input.orderId, ctx)) ?? canceled;
       });
     },
   };

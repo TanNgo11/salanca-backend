@@ -10,6 +10,7 @@ import { OrderingError } from '../domain/errors';
 import { sha256Hex } from '../domain/hashing';
 import type { SelectedOptionSnapshot } from '../domain/storefront/serialize';
 import { normalizeVietnamesePhone } from '../../../shared/contact/phone';
+import type { TransactionClient } from '../migrations/runner';
 import orderRepository from '../repositories/order';
 import type adminUnitsFactory from './admin-units';
 import type branchFactory from './branch';
@@ -232,6 +233,24 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
     return reload(row.id);
   };
 
+  /**
+   * Read-modify-write of one cart under its row lock: concurrent requests on the same cart
+   * (two "add" taps, a line edit racing a merge) each see the previous one's lines instead of
+   * overwriting them from a stale snapshot.
+   */
+  const mutateLocked = async (
+    row: CartRow,
+    ctx: ServiceContext,
+    change: (fresh: CartRow) => Record<string, unknown> | Promise<Record<string, unknown>>,
+  ): Promise<CartRow> =>
+    strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
+      const locked = await trx('plugins_ordering_cart').where({ id: row.id }).forUpdate().first('id');
+      if (!locked) throw new OrderingError('CART_NOT_FOUND', 'cart not found');
+      const fresh = await reload(row.id);
+      if (fresh.status !== 'active') expiredOrMissing(fresh);
+      return save(fresh, await change(fresh), ctx);
+    });
+
   const loadByToken = async (token: string): Promise<CartRow | null> =>
     (await carts().findOne({
       where: { tokenHash: hashingForConfig(config()).cartTokenHash(token) },
@@ -373,25 +392,26 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
         await carts().update({ where: { id: guest.id }, data: { customer: customerId } });
         return reload(guest.id);
       }
-      const merged = linesOf(target);
-      const byKey = new Map(merged.map((line) => [lineKey(line), line]));
-      for (const line of linesOf(guest)) {
-        const existing = byKey.get(lineKey(line));
-        if (existing) {
-          existing.quantity = Math.min(existing.quantity + line.quantity, QUANTITY_CAP);
-        } else {
-          if (merged.length >= config().carts.maxLines) break;
-          const mergedLine = { ...line, id: randomUUID() };
-          merged.push(mergedLine);
-          byKey.set(lineKey(mergedLine), mergedLine);
+      return mutateLocked(target, ctx, async (fresh) => {
+        const merged = linesOf(fresh);
+        const byKey = new Map(merged.map((line) => [lineKey(line), line]));
+        for (const line of linesOf(guest)) {
+          const existing = byKey.get(lineKey(line));
+          if (existing) {
+            existing.quantity = Math.min(existing.quantity + line.quantity, QUANTITY_CAP);
+          } else {
+            if (merged.length >= config().carts.maxLines) break;
+            const mergedLine = { ...line, id: randomUUID() };
+            merged.push(mergedLine);
+            byKey.set(lineKey(mergedLine), mergedLine);
+          }
         }
-      }
-      await carts().update({ where: { id: guest.id }, data: { status: 'expired' } });
-      return save(
-        target,
-        { lines: merged, ...(!target.promotionCode && guest.promotionCode ? { promotionCode: guest.promotionCode } : {}) },
-        ctx,
-      );
+        await carts().update({ where: { id: guest.id }, data: { status: 'expired' } });
+        return {
+          lines: merged,
+          ...(!fresh.promotionCode && guest.promotionCode ? { promotionCode: guest.promotionCode } : {}),
+        };
+      });
     },
 
     /** PATCH /carts/current — shallow merge of the editable fields. */
@@ -433,19 +453,21 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
       ctx: ServiceContext,
     ): Promise<CartRow> {
       const line = normalizeLine(input);
-      const lines = linesOf(row);
-      const existing = lines.find((candidate) => lineKey(candidate) === lineKey(line));
-      if (existing) {
-        existing.quantity = Math.min(existing.quantity + line.quantity, QUANTITY_CAP);
-      } else {
-        if (lines.length >= config().carts.maxLines) {
-          throw new OrderingError('CART_LIMIT', 'the cart holds at most 50 lines', {
-            details: { limit: config().carts.maxLines },
-          });
+      return mutateLocked(row, ctx, (fresh) => {
+        const lines = linesOf(fresh);
+        const existing = lines.find((candidate) => lineKey(candidate) === lineKey(line));
+        if (existing) {
+          existing.quantity = Math.min(existing.quantity + line.quantity, QUANTITY_CAP);
+        } else {
+          if (lines.length >= config().carts.maxLines) {
+            throw new OrderingError('CART_LIMIT', 'the cart holds at most 50 lines', {
+              details: { limit: config().carts.maxLines },
+            });
+          }
+          lines.push(line);
         }
-        lines.push(line);
-      }
-      return save(row, { lines }, ctx);
+        return { lines };
+      });
     },
 
     /** PATCH /carts/current/lines/:lineId — quantity/selected/note; foreign ids 404. */
@@ -455,22 +477,26 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
       input: Record<string, unknown>,
       ctx: ServiceContext,
     ): Promise<CartRow> {
-      const lines = linesOf(row);
-      const index = lines.findIndex((candidate) => candidate.id === lineId);
-      if (index < 0) {
-        throw new OrderingError('CART_NOT_FOUND', 'line not found', { details: { lineId } });
-      }
-      lines[index] = { ...normalizeLine({ ...lines[index], ...input }), id: lineId };
-      return save(row, { lines }, ctx);
+      return mutateLocked(row, ctx, (fresh) => {
+        const lines = linesOf(fresh);
+        const index = lines.findIndex((candidate) => candidate.id === lineId);
+        if (index < 0) {
+          throw new OrderingError('CART_NOT_FOUND', 'line not found', { details: { lineId } });
+        }
+        lines[index] = { ...normalizeLine({ ...lines[index], ...input }), id: lineId };
+        return { lines };
+      });
     },
 
     /** DELETE /carts/current/lines/:lineId — 404 when the id is not in this cart. */
     async removeLine(row: CartRow, lineId: string, ctx: ServiceContext): Promise<CartRow> {
-      const lines = linesOf(row);
-      if (!lines.some((candidate) => candidate.id === lineId)) {
-        throw new OrderingError('CART_NOT_FOUND', 'line not found', { details: { lineId } });
-      }
-      return save(row, { lines: lines.filter((candidate) => candidate.id !== lineId) }, ctx);
+      return mutateLocked(row, ctx, (fresh) => {
+        const lines = linesOf(fresh);
+        if (!lines.some((candidate) => candidate.id === lineId)) {
+          throw new OrderingError('CART_NOT_FOUND', 'line not found', { details: { lineId } });
+        }
+        return { lines: lines.filter((candidate) => candidate.id !== lineId) };
+      });
     },
 
     /**

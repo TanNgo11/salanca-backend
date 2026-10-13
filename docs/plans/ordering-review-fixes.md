@@ -35,3 +35,23 @@ Browser UAT remains open; this fix does not close phase acceptance.
 - Existing PostgreSQL client.query concurrency deprecation warning remains in aggregate population; it did not fail these gates.
 - Full `check:ordering`, browser UAT and production checks were not run. No commit or push.
 
+
+## Second review round (2026-10-13, fixed by Claude)
+
+Four issues Codex reproduced on an isolated DB, all confirmed and fixed:
+
+1. **[P1] Out-of-scope orders through the customer profile.** `admin-customers.detail` and the staff export
+   (`data-rights.exportForStaff`) listed every order of the customer; a Q1-only staff member saw Q3 orders. Both now
+   filter orders by the caller's location scope (all-location staff unchanged; the customer's own export unchanged).
+2. **[P1] Customer cancel of a paid order did not refund.** `transition.customerCancel` now calls
+   `admin-orders.refundHeldInTransaction` in the cancel transaction — same rule as a staff cancel (cash refunded,
+   transfer as a pending refund).
+3. **[P2] Customers backfilled by `0007-o11-customers` had no `document_id`.** 0007 now inserts one
+   (`migrations/document-id.ts`, cuid2-shaped, no new dependency) and `0009b-o11-customer-document-ids` fills existing
+   NULL rows (idempotent).
+4. **[P2] Concurrent cart mutations lost lines.** `addLine`, `updateLine`, `removeLine` and the sign-in `merge` run
+   read-modify-write under the cart row lock (`mutateLocked`: lock, reload, change, save).
+
+Regression: `scripts/ordering/review-extra.mjs` (scope on profile + export, paid self-cancel refund, documentId backfill,
+three concurrent adds). PASS together with `schema`, `cart`, `cart-checkout`, `admin-customers`, `data-rights`,
+`storefront`, `transition`; lint, typecheck, vitest 632.

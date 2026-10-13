@@ -184,6 +184,7 @@ await withApp(async (app) => {
     '0006-o10-extensibility',
     '0007-o11-customers',
     '0008-o8-promotions-rating',
+    '0009b-o11-customer-document-ids',
   ]) {
     assert.ok(
       applied.some((row) => row.name === migration),

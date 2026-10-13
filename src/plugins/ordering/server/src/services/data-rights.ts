@@ -338,13 +338,14 @@ const dataRights = ({ strapi }: { strapi: Core.Strapi }) => {
     return result.done;
   };
 
-  const exportForCustomer = async (customer: CustomerRow) => {
+  /** `locationRefs` limits the orders (staff export by a branch-scoped caller); null = all. */
+  const exportForCustomer = async (customer: CustomerRow, locationRefs: string[] | null = null) => {
     const addressRows = (await addresses().findMany({
       where: { customer: customer.id },
       orderBy: { id: 'asc' },
     })) as Array<Record<string, unknown>>;
     const orderRows = (await orders().findMany({
-      where: { customer: customer.id },
+      where: { customer: customer.id, ...(locationRefs === null ? {} : { locationRef: { $in: locationRefs } }) },
       orderBy: { placedAt: 'asc' },
     })) as OrderHead[];
     const exported = [];
@@ -503,7 +504,11 @@ const dataRights = ({ strapi }: { strapi: Core.Strapi }) => {
       })) as CustomerRow | null;
       if (!customer) throw new OrderingError('CUSTOMER_NOT_FOUND', 'customer not found');
       await assertCustomerInScope(customer, ctx);
-      const data = await exportForCustomer(customer);
+      const staffScope = await scope().loadScope(ctx);
+      const data = await exportForCustomer(
+        customer,
+        staffScope && !staffScope.allLocations ? [...staffScope.locationRefs] : null,
+      );
       await changeLog().record(
         {
           action: 'customer.export',

@@ -923,6 +923,15 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
       });
     },
 
+    /**
+     * Refunds the money still held on an order that was just canceled, inside the caller's
+     * transaction. The customer self-cancel uses it so a paid order is never canceled without
+     * its refund (cash refunded now, a transfer as a pending refund for staff to settle).
+     */
+    async refundHeldInTransaction(trx: TransactionClient, orderId: number, reason: string, ctx: ServiceContext) {
+      return refundHeld(trx, orderId, reason, ctx);
+    },
+
     /** POST /orders/:id/notes — internal note, never public (screens S4b). */
     async addNote(orderId: number, text: string | undefined, ctx: ServiceContext) {
       const note = text?.trim();
