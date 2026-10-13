@@ -548,7 +548,7 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
       row: CartRow,
       input: {
         consent: { policyVersion: string; marketingOptIn?: boolean };
-        payment?: { providerCode: string };
+        payment?: { providerCode: string; giftCardCode?: string };
         idempotencyKey: string;
         customerId: number | null;
       },

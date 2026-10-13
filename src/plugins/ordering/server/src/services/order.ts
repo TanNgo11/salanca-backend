@@ -90,7 +90,7 @@ export type CreateOrderInput = {
   adjustments?: PricingAdjustmentInput[];
   fulfillmentAmount?: number;
   expectedCartHash?: string;
-  payment?: { providerCode: string };
+  payment?: { providerCode: string; giftCardCode?: string };
   origin: { kind: 'storefront' | 'staff-draft' | 'import'; actorRef?: string };
   holds?: Array<{ lineIndex: number; resourceRef: string; quantity: number; expiresAt: string }>;
   placedAt?: string;
@@ -145,6 +145,18 @@ export type PreparedOrder = {
   locale: string;
   providerCode?: string;
   timing: PickupTiming | null;
+  /**
+   * O9 step 4: the card applied to this order — `applied` is the quote's
+   * `min(balance, due)`; create re-debits transactionally, so the captured amount can be
+   * lower when a concurrent order drained the card first. `reason` flags an unusable code
+   * instead of throwing, the same way an ineligible promotion is quoted but not applied.
+   */
+  giftCard: {
+    last4: string | null;
+    applied: number;
+    balanceAfter?: number;
+    reason?: 'invalid' | 'expired' | 'insufficient';
+  } | null;
   promotions: import('./promotion').ResolvedPromotions;
   /**
    * O8: the cart priced without phone-history promotions — what the public quote shows and what
@@ -746,6 +758,31 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
       const pricing = priceWith(promotions.adjustments);
       const quotePricing = priceWith(promotions.quote.adjustments);
 
+      // O9 step 4: a gift-card code is a co-payment — applied = min(balance, due). The
+      // quote reports an unusable code like an ineligible promotion (no throw); create
+      // re-checks inside the transaction where the conditional debit is authoritative.
+      // A card can never buy a card — that check fires before the lookup, so a digital
+      // cart reveals nothing about code validity.
+      let giftCard: PreparedOrder['giftCard'] = null;
+      if (input.payment?.giftCardCode) {
+        if (kind === 'digital') {
+          throw new OrderingError('GIFT_CARD_NOT_ALLOWED', 'a gift card cannot buy a gift card', {
+            details: { field: 'payment.giftCardCode', reason: 'buying-gift-card' },
+          });
+        }
+        const card = await services().giftCard.findByCode(input.payment.giftCardCode);
+        if (!card || card.status !== 'active') {
+          giftCard = { last4: card?.last4 ?? null, applied: 0, reason: 'invalid' };
+        } else if (new Date(card.expiresAt).getTime() <= placedAt.getTime()) {
+          giftCard = { last4: card.last4, applied: 0, reason: 'expired' };
+        } else if (card.balance <= 0) {
+          giftCard = { last4: card.last4, applied: 0, reason: 'insufficient' };
+        } else {
+          const applied = Math.min(card.balance, quotePricing.totals.grandTotal);
+          giftCard = { last4: card.last4, applied, balanceAfter: card.balance - applied };
+        }
+      }
+
       const groupsByWorkflow = new Map<string, { name: string; version: string }>();
       for (const line of priced) {
         const key = `${line.workflow.name}@${line.workflow.version}`;
@@ -806,6 +843,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         locale,
         providerCode,
         timing,
+        giftCard,
         promotions,
         quotePricing,
       };
@@ -838,6 +876,8 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
           discountTotal: prepared.quotePricing.adjustments
             .filter((adjustment) => adjustment.kind === 'discount')
             .reduce((sum, adjustment) => sum + adjustment.amount, 0),
+          // O9: what the customer still owes after the card is applied.
+          dueAfterGiftCard: prepared.quotePricing.totals.grandTotal - (prepared.giftCard?.applied ?? 0),
         },
         promotions: prepared.promotions.quote.applied.map((promo) => ({
           code: promo.code,
@@ -849,6 +889,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         // First-order / per-customer promotions: checked against the phone at order time only.
         pendingPromotions: prepared.promotions.quote.pending,
         payment: { providerCode: prepared.providerCode ?? null },
+        giftCard: prepared.giftCard,
         timing: timingSnapshot(prepared.timing),
         delivery: prepared.delivery,
       };
@@ -1197,6 +1238,101 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
                 },
               });
             }
+          }
+
+          // O9 step 4: a gift-card code is a co-payment debited inside this transaction —
+          // the conditional UPDATE applies min(balance, due) under the card row lock, so
+          // two orders racing one card can never overdraw it. The payment row then lands
+          // `captured` with a matching payment-event, the same shape capturePayment writes.
+          if (input.payment?.giftCardCode && receiveMethod.kind !== 'digital') {
+            const card = await services().giftCard.findByCode(input.payment.giftCardCode);
+            if (!card) {
+              throw new OrderingError('GIFT_CARD_INVALID', 'gift card cannot be used', {
+                details: { field: 'payment.giftCardCode' },
+              });
+            }
+            const gcPayment = await strapi.db.query('plugin::ordering.payment').create({
+              data: {
+                order: orderId,
+                providerCode: 'gift-card',
+                requestedAmount: pricing.totals.grandTotal,
+                capturedAmount: 0,
+                refundedAmount: 0,
+                currency: pricing.currency,
+                status: 'pending',
+                providerReference: `gift-card:${card.last4}`,
+                actorRef: actorRefOf(ctx),
+                businessDate: businessDate(placedAt, branch.timezone, cutoffLocalTime),
+              },
+            });
+            const { applied } = await services().giftCard.redeemInTransaction(
+              trx as TransactionClient,
+              {
+                cardId: card.id,
+                amount: pricing.totals.grandTotal,
+                orderId,
+                paymentId: gcPayment.id as number,
+              },
+              ctx,
+            );
+            await strapi.db.query('plugin::ordering.payment').update({
+              where: { id: gcPayment.id as number },
+              data: {
+                capturedAmount: applied,
+                status: 'captured',
+                capturedAt: now,
+              },
+            });
+            await strapi.db.query('plugin::ordering.payment-event').create({
+              data: {
+                payment: gcPayment.id as number,
+                providerCode: 'gift-card',
+                providerTransactionId: `gift-card:${card.id}:${orderId}`,
+                transferType: 'in',
+                amount: applied,
+                currency: pricing.currency,
+                kind: 'capture',
+                receivedAt: now,
+                reviewStatus: 'auto-matched',
+              },
+            });
+            await timeline.record(
+              {
+                orderId,
+                type: 'payment.captured',
+                isPublic: true,
+                payload: {
+                  providerCode: 'gift-card',
+                  amount: applied,
+                  paymentId: gcPayment.id as number,
+                  last4: card.last4,
+                },
+              },
+              ctx,
+            );
+            await outbox.enqueue(
+              {
+                type: 'payment.captured',
+                aggregateType: 'payment',
+                aggregateId: String(gcPayment.id),
+                payload: {
+                  orderId,
+                  paymentId: gcPayment.id as number,
+                  capturedAmount: applied,
+                  providerReference: `gift-card:${card.last4}`,
+                },
+                uniqueKey: `payment.captured:gift-card:${card.id}:${orderId}`,
+              },
+              ctx,
+            );
+            // Reflect the capture in the order's payment status before any group moves.
+            await service.recomputeProjection(orderId);
+            // Fully covered orders are prepaid already — advance past awaiting-payment now.
+            await (
+              strapi.plugin('ordering').service('payment-matching') as {
+                advanceIfPaid: (orderId: number, ctx: ServiceContext) => Promise<boolean>;
+              }
+            ).advanceIfPaid(orderId, ctx);
           }
 
           const slotSettings = prepared.pickupSettings ?? prepared.deliverySettings;

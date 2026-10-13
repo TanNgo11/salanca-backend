@@ -81,8 +81,38 @@ export const notePromotionCodeFailure = (ip: string, windowMs: number, now = Dat
   return entry.count;
 };
 
+/** Wrong card codes per IP before a lookup must carry a captcha (O9: đoán mã probing). */
+export const GIFT_CARD_CAPTCHA_AFTER = 3;
+const cardFailures = new Map<string, { count: number; resetAt: number }>();
+
+/** `storefront.rateLimits.giftCard`: `max` wrong card codes per IP in `windowMs`, then 429. */
+export const giftCardLimit = (strapi: Core.Strapi): { max: number; windowMs: number } =>
+  (strapi.config.get('plugin::ordering') as OrderingConfig).storefront.rateLimits.giftCard;
+
+/** Wrong card codes for this IP in the current window. */
+export const giftCardFailureCount = (ip: string, now = Date.now()): number => {
+  const entry = cardFailures.get(ip);
+  if (!entry || now >= entry.resetAt) return 0;
+  return entry.count;
+};
+
+/** Counts one wrong card code. Returns the new total for this window. */
+export const noteGiftCardFailure = (ip: string, windowMs: number, now = Date.now()): number => {
+  if (cardFailures.size >= 10_000) {
+    for (const [key, entry] of cardFailures) if (now >= entry.resetAt) cardFailures.delete(key);
+  }
+  const entry = cardFailures.get(ip);
+  if (!entry || now >= entry.resetAt) {
+    cardFailures.set(ip, { count: 1, resetAt: now + windowMs });
+    return 1;
+  }
+  entry.count += 1;
+  return entry.count;
+};
+
 /** Test helper: forget every bucket (limits are re-read from config). */
 export const resetStorefrontLimiters = (): void => {
   limiters.clear();
   codeFailures.clear();
+  cardFailures.clear();
 };

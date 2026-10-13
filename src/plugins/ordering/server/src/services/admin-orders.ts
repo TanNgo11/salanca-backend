@@ -166,7 +166,11 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
    * re-read here, so a transfer captured just before the close is not missed.
    */
   const refundHeld = async (trx: TransactionClient, orderId: number, reason: string, ctx: ServiceContext) => {
-    const payments = (await repo.loadOrderAggregate(orderId))?.payments ?? [];
+    // O9: card value returns before cash/bank — a restored balance is spendable at once,
+    // where a transfer refund waits on the bank.
+    const payments = [...((await repo.loadOrderAggregate(orderId))?.payments ?? [])].sort(
+      (a, b) => Number(b.providerCode === 'gift-card') - Number(a.providerCode === 'gift-card'),
+    );
     let refunded = 0;
     let refundPending = 0;
     for (const payment of payments) {

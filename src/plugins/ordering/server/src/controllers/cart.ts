@@ -207,7 +207,12 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       });
       const payment =
         typeof body.payment === 'object' && body.payment !== null
-          ? { providerCode: String((body.payment as Record<string, unknown>).providerCode ?? '') }
+          ? {
+              providerCode: String((body.payment as Record<string, unknown>).providerCode ?? ''),
+              ...(typeof (body.payment as Record<string, unknown>).giftCardCode === 'string'
+                ? { giftCardCode: (body.payment as Record<string, unknown>).giftCardCode as string }
+                : {}),
+            }
           : undefined;
       const result = await carts().checkout(
         cartRow,

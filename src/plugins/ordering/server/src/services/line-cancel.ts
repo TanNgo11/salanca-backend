@@ -117,7 +117,12 @@ const lineCancel = ({ strapi }: { strapi: Core.Strapi }) => {
         // Pending rows already reserve that remainder (refund.ts checks the same sum).
         const orderPayments = (await payments().findMany({
           where: { order: input.orderId },
-        })) as Array<{ id: number; capturedAmount: string | number; refundedAmount: string | number }>;
+        })) as Array<{
+          id: number;
+          providerCode: string;
+          capturedAmount: string | number;
+          refundedAmount: string | number;
+        }>;
         const pendingByPayment = new Map<number, number>();
         if (orderPayments.length > 0) {
           const pendingRows = (await trx('plugins_ordering_refund as refund')
@@ -139,13 +144,17 @@ const lineCancel = ({ strapi }: { strapi: Core.Strapi }) => {
         const candidates = orderPayments
           .map((payment) => ({
             id: payment.id,
+            // O9: value returns to the card before cash/bank (spec "hoàn về thẻ trước").
+            giftCard: payment.providerCode === 'gift-card',
             remaining:
               amountFromDb(payment.capturedAmount) -
               amountFromDb(payment.refundedAmount) -
               (pendingByPayment.get(payment.id) ?? 0),
           }))
           .filter((payment) => payment.remaining > 0)
-          .sort((a, b) => b.remaining - a.remaining);
+          .sort(
+            (a, b) => Number(b.giftCard) - Number(a.giftCard) || b.remaining - a.remaining,
+          );
         const cap = Math.min(due, sumAmounts(candidates.map((payment) => payment.remaining)));
         let refundAmount = 0;
         if (cap > 0 && candidates[0]) {

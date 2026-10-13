@@ -14,6 +14,7 @@ import orderRepository from '../repositories/order';
 import type { PaymentRow, RefundRow } from '../repositories/types';
 import type branchFactory from './branch';
 import type changeLogFactory from './change-log';
+import type giftCardFactory from './gift-card';
 import type { ServiceContext } from './context';
 import { actorRefOf, nowOf } from './context';
 import type idempotencyFactory from './idempotency';
@@ -32,6 +33,7 @@ type Services = {
   changeLog: ReturnType<typeof changeLogFactory>;
   scope: ReturnType<typeof scopeFactory>;
   branch: ReturnType<typeof branchFactory>;
+  giftCard: ReturnType<typeof giftCardFactory>;
 };
 
 const BANK_REFERENCE = /^[A-Za-z0-9][A-Za-z0-9-]{3,40}$/;
@@ -98,6 +100,7 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
       changeLog: plugin.service('change-log') as Services['changeLog'],
       scope: plugin.service('scope') as Services['scope'],
       branch: plugin.service('branch') as Services['branch'],
+      giftCard: plugin.service('gift-card') as Services['giftCard'],
     };
   };
   const repo = orderRepository({ strapi });
@@ -278,6 +281,42 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
           amount: lineRefund.amount,
         },
       });
+    }
+    // O9 step 4: a card payment settles by returning value to the card — the `refund`
+    // ledger credit rides this transaction, so a roll-back never restores twice and the
+    // ledger's own append-only row is the audit. The card resolves through the redeem
+    // entry that the payment points at.
+    if (payment.providerCode === 'gift-card' && settled) {
+      const redeemRow = await trx('plugins_ordering_gift_card_ledger as l')
+        .join(
+          'plugins_ordering_gift_card_ledger_payment_lnk as lp',
+          'lp.gift_card_ledger_id',
+          'l.id',
+        )
+        .join(
+          'plugins_ordering_gift_card_ledger_card_lnk as lc',
+          'lc.gift_card_ledger_id',
+          'l.id',
+        )
+        .where('lp.payment_id', input.paymentId)
+        .where('l.kind', 'redeem')
+        .select('lc.gift_card_id as cardId')
+        .first();
+      if (redeemRow) {
+        await services().giftCard.creditInTransaction(
+          trx,
+          {
+            cardId: Number(redeemRow.cardId),
+            amount: total,
+            kind: 'refund',
+            orderId,
+            paymentId: input.paymentId,
+            refundId: created.id as number,
+            reason: input.reason,
+          },
+          ctx,
+        );
+      }
     }
     // Cash settles in the provider call. SePay stays pending until a person records the
     // outbound reference, so the projection must not move yet.

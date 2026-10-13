@@ -131,15 +131,26 @@ const cartBody = obj(
   {
     locationRef: str,
     receiveMethod: obj({
-      kind: { ...str, enum: ['pickup', 'delivery'] },
+      kind: { ...str, enum: ['pickup', 'delivery', 'digital'] },
       locationRef: str,
       address: obj({ street: str, ward: str, district: str, province: str, note: str }),
+      // O9: digital = gift-card sale — recipient mailbox + optional message.
+      recipientEmail: str,
+      recipientName: str,
+      message: { ...str, description: 'Gift message to the recipient (≤ 300 chars)' },
     }),
     scheduledAt: isoDate,
     lines: arr(cartLine),
     adjustments: arr(obj({ kind: str, code: str, label: str, amount: num })),
     note: str,
     promotionCode: { ...str, description: 'O8: customer-entered code; the server decides the discount' },
+    payment: obj({
+      providerCode: { ...str, description: 'The provider covering the remainder after the card' },
+      giftCardCode: {
+        ...str,
+        description: 'O9: gift-card code applied as a co-payment. Debited at order create; never stored.',
+      },
+    }),
   },
   ['locationRef', 'receiveMethod', 'lines'],
 );
@@ -200,6 +211,34 @@ export const OPERATIONS: Operation[] = [
       promotions: arr(obj({ code: str, label: str, amount: money, target: str })),
       rejectedPromotions: arr(obj({ code: str, reason: str })),
       pendingPromotions: arr(obj({ code: str, label: str, condition: { ...str, enum: ['first-order', 'per-customer'] } })),
+      giftCard: {
+        ...obj({
+          last4: str,
+          applied: money,
+          balanceAfter: money,
+          reason: { ...str, enum: ['invalid', 'expired', 'insufficient'] },
+        }),
+        description:
+          'O9: card application preview — reason flags an unusable code, applied = min(balance, due)',
+      },
+    }),
+  }),
+  pub('post', '/gift-cards/balance', 'Gift cards', 'Check a card balance by code (rate-limited)', {
+    requestBody: obj(
+      {
+        code: { ...str, description: 'The 16-char grouped card code' },
+        captchaToken: { ...str, description: 'Required after 3 wrong codes from this IP' },
+      },
+      ['code'],
+    ),
+    response: obj({
+      card: obj({
+        last4: str,
+        status: { ...str, enum: ['active', 'blocked', 'expired'] },
+        balance: money,
+        currency: str,
+        expiresAt: isoDate,
+      }),
     }),
   }),
   pub('post', '/orders', 'Orders', 'Create an order (idempotent)', {

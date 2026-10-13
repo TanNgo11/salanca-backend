@@ -21,6 +21,7 @@ import type { OrderAggregate } from '../repositories/types';
 import type branchFactory from './branch';
 import type { ServiceContext } from './context';
 import { nowOf } from './context';
+import type giftCardFactory from './gift-card';
 import type orderServiceFactory from './order';
 import type paymentLinkFactory from './payment-link';
 import type pickupSchedulingFactory from './pickup-scheduling';
@@ -78,6 +79,7 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
   const plugin = () => strapi.plugin('ordering');
   const branches = () => plugin().service('branch') as ReturnType<typeof branchFactory>;
   const orders = () => plugin().service('order') as ReturnType<typeof orderServiceFactory>;
+  const giftCards = () => plugin().service('gift-card') as ReturnType<typeof giftCardFactory>;
   const scheduling = () =>
     plugin().service('pickup-scheduling') as ReturnType<typeof pickupSchedulingFactory>;
   const timeline = () => plugin().service('timeline') as ReturnType<typeof timelineFactory>;
@@ -275,6 +277,24 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
       if (!aggregate) throw failed();
       const events = (await timeline().listPublic(row.id)) as Parameters<typeof lookupOrderView>[1];
       return lookupOrderView(aggregate, events);
+    },
+
+    /**
+     * POST /gift-cards/balance (O9): safe card view for the holder — status, balance, last4
+     * and expiry only. `null` covers "no such code", unsold batch stock (`inactive`) AND
+     * `blocked` cards, so a guess cannot distinguish stock/locked cards from a mistyped code
+     * (the same non-oracle as redemption's GIFT_CARD_INVALID).
+     */
+    async giftCardBalance(code: string, _ctx: ServiceContext) {
+      const card = await giftCards().findByCode(code);
+      if (!card || card.status === 'inactive' || card.status === 'blocked') return null;
+      return {
+        last4: card.last4,
+        status: card.status,
+        balance: card.balance,
+        currency: card.currency,
+        expiresAt: card.expiresAt,
+      };
     },
 
     /** GET /config — what the storefront needs to render checkout for one branch. */

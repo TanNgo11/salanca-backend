@@ -24,6 +24,10 @@ import {
   PROMOTION_CAPTCHA_AFTER,
   promotionCodeFailureCount,
   promotionCodeLimit,
+  GIFT_CARD_CAPTCHA_AFTER,
+  giftCardFailureCount,
+  giftCardLimit,
+  noteGiftCardFailure,
   rateLimited,
 } from './storefront-guard';
 
@@ -142,6 +146,20 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
           );
         }
       }
+      // O9: entering a card code is the same guessing surface — the card bucket counts
+      // "code not found" quotes, captcha from CAPTCHA_AFTER, 429 at max.
+      const cardLimit = giftCardLimit(strapi);
+      if (cart.payment?.giftCardCode) {
+        const failures = giftCardFailureCount(ip);
+        if (failures >= cardLimit.max) return tooMany();
+        if (failures >= GIFT_CARD_CAPTCHA_AFTER) {
+          await verifyCaptcha(
+            ctx,
+            typeof body.captchaToken === 'string' ? body.captchaToken : undefined,
+            'gift-card-use',
+          );
+        }
+      }
       const session = await sessionFor(strapi, ctx, serviceCtx);
       const quoted = await storefront()
         .orders()
@@ -159,7 +177,46 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       if (cart.promotionCode && rejected.some((row) => isWrongPromotionCode(row.reason))) {
         if (notePromotionCodeFailure(ip, codeLimit.windowMs) >= codeLimit.max) return tooMany();
       }
+      const cardResult = (quoted as { giftCard?: { reason?: string } | null }).giftCard;
+      if (cart.payment?.giftCardCode && cardResult?.reason === 'invalid') {
+        if (noteGiftCardFailure(ip, cardLimit.windowMs) >= cardLimit.max) return tooMany();
+      }
       return quoted;
+    }),
+
+    /**
+     * POST /gift-cards/balance — `{ code, captchaToken? }`; safe view only
+     * (status/balance/last4/expiry — never the code, no holder PII). Wrong codes count
+     * toward the card bucket: captcha from GIFT_CARD_CAPTCHA_AFTER, 429 at max.
+     */
+    giftCardBalance: action('read', async (ctx, serviceCtx) => {
+      const body = (ctx.request.body ?? {}) as { code?: unknown; captchaToken?: unknown };
+      const code = typeof body.code === 'string' ? body.code.slice(0, 40) : '';
+      const ip = clientIpOf(strapi, ctx);
+      const cardLimit = giftCardLimit(strapi);
+      const tooMany = () => {
+        ctx.status = 429;
+        ctx.body = {
+          error: { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' },
+        };
+        return undefined;
+      };
+      const failures = giftCardFailureCount(ip);
+      if (failures >= cardLimit.max) return tooMany();
+      if (failures >= GIFT_CARD_CAPTCHA_AFTER) {
+        await verifyCaptcha(
+          ctx,
+          typeof body.captchaToken === 'string' ? body.captchaToken : undefined,
+          'gift-card-balance',
+        );
+      }
+      const card = await storefront().giftCardBalance(code, serviceCtx);
+      if (!card) {
+        if (noteGiftCardFailure(ip, cardLimit.windowMs) >= cardLimit.max) return tooMany();
+        // Same error for unknown, malformed and inactive codes — no existence oracle.
+        throw new OrderingError('GIFT_CARD_INVALID', 'gift card cannot be used');
+      }
+      return { card };
     }),
 
     /** POST /orders — Idempotency-Key header + captcha; returns the token once (and on replay). */
@@ -171,18 +228,35 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       // wins over the contact phone — plan step 3 "phiên hoặc theo SĐT").
       const session = await sessionFor(strapi, ctx, serviceCtx);
       const { captchaToken: _captcha, ...input } = request;
-      const result = await storefront()
-        .orders()
-        .createOrder(
-          {
-            ...input,
-            idempotencyKey,
-            ...(session ? { customerId: session.customer.id } : {}),
-            consent: { ...input.consent, channel: 'web-checkout' },
-            origin: { kind: 'storefront' },
-          },
-          serviceCtx,
-        );
+      // O9: a guessed card code at create counts against the same IP budget as at quote —
+      // the captcha above already makes probing expensive, this closes a second window.
+      if (input.payment?.giftCardCode && giftCardFailureCount(clientIpOf(strapi, ctx)) >= giftCardLimit(strapi).max) {
+        ctx.status = 429;
+        ctx.body = {
+          error: { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' },
+        };
+        return undefined;
+      }
+      let result;
+      try {
+        result = await storefront()
+          .orders()
+          .createOrder(
+            {
+              ...input,
+              idempotencyKey,
+              ...(session ? { customerId: session.customer.id } : {}),
+              consent: { ...input.consent, channel: 'web-checkout' },
+              origin: { kind: 'storefront' },
+            },
+            serviceCtx,
+          );
+      } catch (error) {
+        if (error instanceof OrderingError && error.code === 'GIFT_CARD_INVALID') {
+          noteGiftCardFailure(clientIpOf(strapi, ctx), giftCardLimit(strapi).windowMs);
+        }
+        throw error;
+      }
       const view = await storefront().viewByToken(result.publicToken, serviceCtx);
       ctx.status = result.replayed ? 200 : 201;
       return { order: view, token: result.publicToken, replayed: result.replayed };

@@ -130,6 +130,15 @@ export function tokenOrderView(
       refunded: money.refunded,
       due: money.due,
     },
+    // O9: card co-payments shown as "thẻ •••1234" — the reference carries last4 only,
+    // never the code.
+    giftCards: aggregate.payments
+      .filter((payment) => payment.providerCode === 'gift-card')
+      .map((payment) => ({
+        last4: String(payment.providerReference ?? '').replace(/^gift-card:/, '') || null,
+        paid: payment.capturedAmount,
+        refunded: payment.refundedAmount,
+      })),
     steps: steps(aggregate, events),
     canCancel: extra.cancellable && customerCancellableNow(aggregate, resolve),
   };

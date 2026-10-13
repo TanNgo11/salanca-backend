@@ -90,6 +90,8 @@ const scripts = [
   'gift-card-ledger.mjs',
   // O9 step 3: digital gift-card sale — workflow, issuance, mail, counter stock.
   'gift-card-sale.mjs',
+  // O9 step 4: card as a co-payment — debit, refunds, expiry, concurrency, probing.
+  'gift-card-payment.mjs',
 ];
 
 const results = [];

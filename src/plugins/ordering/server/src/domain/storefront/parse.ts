@@ -36,7 +36,7 @@ export type CartRequest = {
         physicalCodes?: string[];
       };
   pickup: { asap?: boolean; slot?: { startsAt: string } };
-  payment?: { providerCode: string };
+  payment?: { providerCode: string; giftCardCode?: string };
   promotionCode?: string;
 };
 
@@ -173,7 +173,13 @@ export function parseCartRequest(body: unknown): CartRequest {
     });
   }
   const payment = isObject(body.payment)
-    ? { providerCode: str(body.payment.providerCode, 'payment.providerCode', 40, true) as string }
+    ? {
+        providerCode: str(body.payment.providerCode, 'payment.providerCode', 40, true) as string,
+        // O9: co-payment code, hashed on lookup — never stored on the order.
+        ...(str(body.payment.giftCardCode, 'payment.giftCardCode', 24)
+          ? { giftCardCode: str(body.payment.giftCardCode, 'payment.giftCardCode', 24) as string }
+          : {}),
+      }
     : undefined;
   const promotionCode = str(body.promotionCode, 'promotionCode', 32);
   return {

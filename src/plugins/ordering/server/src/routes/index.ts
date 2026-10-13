@@ -58,6 +58,7 @@ export default {
       publicRoute('POST', '/orders/rating', 'storefront.rate'),
       publicRoute('POST', '/orders/cancel', 'storefront.cancel'),
       publicRoute('POST', '/orders/lookup', 'storefront.lookup'),
+      publicRoute('POST', '/gift-cards/balance', 'storefront.giftCardBalance'),
       // O11 step 2: customer OTP sign-in (email only until O13) and logout. The controller
       // resolves `X-Customer-Token` itself; these routes stay `auth: false` by design.
       publicRoute('POST', '/auth/otp', 'customer-auth.requestOtp'),

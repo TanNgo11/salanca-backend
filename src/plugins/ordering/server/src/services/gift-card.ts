@@ -13,9 +13,11 @@ import {
   normalizeGiftCardCode,
 } from '../domain/gift-cards/code';
 import { decryptSecret, encryptSecret, parseEncryptionKey } from '../domain/token-cipher';
+import { isTerminal } from '../domain/workflow/transition';
 import type { TransactionClient } from '../migrations/runner';
 import orderRepository from '../repositories/order';
 import { actorRefOf, nowOf, type ServiceContext } from './context';
+import type { OrderingRegistry } from './registry';
 
 const CARD_UID = 'plugin::ordering.gift-card';
 const LEDGER_UID = 'plugin::ordering.gift-card-ledger';
@@ -116,6 +118,15 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
           expiresAt?: string;
         },
       ): Promise<void>;
+    };
+  const registry = () => plugin().service('registry') as OrderingRegistry;
+  const refund = () =>
+    plugin().service('refund') as {
+      createRefundInTransaction(
+        trx: TransactionClient,
+        input: { paymentId: number; amount?: number; reason: string; idempotencyKey?: string },
+        ctx: ServiceContext,
+      ): Promise<{ amount: number; status: string }>;
     };
 
   let keyBuffer: Buffer | null = null;
@@ -791,6 +802,60 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
         // The order link carries the purchaser's token — only for the purchaser's own address.
         includeOrderLink: recipientEmail.toLowerCase() === contactEmail.toLowerCase(),
         expiresAt: rows[0]?.expiresAt ? String(rows[0].expiresAt) : undefined,
+      });
+    },
+
+    /**
+     * Cancel-terminal safety net (O9 step 4): refund gift-card money still held on the
+     * order. Staff cancel already runs refundHeld; this covers payment expiry, customer
+     * cancel, rejection and any close path that skipped it — and stays a no-op on replay
+     * because the remaining held amount is re-read under the payment lock inside
+     * createRefundInTransaction.
+     */
+    async onGroupClosed(event: OutboxEvent): Promise<void> {
+      const payload = event.payload as {
+        orderId?: number;
+        to?: string;
+        workflowName?: string;
+        workflowVersion?: string;
+        reason?: string;
+      };
+      if (!payload.orderId || !payload.to || !payload.workflowName || !payload.workflowVersion) {
+        return;
+      }
+      const definition = registry().workflow(payload.workflowName, payload.workflowVersion);
+      if (isTerminal(definition, payload.to) !== 'canceled') return;
+      const orderId = payload.orderId;
+      const ctx: ServiceContext = { actor: { kind: 'system' } };
+      const aggregate = await orderRepository({ strapi }).loadOrderAggregate(orderId);
+      const held = (aggregate?.payments ?? []).filter(
+        (payment) => payment.providerCode === 'gift-card' && payment.capturedAmount - payment.refundedAmount > 0,
+      );
+      if (held.length === 0) return;
+      await strapi.db.transaction(async ({ trx }) => {
+        for (const payment of held) {
+          try {
+            await refund().createRefundInTransaction(
+              trx,
+              {
+                paymentId: payment.id,
+                amount: payment.capturedAmount - payment.refundedAmount,
+                reason: payload.reason ? `gift-card.close:${payload.reason}` : 'gift-card.close',
+                idempotencyKey: `gift-card-close:${orderId}:${payment.id}`,
+              },
+              ctx,
+            );
+          } catch (err) {
+            // A replay racing refundHeld can observe a stale read: re-check the live row and
+            // swallow REFUND_* when nothing is held any more — anything else must still fail.
+            if (!(err instanceof OrderingError)) throw err;
+            const live = (await trx('plugins_ordering_payment')
+              .where('id', payment.id)
+              .select('captured_amount', 'refunded_amount')
+              .first()) as { captured_amount: string; refunded_amount: string } | undefined;
+            if (!live || asInt(live.captured_amount) - asInt(live.refunded_amount) > 0) throw err;
+          }
+        }
       });
     },
 

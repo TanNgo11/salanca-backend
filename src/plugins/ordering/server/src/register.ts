@@ -24,6 +24,7 @@ import { testServiceProductType } from './domain/product-types/test-service';
 import { builtinWorkflows } from './domain/workflow/definitions';
 import type branchFactory from './services/branch';
 import { createCashPaymentProvider } from './providers/cash';
+import { createGiftCardPaymentProvider } from './providers/gift-card';
 import { createSelfDeliveryProvider } from './providers/self-delivery';
 import { createFixtureSepayClient, createSepayTransactionClient } from './providers/sepay/client';
 import { createSepayPaymentProvider, sepaySettingsFromConfig } from './providers/sepay/provider';
@@ -127,6 +128,8 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
   // O9 step 3: digital gift-card sales — fixed denominations, `gift-card` workflow.
   registry.registerProductType(giftCardProductType);
   registry.registerPaymentProvider(createCashPaymentProvider());
+  // O9: stored-value card — redeem lands captured at create; refunds settle back to the card.
+  registry.registerPaymentProvider(createGiftCardPaymentProvider());
   registry.registerFulfillmentProvider(
     createSelfDeliveryProvider({
       zonesFor: async (locationRef) => {
@@ -189,9 +192,15 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
   const giftCards = () =>
     strapi.plugin('ordering').service('gift-card') as {
       onGroupIssued: (event: OutboxEvent) => Promise<void>;
+      onGroupClosed: (event: OutboxEvent) => Promise<void>;
     };
   registry.registerOutboxConsumer('fulfillment-group.transitioned', (event) =>
     giftCards().onGroupIssued(event),
+  );
+  // O9 step 4: any close (cancel, reject, payment expiry) returns captured card value —
+  // the catch-all under the synchronous staff refundHeld path.
+  registry.registerOutboxConsumer('fulfillment-group.transitioned', (event) =>
+    giftCards().onGroupClosed(event),
   );
   registry.registerOutboxConsumer('ops-alert.opened', (event) =>
     notifications().onOpsAlert(event as never),
