@@ -86,6 +86,8 @@ const scripts = [
   'admin-customers.mjs',
   // O14: channel, group and time-window prices.
   'price-lists.mjs',
+  // O9 step 2: gift-card ledger invariant under a seeded random walk.
+  'gift-card-ledger.mjs',
 ];
 
 const results = [];

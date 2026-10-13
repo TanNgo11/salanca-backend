@@ -212,6 +212,7 @@ export const services = (app) => {
     jobLock: plugin.service('job-lock'),
     lineCancel: plugin.service('line-cancel'),
     dailyStock: plugin.service('daily-stock'),
+    giftCard: plugin.service('gift-card'),
   };
 };
 

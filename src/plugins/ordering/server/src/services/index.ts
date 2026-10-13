@@ -57,6 +57,7 @@ import rating from './rating';
 import promotionAdmin from './promotion-admin';
 import priceList from './price-list';
 import customerGroup from './customer-group';
+import giftCard from './gift-card';
 
 export default {
   registry,
@@ -115,6 +116,7 @@ export default {
   'promotion-admin': promotionAdmin,
   'price-list': priceList,
   'customer-group': customerGroup,
+  'gift-card': giftCard,
   migrations: ({ strapi }: { strapi: Core.Strapi }) => ({
     run: (migrations: OrderingMigration[]) => runOrderingMigrations(strapi, migrations),
   }),
