@@ -3,9 +3,13 @@ import {
   opsAlertWords,
   templateWords,
   type OpsAlertData,
+  type OtpMailData,
   type TemplateCode,
   type TemplateData,
 } from './templates';
+
+/** Mail payloads the render pipeline accepts (order mail, ops alerts, OTP). */
+export type AnyMailData = TemplateData | OpsAlertData | OtpMailData;
 
 /**
  * O10 editable email templates — the allowlisted `{{var}}` names each template may use plus the
@@ -35,6 +39,7 @@ export const TEMPLATE_CODES: TemplateCode[] = [
   'customer.delivery-delivered',
   'customer.delivery-failed',
   'customer.delivery-retry',
+  'customer.otp',
 ];
 
 // Compile-time exhaustiveness: a new TemplateCode without a list entry fails typecheck.
@@ -53,6 +58,7 @@ const _allCodes: Record<TemplateCode, true> = {
   'customer.delivery-delivered': true,
   'customer.delivery-failed': true,
   'customer.delivery-retry': true,
+  'customer.otp': true,
 };
 void _allCodes;
 
@@ -80,6 +86,7 @@ export const TEMPLATE_NAMES: Record<TemplateCode, [vi: string, en: string]> = {
   'customer.delivery-delivered': ['Đơn đã giao (khách)', 'Order delivered (customer)'],
   'customer.delivery-failed': ['Giao chưa thành công (khách)', 'Delivery failed (customer)'],
   'customer.delivery-retry': ['Đơn sẽ giao lại (khách)', 'Order redelivery (customer)'],
+  'customer.otp': ['Mã đăng nhập OTP (khách)', 'Sign-in OTP code (customer)'],
 };
 
 export const templateAudience = (code: TemplateCode): 'staff' | 'customer' =>
@@ -146,6 +153,11 @@ const ORDER_VARS: TemplateVar[] = [
   },
 ];
 
+const OTP_VARS: TemplateVar[] = [
+  { name: 'otp', description: ['Mã đăng nhập 6 số', 'The 6-digit sign-in code'] },
+  { name: 'minutes', description: ['Số phút hiệu lực của mã', 'Minutes the code stays valid'] },
+];
+
 const OPS_VARS: TemplateVar[] = [
   { name: 'label', description: ['Tên cảnh báo', 'Alert label'] },
   {
@@ -174,7 +186,7 @@ const OPS_VARS: TemplateVar[] = [
 
 /** Allowed `{{var}}` names for a template — used by the editor, validation and preview. */
 export const variablesFor = (code: TemplateCode): TemplateVar[] =>
-  code === 'staff.ops-alert' ? OPS_VARS : ORDER_VARS;
+  code === 'staff.ops-alert' ? OPS_VARS : code === 'customer.otp' ? OTP_VARS : ORDER_VARS;
 
 const mdEscape = (value: string): string => value.replace(/([\\[\]()*])/g, '\\$1');
 
@@ -182,9 +194,13 @@ const mdEscape = (value: string): string => value.replace(/([\\[\]()*])/g, '\\$1
 export const buildVars = (
   code: TemplateCode,
   localeInput: string | null | undefined,
-  data: TemplateData | OpsAlertData,
+  data: AnyMailData,
 ): Record<string, string> => {
   const locale = localeInput === 'en' ? 'en' : 'vi';
+  if (code === 'customer.otp') {
+    const d = data as OtpMailData;
+    return { otp: d.otp, minutes: String(d.minutes) };
+  }
   if (code === 'staff.ops-alert') {
     const d = data as OpsAlertData;
     const w = opsAlertWords(locale);
@@ -224,8 +240,10 @@ export const buildVars = (
 };
 
 /** Filled preview/sample row for the admin editor — every optional field present. */
-export const sampleDataFor = (code: TemplateCode): TemplateData | OpsAlertData =>
-  code === 'staff.ops-alert'
+export const sampleDataFor = (code: TemplateCode): AnyMailData =>
+  code === 'customer.otp'
+    ? { otp: '123456', minutes: 5 }
+    : code === 'staff.ops-alert'
     ? {
         label: 'Endpoint webhook tự tắt sau 50 lỗi liên tiếp',
         severity: 'warning',

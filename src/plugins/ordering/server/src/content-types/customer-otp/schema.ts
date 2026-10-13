@@ -14,6 +14,10 @@ export default collection(
     challengeId: { type: 'string', required: true },
     channel: { type: 'string', required: true, default: 'email' },
     targetHash: { type: 'string', required: true },
+    // AES-GCM sealed plaintext target (token-cipher) — lets `verify` recover the email to
+    // create/bind the profile without storing it in the clear. `raw:` prefix only in dev
+    // when no encryption key is configured.
+    targetSealed: { type: 'string' },
     codeHash: { type: 'string', required: true },
     purpose: { type: 'string', required: true, default: 'login' },
     customer: {

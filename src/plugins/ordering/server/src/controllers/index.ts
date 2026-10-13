@@ -8,6 +8,7 @@ import cashClosing from './cash-closing';
 import catalog from './catalog';
 import catalogImport from './catalog-import';
 import categories from './categories';
+import customerAuth from './customer-auth';
 import notificationTemplates from './notification-templates';
 import openapi from './openapi';
 import ops from './ops';
@@ -36,4 +37,5 @@ export default {
   reports,
   'audit-log': auditLog,
   'notification-templates': notificationTemplates,
+  'customer-auth': customerAuth,
 };

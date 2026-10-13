@@ -63,6 +63,8 @@ const scripts = [
   'email-templates.mjs',
   // O11: customer profiles backfill (step 1). Later O11 scripts append below.
   'customers.mjs',
+  // O11 step 2: OTP sign-in + sessions (email channel until O13).
+  'customer-auth.mjs',
 ];
 
 const results = [];

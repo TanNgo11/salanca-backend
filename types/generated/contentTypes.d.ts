@@ -3931,6 +3931,7 @@ export interface PluginOrderingCustomerOtp extends Struct.CollectionTypeSchema {
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'login'>;
     targetHash: Schema.Attribute.String & Schema.Attribute.Required;
+    targetSealed: Schema.Attribute.String;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

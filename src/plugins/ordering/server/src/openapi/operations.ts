@@ -78,6 +78,14 @@ const orderToken: Parameter = {
   description: 'Order access token returned by POST /orders (header only, never query).',
 };
 
+const customerToken: Parameter = {
+  name: 'X-Customer-Token',
+  in: 'header',
+  required: true,
+  schema: str,
+  description: 'Customer session token returned by POST /auth/verify (header only, never query).',
+};
+
 const errorBody = obj(
   {
     error: obj({
@@ -198,6 +206,22 @@ export const OPERATIONS: Operation[] = [
   pub('post', '/orders/lookup', 'Orders', 'Status-only lookup by code + phone (rate-limited)', {
     requestBody: obj({ code: str, phone: str, captchaToken: str }, ['code', 'phone']),
     response: obj({ order: generic }),
+  }),
+  // O11 step 2 — customer sign-in. Responses never reveal whether the target maps to a profile.
+  pub('post', '/auth/otp', 'Customer auth', 'Request a sign-in OTP (email only until O13)', {
+    requestBody: obj(
+      { channel: { ...str, enum: ['email'] }, target: str, captchaToken: str },
+      ['channel', 'target'],
+    ),
+    response: obj({ challengeId: str }, ['challengeId']),
+  }),
+  pub('post', '/auth/verify', 'Customer auth', 'Verify the code → session token + profile', {
+    requestBody: obj({ challengeId: str, code: str }, ['challengeId', 'code']),
+    response: obj({ token: str, customer: generic }, ['token', 'customer']),
+  }),
+  pub('post', '/auth/logout', 'Customer auth', 'Revoke the presented session (204)', {
+    parameters: [customerToken],
+    response: { type: 'null', description: '204 No Content' },
   }),
   pub('post', '/webhooks/:providerCode', 'Webhooks', 'Inbound payment-provider webhook (raw signed body)', {
     parameters: [pathParam('providerCode', 'e.g. sepay')],

@@ -1,6 +1,6 @@
 import { OrderingError } from '../errors';
-import type { OpsAlertData, TemplateCode, TemplateData } from './templates';
-import { buildVars, markdownVars, variablesFor } from './template-vars';
+import type { TemplateCode } from './templates';
+import { buildVars, markdownVars, variablesFor, type AnyMailData } from './template-vars';
 
 /**
  * Restricted-markdown renderer for staff-edited email templates (O10, contracts §14).
@@ -116,7 +116,7 @@ export function renderCustom(
   code: TemplateCode,
   locale: string | null | undefined,
   source: { subject: string; body: string },
-  data: TemplateData | OpsAlertData,
+  data: AnyMailData,
 ): RenderedMail {
   validateTemplateVars(code, source.subject, source.body);
   const raw = buildVars(code, locale, data);

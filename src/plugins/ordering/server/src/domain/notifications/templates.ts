@@ -17,7 +17,8 @@ export type TemplateCode =
   | 'customer.delivery-out'
   | 'customer.delivery-delivered'
   | 'customer.delivery-failed'
-  | 'customer.delivery-retry';
+  | 'customer.delivery-retry'
+  | 'customer.otp';
 
 export type TemplateData = {
   code: string;
@@ -68,6 +69,11 @@ const copy: Record<TemplateCode, Record<Locale, { subject: string; lead: string 
   'staff.ops-alert': {
     vi: { subject: '[Bán hàng] Cảnh báo', lead: '' },
     en: { subject: '[Ordering] Alert', lead: '' },
+  },
+  // `customer.otp` renders through `renderOtp`; this entry only satisfies the copy record.
+  'customer.otp': {
+    vi: { subject: '', lead: '' },
+    en: { subject: '', lead: '' },
   },
   'customer.order-placed': {
     vi: { subject: 'Đã nhận đơn {code}', lead: 'Cảm ơn bạn! {branch} đã nhận đơn và sẽ xác nhận sớm.' },
@@ -181,6 +187,43 @@ export function renderTemplate(
   return { subject: fill(subject), text, html };
 }
 
+/** O11 OTP mail data: the one-time code and its validity window (plan step 2). */
+export type OtpMailData = {
+  otp: string;
+  minutes: number;
+};
+
+const otpLabels: Record<Locale, Record<string, string>> = {
+  vi: {
+    lead: 'Mã đăng nhập của bạn là:',
+    hint: 'Mã có hiệu lực trong {minutes} phút. Nếu bạn không yêu cầu mã này, hãy bỏ qua email.',
+  },
+  en: {
+    lead: 'Your sign-in code is:',
+    hint: 'It is valid for {minutes} minutes. If you did not request this code, ignore this email.',
+  },
+};
+
+/** Renders `customer.otp` — the code is the whole point of the mail, so it leads subject+body. */
+export function renderOtp(
+  localeInput: string | null | undefined,
+  data: OtpMailData,
+): { subject: string; text: string; html: string } {
+  const locale: Locale = localeInput === 'en' ? 'en' : 'vi';
+  const words = otpLabels[locale];
+  const minutes = String(data.minutes);
+  const subject =
+    locale === 'en' ? `Your sign-in code: ${data.otp}` : `Mã đăng nhập của bạn: ${data.otp}`;
+  const hint = words.hint.replace('{minutes}', minutes);
+  const text = [words.lead, '', data.otp, '', hint].join('\n');
+  const html = [
+    `<p>${escapeHtml(words.lead)}</p>`,
+    `<p style="font-size:24px;letter-spacing:4px"><strong>${escapeHtml(data.otp)}</strong></p>`,
+    `<p>${escapeHtml(hint)}</p>`,
+  ].join('\n');
+  return { subject, text, html };
+}
+
 /** Ops-alert mail data: refs and counts only, never PII (contracts §12). */
 export type OpsAlertData = {
   label: string;
@@ -277,6 +320,13 @@ export function defaultTemplateSource(
   const locale: Locale = localeInput === 'en' ? 'en' : 'vi';
   const fill = (value: string) =>
     value.replaceAll('{code}', '{{code}}').replaceAll('{branch}', '{{branch}}');
+  if (template === 'customer.otp') {
+    const w = otpLabels[locale];
+    return {
+      subject: locale === 'en' ? 'Your sign-in code: {{otp}}' : 'Mã đăng nhập của bạn: {{otp}}',
+      body: [w.lead, '', '**{{otp}}**', '', w.hint.replace('{minutes}', '{{minutes}}')].join('\n'),
+    };
+  }
   if (template === 'staff.ops-alert') {
     const w = opsAlertLabels[locale];
     return {

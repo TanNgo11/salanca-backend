@@ -16,11 +16,12 @@ import {
 import {
   defaultTemplateSource,
   renderOpsAlert,
+  renderOtp,
   renderTemplate,
-  type OpsAlertData,
   type TemplateCode,
   type TemplateData,
 } from '../domain/notifications/templates';
+import type { AnyMailData } from '../domain/notifications/template-vars';
 import type alertFactory from './alert';
 import type changeLogFactory from './change-log';
 import { actorRefOf, type ServiceContext } from './context';
@@ -76,11 +77,13 @@ const notificationTemplate = ({ strapi }: { strapi: Core.Strapi }) => {
   const defaultRender = (
     code: TemplateCode,
     locale: string,
-    data: TemplateData | OpsAlertData,
+    data: AnyMailData,
   ): RenderedMail =>
     code === 'staff.ops-alert'
-      ? renderOpsAlert(locale, data as OpsAlertData)
-      : renderTemplate(code, locale, data as TemplateData);
+      ? renderOpsAlert(locale, data as Parameters<typeof renderOpsAlert>[1])
+      : code === 'customer.otp'
+        ? renderOtp(locale, data as Parameters<typeof renderOtp>[1])
+        : renderTemplate(code, locale, data as TemplateData);
 
   const describe = async (code: TemplateCode, locale: TemplateLocale) => {
     const row = await findRow(code, locale);
@@ -237,7 +240,7 @@ const notificationTemplate = ({ strapi }: { strapi: Core.Strapi }) => {
     async renderFor(
       code: TemplateCode,
       locale: string,
-      data: TemplateData | OpsAlertData,
+      data: AnyMailData,
     ): Promise<RenderedMail> {
       // A lookup failure (e.g. DB hiccup) degrades to the built-in copy — mail always goes out.
       const row = await findRow(code, locale === 'en' ? 'en' : 'vi').catch(() => null);

@@ -12,6 +12,7 @@ import {
   type TemplateCode,
   type TemplateData,
 } from '../domain/notifications/templates';
+import type { AnyMailData } from '../domain/notifications/template-vars';
 import orderRepository from '../repositories/order';
 import type { OrderAggregate } from '../repositories/types';
 import type alertRecipientsFactory from './alert-recipients';
@@ -56,7 +57,7 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
     /** Alerts carry no order; the delivery log column is nullable. */
     orderId?: number | null;
     locale: string;
-    data: TemplateData | OpsAlertData;
+    data: AnyMailData;
   }) => {
     const recipientHash = sha256Hex(input.email.trim().toLowerCase());
     const key = { eventId: String(input.event.id), template: input.template, recipientHash };

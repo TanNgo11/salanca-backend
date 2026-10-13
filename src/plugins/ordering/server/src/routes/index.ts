@@ -56,6 +56,11 @@ export default {
       publicRoute('GET', '/orders/payment', 'storefront.payment'),
       publicRoute('POST', '/orders/cancel', 'storefront.cancel'),
       publicRoute('POST', '/orders/lookup', 'storefront.lookup'),
+      // O11 step 2: customer OTP sign-in (email only until O13) and logout. The controller
+      // resolves `X-Customer-Token` itself; these routes stay `auth: false` by design.
+      publicRoute('POST', '/auth/otp', 'customer-auth.requestOtp'),
+      publicRoute('POST', '/auth/verify', 'customer-auth.verify'),
+      publicRoute('POST', '/auth/logout', 'customer-auth.logout'),
       publicRoute('POST', '/webhooks/:providerCode', 'webhook.receive'),
       // O10: the public contract, self-served (cached 1h by the controller).
       publicRoute('GET', '/openapi.json', 'openapi.document'),
