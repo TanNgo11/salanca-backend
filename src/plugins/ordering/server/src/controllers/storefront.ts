@@ -20,7 +20,9 @@ import {
   clientIpOf,
   isWrongPromotionCode,
   notePromotionCodeFailure,
+  PROMOTION_CAPTCHA_AFTER,
   promotionCodeFailureCount,
+  promotionCodeLimit,
   rateLimited,
 } from './storefront-guard';
 
@@ -116,16 +118,19 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       const cart = parseCartRequest(ctx.request.body);
       const body = (ctx.request.body ?? {}) as { contact?: { phone?: unknown }; captchaToken?: unknown };
       const phone = typeof body.contact?.phone === 'string' ? body.contact.phone.slice(0, 32) : '';
+      const ip = clientIpOf(strapi, ctx);
+      const codeLimit = promotionCodeLimit(strapi);
+      const tooMany = () => {
+        ctx.status = 429;
+        ctx.body = {
+          error: { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' },
+        };
+        return undefined;
+      };
       if (cart.promotionCode) {
-        const failures = promotionCodeFailureCount(clientIpOf(strapi, ctx));
-        if (failures >= 20) {
-          ctx.status = 429;
-          ctx.body = {
-            error: { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' },
-          };
-          return undefined;
-        }
-        if (failures >= 3) {
+        const failures = promotionCodeFailureCount(ip);
+        if (failures >= codeLimit.max) return tooMany();
+        if (failures >= PROMOTION_CAPTCHA_AFTER) {
           await verifyCaptcha(
             ctx,
             typeof body.captchaToken === 'string' ? body.captchaToken : undefined,
@@ -146,15 +151,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
         );
       const rejected = (quoted as { rejectedPromotions?: Array<{ reason: string }> }).rejectedPromotions ?? [];
       if (cart.promotionCode && rejected.some((row) => isWrongPromotionCode(row.reason))) {
-        const ip = clientIpOf(strapi, ctx);
-        const count = notePromotionCodeFailure(ip);
-        if (count >= 20) {
-          ctx.status = 429;
-          ctx.body = {
-            error: { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' },
-          };
-          return undefined;
-        }
+        if (notePromotionCodeFailure(ip, codeLimit.windowMs) >= codeLimit.max) return tooMany();
       }
       return quoted;
     }),

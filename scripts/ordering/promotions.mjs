@@ -1,6 +1,10 @@
 // Promotion quote/create: same total, per-customer, first order, cancel returns a use,
-// a line-targeted percent, and a code that does not exist.
+// a line-targeted percent, a code that does not exist, and (HTTP) the wrong-code guard:
+// captcha after 3 guesses per IP, 429 at the configured limit, eligibility misses not counted.
 import assert from 'node:assert/strict';
+
+// Trusted visitor-IP forwarding gives each HTTP section its own wrong-code bucket.
+process.env.FORM_INTAKE_SHARED_SECRET = 'promotions-test-secret';
 
 import { basicOrderInput, seedBranches, seedMenu, services, systemCtx, withApp } from './_harness.mjs';
 
@@ -139,4 +143,71 @@ withApp(async (app) => {
     (error) => error.code === 'PROMOTION_INVALID',
   );
   console.log('[ordering-test] an unknown code is rejected on the quote and refused on create');
+  // --- HTTP: wrong-code guard ------------------------------------------------------------
+  app.config.set('plugin::ordering.storefront.rateLimits.promotionCode', { max: 6, windowMs: 600_000 });
+  app.config.set('plugin::ordering.storefront.rateLimits.quote', { max: 100, windowMs: 60_000 });
+  await createPromotion(
+    app,
+    basePromotion({
+      name: { vi: 'Đơn lớn' },
+      minSubtotal: 10_000_000,
+      startsAt: '2026-01-01T00:00:00.000Z',
+      endsAt: null,
+    }),
+    { code: 'DONLON', usageLimit: null },
+  );
+  await app.listen();
+  const base = `http://127.0.0.1:${process.env.PORT}/api/v1/ordering`;
+  const call = async (body, ip) => {
+    const res = await fetch(`${base}/quote`, {
+      method: 'POST',
+      headers: {
+        'x-salanca-intake-secret': 'promotions-test-secret',
+        'x-salanca-visitor-ip': ip,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    return { status: res.status, body: await res.json() };
+  };
+  const config = await (await fetch(`${base}/config?branch=Q1`)).json();
+  const slotDate = config.branch.pickup.bookableFrom;
+  const slots = await (await fetch(`${base}/slots?branch=Q1&date=${slotDate}`)).json();
+  const slot = slots.items.find((row) => row.available);
+  assert.ok(slot, 'an open slot for the HTTP quotes');
+  const cart = (promotionCode, extra = {}) => ({
+    branch: 'Q1',
+    locale: 'vi',
+    lines: [{ sellableUid: 'bun-bo', quantity: 1 }],
+    receiveMethod: { kind: 'pickup', slot: { startsAt: slot.startsAt } },
+    promotionCode,
+    ...extra,
+  });
+
+  // A real code the cart is too small for: eligibility, not a guess — never needs captcha.
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const miss = await call(cart('DONLON'), '198.51.100.7');
+    assert.equal(miss.status, 200, JSON.stringify(miss.body));
+    assert.equal(miss.body.rejectedPromotions[0].reason, 'min-subtotal');
+  }
+  console.log('[ordering-test] eligibility misses on a real code do not count as guesses');
+
+  const guesser = '198.51.100.9';
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const guess = await call(cart(`SAI${attempt}X`), guesser);
+    assert.equal(guess.status, 200);
+    assert.equal(guess.body.rejectedPromotions[0].reason, 'invalid');
+  }
+  const noCaptcha = await call(cart('SAI9X'), guesser);
+  assert.equal(noCaptcha.body.error?.code, 'CAPTCHA_FAILED', 'after 3 wrong codes a captcha is required');
+  const plain = await call(cart(undefined), guesser);
+  assert.equal(plain.status, 200, 'a quote without a code never needs the captcha');
+  let last;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    last = await call(cart(`SAI${attempt}Y`, { captchaToken: 'pass' }), guesser);
+  }
+  assert.equal(last.status, 429, 'the configured wrong-code limit answers 429');
+  assert.equal(last.body.error.code, 'RATE_LIMITED');
+  assert.equal((await call(cart('GIAM10', { captchaToken: 'pass' }), guesser)).status, 429);
+  console.log('[ordering-test] wrong-code guard: captcha after 3 guesses, 429 at the limit');
 });

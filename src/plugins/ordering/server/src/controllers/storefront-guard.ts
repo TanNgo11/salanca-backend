@@ -44,7 +44,8 @@ export const rateLimited = (
   return true;
 };
 
-const CODE_WINDOW_MS = 10 * 60 * 1000;
+/** Wrong codes per IP before a quote with a code must carry a captcha (plan O8 step 4). */
+export const PROMOTION_CAPTCHA_AFTER = 3;
 const codeFailures = new Map<string, { count: number; resetAt: number }>();
 
 /**
@@ -55,7 +56,11 @@ const GUESS_REASONS = new Set(['invalid', 'not-started', 'ended', 'code-used', '
 
 export const isWrongPromotionCode = (reason: string): boolean => GUESS_REASONS.has(reason);
 
-/** Wrong promotion codes for this IP in the current 10-minute window. */
+/** `storefront.rateLimits.promotionCode`: `max` wrong codes per IP in `windowMs`, then 429. */
+export const promotionCodeLimit = (strapi: Core.Strapi): { max: number; windowMs: number } =>
+  (strapi.config.get('plugin::ordering') as OrderingConfig).storefront.rateLimits.promotionCode;
+
+/** Wrong promotion codes for this IP in the current window. */
 export const promotionCodeFailureCount = (ip: string, now = Date.now()): number => {
   const entry = codeFailures.get(ip);
   if (!entry || now >= entry.resetAt) return 0;
@@ -63,10 +68,13 @@ export const promotionCodeFailureCount = (ip: string, now = Date.now()): number 
 };
 
 /** Counts one wrong code. Returns the new total for this window. */
-export const notePromotionCodeFailure = (ip: string, now = Date.now()): number => {
+export const notePromotionCodeFailure = (ip: string, windowMs: number, now = Date.now()): number => {
+  if (codeFailures.size >= 10_000) {
+    for (const [key, entry] of codeFailures) if (now >= entry.resetAt) codeFailures.delete(key);
+  }
   const entry = codeFailures.get(ip);
   if (!entry || now >= entry.resetAt) {
-    codeFailures.set(ip, { count: 1, resetAt: now + CODE_WINDOW_MS });
+    codeFailures.set(ip, { count: 1, resetAt: now + windowMs });
     return 1;
   }
   entry.count += 1;

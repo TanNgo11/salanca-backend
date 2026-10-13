@@ -871,6 +871,10 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
             },
           });
           const orderId = order.id as number;
+          if (prepared.promotions.applied.length > 0 && !prepared.promotions.customerKey) {
+            // Create validates the phone first, so this is unreachable; never apply unreserved.
+            throw new OrderingError('INTERNAL', 'promotion applied without a customer key');
+          }
           if (prepared.promotions.applied.length > 0 && prepared.promotions.customerKey) {
             const promotion = strapi.plugin('ordering').service('promotion') as ReturnType<
               typeof import('./promotion').default

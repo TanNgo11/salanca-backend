@@ -16,6 +16,7 @@ const scripts = [
   'idempotency.mjs',
   'create-order.mjs',
   'promotions.mjs',
+  'promotion-race.mjs',
   'transition.mjs',
   'payment-refund.mjs',
   'outbox-two-process.mjs',

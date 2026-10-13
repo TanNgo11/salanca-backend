@@ -306,7 +306,14 @@ const promotionService = ({ strapi }: { strapi: Core.Strapi }) => {
           kind: String(row.kind),
           used_count: Number(row.used_count ?? 0),
           usage_limit: row.usage_limit == null ? null : Number(row.usage_limit),
-          per_customer_limit: row.per_customer_limit == null ? null : Number(row.per_customer_limit),
+          // First-order-only means one use per phone; under this lock that also stops two
+          // simultaneous "first" orders from the same number both getting it.
+          per_customer_limit:
+            row.first_order_only === true
+              ? Math.min(1, row.per_customer_limit == null ? 1 : Number(row.per_customer_limit))
+              : row.per_customer_limit == null
+                ? null
+                : Number(row.per_customer_limit),
         });
       }
       const codeIds = new Map<number, number>();
