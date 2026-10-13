@@ -8,8 +8,6 @@ import {
   customerTemplateFor,
   deliveryFailureReason,
   formatLocalTime,
-  renderOpsAlert,
-  renderTemplate,
   type OpsAlertData,
   type TemplateCode,
   type TemplateData,
@@ -20,6 +18,7 @@ import type alertRecipientsFactory from './alert-recipients';
 import type alertRulesFactory from './alert-rules';
 import type branchFactory from './branch';
 import type idempotencyFactory from './idempotency';
+import type notificationTemplateFactory from './notification-template';
 import type orderingSettingsFactory from './ordering-settings';
 import type { OrderingRegistry } from './registry';
 
@@ -42,6 +41,8 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
   const branches = () => plugin().service('branch') as ReturnType<typeof branchFactory>;
   const idempotency = () => plugin().service('idempotency') as ReturnType<typeof idempotencyFactory>;
   const settings = () => plugin().service('ordering-settings') as ReturnType<typeof orderingSettingsFactory>;
+  const templates = () =>
+    plugin().service('notification-template') as ReturnType<typeof notificationTemplateFactory>;
   const alertRules = () => plugin().service('alert-rules') as ReturnType<typeof alertRulesFactory>;
   const alertRecipients = () =>
     plugin().service('alert-recipients') as ReturnType<typeof alertRecipientsFactory>;
@@ -88,10 +89,9 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
       await deliveries().update({ where: { id: row.id }, data: { status: 'skipped' } });
       return;
     }
-    const rendered =
-      input.template === 'staff.ops-alert'
-        ? renderOpsAlert(input.locale, input.data as OpsAlertData)
-        : renderTemplate(input.template, input.locale, input.data as TemplateData);
+    // A staff-edited `notification-template` row overrides the built-in copy; a broken one falls
+    // back to the default and raises `notification-template-broken` inside renderFor.
+    const rendered = await templates().renderFor(input.template, input.locale, input.data);
     try {
       await registry()
         .notificationProvider('email')

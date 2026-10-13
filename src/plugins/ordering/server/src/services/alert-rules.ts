@@ -42,6 +42,14 @@ export const ALERT_RULE_DEFAULTS: AlertRules = {
     aggregationMinutes: 60,
     recipients: ['ops.read'],
   },
+  // O10: an outbound endpoint crossed 50 consecutive failures and switched itself off.
+  'webhook-endpoint-disabled': {
+    enabled: true,
+    threshold: 1,
+    criticalThreshold: 1,
+    aggregationMinutes: 60,
+    recipients: ['ops.read'],
+  },
   'payment-unmatched': {
     enabled: true,
     threshold: 1,
@@ -90,6 +98,22 @@ export const ALERT_RULE_DEFAULTS: AlertRules = {
     criticalThreshold: 1,
     aggregationMinutes: 1440,
     recipients: ['report.read'],
+  },
+  // O15: a change-log row whose hash or chain link no longer verifies. Always critical.
+  'audit-tampered': {
+    enabled: true,
+    threshold: 1,
+    criticalThreshold: 1,
+    aggregationMinutes: 1440,
+    recipients: ['ops.read'],
+  },
+  // O10: a saved template failed at render — the order mail still went out with the default copy.
+  'notification-template-broken': {
+    enabled: true,
+    threshold: 1,
+    criticalThreshold: 10,
+    aggregationMinutes: 60,
+    recipients: ['ops.read'],
   },
 };
 

@@ -14,6 +14,7 @@ import {
 import { decryptSecret, encryptSecret, parseEncryptionKey } from '../domain/token-cipher';
 import { isOnlinePaymentProvider } from '../providers/cash';
 import type branchFactory from './branch';
+import type changeLogFactory from './change-log';
 import type { ServiceContext } from './context';
 import { nowOf } from './context';
 import type orderServiceFactory from './order';
@@ -63,6 +64,7 @@ const paymentLink = ({ strapi }: { strapi: Core.Strapi }) => {
   const orders = () => plugin().service('order') as ReturnType<typeof orderServiceFactory>;
   const branches = () => plugin().service('branch') as ReturnType<typeof branchFactory>;
   const registry = () => plugin().service('registry') as OrderingRegistry;
+  const changeLog = () => plugin().service('change-log') as ReturnType<typeof changeLogFactory>;
   const config = () => strapi.config.get('plugin::ordering') as OrderingConfig;
   const store = () => strapi.store({ type: 'plugin', name: 'ordering' }) as unknown as PluginStore;
 
@@ -194,6 +196,19 @@ const paymentLink = ({ strapi }: { strapi: Core.Strapi }) => {
       const issuedAt = new Date(expiresAt);
       const next = issuedAt.getTime() > current.getTime() ? issuedAt : current;
       await store().set({ key: paymentDeadlineStoreKey(orderId), value: next.toISOString() });
+      // O15: a new link extends the payment window — staff accountability. Never the token/URL.
+      await changeLog().record(
+        {
+          action: 'payment-link.issue',
+          entityType: 'order',
+          entityId: orderId,
+          entityLabel: aggregate.order.code,
+          orderId,
+          locationRef: aggregate.order.locationRef,
+          after: { expiresAt, paymentDeadline: next.toISOString() },
+        },
+        ctx,
+      );
       return { url: paymentUrl(token), expiresAt, replayed: false };
     },
 

@@ -57,6 +57,8 @@ export default {
       publicRoute('POST', '/orders/cancel', 'storefront.cancel'),
       publicRoute('POST', '/orders/lookup', 'storefront.lookup'),
       publicRoute('POST', '/webhooks/:providerCode', 'webhook.receive'),
+      // O10: the public contract, self-served (cached 1h by the controller).
+      publicRoute('GET', '/openapi.json', 'openapi.document'),
     ],
   },
   admin: {
@@ -255,6 +257,66 @@ export default {
       adminRoute('POST', '/cash-closing/:id/adjust', 'cash-closing.adjust', 'report.read'),
       // Sales report (screens V4): ledger revenue + sold-order grouping by business date.
       adminRoute('GET', '/reports/sales', 'reports.sales', 'report.read'),
+      // O15 "Lịch sử thay đổi" — scope filtered in the service; export needs both actions.
+      adminRoute('GET', '/audit-log', 'audit-log.list', 'audit.read'),
+      adminRoute('GET', '/audit-log/actors', 'audit-log.actors', 'audit.read'),
+      adminRoute('GET', '/audit-log/export', 'audit-log.exportCsv', 'audit.read', 'export'),
+      adminRoute('GET', '/audit-log/:id', 'audit-log.detail', 'audit.read'),
+      // O10 "Nhập/Xuất menu" (screens X3): catalog CSV round-trip. Import posts the file as
+      // text/csv (≤256 KB) or application/octet-stream (≤2 MB); export needs both actions.
+      adminRoute('GET', '/catalog/imports', 'catalog-import.list', 'catalog.manage'),
+      adminRoute('GET', '/catalog/export', 'catalog-import.exportCsv', 'catalog.manage', 'export'),
+      adminRoute('POST', '/catalog/import', 'catalog-import.importCsv', 'catalog.manage'),
+      adminRoute('POST', '/catalog/import/:id/apply', 'catalog-import.apply', 'catalog.manage'),
+      // O10 "Webhook" (screens X1): outbound endpoint management. `webhook.manage` gates the
+      // whole surface; the plaintext signing secret leaves the server only in create/rotate
+      // responses. `/webhooks/events` precedes `/webhooks/:id` so it is not parsed as
+      // an id (same rule as `/orders/export`).
+      adminRoute('GET', '/webhooks', 'webhooks.list', 'webhook.manage'),
+      adminRoute('GET', '/webhooks/events', 'webhooks.eventCatalog', 'webhook.manage'),
+      adminRoute('GET', '/webhooks/:id', 'webhooks.get', 'webhook.manage'),
+      adminRoute('POST', '/webhooks', 'webhooks.create', 'webhook.manage'),
+      adminRoute('PATCH', '/webhooks/:id', 'webhooks.update', 'webhook.manage'),
+      // The Admin fetch client has no PATCH; PUT carries the same partial update.
+      adminRoute('PUT', '/webhooks/:id', 'webhooks.update', 'webhook.manage'),
+      adminRoute('POST', '/webhooks/:id/rotate-secret', 'webhooks.rotateSecret', 'webhook.manage'),
+      adminRoute('POST', '/webhooks/:id/active', 'webhooks.setActive', 'webhook.manage'),
+      adminRoute('POST', '/webhooks/:id/test', 'webhooks.sendTest', 'webhook.manage'),
+      adminRoute('GET', '/webhooks/:id/deliveries', 'webhooks.deliveries', 'webhook.manage'),
+      adminRoute('POST', '/webhook-deliveries/:id/resend', 'webhooks.resend', 'webhook.manage'),
+      // O10 "Mẫu email" (screens X4): subject + restricted-markdown body overrides per
+      // (code, locale); :code contains dots but stays inside one path segment.
+      adminRoute('GET', '/notification-templates', 'notification-templates.list', 'settings.manage'),
+      adminRoute(
+        'GET',
+        '/notification-templates/:code/:locale',
+        'notification-templates.get',
+        'settings.manage',
+      ),
+      adminRoute(
+        'PUT',
+        '/notification-templates/:code/:locale',
+        'notification-templates.save',
+        'settings.manage',
+      ),
+      adminRoute(
+        'POST',
+        '/notification-templates/:code/:locale/preview',
+        'notification-templates.preview',
+        'settings.manage',
+      ),
+      adminRoute(
+        'POST',
+        '/notification-templates/:code/:locale/test',
+        'notification-templates.test',
+        'settings.manage',
+      ),
+      adminRoute(
+        'DELETE',
+        '/notification-templates/:code/:locale',
+        'notification-templates.remove',
+        'settings.manage',
+      ),
     ],
   },
 };

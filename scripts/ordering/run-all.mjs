@@ -43,6 +43,8 @@ const scripts = [
   'reports.mjs',
   'order-export.mjs',
   'retention.mjs',
+  'audit-log.mjs',
+  'audit-coverage.mjs',
   'lookup-drafts.mjs',
   'stream.mjs',
   'sepay-webhook.mjs',
@@ -57,6 +59,11 @@ const scripts = [
   'admin-units.mjs',
   'delivery-quote.mjs',
   'delivery-assignment.mjs',
+  'webhooks-out.mjs',
+  'webhooks-admin.mjs',
+  'openapi.mjs',
+  'catalog-csv.mjs',
+  'email-templates.mjs',
   'courier.mjs',
 ];
 

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O15 Lịch sử thay đổi</title>
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body>
+<main class="doc">
+
+<header class="doc-head">
+  <p class="eyebrow">Mockup · Phase O15 · Lịch sử thay đổi</p>
+  <h1>Ai làm gì, lúc nào, trước → sau</h1>
+  <p class="lead"><strong>Đặc tả màn hình: mục cuối của <a href="../ordering-o15-audit-log.md">ordering-o15-audit-log.md</a>.</strong></p>
+  <div class="links"><a href="../../phases/phase-ordering-15-audit-log.md">Spec O15</a></div>
+</header>
+
+<section class="screen">
+  <h2>A1. Lịch sử thay đổi</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/audit-log</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a class="active">Bán hàng</a></nav>
+        <div class="content">
+          <div class="spread"><span class="input">06/10/2026</span><span class="input">12/10/2026</span><span class="input">Người làm: Tất cả</span><span class="input">Mã đơn / tên món</span><span class="btn secondary">Xuất CSV</span></div>
+          <div class="toggle"><span class="on">Tất cả</span><span>Tiền</span><span>Đơn</span><span>Món</span><span>Giao hàng</span><span>Cấu hình</span><span>Quyền</span><span>Vận hành</span></div>
+          <div class="panel" style="padding:0"><div class="table-wrap"><table class="t">
+            <thead><tr><th>Lúc</th><th>Người</th><th>Thao tác</th><th>Đối tượng</th><th>CN</th><th>Tóm tắt</th></tr></thead>
+            <tbody>
+              <tr><td>12/10 14:22</td><td>Quản lý Q1</td><td><span class="badge warn">Hoàn tiền mặt</span></td><td>SLC-000150</td><td>Q1</td><td>Hoàn 30.000đ · khách đổi món</td></tr>
+              <tr><td>12/10 14:20</td><td>Quản lý Q1</td><td><span class="badge gray">Hủy món</span></td><td>SLC-000150</td><td>Q1</td><td>Trà đào × 1</td></tr>
+              <tr class="hl"><td>12/10 10:05</td><td>Admin chuỗi</td><td><span class="badge info">Sửa giá</span></td><td>Cơm gà xối mỡ (lớn)</td><td>—</td><td>Giá 65.000 → 60.000</td></tr>
+              <tr><td>11/10 22:40</td><td>Kế toán</td><td><span class="badge warn">Chốt tiền mặt</span></td><td>Q1 · 11/10 · Tâm</td><td>Q1</td><td>Đếm 1.230.000 · lệch −20.000</td></tr>
+              <tr><td>11/10 09:00</td><td>Hệ thống</td><td><span class="badge gray">Chạy job</span></td><td>retention</td><td>—</td><td>Che 12 payload</td></tr>
+            </tbody></table></div></div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Quyền <code>audit.read</code>, lọc theo scope chi nhánh; log cấu hình chung chỉ người <code>allLocations</code> thấy.</span></li>
+      <li><span class="n">2</span><span>Chỉ thêm, không sửa/xóa; chuỗi băm phát hiện sửa trực tiếp DB.</span></li>
+      <li><span class="n">3</span><span>Dữ liệu cá nhân đã che trong trước/sau.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>A2. Chi tiết thay đổi</h2>
+  <div class="modal-backdrop">
+    <div class="modal">
+      <header><strong>Sửa giá · Cơm gà xối mỡ (lớn)</strong><span class="muted small">12/10 10:05 · Admin chuỗi</span></header>
+      <div class="body">
+        <div class="table-wrap"><table class="t" style="min-width:0">
+          <thead><tr><th>Field</th><th class="num">Trước</th><th class="num">Sau</th></tr></thead>
+          <tbody><tr><td>amount</td><td class="num">65.000đ</td><td class="num">60.000đ</td></tr><tr><td>compareAtAmount</td><td class="num">—</td><td class="num">65.000đ</td></tr></tbody>
+        </table></div>
+        <span class="muted small">Cùng thao tác: không có</span>
+      </div>
+      <footer><span></span><span class="btn">Đóng</span></footer>
+    </div>
+  </div>
+</section>
+
+<footer class="doc-foot">File trên máy, không publish. Tên, số liệu chỉ là ví dụ.</footer>
+</main>
+</body>
+</html>

@@ -8,9 +8,11 @@ import { o4Messages } from './o4';
 import { o5Messages } from './o5';
 import { o6Messages } from './o6';
 import { o7Messages } from './o7';
+import { o15Messages } from './o15';
+import { o10Messages } from './o10';
 
 const ROOT = join(__dirname, '..');
-const O3_DIRS = ['inbox', 'components/orders', 'pages/Orders', 'pages/Deliveries', 'pages/Courier', 'pages/Branches', 'pages/Staff', 'pages/Settings', 'pages/PaymentReview', 'pages/Ops', 'pages/Alerts', 'pages/CashClosing', 'pages/Reports', 'lib'];
+const O3_DIRS = ['inbox', 'components/orders', 'pages/Orders', 'pages/Deliveries', 'pages/Courier', 'pages/Branches', 'pages/Staff', 'pages/Settings', 'pages/PaymentReview', 'pages/Ops', 'pages/Alerts', 'pages/CashClosing', 'pages/Reports', 'pages/AuditLog', 'pages/Webhooks', 'pages/CatalogImport', 'pages/ApiDocs', 'lib'];
 const EXTRA_FILES = ['pages/App.tsx', 'components/OrderExportModal.tsx'];
 
 const files = (dir: string): string[] =>
@@ -36,6 +38,13 @@ const DYNAMIC: Record<string, string[]> = {
   'deliveries.tab': ['ready', 'out', 'failed'],
   'deliveries.empty': ['ready', 'out', 'failed', 'filtered'],
   'deliveries.failReason': ['unreachable', 'wrong-address', 'refused', 'other'],
+  'audit.category': ['all', 'money', 'order', 'catalog', 'delivery', 'config', 'access', 'ops', 'other'],
+  'webhook.group': ['order', 'fulfillment', 'payment', 'refund', 'ops', 'promotion', 'gift-card', 'rating'],
+  'webhook.deliveries.filter': ['all', 'pending', 'succeeded', 'failed'],
+  'error.WEBHOOK_URL_INVALID': ['scheme', 'invalid', 'private-address', 'unresolvable'],
+  'x3.kind': ['products', 'modifiers'],
+  'x3.status': ['validated', 'applied', 'failed'],
+  'x4.audience': ['staff', 'customer'],
 };
 
 describe('O3 admin translations', () => {
@@ -55,7 +64,15 @@ describe('O3 admin translations', () => {
       for (const value of values) used.add(`${prefix}.${value}`);
     }
     const known = (key: string) =>
-      Boolean(o3Messages[key] || o4Messages[key] || o5Messages[key] || o6Messages[key] || o7Messages[key]);
+      Boolean(
+        o3Messages[key] ||
+          o4Messages[key] ||
+          o5Messages[key] ||
+          o6Messages[key] ||
+          o7Messages[key] ||
+          o15Messages[key] ||
+          o10Messages[key],
+      );
     const missing = [...used].filter((key) => !known(key));
     expect(missing).toEqual([]);
     for (const [key, [vi, en]] of Object.entries({
@@ -64,6 +81,8 @@ describe('O3 admin translations', () => {
       ...o5Messages,
       ...o6Messages,
       ...o7Messages,
+      ...o15Messages,
+      ...o10Messages,
     })) {
       expect(vi.trim(), key).not.toBe('');
       expect(en.trim(), key).not.toBe('');

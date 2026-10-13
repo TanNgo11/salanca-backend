@@ -161,7 +161,7 @@ Related phase: [`phases/phase-ordering-6-ops-golive.md`](../phases/phase-orderin
 | 4 — Báo cáo bán hàng | `e2f8718` |
 | 5 — Xuất CSV đơn | `26c0236` |
 | 6 — Job thời hạn lưu | `dedddfc` |
-| 8/10 — Runbook, checklist cổng go-live, UAT seed | <commit docs sắp tới> |
+| 8/10 — Runbook, checklist cổng go-live, UAT seed | `5d5b9eb` |
 
 - Bước 3 (chốt tiền mặt) xong: content type `cash-closing`, `refund.business_date`, migration
   `0004-o6-ops`, `services/cash-closing.ts`, routes `report.read`, trang Admin `CashClosing`,
@@ -176,6 +176,15 @@ Related phase: [`phases/phase-ordering-6-ops-golive.md`](../phases/phase-orderin
 - Bước 6 (thời hạn lưu) xong: config `retention` + `retentionCron`, `domain/pii.ts`
   (`RETAINED_PAYLOAD_KEYS` + `redactPayload`), `jobs/retention.ts` trong `ORDERING_JOBS`,
   test `scripts/ordering/retention.mjs`.
+
+### Sửa sau review (2026-10-12)
+
+| Finding | Sửa | Commit |
+| --- | --- | --- |
+| `maybeEscalate` nâng critical theo `count`, mà ops-check/sla-check mở lại alert mỗi phút → heartbeat critical sau 6 phút (thay vì 6 chu kỳ), đơn chờ nhận critical sau 3 phút | Chỉ rule đếm sự kiện thật (`webhook-failing`, `payment-unmatched`, `reconciliation-mismatch`, `cash-closing-mismatch`) nâng theo count; job định kỳ tự truyền `severity`; sla-check critical khi chờ > `criticalThreshold` × SLA; test chạy ops-check 7 lần liên tiếp không lên critical | `b0e45a2` |
+| Chốt tiền trừ phiếu hoàn theo người bấm hoàn (`r.actor_ref`) → người giao bị tính dư, quản lý bị âm | Trừ theo người thu của payment được hoàn (`p.actor_ref`); test người giao thu, quản lý hoàn | `a79eb6f` |
+| Retention che memo của chuyển khoản còn `needs-review` | Bỏ qua dòng `needs-review`; test | `78e4ae1` |
+| Harness để sót user test/role/store key khi script chết giữa chừng (làm email cảnh báo gửi thừa) | `resetOrderingTables` dọn sau truncate (chỉ DB test); bỏ log `[diag]` | `61897da` |
 
 ### Lệch so với kế hoạch
 
@@ -193,7 +202,13 @@ Related phase: [`phases/phase-ordering-6-ops-golive.md`](../phases/phase-orderin
 
 - Bước 7 (hạ tầng + go-live) và bước 9 (kiểm email/UAT quyết định): chủ dự án chạy theo checklist
   trong `docs/phases/phase-ordering-6-ops-golive.md` và `docs/ordering-ops-runbook.md`.
-- UAT tay của các màn O6 (seed sẵn trong `scripts/ordering/uat-server.mjs`).
+- UAT tay của các màn O6: chủ dự án quyết định bỏ qua và coi O6 là xong (2026-10-12). Seed vẫn có trong `scripts/ordering/uat-server.mjs`.
 - Quyết định kế toán (hóa đơn điện tử, VAT), pháp lý (thời hạn lưu, nội dung đồng ý),
   SePay thật.
-- Gate: <điền sau>
+- Gate (2026-10-12, sau `78e4ae1`, tuần tự, DB `salanca_ordering_o6_review`): lint, typecheck, test 160 file / 1106,
+  `check:ordering` 47/47 **hai lượt liên tiếp**, `check:phase3` tắt plugin, `smoke:reservation-form`,
+  `smoke:ordering-pickup`, `smoke-ordering-sepay.mjs`, `smoke-ordering-delivery.mjs`, `strapi build` bật/tắt — exit 0.
+  `check:phase3` bật plugin lúc đầu exit 1 hai lần vì một test của app (không thuộc plugin):
+  `src/domain/media-processing/processor.test.ts > bytesToKbytes` quá timeout 5 giây khi máy tải nặng (test
+  `await import('./upload-optimize')` bên trong). Sửa: import tĩnh ở đầu file (chủ dự án cho sửa, 2026-10-12). Chạy lại
+  riêng bước đó: `check:phase3` bật plugin exit 0 (160 file / 1106). **Tất cả 13 bước gate đạt.**

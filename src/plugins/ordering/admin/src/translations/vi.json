@@ -37,6 +37,7 @@
   "ordering.categories.error.cycle": "Không thể đưa danh mục vào chính nhánh con của nó",
   "ordering.categories.error.children": "Chuyển hoặc xóa các danh mục con trước",
   "ordering.categories.error.generic": "Thao tác thất bại, thử lại sau",
+  "ordering.categories.exportCsv": "Xuất CSV",
   "ordering.menu.availability": "Tạm hết món",
   "ordering.availability.title": "Tạm hết món",
   "ordering.availability.subtitle": "Chi nhánh trong phạm vi của bạn",

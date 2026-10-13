@@ -7,6 +7,8 @@ import { catalogCollection } from '../internal';
 export default catalogCollection(
   'catalog-modifier',
   {
+    /** Staff-facing import/export key inside its group (O10 CSV). */
+    code: { type: 'string' },
     group: {
       type: 'relation',
       relation: 'manyToOne',

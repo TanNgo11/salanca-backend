@@ -37,6 +37,7 @@
   "ordering.categories.error.cycle": "A category cannot move into its own subtree",
   "ordering.categories.error.children": "Move or delete the child categories first",
   "ordering.categories.error.generic": "The operation failed, please try again",
+  "ordering.categories.exportCsv": "Export CSV",
   "ordering.menu.availability": "Temporarily out",
   "ordering.availability.title": "Temporarily out",
   "ordering.availability.subtitle": "Branches inside your scope",

@@ -1,9 +1,10 @@
 /**
- * The eight operational alert codes (contracts §12) and their staff-facing labels. The set is
- * fixed: alert rules, the alert engine and the ops-alert email all key off this list.
+ * The operational alert codes (contracts §12, + O15 `audit-tampered`) and their staff-facing
+ * labels. The set is fixed: alert rules, the alert engine and the ops-alert email all key off this list.
  */
 export const ALERT_CODES = [
   'webhook-failing',
+  'webhook-endpoint-disabled',
   'payment-unmatched',
   'outbox-stuck',
   'job-heartbeat-missed',
@@ -11,6 +12,8 @@ export const ALERT_CODES = [
   'reconciliation-mismatch',
   'manual-payment-unconfirmed',
   'cash-closing-mismatch',
+  'audit-tampered',
+  'notification-template-broken',
 ] as const;
 
 export type AlertCode = (typeof ALERT_CODES)[number];
@@ -20,6 +23,10 @@ export const isAlertCode = (value: string): value is AlertCode =>
 
 const labels: Record<AlertCode, { vi: string; en: string }> = {
   'webhook-failing': { vi: 'Webhook thanh toán lỗi liên tiếp', en: 'Payment webhook failing' },
+  'webhook-endpoint-disabled': {
+    vi: 'Endpoint webhook tự tắt sau 50 lỗi liên tiếp',
+    en: 'Webhook endpoint auto-disabled after 50 failures',
+  },
   'payment-unmatched': { vi: 'Tiền về không khớp đơn', en: 'Unmatched incoming transfer' },
   'outbox-stuck': { vi: 'Hàng đợi gửi bị kẹt', en: 'Outbox stuck' },
   'job-heartbeat-missed': { vi: 'Job định kỳ im lặng', en: 'Scheduled job silent' },
@@ -30,6 +37,11 @@ const labels: Record<AlertCode, { vi: string; en: string }> = {
     en: 'Manual transfer unconfirmed',
   },
   'cash-closing-mismatch': { vi: 'Chốt tiền mặt chênh lệch', en: 'Cash closing mismatch' },
+  'audit-tampered': { vi: 'Lịch sử thay đổi bị sửa ngoài hệ thống', en: 'Audit log tampered' },
+  'notification-template-broken': {
+    vi: 'Mẫu email tùy biến lỗi, đã dùng mẫu mặc định',
+    en: 'Custom email template failed, the default was used',
+  },
 };
 
 export const alertLabel = (code: string, locale: string | null | undefined): string =>

@@ -18,6 +18,7 @@ export const o6Messages: Record<string, [string, string]> = {
   'alert.code.reconciliation-mismatch': ['Đối soát không khớp', 'Reconciliation mismatch'],
   'alert.code.manual-payment-unconfirmed': ['Chuyển khoản ghi tay chưa xác nhận', 'Manual transfer unconfirmed'],
   'alert.code.cash-closing-mismatch': ['Chốt tiền mặt chênh lệch', 'Cash closing mismatch'],
+  'alert.code.audit-tampered': ['Lịch sử thay đổi bị sửa ngoài hệ thống', 'Audit log tampered'],
 
   'alert.recipient.branch-email': ['Email chi nhánh', 'Branch email'],
   'alert.recipient.ops.read': ['Vận hành', 'Ops'],

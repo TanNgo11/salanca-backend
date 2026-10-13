@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O16 Tích điểm</title>
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body>
+<main class="doc">
+
+<header class="doc-head">
+  <p class="eyebrow">Mockup · Phase O16 · Tích điểm và hạng thành viên</p>
+  <h1>Tích điểm khi hoàn tất, dùng điểm ở checkout, hạng theo chi tiêu</h1>
+  <p class="lead"><strong>Đặc tả màn hình: mục cuối của <a href="../ordering-o16-loyalty.md">ordering-o16-loyalty.md</a>.</strong></p>
+  <div class="links"><a href="../../phases/phase-ordering-16-loyalty.md">Spec O16</a></div>
+</header>
+
+<section class="screen">
+  <h2>Y1–Y2. Chương trình điểm và hạng</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/loyalty</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a class="active">Bán hàng</a></nav>
+        <div class="content">
+          <div class="spread"><strong>Chương trình điểm</strong><span class="toggle"><span class="on">Bật</span><span>Tắt</span></span></div>
+          <div class="grid3">
+            <div class="field"><label>1 điểm cho mỗi</label><span class="input">10.000đ</span></div>
+            <div class="field"><label>1 điểm =</label><span class="input">1.000đ</span></div>
+            <div class="field"><label>Dùng tối đa</label><span class="input">50% đơn</span></div>
+            <div class="field"><label>Dùng tối thiểu</label><span class="input">10 điểm</span></div>
+            <div class="field"><label>Hết hạn sau</label><span class="input">12 tháng</span></div>
+            <div class="field"><label>Tối đa/ngày/khách</label><span class="input">500 điểm</span></div>
+          </div>
+          <div class="alert-box info">Đơn 300.000đ nhận 30 điểm (= 30.000đ khi dùng). Hạng Vàng nhận 45 điểm.</div>
+          <div class="panel" style="padding:0"><div class="table-wrap"><table class="t">
+            <thead><tr><th>Hạng</th><th class="num">Chi tiêu 12 tháng từ</th><th class="num">Hệ số</th><th>Nhóm giá</th><th class="num">Khách</th></tr></thead>
+            <tbody>
+              <tr><td>Thành viên</td><td class="num">0</td><td class="num">1×</td><td>—</td><td class="num">1.240</td></tr>
+              <tr><td>Bạc</td><td class="num">2.000.000</td><td class="num">1,2×</td><td>bac</td><td class="num">186</td></tr>
+              <tr><td>Vàng</td><td class="num">5.000.000</td><td class="num">1,5×</td><td>vang</td><td class="num">42</td></tr>
+            </tbody></table></div></div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Tham số là ví dụ — chủ dự án chốt trước khi mở cho khách.</span></li>
+      <li><span class="n">2</span><span>Thứ tự giảm: giá nhóm (O14) → khuyến mãi (O8) → điểm (O16).</span></li>
+      <li><span class="n">3</span><span>Xuống hạng sau 30 ngày dưới mốc.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>Phía khách: dùng điểm và xem điểm</h2>
+  <div class="phones">
+    <div class="phone web"><div class="site-head">Salanca <small>Thanh toán</small></div>
+      <div class="wrap">
+        <div class="card small">
+          <div class="spread"><span>Tạm tính</span><span>300.000đ</span></div>
+          <div class="spread"><span>Mã THANG10</span><span style="color:var(--ok)">−30.000đ</span></div>
+          <div class="spread"><span><span class="check on">Dùng 120 điểm</span></span><span style="color:var(--ok)">−120.000đ</span></div>
+          <div class="spread strong"><span>Tổng</span><span class="price">150.000đ</span></div>
+          <span class="muted">Bạn sẽ nhận khoảng 22 điểm khi đơn hoàn tất.</span>
+        </div>
+      </div></div>
+    <div class="phone web"><div class="site-head">Salanca <small>Điểm của tôi</small></div>
+      <div class="wrap">
+        <div class="card"><strong style="font-size:24px">340 điểm</strong><span class="muted">= 340.000đ · hạng Bạc</span><span class="small">Còn 1.200.000đ để lên Vàng</span><span class="small" style="color:var(--warn)">80 điểm hết hạn ngày 30/10</span></div>
+        <div class="card small"><div class="spread"><span>12/10 · SLC-000150</span><span style="color:var(--ok)">+30</span></div><div class="spread"><span>05/10 · SLC-000131</span><span style="color:var(--warn)">−120</span></div></div>
+      </div></div>
+  </div>
+</section>
+
+<footer class="doc-foot">File trên máy, không publish. Tham số và số liệu chỉ là ví dụ.</footer>
+</main>
+</body>
+</html>

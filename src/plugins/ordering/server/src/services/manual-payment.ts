@@ -93,6 +93,8 @@ const manualPayment = ({ strapi }: { strapi: Core.Strapi }) => {
               entityType: 'payment-event',
               entityId: recorded.eventId,
               locationRef: preview.order.locationRef,
+              entityLabel: preview.order.code,
+              orderId,
               after: { reference, amount, ...(reason ? { reason } : {}) },
             },
             ctx,

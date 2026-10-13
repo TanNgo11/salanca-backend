@@ -81,6 +81,29 @@ withApp(async (app) => {
     await mail(10, 'failedAt');
     await resolvedAlert(100);
     await resolvedAlert(10);
+    // Webhook deliveries follow the outbox windows (succeeded 30 d, failed 90 d); pending stays.
+    const delivery = async (status, days) => {
+      const [row] = await knex('plugins_ordering_webhook_delivery')
+        .insert({
+          endpoint_id: 1,
+          event_id: `retention-${status}-${days}-${Math.random()}`,
+          event_type: 'order.created',
+          payload: JSON.stringify({ data: { customer: { name: 'Khách', phone: '+84900000001' } } }),
+          status,
+          attempts: 1,
+          succeeded_at: status === 'succeeded' ? daysAgo(days) : null,
+          document_id: `d${Math.random().toString(36).slice(2, 12)}`,
+          created_at: daysAgo(days),
+          updated_at: daysAgo(days),
+        })
+        .returning('id');
+      return row.id ?? row;
+    };
+    await delivery('succeeded', 40);
+    const keptSucceeded = await delivery('succeeded', 10);
+    await delivery('failed', 100);
+    const keptFailed = await delivery('failed', 40);
+    const keptPending = await delivery('pending', 200);
 
     const first = await runRetention(app, { owner, now: NOW });
     assert.equal(first.ran, true, 'first run must acquire the lock');
@@ -93,6 +116,11 @@ withApp(async (app) => {
     );
     assert.equal(first.outboxDeleted, 2, 'old delivered + old failed rows go');
     assert.equal(first.alertsDeleted, 1, 'only the resolved-alert past window goes');
+    assert.equal(first.webhookDeliveriesDeleted, 2, 'old succeeded + old failed deliveries go');
+    const left = (await knex('plugins_ordering_webhook_delivery').select('id')).map((row) => Number(row.id));
+    for (const id of [keptSucceeded, keptFailed, keptPending]) {
+      assert.ok(left.includes(Number(id)), `delivery ${id} inside its window (or pending) stays`);
+    }
 
     const redactedPayload = (
       await knex('plugins_ordering_payment_event').where({ id: old.id }).select('raw_payload')

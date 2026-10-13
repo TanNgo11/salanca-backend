@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O12 Nhà hàng</title>
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body>
+<main class="doc">
+
+<header class="doc-head">
+  <p class="eyebrow">Mockup · Phase O12 · Tính năng nhà hàng</p>
+  <h1>In phiếu, màn hình bếp, tạm dừng, phí &amp; tip, đặt món tại bàn</h1>
+  <p class="lead"><strong>Đặc tả từng màn: <a href="../ordering-o12-screens.md">ordering-o12-screens.md</a>.</strong></p>
+  <div class="links">
+    <a href="../../phases/phase-ordering-12-restaurant.md">Spec O12</a>
+    <a href="../ordering-o12-restaurant.md">Kế hoạch O12</a>
+  </div>
+</header>
+
+<section class="screen">
+  <h2>N1. Phiếu bếp 80 mm</h2>
+  <div class="phones">
+    <div class="phone" style="width:300px;background:#fff;font-family:var(--mono);padding:14px;border-radius:4px">
+      <div style="text-align:center">SALANCA · QUẬN 1</div>
+      <div style="text-align:center;font-size:30px;font-weight:700">#000150</div>
+      <div style="text-align:center">GIAO · ASAP ~12:40</div>
+      <hr>
+      <div style="font-size:18px"><b>2</b> Cơm gà xối mỡ</div>
+      <div>&nbsp;&nbsp;+ Phần lớn</div>
+      <div>&nbsp;&nbsp;<i>ít cay</i></div>
+      <div style="font-size:18px"><b>1</b> Bánh flan</div>
+      <hr>
+      <div>Ghi chú: giao cổng sau</div>
+      <div class="small">In 12:21 · lần 1</div>
+    </div>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>N2. Màn hình bếp</h2>
+  <div class="frame">
+    <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/kitchen?branch=Q1&amp;station=hot</span></div>
+    <div class="admin" style="background:#1e1e2e;color:#fff">
+      <div class="content">
+        <div class="spread"><strong>Bếp nóng · Quận 1</strong><span class="toggle"><span>Tất cả</span><span class="on">Bếp nóng</span><span>Quầy nước</span></span></div>
+        <div class="grid3">
+          <div class="panel" style="background:#2a2a3d;color:#fff"><strong>Mới (2)</strong>
+            <div class="panel" style="background:#34344a;color:#fff"><div class="spread"><b>#000152</b><span class="badge info">Bàn 5</span></div><div>2 phút</div><div>1× Cơm gà</div><span class="btn">Bắt đầu</span></div>
+          </div>
+          <div class="panel" style="background:#2a2a3d;color:#fff"><strong>Đang làm (1)</strong>
+            <div class="panel" style="background:#34344a;color:#fff;border-left:4px solid #e0a100"><div class="spread"><b>#000150</b><span class="badge primary">Giao</span></div><div style="color:#e0a100">11 phút</div><div style="text-decoration:line-through">2× Cơm gà xối mỡ</div><div>1× Bánh flan</div><span class="btn success">Xong cả đơn</span></div>
+          </div>
+          <div class="panel" style="background:#2a2a3d;color:#aaa"><strong>Xong</strong><div>#000148 · 12:10</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>N3. Tạm dừng / quán đông (đầu trang Đơn hàng)</h2>
+  <div class="frame">
+    <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/orders</span></div>
+    <div class="admin">
+      <nav><span class="logo"></span><a class="active">Bán hàng</a></nav>
+      <div class="content">
+        <div class="alert-box warn">Tạm dừng nhận đơn <b>giao</b> đến 12:45 — còn 14 phút <span class="btn secondary">Mở lại ngay</span></div>
+        <div class="alert-box amber">Quán đông +20 phút đến 13:00</div>
+        <div class="spread"><span class="btn secondary">Tạm dừng</span><span class="toggle"><span>15 phút</span><span class="on">30 phút</span><span>60 phút</span><span>Hết ngày</span></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>N7. Bàn đang phục vụ + phía khách quét QR</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/table-sessions?branch=Q1</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a class="active">Bán hàng</a></nav>
+        <div class="content">
+          <div class="grid3">
+            <div class="panel"><strong>Bàn 1</strong><span class="muted">Trống</span></div>
+            <div class="panel" style="border-color:var(--primary)"><strong>Bàn 5</strong><span>mở 40 phút · 2 đơn</span><span>Tổng 420.000 · còn nợ 420.000</span><span class="btn">Thanh toán &amp; đóng bàn</span></div>
+            <div class="panel" style="border-color:var(--amber)"><strong>Bàn 7</strong><span style="color:var(--amber)">1 đơn chờ nhận</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Nhiều đơn của một bàn gom vào một phiên; trả một lần tại quầy khi khách xong.</span></li>
+      <li><span class="n">2</span><span>Phiên quên đóng qua ngày → cảnh báo, không tự thu tiền.</span></li>
+    </ol>
+  </div>
+  <div class="phones">
+    <div class="phone web"><div class="site-head">Salanca <small>Bàn 5 · Quận 1</small></div>
+      <div class="wrap">
+        <div class="card"><div class="spread"><strong>Cơm gà xối mỡ</strong><span class="price">65.000đ</span></div><div class="chips"><span>🌶 Cay</span><span>Gluten</span><span>Đậu nành</span></div></div>
+        <div class="card small"><div class="spread"><span>Tip</span><span class="chips"><span>0%</span><span class="on">5%</span><span>10%</span><span>Khác</span></span></div><div class="spread"><span>Phí phục vụ 5%</span><span>6.500đ</span></div></div>
+        <span class="btn">Gửi món</span>
+      </div></div>
+  </div>
+</section>
+
+<footer class="doc-foot">File trên máy, không publish. Món, bàn, số liệu chỉ là ví dụ.</footer>
+</main>
+</body>
+</html>

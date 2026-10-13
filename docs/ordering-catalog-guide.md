@@ -136,6 +136,14 @@ Dùng khi hết nguyên liệu trong ngày — **không phải** cách ngừng b
 Mọi thao tác tắt/bật và sửa danh mục đều ghi vào **Nhật ký hoạt động** (ai làm, lúc
 nào, chi nhánh nào).
 
+## 7b. Nhập/xuất hàng loạt bằng CSV — Món → Nhập/xuất
+
+Khi cần sửa nhiều món cùng lúc, dùng màn **Món → Nhập/xuất** (hoặc nút **Xuất CSV** trên màn Danh mục):
+tải `products.csv` / `modifiers.csv`, sửa trong Excel, nhập lại qua "Kiểm tra" rồi "Áp dụng". Khớp
+dòng theo slug món / SKU biến thể / mã nhóm tùy chọn; nhập chỉ tạo-sửa, không xóa. Chi tiết định dạng
+và giới hạn: [`ordering-integrations.md`](ordering-integrations.md) mục 3; hướng dẫn theo từng bước:
+[`ordering-staff-guide.md`](ordering-staff-guide.md) mục "Nhập/xuất menu bằng CSV".
+
 ## 8. Lưu ý
 
 - Đơn hàng lưu **snapshot** tên/danh mục/biến thể/tùy chọn/thành phần combo lúc đặt —

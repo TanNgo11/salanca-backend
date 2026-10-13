@@ -9,6 +9,7 @@ import {
   Field,
   Flex,
   IconButton,
+  LinkButton,
   Loader,
   SingleSelect,
   SingleSelectOption,
@@ -26,6 +27,7 @@ import {
 } from '@strapi/icons';
 import { useFetchClient, useNotification } from '@strapi/strapi/admin';
 import { useIntl } from 'react-intl';
+import { NavLink } from 'react-router-dom';
 
 import LocalizedTextInput from '../../components/LocalizedTextInput';
 import { PLUGIN_ID } from '../../pluginId';
@@ -312,13 +314,18 @@ const CategoriesPage = () => {
             {t('subtitle', 'Kéo để đổi thứ tự hoặc đổi danh mục cha')}
           </Typography>
         </Box>
-        <Button
-          startIcon={<Plus />}
-          onClick={() => setForm({ ...EMPTY_FORM })}
-          disabled={busy}
-        >
-          {t('add', 'Thêm danh mục')}
-        </Button>
+        <Flex gap={3}>
+          <LinkButton tag={NavLink} to="/plugins/ordering/catalog-import" variant="secondary">
+            {t('exportCsv', 'Xuất CSV')}
+          </LinkButton>
+          <Button
+            startIcon={<Plus />}
+            onClick={() => setForm({ ...EMPTY_FORM })}
+            disabled={busy}
+          >
+            {t('add', 'Thêm danh mục')}
+          </Button>
+        </Flex>
       </Flex>
 
       <Flex alignItems="flex-start" gap={6} paddingTop={6} crossAlign="stretch">

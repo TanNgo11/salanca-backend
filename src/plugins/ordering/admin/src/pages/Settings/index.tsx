@@ -10,6 +10,7 @@ import {
   Loader,
   NumberInput,
   Switch,
+  Tabs,
   Table,
   Tbody,
   Td,
@@ -26,6 +27,7 @@ import { fieldErrors, useErrorToast } from '../../lib/api';
 import { useT, type Translate } from '../../lib/i18n';
 import { PERMISSIONS } from '../../lib/permissions';
 import type { InboxSettings } from '../../lib/types';
+import EmailTemplatesBlock from './EmailTemplates';
 
 type AlertRule = {
   enabled: boolean;
@@ -37,9 +39,10 @@ type AlertRule = {
 
 type AlertRules = Record<string, AlertRule>;
 
-/** The eight fixed codes (mirrors server `domain/alert-codes.ts` — Admin never imports server). */
+/** The fixed codes (mirrors server `domain/alert-codes.ts` — Admin never imports server). */
 const ALERT_CODES = [
   'webhook-failing',
+  'webhook-endpoint-disabled',
   'payment-unmatched',
   'outbox-stuck',
   'job-heartbeat-missed',
@@ -47,6 +50,8 @@ const ALERT_CODES = [
   'reconciliation-mismatch',
   'manual-payment-unconfirmed',
   'cash-closing-mismatch',
+  'audit-tampered',
+  'notification-template-broken',
 ] as const;
 
 const RECIPIENT_CHOICES = ['branch-email', 'ops.read', 'report.read', 'payment.review', 'order.read'];
@@ -316,7 +321,13 @@ const SettingsPage = () => {
               {t('settings.loadFailed')}
             </Alert>
           ) : (
-            <Flex direction="column" alignItems="stretch" gap={5}>
+            <Tabs.Root defaultValue="general">
+              <Tabs.List aria-label={t('settings.title')}>
+                <Tabs.Trigger value="general">{t('settings.tab.general')}</Tabs.Trigger>
+                <Tabs.Trigger value="templates">{t('settings.tab.templates')}</Tabs.Trigger>
+              </Tabs.List>
+              <Tabs.Content value="general">
+            <Flex direction="column" alignItems="stretch" gap={5} paddingTop={4}>
               <Box background="neutral0" padding={6} hasRadius shadow="tableShadow">
                 <Flex direction="column" alignItems="stretch" gap={5}>
                 <Flex gap={2}>
@@ -375,6 +386,13 @@ const SettingsPage = () => {
                 <AlertRulesBlock t={t} />
               </Box>
             </Flex>
+              </Tabs.Content>
+              <Tabs.Content value="templates">
+                <Box paddingTop={4}>
+                  <EmailTemplatesBlock t={t} />
+                </Box>
+              </Tabs.Content>
+            </Tabs.Root>
           )}
         </Layouts.Content>
       </Page.Main>

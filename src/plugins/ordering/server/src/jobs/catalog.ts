@@ -1,6 +1,7 @@
 import type { Core } from '@strapi/strapi';
 
 import type { OrderingConfig } from '../config';
+import { runAuditChain } from './audit-chain';
 import { runHoldExpiry } from './hold-expiry';
 import { runIdempotencyCleanup } from './idempotency-cleanup';
 import { runManualPaymentCheck } from './manual-confirmation';
@@ -10,6 +11,7 @@ import { runPaymentExpiry } from './payment-expiry';
 import { runSepayReconciliation } from './reconciliation';
 import { runRetention } from './retention';
 import { runSlaCheck } from './sla-check';
+import { runWebhookDispatcher } from './webhook-dispatcher';
 
 export type JobRun = (
   strapi: Core.Strapi,
@@ -59,6 +61,13 @@ export const ORDERING_JOBS: OrderingJob[] = [
   },
   { name: 'ops-check', cronKey: 'opsCheckCron', run: runOpsCheck, runnable: true },
   { name: 'retention', cronKey: 'retentionCron', run: runRetention, runnable: true },
+  { name: 'audit-chain', cronKey: 'auditChainCron', run: runAuditChain, runnable: true },
+  {
+    name: 'webhook-dispatcher',
+    cronKey: 'webhookDispatcherCron',
+    run: runWebhookDispatcher,
+    runnable: true,
+  },
 ];
 
 export const jobByName = (name: string): OrderingJob | undefined =>

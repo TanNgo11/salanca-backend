@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O10 Nền mở rộng</title>
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body>
+<main class="doc">
+
+<header class="doc-head">
+  <p class="eyebrow">Mockup · Phase O10 · Nền mở rộng</p>
+  <h1>Webhook ra ngoài, nhập/xuất menu CSV, mẫu email</h1>
+  <p class="lead"><strong>Đặc tả từng màn: <a href="../ordering-o10-screens.md">ordering-o10-screens.md</a>.</strong></p>
+  <div class="links">
+    <a href="../../phases/phase-ordering-10-extensibility.md">Spec O10</a>
+    <a href="../ordering-o10-extensibility.md">Kế hoạch O10</a>
+  </div>
+</header>
+
+<section class="screen">
+  <h2>X1. Webhook</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/webhooks</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a class="active">Bán hàng</a></nav>
+        <div class="content">
+          <div class="spread"><strong>Webhook</strong><span class="btn">+ Thêm webhook</span></div>
+          <div class="panel" style="padding:0"><div class="table-wrap"><table class="t">
+            <thead><tr><th>URL</th><th>Mô tả</th><th>Sự kiện</th><th>24 giờ</th><th>Trạng thái</th></tr></thead>
+            <tbody>
+              <tr><td>https://pos.example.vn/…/ordering</td><td>POS quầy</td><td>4</td><td>✓ 120 · ✗ 0</td><td><span class="badge ok">Đang bật</span></td></tr>
+              <tr class="hl"><td>https://ketoan.example.vn/…</td><td>Kế toán</td><td>2</td><td>✓ 0 · ✗ 50</td><td><span class="badge warn">Tự tắt do lỗi</span></td></tr>
+            </tbody></table></div></div>
+          <div class="panel">
+            <strong>Bí mật ký (chỉ hiện một lần)</strong>
+            <span class="input" style="font-family:var(--mono)">whsec_9f2c…a71b</span>
+            <div class="alert-box warn">Lưu ngay. Đóng là không xem lại được. Bí mật cũ còn dùng được 24 giờ.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Ký <code>X-Ordering-Signature: t=…,v1=HMAC(t.body)</code>; payload không có dữ liệu cá nhân trừ khi bật.</span></li>
+      <li><span class="n">2</span><span>Thử lại 10 lần trong 24 giờ; 50 lỗi liên tiếp tự tắt + cảnh báo.</span></li>
+      <li><span class="n">3</span><span>Chặn URL tới địa chỉ nội bộ (SSRF).</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>X3. Nhập/xuất menu</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/catalog-import</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a class="active">Bán hàng</a></nav>
+        <div class="content">
+          <div class="spread"><strong>Nhập/xuất menu</strong><span><span class="btn secondary">Tải products.csv</span> <span class="btn secondary">Tải modifiers.csv</span></span></div>
+          <div class="panel">
+            <div class="toggle"><span class="on">Món</span><span>Tùy chọn</span></div>
+            <span class="input">menu-thang10.csv · 142 dòng</span>
+            <div class="grid3">
+              <div class="panel"><span class="muted small">Tạo mới</span><strong>12</strong></div>
+              <div class="panel"><span class="muted small">Sửa</span><strong>127</strong></div>
+              <div class="panel"><span class="muted small">Lỗi</span><strong style="color:var(--warn)">3</strong></div>
+            </div>
+            <div class="table-wrap"><table class="t" style="min-width:0">
+              <thead><tr><th>Dòng</th><th>Cột</th><th>Lỗi</th></tr></thead>
+              <tbody><tr><td>18</td><td>price</td><td>Giá phải ≥ 0</td></tr><tr><td>41</td><td>sku</td><td>SKU trùng dòng 12</td></tr><tr><td>77</td><td>modifierGroups</td><td>Không có nhóm tùy chọn SIZE</td></tr></tbody>
+            </table></div>
+            <span class="btn" style="opacity:.5">Áp dụng (sửa lỗi trước)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Chạy thử không ghi gì; một dòng lỗi thì không áp dòng nào.</span></li>
+      <li><span class="n">2</span><span>Khớp biến thể theo SKU, món theo slug; không xóa, không nhập ảnh.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>X4. Mẫu email</h2>
+  <div class="frame">
+    <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/settings/ordering-settings · Mẫu email · Đơn đã sẵn sàng</span></div>
+    <div class="admin">
+      <nav><span class="logo"></span><a class="active">Cài đặt</a></nav>
+      <div class="content">
+        <div class="grid2">
+          <div class="panel">
+            <div class="toggle"><span class="on">VI</span><span>EN</span></div>
+            <div class="field"><label>Tiêu đề</label><span class="input">Đơn {{orderCode}} đã sẵn sàng</span></div>
+            <div class="field"><label>Nội dung</label><span class="input" style="min-height:90px;display:block">Chào {{customerName}},<br>đơn **{{orderCode}}** đã sẵn sàng tại {{branchName}}.<br>[Xem đơn]({{orderLink}})</span></div>
+            <div class="chips"><span class="badge gray">{{orderCode}}</span> <span class="badge gray">{{customerName}}</span> <span class="badge gray">{{branchName}}</span> <span class="badge gray">{{readyAt}}</span> <span class="badge gray">{{orderLink}}</span></div>
+          </div>
+          <div class="panel">
+            <strong>Xem trước</strong>
+            <div class="alert-box info">Chào Lan,<br>đơn <b>SLC-000150</b> đã sẵn sàng tại Quận 1.<br><u>Xem đơn</u></div>
+            <div class="spread"><span class="btn">Lưu</span><span class="btn secondary">Gửi thử tới tôi</span><span class="btn ghost">Khôi phục mặc định</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="doc-foot">File trên máy, không publish. URL, tên, số liệu chỉ là ví dụ.</footer>
+</main>
+</body>
+</html>

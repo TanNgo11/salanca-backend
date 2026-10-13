@@ -1,6 +1,8 @@
 import type { Core } from '@strapi/strapi';
 
 import type { OrderingConfig } from './config';
+import type { OutboxEvent } from './contracts/outbox';
+import { isAuditSuppressed } from './domain/audit/suppress';
 import { validateBundleSlotRefs, validateBundleSlots } from './domain/catalog/bundle-slots';
 import {
   LOCALIZED_TEXT_MAX_DESCRIPTION,
@@ -14,6 +16,7 @@ import {
   validateModifierGroups,
 } from './domain/catalog/modifier-groups';
 import { OrderingError } from './domain/errors';
+import { PUBLIC_EVENT_TYPES } from './domain/webhooks/events';
 import { foodProductType } from './domain/product-types/food';
 import { testFoodProductType } from './domain/product-types/test-food';
 import { testServiceProductType } from './domain/product-types/test-service';
@@ -50,6 +53,25 @@ const SLUGGED_UIDS = {
  * rows (plan step 11). `catalog-slug` is excluded — it is an internal sync side effect
  * of the CTs above.
  */
+/** O15: human label for a catalog audit row — Vietnamese name, else SKU/code; never customer data. */
+const catalogLabelOf = (row: Record<string, unknown> | null): string | null => {
+  if (!row) return null;
+  const name = row.name;
+  if (typeof name === 'string' && name !== '') return name;
+  if (name && typeof name === 'object') {
+    const vi = (name as Record<string, unknown>).vi;
+    if (typeof vi === 'string' && vi !== '') return vi;
+  }
+  for (const key of ['sku', 'code', 'entityDocumentId']) {
+    if (typeof row[key] === 'string' && row[key] !== '') return row[key] as string;
+  }
+  return null;
+};
+
+/** Branch of a catalog audit row when the entity carries one (catalog-location-state). */
+const locationRefOf = (row: Record<string, unknown> | null): string | undefined =>
+  row && typeof row.locationRef === 'string' && row.locationRef !== '' ? row.locationRef : undefined;
+
 const CATALOG_AUDITED_UIDS = new Set([
   'plugin::ordering.catalog-category',
   'plugin::ordering.catalog-product',
@@ -78,8 +100,11 @@ const adminActions = [
   { uid: 'settings.manage', displayName: 'Cấu hình bán hàng' },
   { uid: 'scope.manage', displayName: 'Gán chi nhánh cho nhân viên' },
   { uid: 'ops.read', displayName: 'Tình trạng vận hành' },
+  { uid: 'audit.read', displayName: 'Lịch sử thay đổi' },
   { uid: 'catalog.manage', displayName: 'Quản lý danh mục bán hàng' },
   { uid: 'catalog.toggle-availability', displayName: 'Bật/tắt tạm hết món' },
+  // O10: outbound webhook endpoints (payload contract changes are logged per write).
+  { uid: 'webhook.manage', displayName: 'Quản lý webhook' },
 ];
 
 const register = ({ strapi }: { strapi: Core.Strapi }) => {
@@ -142,6 +167,16 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
   registry.registerOutboxConsumer('ops-alert.escalated', (event) =>
     notifications().onOpsAlert(event as never),
   );
+  // Outbound webhooks (O10): the fanout writes pending `webhook-delivery` rows for every
+  // public catalog event; HTTP itself runs in the webhook-dispatcher job. Registered per
+  // public type — the registry's '*' wildcard would also fire on internal-only events.
+  const deliveries = () =>
+    strapi.plugin('ordering').service('webhook-delivery') as {
+      fanout: (event: OutboxEvent) => Promise<void>;
+    };
+  for (const type of PUBLIC_EVENT_TYPES) {
+    registry.registerOutboxConsumer(type, (event) => deliveries().fanout(event));
+  }
   registry.registerCaptchaProvider(
     createTurnstileCaptchaProvider({
       secretKey: () =>
@@ -379,6 +414,8 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
       context.action === 'update' ||
       context.action === 'delete';
     if (!CATALOG_AUDITED_UIDS.has(context.uid) || !isWrite) return next();
+    // A service that logs its own richer row for this write (catalog-category) suppresses ours.
+    if (isAuditSuppressed(context.uid)) return next();
     const params = context.params as { documentId?: string } | undefined;
     const before =
       context.action !== 'create' && params?.documentId
@@ -403,6 +440,10 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
           action: `${entityType}.${context.action}`,
           entityType,
           entityId: documentId,
+          entityLabel: catalogLabelOf((result ?? before) as Record<string, unknown> | null),
+          ...(locationRefOf((result ?? before) as Record<string, unknown> | null)
+            ? { locationRef: locationRefOf((result ?? before) as Record<string, unknown> | null) }
+            : {}),
           before,
           after:
             context.action === 'delete'

@@ -20,6 +20,7 @@ import reports from './reports';
 import catalogAvailability from './catalog-availability';
 import dailyStock from './daily-stock';
 import catalogCategory from './catalog-category';
+import catalogCsv from './catalog-csv';
 import catalogSlug from './catalog-slug';
 import changeLog from './change-log';
 import jobLock from './job-lock';
@@ -30,14 +31,18 @@ import storefront from './storefront';
 import adminOrders from './admin-orders';
 import orderingSettings from './ordering-settings';
 import notification from './notification';
+import notificationTemplate from './notification-template';
 import adminUnits from './admin-units';
 import alert from './alert';
 import alertRules from './alert-rules';
 import alertRecipients from './alert-recipients';
 import opsStatus from './ops-status';
+import auditLog from './audit-log';
 import orderStream from './order-stream';
 import staffScope from './staff-scope';
 import webhook from './webhook';
+import webhookDelivery from './webhook-delivery';
+import webhookEndpoint from './webhook-endpoint';
 import paymentMatching from './payment-matching';
 import paymentReview from './payment-review';
 import manualPayment from './manual-payment';
@@ -58,6 +63,7 @@ export default {
   'catalog-availability': catalogAvailability,
   'daily-stock': dailyStock,
   'catalog-category': catalogCategory,
+  'catalog-csv': catalogCsv,
   'catalog-slug': catalogSlug,
   'change-log': changeLog,
   'job-lock': jobLock,
@@ -70,17 +76,21 @@ export default {
   courier,
   'ordering-settings': orderingSettings,
   notification,
+  'notification-template': notificationTemplate,
   'admin-units': adminUnits,
   alert,
   'alert-rules': alertRules,
   'alert-recipients': alertRecipients,
   'ops-status': opsStatus,
+  'audit-log': auditLog,
   'cash-closing': cashClosing,
   'order-export': orderExport,
   reports,
   'order-stream': orderStream,
   'staff-scope': staffScope,
   webhook,
+  'webhook-delivery': webhookDelivery,
+  'webhook-endpoint': webhookEndpoint,
   'payment-matching': paymentMatching,
   'payment-review': paymentReview,
   'manual-payment': manualPayment,

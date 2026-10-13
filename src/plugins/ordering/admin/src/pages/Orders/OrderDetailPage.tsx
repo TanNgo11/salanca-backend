@@ -23,14 +23,14 @@ import {
 } from '@strapi/design-system';
 import { ArrowLeft, Trash } from '@strapi/icons';
 import { Layouts, useFetchClient, useNotification, useRBAC } from '@strapi/strapi/admin';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { PaymentBadge, StateBadge } from '../../components/orders/StatusBadges';
 import { useOrderingInbox } from '../../inbox/OrderingInboxProvider';
 import { useErrorToast, httpStatusOf } from '../../lib/api';
 import { formatDateTime, formatMoney, formatTime, localized, minutesSince } from '../../lib/format';
 import { useLocale, useT, type Translate } from '../../lib/i18n';
-import { RBAC_DETAIL } from '../../lib/permissions';
+import { RBAC_AUDIT, RBAC_DETAIL } from '../../lib/permissions';
 import type { DeliveryStaff, InboxSettings, NextTransition, OrderDetail } from '../../lib/types';
 import { useOrderActions } from '../../lib/useOrderActions';
 import { AssignDialog, FailDialog } from '../Deliveries/DeliveryDialogs';
@@ -90,6 +90,8 @@ export const OrderDetailPage = () => {
   const { toggleNotification } = useNotification();
   const inbox = useOrderingInbox();
   const { allowedActions: can } = useRBAC(RBAC_DETAIL);
+  const auditRbac = useRBAC(RBAC_AUDIT);
+  const canAudit = Object.values(auditRbac.allowedActions).some(Boolean);
 
   const [detail, setDetail] = useState<OrderDetail | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error' | 'missing'>('loading');
@@ -560,6 +562,15 @@ export const OrderDetailPage = () => {
               </Section>
             ) : null}
             <Section title={t('detail.history')}>
+              {canAudit ? (
+                <Flex justifyContent="flex-end" paddingBottom={2}>
+                  <Link to={`/plugins/ordering/audit-log?q=${encodeURIComponent(order.code)}`}>
+                    <Typography variant="pi" textColor="primary600">
+                      {t('audit.orderLink')}
+                    </Typography>
+                  </Link>
+                </Flex>
+              ) : null}
               {can.canProcess ? (
                 <Flex direction="column" alignItems="stretch" gap={2} paddingBottom={4}>
                   <Textarea

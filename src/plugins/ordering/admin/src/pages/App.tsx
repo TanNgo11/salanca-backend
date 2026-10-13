@@ -8,6 +8,7 @@ import { useT } from '../lib/i18n';
 import {
   PERMISSIONS,
   RBAC_ALERTS,
+  RBAC_AUDIT,
   RBAC_CATALOG_ACCESS,
   RBAC_CATALOG_MANAGE,
   RBAC_OPS,
@@ -16,6 +17,7 @@ import {
   RBAC_REPORT,
   RBAC_SCOPE,
   RBAC_SETTINGS,
+  RBAC_WEBHOOK,
 } from '../lib/permissions';
 
 const OrdersPage = lazy(() => import('./Orders'));
@@ -25,11 +27,15 @@ const PaymentReviewPage = lazy(() => import('./PaymentReview'));
 const BranchesPage = lazy(() => import('./Branches'));
 const StaffPage = lazy(() => import('./Staff'));
 const CategoriesPage = lazy(() => import('./Categories'));
+const CatalogImportPage = lazy(() => import('./CatalogImport'));
 const AvailabilityPage = lazy(() => import('./Availability'));
 const AlertsPage = lazy(() => import('./Alerts'));
 const OpsPage = lazy(() => import('./Ops'));
 const CashClosingPage = lazy(() => import('./CashClosing'));
 const ReportsPage = lazy(() => import('./Reports'));
+const AuditLogPage = lazy(() => import('./AuditLog'));
+const WebhooksPage = lazy(() => import('./Webhooks'));
+const ApiDocsPage = lazy(() => import('./ApiDocs'));
 
 type Section =
   | 'orders'
@@ -41,9 +47,13 @@ type Section =
   | 'reports'
   | 'cash-closing'
   | 'categories'
+  | 'catalog-import'
   | 'availability'
   | 'branches'
-  | 'staff';
+  | 'staff'
+  | 'audit-log'
+  | 'webhooks'
+  | 'api-docs';
 
 /**
  * One "Bán hàng" entry in the main menu; every ordering screen lives under it with its own
@@ -118,16 +128,20 @@ const SideNav = ({
             {visible['cash-closing'] ? link('cash-closing', t('nav.cashClosing')) : null}
           </SubNavSection>
         ) : null}
-        {visible.categories || visible.availability ? (
+        {visible.categories || visible['catalog-import'] || visible.availability ? (
           <SubNavSection label={t('nav.catalog')}>
             {visible.categories ? link('categories', t('nav.categories')) : null}
+            {visible['catalog-import'] ? link('catalog-import', t('nav.catalogImport')) : null}
             {visible.availability ? link('availability', t('nav.availability')) : null}
           </SubNavSection>
         ) : null}
-        {visible.branches || visible.staff || visible.settings ? (
+        {visible.branches || visible.staff || visible.settings || visible['audit-log'] || visible.webhooks || visible['api-docs'] ? (
           <SubNavSection label={t('nav.setup')}>
             {visible.branches ? link('branches', t('nav.branches')) : null}
             {visible.staff ? link('staff', t('nav.staff')) : null}
+            {visible.webhooks ? link('webhooks', t('nav.webhooks')) : null}
+            {visible['api-docs'] ? link('api-docs', t('nav.apiDocs')) : null}
+            {visible['audit-log'] ? link('audit-log', t('nav.auditLog')) : null}
             {visible.settings ? (
               <SubNavLink tag={NavLink} to="/settings/ordering">
                 {t('nav.settings')}
@@ -169,7 +183,9 @@ const OrderingApp = () => {
       live = false;
     };
   }, [canProcess, canRecordCash, get]);
-  const loading = [orders, process, recordCash, reviews, alerts, ops, report, catalogManage, catalogAccess, settings, scope].some(
+  const audit = useRBAC(RBAC_AUDIT);
+  const webhook = useRBAC(RBAC_WEBHOOK);
+  const loading = [orders, process, recordCash, reviews, alerts, ops, report, catalogManage, catalogAccess, settings, scope, audit, webhook].some(
     (item) => item.isLoading,
   );
   if (loading) {
@@ -190,9 +206,13 @@ const OrderingApp = () => {
     reports: any(report.allowedActions),
     'cash-closing': any(report.allowedActions),
     categories: any(catalogManage.allowedActions),
+    'catalog-import': any(catalogManage.allowedActions),
     availability: any(catalogAccess.allowedActions),
     branches: any(settings.allowedActions),
     staff: any(scope.allowedActions),
+    'audit-log': any(audit.allowedActions),
+    webhooks: any(webhook.allowedActions),
+    'api-docs': any(settings.allowedActions),
     settings: any(settings.allowedActions),
   };
   const first = (
@@ -206,9 +226,13 @@ const OrderingApp = () => {
       'reports',
       'cash-closing',
       'categories',
+      'catalog-import',
       'availability',
       'branches',
       'staff',
+      'audit-log',
+      'webhooks',
+      'api-docs',
     ] as Section[]
   ).find((key) => visible[key]);
 
@@ -235,9 +259,13 @@ const OrderingApp = () => {
             <Route path="reports/*" element={<ReportsPage />} />
             <Route path="cash-closing/*" element={<CashClosingPage />} />
             <Route path="categories/*" element={<CategoriesPage />} />
+            <Route path="catalog-import/*" element={<CatalogImportPage />} />
             <Route path="availability/*" element={<AvailabilityPage />} />
             <Route path="branches/*" element={<BranchesPage />} />
             <Route path="staff/*" element={<StaffPage />} />
+            <Route path="audit-log/*" element={<AuditLogPage />} />
+            <Route path="webhooks/*" element={<WebhooksPage />} />
+            <Route path="api-docs/*" element={<ApiDocsPage />} />
           </Routes>
         </Suspense>
       </Layouts.Root>

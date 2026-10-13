@@ -262,6 +262,66 @@ export const deliveryFailureReason = (code: string, localeInput: string): string
   return map[code]?.[locale];
 };
 
+/** Locale label words for building template variable values (O10 custom templates). */
+export const templateWords = (localeInput: string | null | undefined): Record<string, string> =>
+  labels[localeInput === 'en' ? 'en' : 'vi'];
+
+export const opsAlertWords = (localeInput: string | null | undefined): Record<string, string> =>
+  opsAlertLabels[localeInput === 'en' ? 'en' : 'vi'];
+
+/**
+ * Default editable source of a template (O10): the built-in copy expressed in the restricted
+ * markdown `notification-template` syntax — `{code}`/`{branch}` become `{{var}}` placeholders and
+ * optional detail rows are the whole-line variables (`{{pickup}}`, `{{footer}}`, …) that drop out
+ * when their data is absent. `renderCustom` on this source reproduces `renderTemplate`'s output.
+ */
+export function defaultTemplateSource(
+  template: TemplateCode,
+  localeInput: string | null | undefined,
+): { subject: string; body: string } {
+  const locale: Locale = localeInput === 'en' ? 'en' : 'vi';
+  const fill = (value: string) =>
+    value.replaceAll('{code}', '{{code}}').replaceAll('{branch}', '{{branch}}');
+  if (template === 'staff.ops-alert') {
+    const w = opsAlertLabels[locale];
+    return {
+      subject: `${locale === 'en' ? '[Ordering] Alert' : '[Bán hàng] Cảnh báo'}: {{label}}{{severityMark}}`,
+      body: [
+        w.lead,
+        '',
+        `- ${w.type}: {{label}}`,
+        `- ${w.count}: {{count}}`,
+        `- ${w.first}: {{firstSeen}}`,
+        `- ${w.last}: {{lastSeen}}`,
+        '{{branch}}',
+        '{{ref}}',
+        '',
+        w.action,
+      ].join('\n'),
+    };
+  }
+  const words = labels[locale];
+  const { subject, lead } = copy[template][locale];
+  return {
+    subject: fill(subject),
+    body: [
+      fill(lead),
+      '',
+      '{{items}}',
+      '',
+      '{{pickup}}',
+      '{{delivery}}',
+      '{{ready}}',
+      '{{reason}}',
+      '{{note}}',
+      '{{customer}}',
+      `- ${words.total}: {{total}}`,
+      '',
+      '{{footer}}',
+    ].join('\n'),
+  };
+}
+
 /**
  * Customer template for a group transition, or null when that step sends nothing. Delivery legs
  * have their own wording (screens O5) — a pickup phrase like "mời bạn đến nhận" must never go out

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O14 Bảng giá</title>
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body>
+<main class="doc">
+
+<header class="doc-head">
+  <p class="eyebrow">Mockup · Phase O14 · Bảng giá theo kênh, nhóm khách, khung giờ</p>
+  <h1>Bảng giá, happy hour, nhóm khách, xem trước giá</h1>
+  <p class="lead"><strong>Đặc tả màn hình: mục cuối của <a href="../ordering-o14-price-lists.md">ordering-o14-price-lists.md</a>.</strong></p>
+  <div class="links">
+    <a href="../../phases/phase-ordering-14-price-lists.md">Spec O14</a>
+  </div>
+</header>
+
+<section class="screen">
+  <h2>L1. Bảng giá</h2>
+  <div class="frame">
+    <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/price-lists</span></div>
+    <div class="admin">
+      <nav><span class="logo"></span><a class="active">Bán hàng</a></nav>
+      <div class="content">
+        <div class="spread"><strong>Bảng giá</strong><span class="btn">+ Tạo bảng giá</span></div>
+        <div class="panel" style="padding:0"><div class="table-wrap"><table class="t">
+          <thead><tr><th>Tên</th><th>Kiểu</th><th>Áp khi</th><th>Thời gian</th><th class="num">Ưu tiên</th><th>Bật</th></tr></thead>
+          <tbody>
+            <tr><td>Happy hour đồ uống</td><td><span class="badge info">Giảm 20% · Đồ uống</span></td><td class="small">Mọi kênh · T2–T6 14:00–17:00 · mọi chi nhánh</td><td>từ 01/10</td><td class="num">10</td><td><span class="toggle"><span class="on">Bật</span><span>Tắt</span></span></td></tr>
+            <tr><td>Giá giao tận nơi</td><td><span class="badge primary">Giá riêng · 10 món</span></td><td class="small">Giao · Q1, Q3</td><td>—</td><td class="num">5</td><td><span class="toggle"><span class="on">Bật</span><span>Tắt</span></span></td></tr>
+            <tr><td>Nhân viên</td><td><span class="badge info">Giảm 30% · Tất cả</span></td><td class="small">Nhóm Nhân viên · Tự lấy</td><td>—</td><td class="num">20</td><td><span class="toggle"><span class="on">Bật</span><span>Tắt</span></span></td></tr>
+          </tbody></table></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>L2. Xem trước giá</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/price-lists · Xem trước</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a class="active">Bán hàng</a></nav>
+        <div class="content">
+          <div class="spread"><span class="input">Trà đào (lớn)</span><span class="input">Quận 1</span><span class="toggle"><span>Tự lấy</span><span class="on">Giao</span></span><span class="input">Thứ 3 · 15:00</span></div>
+          <div class="alert-box ok">Giá cuối <b>52.000đ</b> (giá thường 65.000đ) — thắng: <b>Happy hour đồ uống</b> (ưu tiên 10)</div>
+          <div class="table-wrap"><table class="t" style="min-width:0">
+            <thead><tr><th>Ứng viên</th><th>Khớp?</th><th class="num">Giá</th></tr></thead>
+            <tbody>
+              <tr><td>Giá thường</td><td>✓</td><td class="num">65.000</td></tr>
+              <tr><td>Giá giao tận nơi</td><td>✗ món không có trong bảng</td><td class="num">—</td></tr>
+              <tr class="hl"><td>Happy hour đồ uống</td><td>✓ T3 15:00, danh mục Đồ uống</td><td class="num">52.000</td></tr>
+              <tr><td>Nhân viên</td><td>✗ không đăng nhập nhóm</td><td class="num">—</td></tr>
+            </tbody></table></div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>Bảng giá đổi giá niêm yết; khuyến mãi O8 áp sau.</span></li>
+      <li><span class="n">2</span><span>Giá theo thời điểm đặt, kể cả đơn hẹn giờ.</span></li>
+    </ol>
+  </div>
+</section>
+
+<footer class="doc-foot">File trên máy, không publish. Tên, giá chỉ là ví dụ.</footer>
+</main>
+</body>
+</html>

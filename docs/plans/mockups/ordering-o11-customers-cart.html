@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O11 Khách hàng và giỏ</title>
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body>
+<main class="doc">
+
+<header class="doc-head">
+  <p class="eyebrow">Mockup · Phase O11 · Khách hàng, giỏ hàng, quyền dữ liệu</p>
+  <h1>Hồ sơ khách, đăng nhập OTP, giỏ lưu ở server, xóa dữ liệu</h1>
+  <p class="lead"><strong>Đặc tả từng màn: <a href="../ordering-o11-screens.md">ordering-o11-screens.md</a>.</strong></p>
+  <div class="links">
+    <a href="../../phases/phase-ordering-11-customers-cart.md">Spec O11</a>
+    <a href="../ordering-o11-customers-cart.md">Kế hoạch O11</a>
+  </div>
+</header>
+
+<section class="screen">
+  <h2>C2. Chi tiết khách</h2>
+  <div class="with-notes">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="url">/admin/plugins/ordering/customers/58</span></div>
+      <div class="admin">
+        <nav><span class="logo"></span><a class="active">Bán hàng</a></nav>
+        <div class="content">
+          <div class="spread"><strong>Nguyễn Thị Lan <span class="badge ok">Đã xác minh</span></strong><span><span class="btn secondary">Xuất dữ liệu</span> <span class="btn danger">Tạo yêu cầu xóa</span></span></div>
+          <div class="muted small">090•••4567 <u>Hiện số</u> · l•••@gmail.com · khách từ 03/2026</div>
+          <div class="grid3">
+            <div class="panel"><span class="muted small">Số đơn</span><strong>23</strong></div>
+            <div class="panel"><span class="muted small">Tổng chi</span><strong>4.860.000đ</strong></div>
+            <div class="panel"><span class="muted small">Đơn gần nhất</span><strong>10/10/2026</strong></div>
+          </div>
+          <div class="tabs"><span class="on">Đơn</span><span>Địa chỉ (2)</span><span>Đồng ý</span><span>Yêu cầu dữ liệu</span></div>
+          <div class="panel" style="padding:0"><div class="table-wrap"><table class="t">
+            <thead><tr><th>Mã</th><th>Ngày</th><th>Chi nhánh</th><th>Kênh</th><th class="num">Tổng</th><th>Trạng thái</th></tr></thead>
+            <tbody><tr><td>SLC-000150</td><td>10/10</td><td>Q1</td><td>Giao</td><td class="num">235.000</td><td><span class="badge ok">Xong</span></td></tr></tbody>
+          </table></div></div>
+        </div>
+      </div>
+    </div>
+    <ol class="notes">
+      <li><span class="n">1</span><span>"Hiện số" cần <code>customer.manage</code> và ghi change-log.</span></li>
+      <li><span class="n">2</span><span>Xóa = ẩn danh đơn đã đóng (giữ số tiền, sổ sách) + xóa hồ sơ, địa chỉ, giỏ, phiên.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="screen">
+  <h2>Phía khách: đăng nhập OTP, giỏ, đặt lại</h2>
+  <div class="phones">
+    <div class="phone web"><div class="site-head">Salanca <small>Đăng nhập</small></div>
+      <div class="wrap">
+        <div class="field"><label>Email</label><span class="input">lan@gmail.com</span></div>
+        <span class="muted small">Đã gửi mã nếu tài khoản tồn tại.</span>
+        <div class="spread"><span class="input">4</span><span class="input">8</span><span class="input">1</span><span class="input">9</span><span class="input">0</span><span class="input">2</span></div>
+        <span class="btn">Đăng nhập</span>
+      </div></div>
+    <div class="phone web"><div class="site-head">Salanca <small>Giỏ hàng</small></div>
+      <div class="wrap">
+        <div class="card small"><div class="spread"><span>2× Cơm gà</span><span>130.000đ</span></div><span style="color:var(--warn)">Giá đã đổi: 60.000đ → 65.000đ</span></div>
+        <div class="card small"><div class="spread"><span style="text-decoration:line-through">1× Bánh flan</span><span></span></div><span style="color:var(--warn)">Hết hôm nay</span></div>
+        <span class="muted small">Đã gộp giỏ trước đó của bạn.</span>
+        <span class="btn">Thanh toán 130.000đ</span>
+      </div></div>
+  </div>
+</section>
+
+<footer class="doc-foot">File trên máy, không publish. Tên, số điện thoại, số liệu chỉ là ví dụ.</footer>
+</main>
+</body>
+</html>

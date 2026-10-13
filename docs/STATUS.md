@@ -17,6 +17,55 @@ ngoài chrome, không magic link. Chưa push. Plan:
 [`ordering-api-contract.md`](ordering-api-contract.md); nhân viên:
 [`ordering-staff-guide.md`](ordering-staff-guide.md).
 
+2026-10-13: **Ordering O10 (nền mở rộng: webhook ra ngoài, OpenAPI, CSV catalog, mẫu email) — implemented + automated verification passed, chờ manual UAT** trên
+`feat/ordering-o10` (tách từ `feat/ordering`; chưa merge/push). Bốn khối theo
+[`phases/phase-ordering-10-extensibility.md`](phases/phase-ordering-10-extensibility.md):
+
+- **Webhook ra ngoài** (X1 `Cấu hình → Webhook`, quyền `webhook.manage`): đăng ký endpoint https với bí mật
+  `whsec_…` hiện một lần (lưu mã hóa, xoay có 24 giờ ký kép); danh mục sự kiện công khai `GET /ordering/webhooks/events`;
+  fanout từ outbox ghi `webhook-delivery` rồi dispatcher gửi — payload `{id,type,apiVersion:"2026-10",occurredAt,data}`
+  **không PII** trừ khi bật `includeCustomer` (xác nhận trong UI, ghi change-log); ký
+  `X-Ordering-Signature: t=…,v1=…` (HMAC-SHA256 của `t.rawBody`); thử lại 1/5/15/30 phút + 1/2/4/8/12/24 giờ,
+  tự tắt sau 50 lỗi liên tiếp + alert `webhook-endpoint-disabled`; ping/resend từ màn hình. Chống SSRF: resolve DNS,
+  từ chối IP nội bộ, ghim IP đã kiểm, không theo redirect.
+- **OpenAPI 3.1**: `GET /api/v1/ordering/openapi.json` (public) + `docs/ordering-admin-openapi.json` (71 path,
+  `pnpm run ordering:openapi`); gate `openapi.mjs` bắt route thiếu tài liệu. Màn tĩnh X2 **Cấu hình → Tài liệu API**
+  (link OpenAPI, hướng dẫn Swagger/Postman, mã kiểm chữ ký Node/PHP).
+- **CSV catalog** (X3 `Món → Nhập/xuất`): xuất `products.csv`/`modifiers.csv` (BOM, formula-guard), nhập
+  chạy thử → áp trong một transaction khớp slug/SKU/code, khóa phiên bản `CATALOG_IMPORT_STALE`, ≤ 2 MB / 5000 dòng,
+  change-log `catalog.import`.
+- **Mẫu email** (X4 `Cài đặt bán hàng → Mẫu email`, quyền `settings.manage`): 14 mẫu × VI/EN, biến allowlist
+  (`TEMPLATE_VARIABLE_UNKNOWN`), markdown giới hạn link-https, xem trước/gửi thử/khôi phục mặc định, change-log
+  `notification-template.*`; mẫu hỏng → dùng mặc định + alert `notification-template-broken`, mail vẫn đi.
+
+Gate đầy đủ: lint, typecheck, test (165 file / 1210), `check:ordering` hai lượt, `check:phase3` tắt/bật,
+`strapi build` (server + admin) — chi tiết Completion record trong
+[`plans/ordering-o10-extensibility.md`](plans/ordering-o10-extensibility.md). **Open:** manual UAT (đăng ký endpoint
+thật + kiểm chữ ký, xuất→sửa→nhập CSV trong Excel, sửa/gửi thử mẫu email — checklist trong phase spec) và quyết
+định merge của chủ dự án. Tài liệu mới: [`ordering-integrations.md`](ordering-integrations.md).
+
+2026-10-12: **Ordering O15 (lịch sử thay đổi) — implemented, targeted gates passed, chưa UAT giao diện** trên
+`feat/ordering-o15`, merge vào `feat/ordering`. Màn **Cấu hình → Lịch sử thay đổi** (quyền `audit.read`; xuất CSV thêm
+`export`): lọc ngày/người/nhóm/chi nhánh/mã đơn-tên món, trước → sau, các dòng cùng request, link từ chi tiết đơn. Bù log luồng
+đơn qua timeline (chuyển bước, từ chối, hủy, hủy bớt món, thu tiền mặt, xác nhận đơn hộ, giao/thất bại/giao lại) và
+`payment-link.issue`; sửa ghi trùng log danh mục; chuỗi băm sau commit (job `audit-chain`) + cảnh báo `audit-tampered`.
+Gate có chọn lọc (quy ước từ O7): lint, typecheck, unit test plugin, `audit-coverage`/`audit-log` mới + 12 script bị ảnh
+hưởng (`schema`, `review-additions`, `admin-orders`, `sepay-review`, `sepay-manual`, `payment-refund`, `cash-closing`,
+`catalog-availability`, `catalog-categories`, `delivery-assignment`, `alerts-engine`, `ops-status`), `strapi build` bật
+plugin — exit 0. Plan: [`plans/ordering-o15-audit-log.md`](plans/ordering-o15-audit-log.md).
+
+2026-10-12: **Ordering O6 (vận hành và go-live) — đóng theo quyết định chủ dự án (2026-10-12): automated verification passed, bỏ UAT tay** trên
+`feat/ordering-o6`, gộp vào nhánh tích hợp `feat/ordering` (đã push; chưa merge `main`). 8 commit `97b72ae`…`5d5b9eb` + sửa sau review
+`61897da`, `b0e45a2`, `a79eb6f`, `78e4ae1`: cảnh báo đủ 8 rule (gộp, critical, "đã biết", người nhận theo vai trò + scope,
+ngưỡng sửa trong Admin), trang Tình trạng vận hành, chốt tiền mặt theo người thu (bảng `cash-closing` mới, bản sửa có lý do),
+báo cáo theo ngày kinh doanh từ sổ + snapshot, xuất CSV đơn (quyền `export`, ≤ 92 ngày / 10.000 dòng), job thời hạn lưu,
+runbook vận hành + checklist go-live. Gate: lint, typecheck, test 160 file / 1106, `check:ordering` 47/47 hai lượt,
+`check:phase3` tắt/bật, smoke đặt bàn/tự lấy/SePay/giao, `strapi build` bật/tắt — exit 0 (`check:phase3` bật plugin
+đạt sau khi sửa test media của app chập chờn khi máy tải nặng — xem Completion record O6). **Open:** UAT tay các màn O6; bước 7
+(Cloudflare, backup, bật production) và cổng go-live (SePay thật, kế toán, pháp lý, email) — việc của chủ dự án.
+Plan: [`plans/ordering-o6-ops-golive.md`](plans/ordering-o6-ops-golive.md). Đã lên plan nháp O7–O16 + OP
+([`plans/ordering-roadmap.md`](plans/ordering-roadmap.md)); O7 đang code ở worktree `salanca-backend-o7`.
+
 2026-10-12: **Ordering O5 (giao tận nơi, quán tự giao) — automated + manual UAT passed** trên
 `feat/ordering-o5` (chưa push/merge; 8 commit `407aa65`…`c0695bb` + sửa sau review `6f68dbc`, `49d3417`, `8a1a8df`, `f9c98db`).
 Spec `phase-ordering-5-delivery.md` vẫn "chờ duyệt": duyệt spec/đóng phase là quyết định chủ dự án.
