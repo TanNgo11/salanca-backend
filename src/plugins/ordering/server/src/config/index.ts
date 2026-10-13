@@ -69,6 +69,8 @@ export const configSchema = z.object({
     outboxDeliveredDays: z.number().int().positive(),
     outboxFailedDays: z.number().int().positive(),
     alertResolvedDays: z.number().int().positive(),
+    /** Rating comments older than this are cleared; the stars stay. */
+    ratingCommentDays: z.number().int().positive(),
     batchSize: z.number().int().positive(),
     maxBatchesPerRun: z.number().int().positive(),
   }),
@@ -206,6 +208,7 @@ export default {
       outboxDeliveredDays: 30,
       outboxFailedDays: 90,
       alertResolvedDays: 90,
+      ratingCommentDays: 365,
       batchSize: 500,
       maxBatchesPerRun: 20,
     },

@@ -371,6 +371,7 @@ export const ORDERING_ACTIONS = [
   'payment.record-cash', 'payment.review', 'payment.raw-read', 'refund.manage', 'report.read',
   'export', 'settings.manage', 'scope.manage', 'ops.read', 'catalog.manage',
   'catalog.toggle-availability', 'audit.read', 'webhook.manage',
+  'promotion.manage', 'rating.manage',
 ];
 
 /**

@@ -29,12 +29,16 @@ import notificationDelivery from './notification-delivery';
 import notificationTemplate from './notification-template';
 import opsAlert from './ops-alert';
 import order from './order';
+import orderRating from './order-rating';
 import orderAdjustment from './order-adjustment';
 import orderEvent from './order-event';
 import orderJobLock from './order-job-lock';
 import orderLine from './order-line';
 import outbox from './outbox';
 import payment from './payment';
+import promotion from './promotion';
+import promotionCode from './promotion-code';
+import promotionRedemption from './promotion-redemption';
 import paymentEvent from './payment-event';
 import refund from './refund';
 import refundLine from './refund-line';
@@ -69,12 +73,16 @@ export default {
   'notification-template': notificationTemplate,
   'ops-alert': opsAlert,
   order,
+  'order-rating': orderRating,
   'order-adjustment': orderAdjustment,
   'order-event': orderEvent,
   'order-job-lock': orderJobLock,
   'order-line': orderLine,
   outbox,
   payment,
+  promotion,
+  'promotion-code': promotionCode,
+  'promotion-redemption': promotionRedemption,
   'payment-event': paymentEvent,
   refund,
   'refund-line': refundLine,

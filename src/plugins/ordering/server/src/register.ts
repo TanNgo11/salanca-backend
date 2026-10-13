@@ -105,6 +105,8 @@ const adminActions = [
   { uid: 'catalog.toggle-availability', displayName: 'Bật/tắt tạm hết món' },
   // O10: outbound webhook endpoints (payload contract changes are logged per write).
   { uid: 'webhook.manage', displayName: 'Quản lý webhook' },
+  { uid: 'promotion.manage', displayName: 'Quản lý khuyến mãi' },
+  { uid: 'rating.manage', displayName: 'Quản lý đánh giá' },
 ];
 
 const register = ({ strapi }: { strapi: Core.Strapi }) => {

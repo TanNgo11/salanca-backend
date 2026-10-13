@@ -18,6 +18,8 @@ export const PERMISSIONS = {
   ops: action('ops.read'),
   audit: action('audit.read'),
   webhook: action('webhook.manage'),
+  promotion: action('promotion.manage'),
+  rating: action('rating.manage'),
 } as const;
 
 /** Stable arrays for `useRBAC` (a new array each render makes it re-check every time). */
@@ -52,6 +54,8 @@ export const RBAC_REPORT = [...PERMISSIONS.report];
 export const RBAC_EXPORT = [...PERMISSIONS.export];
 export const RBAC_AUDIT = [...PERMISSIONS.audit];
 export const RBAC_WEBHOOK = [...PERMISSIONS.webhook];
+export const RBAC_PROMOTION = [...PERMISSIONS.promotion];
+export const RBAC_RATING = [...PERMISSIONS.rating];
 /** O6 alert list: anyone a rule could notify (ops, reports, payment review or branch staff). */
 export const RBAC_ALERTS = [
   ...PERMISSIONS.ops,
@@ -72,4 +76,6 @@ export const RBAC_ANY_ORDERING = [
   ...RBAC_REPORT,
   ...RBAC_AUDIT,
   ...RBAC_WEBHOOK,
+  ...RBAC_PROMOTION,
+  ...RBAC_RATING,
 ];

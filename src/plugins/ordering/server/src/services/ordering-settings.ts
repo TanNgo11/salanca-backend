@@ -14,6 +14,12 @@ const reason = z.object({
   label: z.record(z.string(), z.string().max(80)),
 });
 
+const ratingTag = z.object({
+  code: z.string().regex(/^[a-z0-9-]{2,40}$/),
+  label: z.record(z.string(), z.string().max(80)),
+  sentiment: z.enum(['positive', 'negative']),
+});
+
 export const settingsSchema = z.object({
   newOrderDialog: z.boolean().default(true),
   soundByDefault: z.boolean().default(true),
@@ -27,6 +33,19 @@ export const settingsSchema = z.object({
       { code: 'unreachable', label: { vi: 'Không liên lạc được khách', en: 'Customer unreachable' } },
     ]),
   delayMinutes: z.array(z.number().int().min(1).max(240)).max(6).default([10, 20, 30]),
+  ratingInviteEnabled: z.boolean().default(true),
+  ratingInviteDelayMinutes: z.number().int().min(0).max(10080).default(60),
+  ratingWindowDays: z.number().int().min(1).max(90).default(7),
+  ratingEditHours: z.number().int().min(1).max(168).default(24),
+  ratingTags: z
+    .array(ratingTag)
+    .max(20)
+    .default([
+      { code: 'tasty', label: { vi: 'Ngon', en: 'Tasty' }, sentiment: 'positive' },
+      { code: 'fast', label: { vi: 'Nhanh', en: 'Fast' }, sentiment: 'positive' },
+      { code: 'wrong-item', label: { vi: 'Sai món', en: 'Wrong item' }, sentiment: 'negative' },
+      { code: 'late', label: { vi: 'Lâu', en: 'Late' }, sentiment: 'negative' },
+    ]),
 });
 
 export type OrderingSettings = z.infer<typeof settingsSchema>;
@@ -55,6 +74,12 @@ const orderingSettings = ({ strapi }: { strapi: Core.Strapi }) => {
       if (new Set(codes).size !== codes.length) {
         throw new OrderingError('VALIDATION_ERROR', 'settings are invalid', {
           details: { issues: [{ path: 'rejectReasons', message: 'reason codes must be unique' }] },
+        });
+      }
+      const tagCodes = parsed.data.ratingTags.map((item) => item.code);
+      if (new Set(tagCodes).size !== tagCodes.length) {
+        throw new OrderingError('VALIDATION_ERROR', 'settings are invalid', {
+          details: { issues: [{ path: 'ratingTags', message: 'tag codes must be unique' }] },
         });
       }
       const before = await this.get();
