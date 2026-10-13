@@ -1,5 +1,6 @@
 import type { Core } from '@strapi/strapi';
 
+import type { JsonObject } from '../contracts/common';
 import type { Order } from '../contracts/entities';
 import { OrderingError } from '../domain/errors';
 import { amountFromDb, toMoney } from '../domain/money';
@@ -55,7 +56,152 @@ const paymentService = ({ strapi }: { strapi: Core.Strapi }) => {
     };
   };
 
+  /** Session payload stored on the payment row — only redirect/display URLs are kept. */
+  const sessionOf = (value: unknown): Record<string, unknown> | null =>
+    value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : null;
+
   return {
+    /**
+     * O13 wallet sessions (MoMo/VNPay). Opens a provider checkout for the unpaid remainder;
+     * the payment row is created BEFORE the HTTP call so the providerReference can be
+     * `<orderCode>-<paymentId>` (docs/providers/*.md). A live pending session for the same due
+     * amount is returned unchanged — a double click never mints a second MoMo orderId. A
+     * reference-less pending row (initiate crashed) is resumed instead of duplicated.
+     */
+    async createWalletSession(
+      input: { orderId: number; providerCode: string; returnUrl?: string },
+      ctx: ServiceContext,
+    ): Promise<{ payment: PaymentRow; session: Record<string, unknown>; reused: boolean }> {
+      const { registry, order, timeline, outbox } = services();
+      const provider = registry.paymentProvider(input.providerCode);
+      if (!provider.capabilities.includes('wallet')) {
+        throw new OrderingError('VALIDATION_ERROR', 'this provider cannot open wallet sessions', {
+          details: { providerCode: input.providerCode },
+        });
+      }
+      const aggregate = await order.getOrder(input.orderId, ctx);
+      const captured = aggregate.payments.reduce(
+        (sum, payment) => sum + amountFromDb(payment.capturedAmount),
+        0,
+      );
+      const due = aggregate.order.totalAmount - captured;
+      if (!Number.isSafeInteger(due) || due <= 0) {
+        throw new OrderingError('PAYMENT_NOT_DUE', 'nothing is due on this order');
+      }
+
+      // Find-or-create the pending wallet row under an advisory lock — two parallel presses
+      // serialize here, so the second one sees the row the first created.
+      const found = await strapi.db.transaction(async ({ trx }) => {
+        await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [
+          `wallet-session:${input.orderId}:${input.providerCode}`,
+        ]);
+        const pendingRows = (await payments().findMany({
+          where: { order: input.orderId, providerCode: input.providerCode, status: 'pending' },
+        })) as Array<PaymentRow & { requestedAmount: string | number; session: unknown }>;
+        const live = pendingRows.find(
+          (row) =>
+            row.providerReference &&
+            amountFromDb(row.requestedAmount) === due &&
+            sessionOf(row.session)?.redirectUrl,
+        );
+        if (live) {
+          return {
+            payment: normalizePayment(live),
+            session: sessionOf(live.session) ?? {},
+            reused: true as const,
+            initiate: false,
+          };
+        }
+        // A pending row whose amount no longer matches (order edited) is cancelled first —
+        // its providerReference must never carry a stale amount into an IPN match.
+        for (const stale of pendingRows) {
+          if (stale.providerReference) {
+            await payments().update({
+              where: { id: stale.id },
+              data: { status: 'cancelled', actorRef: actorRefOf(ctx) },
+            });
+          }
+        }
+        const resumable = pendingRows.find((row) => !row.providerReference);
+        if (resumable) {
+          return { payment: normalizePayment(resumable), session: {}, reused: false, initiate: true };
+        }
+        const created = await payments().create({
+          data: {
+            order: input.orderId,
+            providerCode: input.providerCode,
+            requestedAmount: due,
+            capturedAmount: 0,
+            refundedAmount: 0,
+            currency: aggregate.order.currency,
+            status: 'pending',
+            actorRef: actorRefOf(ctx),
+            businessDate: aggregate.order.businessDate,
+          },
+        });
+        return { payment: normalizePayment(created), session: {}, reused: false, initiate: true };
+      });
+
+      if (found.reused) return found;
+
+      const reference =
+        found.payment.providerReference ?? `${aggregate.order.code}-${found.payment.id}`;
+      const initiation = await provider.initiate({
+        order: asContractOrder(aggregate.order),
+        amount: toMoney(due, aggregate.order.currency),
+        returnUrl: input.returnUrl,
+        metadata: { reference },
+      });
+      const session: JsonObject = {
+        ...(initiation.session ?? {}),
+        ...(initiation.redirectUrl ? { redirectUrl: initiation.redirectUrl } : {}),
+        initiatedAt: nowOf(ctx).toISOString(),
+      };
+      const updated = await strapi.db.transaction(async () => {
+        const payment = normalizePayment(
+          await payments().update({
+            where: { id: found.payment.id },
+            data: {
+              providerReference: initiation.providerReference ?? reference,
+              requestedAmount: due,
+              status: initiation.status,
+              session,
+              actorRef: actorRefOf(ctx),
+            },
+          }),
+        );
+        await timeline.record(
+          {
+            orderId: input.orderId,
+            type: 'payment.initiated',
+            isPublic: true,
+            payload: { providerCode: input.providerCode, amount: due, paymentId: payment.id },
+          },
+          ctx,
+        );
+        await outbox.enqueue(
+          {
+            type: 'payment.initiated',
+            aggregateType: 'payment',
+            aggregateId: String(payment.id),
+            payload: {
+              orderId: input.orderId,
+              paymentId: payment.id,
+              providerCode: input.providerCode,
+              amount: due,
+              providerReference: payment.providerReference,
+            },
+            uniqueKey: `payment.initiated:${payment.id}`,
+          },
+          ctx,
+        );
+        return payment;
+      });
+      return { payment: updated, session, reused: false };
+    },
+
     /** Opens a payment intent through the registered provider and records the ledger row. */
     async createPayment(
       input: { orderId: number; providerCode: string; amount?: number },

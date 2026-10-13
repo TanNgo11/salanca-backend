@@ -26,6 +26,7 @@ import { createCashPaymentProvider } from './providers/cash';
 import { createSelfDeliveryProvider } from './providers/self-delivery';
 import { createFixtureSepayClient, createSepayTransactionClient } from './providers/sepay/client';
 import { createSepayPaymentProvider, sepaySettingsFromConfig } from './providers/sepay/provider';
+import { createMomoPaymentProvider, momoSettingsFromConfig } from './providers/momo/provider';
 import {
   createCaptureNotificationProvider,
   createEmailNotificationProvider,
@@ -144,6 +145,19 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
               apiBaseUrl: () => currentSepay()?.apiBaseUrl ?? sepaySettings.apiBaseUrl,
               apiToken: () => currentSepay()?.apiToken ?? sepaySettings.apiToken,
             }),
+      }),
+    );
+  }
+  // O13 wallets: opt-in providers — registered only when the env config parses, same as SePay.
+  if (momoSettingsFromConfig(config.providers.payment)) {
+    registry.registerPaymentProvider(
+      createMomoPaymentProvider({
+        settings: () =>
+          momoSettingsFromConfig(
+            (strapi.config.get('plugin::ordering') as OrderingConfig).providers.payment,
+          ),
+        publicApiUrl: () =>
+          (strapi.config.get('plugin::ordering') as OrderingConfig).publicApiUrl,
       }),
     );
   }

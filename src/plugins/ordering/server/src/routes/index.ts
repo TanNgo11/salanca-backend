@@ -86,7 +86,12 @@ export default {
       publicRoute('PATCH', '/carts/current/lines/:lineId', 'cart.updateLine'),
       publicRoute('DELETE', '/carts/current/lines/:lineId', 'cart.removeLine'),
       publicRoute('POST', '/carts/current/checkout', 'cart.checkout'),
+      // O13: wallet checkout sessions (X-Order-Token) and the display-only return landing.
+      publicRoute('POST', '/payments/session', 'storefront.paymentSession'),
+      publicRoute('GET', '/payments/return/:provider', 'storefront.paymentReturn'),
       publicRoute('POST', '/webhooks/:providerCode', 'webhook.receive'),
+      // VNPay sends its IPN as GET — the signed data is the query-param set itself.
+      publicRoute('GET', '/webhooks/:providerCode', 'webhook.receive'),
       // O10: the public contract, self-served (cached 1h by the controller).
       publicRoute('GET', '/openapi.json', 'openapi.document'),
     ],

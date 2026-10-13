@@ -398,6 +398,136 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
         return { duplicate: true, decision: { outcome: 'ignored' } };
       }
 
+      // O13 wallet providers (momo, vnpay): the IPN's `reference` is the session's
+      // providerReference `<orderCode>-<paymentId>` — the payment row already exists, so
+      // matching is a row lookup, not a memo parse. Signature was verified before this runs.
+      const walletProvider = services().registry.hasPaymentProvider(event.providerCode)
+        ? services().registry.paymentProvider(event.providerCode)
+        : null;
+      if (walletProvider?.capabilities.includes('wallet')) {
+        const walletPark = async (
+          reviewStatus: 'needs-review' | 'ignored',
+          reviewReason: string | null,
+          paymentId: number | null = null,
+        ) => {
+          try {
+            await insertEvent({ ...base, paymentId, reviewStatus, reviewReason }, ctx);
+            return {
+              duplicate: false,
+              decision:
+                reviewStatus === 'needs-review'
+                  ? ({
+                      outcome: 'needs-review',
+                      reviewReason: (reviewReason ?? 'no-code') as never,
+                      orderCode: null,
+                      dueAmount: null,
+                    } satisfies MatchDecision)
+                  : ({ outcome: 'ignored' } satisfies MatchDecision),
+            };
+          } catch (error) {
+            if (!isUniqueViolation(error)) throw error;
+            return { duplicate: true, decision: { outcome: 'ignored' } satisfies MatchDecision };
+          }
+        };
+        const walletIngest = async (): Promise<{ duplicate: boolean; decision: MatchDecision }> => {
+          if (event.transferType === 'out') return walletPark('ignored', null);
+          const reference = event.reference?.trim() ?? '';
+          if (reference === '') return walletPark('needs-review', 'no-code');
+          const parked = (await payments().findOne({
+            where: { providerCode: event.providerCode, providerReference: reference },
+          })) as { id: number } | null;
+          if (!parked) return walletPark('needs-review', 'order-not-found');
+          try {
+            return await strapi.db.transaction(async ({ trx }) => {
+              await repo.lockPayment(trx, parked.id);
+              const locked = (await payments().findOne({
+                where: { id: parked.id },
+                populate: { order: { columns: ['id'] } },
+              })) as {
+                id: number;
+                order: { id: number } | number;
+                status: string;
+                requestedAmount: string | number;
+                currency: string;
+              } | null;
+              if (!locked) return walletPark('needs-review', 'order-not-found');
+              const orderId =
+                typeof locked.order === 'object' ? locked.order.id : locked.order;
+              // `services()` — not a destructure: `ingest` declares `const { order }` later,
+              // which would make a bare `order` binding hit the TDZ here.
+              const aggregate = await services().order.getOrder(orderId, ctx);
+              await lockGroups(trx, aggregate);
+
+              // A terminal-failure event on a still-pending session marks the payment failed —
+              // the order stays awaiting-payment until a new session or the expiry job.
+              if (event.kind === 'failed') {
+                if (locked.status === 'pending') {
+                  await payments().update({
+                    where: { id: locked.id },
+                    data: { status: 'failed', actorRef: actorRefOf(ctx) },
+                  });
+                }
+                return walletPark('ignored', 'result-failed', locked.id);
+              }
+              if (locked.status === 'captured') {
+                return walletPark('ignored', 'already-paid', locked.id);
+              }
+              if (locked.status !== 'pending') {
+                return walletPark('needs-review', 'order-closed', locked.id);
+              }
+              const requested = amountFromDb(locked.requestedAmount);
+              if (event.amount.amount !== requested) {
+                return walletPark(
+                  'needs-review',
+                  event.amount.amount > requested ? 'overpaid' : 'underpaid',
+                  locked.id,
+                );
+              }
+              await payments().update({
+                where: { id: locked.id },
+                data: {
+                  capturedAmount: event.amount.amount,
+                  status: 'captured',
+                  capturedAt: nowOf(ctx),
+                  actorRef: actorRefOf(ctx),
+                },
+              });
+              await insertEvent(
+                { ...base, paymentId: locked.id, reviewStatus: 'auto-matched', reviewReason: null },
+                ctx,
+              );
+              await services().order.recomputeProjection(orderId);
+              await services().timeline.record(
+                {
+                  orderId,
+                  type: 'payment.captured',
+                  isPublic: true,
+                  payload: {
+                    providerCode: event.providerCode,
+                    amount: event.amount.amount,
+                    paymentId: locked.id,
+                  },
+                },
+                ctx,
+              );
+              await transitionIfPayable(aggregate, ctx);
+              return {
+                duplicate: false,
+                decision: {
+                  outcome: 'auto-matched',
+                  orderCode: aggregate.order.code,
+                  dueAmount: requested,
+                } satisfies MatchDecision,
+              };
+            });
+          } catch (error) {
+            if (!isUniqueViolation(error)) throw error;
+            return { duplicate: true, decision: { outcome: 'ignored' } };
+          }
+        };
+        return flagUnmatched(await walletIngest());
+      }
+
       const bankReference = event.reference;
       const applyReference = async (
         rows: ReferenceRow[],

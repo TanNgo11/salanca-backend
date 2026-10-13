@@ -198,6 +198,23 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       payment: await storefront().paymentByToken(orderToken(ctx)),
     })),
 
+    /** POST /payments/session — X-Order-Token + {provider, returnUrl?}; wallet checkout (O13). */
+    paymentSession: action('create', async (ctx, serviceCtx) =>
+      storefront().paymentSessionByToken(
+        orderToken(ctx),
+        (ctx.request.body ?? {}) as { provider?: unknown; returnUrl?: unknown },
+        serviceCtx,
+      ),
+    ),
+
+    /** GET /payments/return/:provider — wallet return landing; display only, never captures. */
+    paymentReturn: action('read', async (ctx) =>
+      storefront().paymentReturn(
+        typeof ctx.params.provider === 'string' ? ctx.params.provider : '',
+        ctx.query as Record<string, unknown>,
+      ),
+    ),
+
     /** POST /orders/lookup — { code, phone, captchaToken }; status-only, no PII, no actions. */
     lookup: action('lookup', async (ctx) => {
       const input = (ctx.request.body ?? {}) as Record<string, unknown>;

@@ -105,6 +105,8 @@ export type PaymentRow = {
   currency: string;
   status: string;
   providerReference: string | null;
+  /** O13: wallet session payload returned by the provider's initiate (payUrl/deeplink/…). */
+  session: Record<string, unknown> | null;
   actorRef: string | null;
   businessDate: string | null;
   capturedAt: string | null;

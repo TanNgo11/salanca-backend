@@ -8,6 +8,7 @@ import type scopeFactory from '../services/scope';
 
 /** Minimal Koa context surface the ordering controllers use. */
 export interface HttpCtx {
+  method?: string;
   query: Record<string, unknown>;
   params: Record<string, string | undefined>;
   request: {
