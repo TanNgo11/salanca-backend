@@ -4,6 +4,8 @@ import type adminOrdersFactory from '../services/admin-orders';
 import type deliveryAssignmentFactory from '../services/delivery-assignment';
 import type orderExportFactory from '../services/order-export';
 import type manualPaymentFactory from '../services/manual-payment';
+import type orderEditFactory from '../services/order-edit';
+import type { EditInput } from '../services/order-edit';
 import type paymentLinkFactory from '../services/payment-link';
 import type orderingSettingsFactory from '../services/ordering-settings';
 import { adminAction, positiveInt, text } from './http';
@@ -14,6 +16,7 @@ type OrderExport = ReturnType<typeof orderExportFactory>;
 type Settings = ReturnType<typeof orderingSettingsFactory>;
 type ManualPayment = ReturnType<typeof manualPaymentFactory>;
 type PaymentLink = ReturnType<typeof paymentLinkFactory>;
+type OrderEdit = ReturnType<typeof orderEditFactory>;
 
 const body = (value: unknown): Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -22,6 +25,66 @@ const body = (value: unknown): Record<string, unknown> =>
 
 const optionalText = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
+
+const record = (value: unknown): Record<string, unknown> | null =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+
+/** Passes the edit body through. The order-edit service checks every field. */
+const parseEdit = (value: unknown): EditInput => {
+  const input = body(value);
+  const add = Array.isArray(input.add)
+    ? input.add.map((row) => {
+        const item = record(row) ?? {};
+        const options = Array.isArray(item.options)
+          ? item.options.flatMap((option) => {
+              const picked = record(option);
+              if (!picked || typeof picked.groupUid !== 'string' || typeof picked.optionUid !== 'string') return [];
+              return [
+                {
+                  groupUid: picked.groupUid,
+                  optionUid: picked.optionUid,
+                  quantity: typeof picked.quantity === 'number' ? picked.quantity : 1,
+                },
+              ];
+            })
+          : undefined;
+        return {
+          sellableUid: typeof item.sellableUid === 'string' ? item.sellableUid : '',
+          ...(typeof item.variantUid === 'string' && item.variantUid !== '' ? { variantUid: item.variantUid } : {}),
+          ...(options && options.length > 0 ? { options } : {}),
+          quantity: Number(item.quantity),
+          ...(typeof item.note === 'string' ? { note: item.note } : {}),
+        };
+      })
+    : undefined;
+  const reduce = Array.isArray(input.reduce)
+    ? input.reduce.map((row) => {
+        const item = record(row) ?? {};
+        return { lineId: Number(item.lineId), quantity: Number(item.quantity) };
+      })
+    : undefined;
+  const timing = record(input.timing);
+  const address = record(input.address);
+  const addressFields = ['recipientName', 'phone', 'line1', 'wardCode', 'communeCode', 'note'] as const;
+  return {
+    revision: Number(input.revision),
+    reason: typeof input.reason === 'string' ? input.reason : '',
+    ...(add && add.length > 0 ? { add } : {}),
+    ...(reduce && reduce.length > 0 ? { reduce } : {}),
+    ...(timing?.kind === 'asap' ? { timing: { kind: 'asap' } } : {}),
+    ...(timing?.kind === 'scheduled' ? { timing: { kind: 'scheduled', startsAt: String(timing.startsAt ?? '') } } : {}),
+    ...(address
+      ? {
+          address: Object.fromEntries(
+            addressFields.flatMap((key) => (typeof address[key] === 'string' ? [[key, address[key]]] : [])),
+          ) as EditInput['address'],
+        }
+      : {}),
+    ...(input.notifyCustomer !== undefined ? { notifyCustomer: input.notifyCustomer as boolean } : {}),
+  };
+};
 
 /**
  * Order inbox and order actions (screens S1–S5). Each route's action is checked by its policy;
@@ -34,6 +97,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
   const manual = () => strapi.plugin('ordering').service('manual-payment') as ManualPayment;
   const exporter = () => strapi.plugin('ordering').service('order-export') as OrderExport;
   const links = () => strapi.plugin('ordering').service('payment-link') as PaymentLink;
+  const edits = () => strapi.plugin('ordering').service('order-edit') as OrderEdit;
   const id = (value: string | undefined) => positiveInt(value) ?? 0;
 
   return {
@@ -113,6 +177,14 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     addNote: adminAction(strapi, async (ctx, serviceCtx) =>
       service().addNote(id(ctx.params.id), optionalText(body(ctx.request.body).text), serviceCtx),
     ),
+    editPreview: adminAction(strapi, async (ctx, serviceCtx) =>
+      edits().preview(id(ctx.params.id), parseEdit(ctx.request.body), serviceCtx),
+    ),
+    edit: adminAction(strapi, async (ctx, serviceCtx) => {
+      const orderId = id(ctx.params.id);
+      const preview = (await edits().edit(orderId, parseEdit(ctx.request.body), serviceCtx)).preview;
+      return { preview, detail: await service().detail(orderId, serviceCtx) };
+    }),
     lineCancelPreview: adminAction(strapi, async (ctx, serviceCtx) =>
       service().lineCancelPreview(
         id(ctx.params.id),

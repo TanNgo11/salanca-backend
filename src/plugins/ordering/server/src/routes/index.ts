@@ -198,6 +198,8 @@ export default {
         'order.edit-lines',
       ),
       adminRoute('POST', '/orders/:id/lines/:lineId/cancel', 'admin-orders.cancelLine', 'order.edit-lines'),
+      adminRoute('POST', '/orders/:id/edit/preview', 'admin-orders.editPreview', 'order.edit'),
+      adminRoute('POST', '/orders/:id/edit', 'admin-orders.edit', 'order.edit'),
       adminRoute('POST', '/orders/:id/refunds', 'admin-orders.refund', 'refund.manage'),
       adminRoute('POST', '/refunds/:id/settle', 'admin-orders.settleRefund', 'refund.manage'),
       adminRoute('POST', '/orders/:id/manual-payments', 'admin-orders.recordManual', 'payment.review'),

@@ -6,6 +6,7 @@ import { useT } from '../../lib/i18n';
 import { PERMISSIONS } from '../../lib/permissions';
 import { CreateOrderPage } from './CreateOrderPage';
 import { OrderDetailPage } from './OrderDetailPage';
+import { OrderEditPage } from './OrderEditPage';
 import { OrdersList } from './OrdersList';
 
 /** `/plugins/ordering/orders/*`: inbox (S1), "Tạo đơn hộ" (S6) and order detail (S4). */
@@ -19,6 +20,7 @@ const OrdersPage = () => {
           <Routes>
             <Route index element={<OrdersList />} />
             <Route path="new" element={<CreateOrderPage />} />
+            <Route path=":id/edit" element={<OrderEditPage />} />
             <Route path=":id" element={<OrderDetailPage />} />
           </Routes>
         </Page.Main>

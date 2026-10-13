@@ -749,6 +749,7 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
         payload: {
           summary: 'Đơn đã được cập nhật',
           reason,
+          revision: nextRevision,
           totalBefore: beforeTotals.total,
           totalAfter: afterTotals.total,
           fulfillmentBefore: beforeTotals.fulfillment,

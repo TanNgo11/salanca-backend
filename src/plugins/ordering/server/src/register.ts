@@ -68,6 +68,7 @@ const adminActions = [
   { uid: 'order.cancel', displayName: 'Hủy đơn hàng' },
   { uid: 'order.create', displayName: 'Tạo đơn hộ khách' },
   { uid: 'order.edit-lines', displayName: 'Hủy một phần món' },
+  { uid: 'order.edit', displayName: 'Sửa đơn' },
   { uid: 'payment.record-cash', displayName: 'Ghi nhận tiền mặt' },
   { uid: 'payment.review', displayName: 'Duyệt chuyển khoản' },
   { uid: 'payment.raw-read', displayName: 'Xem payload cổng thanh toán' },

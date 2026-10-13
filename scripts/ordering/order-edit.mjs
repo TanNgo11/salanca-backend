@@ -1,6 +1,7 @@
 // Step 5: staff edit of an open order. Adds keep the new price, old lines keep
 // their snapshot, a captured transfer is refunded before cash, and a preview
 // rolls the database back. Replay of the same revision is ORDER_CHANGED.
+// Step 6: HTTP preview/edit. Missing order.edit is 403. Another branch is 404.
 // Run: ORDERING_TEST_DATABASE=salanca_ordering_o7 node scripts/ordering/order-edit.mjs
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
@@ -8,6 +9,7 @@ import { randomUUID } from 'node:crypto';
 import {
   basicOrderInput,
   cleanupStaff,
+  seedAdminHttpStaff,
   seedBranches,
   seedMenu,
   seedStaff,
@@ -62,6 +64,7 @@ await withApp(async (app) => {
   const branches = app.db.query('plugin::ordering.branch');
   const limits = app.db.query('plugin::ordering.catalog-daily-limit');
   let q3user = null;
+  const httpCleanups = [];
 
   const setPickup = async (extra = {}) => {
     const q1 = await branches.findOne({ where: { code: 'Q1' } });
@@ -600,8 +603,91 @@ await withApp(async (app) => {
     assert.equal(still.preview.totals.after.total, 190000);
     console.log('[ordering-test] a delivery order stays editable at ready');
 
+    await setPickup();
+    await app.listen();
+    const httpOrder = await place({ lines: [{ sellableUid: 'bun-bo', quantity: 1 }] });
+    const httpId = httpOrder.order.order.id;
+    const httpLine = httpOrder.order.lines[0].id;
+    const editBody = {
+      revision: 0,
+      reason: 'them tra',
+      add: [{ sellableUid: 'tra-dao', quantity: 1 }],
+    };
+    const reader = await seedAdminHttpStaff(app, {
+      actions: ['order.read'],
+      scopes: { xem: { allLocations: true, locationRefs: [] } },
+    });
+    httpCleanups.push(reader);
+    const outsider = await seedAdminHttpStaff(app, {
+      actions: ['order.read', 'order.edit'],
+      scopes: { q3: { allLocations: false, locationRefs: ['Q3'] } },
+    });
+    httpCleanups.push(outsider);
+    const editor = await seedAdminHttpStaff(app, {
+      actions: ['order.read', 'order.edit'],
+      scopes: { q1: { allLocations: false, locationRefs: ['Q1'] } },
+    });
+    httpCleanups.push(editor);
+
+    const shown = await reader.as.xem('GET', `/orders/${httpId}`);
+    assert.equal(shown.status, 200);
+    assert.equal(shown.body.editRevision, 0);
+    assert.equal(shown.body.order.editRevision, 0);
+    assert.equal(shown.body.editable, true);
+    assert.equal(shown.body.editableReason, null);
+    const forbiddenPreview = await reader.as.xem('POST', `/orders/${httpId}/edit/preview`, editBody);
+    assert.equal(forbiddenPreview.status, 403);
+    const forbiddenEdit = await reader.as.xem('POST', `/orders/${httpId}/edit`, editBody);
+    assert.equal(forbiddenEdit.status, 403);
+    const outside = await outsider.as.q3('POST', `/orders/${httpId}/edit`, editBody);
+    assert.equal(outside.status, 404);
+    assert.equal(outside.body.error.code, 'ORDER_NOT_FOUND');
+    const beforeHttp = await counts(httpId);
+    const previewHttp = await editor.as.q1('POST', `/orders/${httpId}/edit/preview`, editBody);
+    assert.equal(previewHttp.status, 200, previewHttp.body?.error?.code);
+    assert.equal(previewHttp.body.totals.after.total, 110000);
+    assert.equal(previewHttp.body.money.paymentLink, false);
+    assert.deepEqual(await counts(httpId), beforeHttp);
+    const savedHttp = await editor.as.q1('POST', `/orders/${httpId}/edit`, editBody);
+    assert.equal(savedHttp.status, 200, savedHttp.body?.error?.code);
+    assert.equal(savedHttp.body.preview.revision, 1);
+    assert.equal(savedHttp.body.detail.editRevision, 1);
+    assert.equal(savedHttp.body.detail.order.editRevision, 1);
+    assert.equal(savedHttp.body.detail.editable, true);
+    assert.equal(savedHttp.body.detail.lines.some((line) => line.addedInRevision === 1), true);
+    const editedEvent = savedHttp.body.detail.timeline.find((event) => event.type === 'order.edited');
+    assert.equal(editedEvent.payload.revision, 1);
+    assert.equal(editedEvent.payload.summary, 'Đơn đã được cập nhật');
+    const replayHttp = await editor.as.q1('POST', `/orders/${httpId}/edit`, editBody);
+    assert.equal(replayHttp.status, 409);
+    assert.equal(replayHttp.body.error.code, 'ORDER_CHANGED');
+    assert.equal(replayHttp.body.error.details.revision, 1);
+
+    const readyPickup = await place({ lines: [{ sellableUid: 'tra-dao', quantity: 1 }] });
+    await transition.transitionGroup(
+      { orderId: readyPickup.order.order.id, groupId: readyPickup.order.groups[0].id, to: 'preparing' },
+      systemCtx,
+    );
+    await transition.transitionGroup(
+      { orderId: readyPickup.order.order.id, groupId: readyPickup.order.groups[0].id, to: 'ready' },
+      systemCtx,
+    );
+    const readyView = await reader.as.xem('GET', `/orders/${readyPickup.order.order.id}`);
+    assert.equal(readyView.status, 200);
+    assert.equal(readyView.body.editable, false);
+    assert.equal(readyView.body.editableReason, 'ready');
+    const reduceHttp = await editor.as.q1('POST', `/orders/${httpId}/edit`, {
+      revision: 1,
+      reason: 'bot bot',
+      reduce: [{ lineId: httpLine, quantity: 1 }],
+    });
+    assert.equal(reduceHttp.status, 200, reduceHttp.body?.error?.code);
+    assert.equal(reduceHttp.body.detail.order.editRevision, 2);
+    console.log('[ordering-test] edit routes: 403 without order.edit, 404 outside the branch');
+
     console.log('[ordering-test] order edit checks passed');
   } finally {
+    for (const httpStaff of httpCleanups) await httpStaff.cleanup();
     if (q3user) await app.admin.services.user.deleteById(q3user.id).catch(() => undefined);
     await cleanupStaff(app, staff);
   }

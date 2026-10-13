@@ -70,10 +70,12 @@ export type OrderDetail = {
       kind?: string;
       timing?: { mode?: string; slot?: { startsAt: string; endsAt: string }; requestedReadyAt?: string };
     };
+    editRevision: number;
   };
   group: { id: number; status: string; workflow: string; estimatedReadyAt: string | null; slaMinutes: number } | null;
   lines: Array<{
     id: number;
+    addedInRevision: number | null;
     title: string;
     sku: string | null;
     options: Array<{ group: string; name: string; quantity: number }>;
@@ -135,6 +137,9 @@ export type OrderDetail = {
     occurredAt: string;
   }>;
   nextTransitions: NextTransition[];
+  editRevision: number;
+  editable: boolean;
+  editableReason: string | null;
   paymentLink: { expiresAt: string } | null;
   settings: { delayMinutes: number[] };
   /** The delivery leg of a delivery order (O5); null for pickup orders. */
@@ -147,7 +152,9 @@ export type OrderDetail = {
     trackingUrl: string | null;
     address: {
       line1?: string;
+      wardCode?: string;
       wardName?: string;
+      provinceCode?: string;
       provinceName?: string;
       recipientName?: string;
       phone?: string;
@@ -159,6 +166,39 @@ export type OrderDetail = {
     lastFailure: { code: string; note: string | null; at: string } | null;
     attempts: number;
   } | null;
+};
+
+export type EditTotals = {
+  subtotal: number;
+  adjustment: number;
+  fulfillment: number;
+  tax: number;
+  total: number;
+};
+
+/** `POST /orders/:id/edit/preview` — nothing is written. */
+export type EditPreview = {
+  revision: number;
+  lines: Array<{
+    lineId?: number;
+    title: string;
+    quantityBefore: number;
+    quantityAfter: number;
+    lineTotalAfter: number;
+    added: boolean;
+  }>;
+  totals: { before: EditTotals; after: EditTotals };
+  fulfillmentAmount: { before: number; after: number };
+  timing?: { before: string | null; after: string | null };
+  money: {
+    paid: number;
+    dueAfter: number;
+    refundCash: number;
+    refundTransferPending: number;
+    extraDue: number;
+    paymentLink: boolean;
+  };
+  warnings: string[];
 };
 
 export type BranchSummary = { code: string; name: Record<string, string>; timezone: string; onlineOrdering: boolean };

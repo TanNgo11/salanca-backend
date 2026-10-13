@@ -97,6 +97,28 @@ export const assertEditable = (receiveKind: string, status: string): void => {
   }
 };
 
+/**
+ * Why the detail screen hides the edit button. `openStatuses` are the
+ * non-terminal groups. A code is translated in the admin (`edit.reason.*`).
+ */
+export const editability = (
+  receiveKind: string,
+  orderStatus: string,
+  openStatuses: readonly string[],
+): { editable: boolean; reason: string | null } => {
+  if (orderStatus === 'draft') return { editable: false, reason: 'draft' };
+  if (orderStatus === 'completed' || orderStatus === 'canceled') return { editable: false, reason: 'closed' };
+  if (openStatuses.length === 0) return { editable: false, reason: 'closed' };
+  for (const status of openStatuses) {
+    if (editableGroup(receiveKind, status)) continue;
+    if (status === 'awaiting-payment') return { editable: false, reason: 'awaiting-payment' };
+    if (status === 'out-for-delivery') return { editable: false, reason: 'out-for-delivery' };
+    if (status === 'ready') return { editable: false, reason: 'ready' };
+    return { editable: false, reason: 'closed' };
+  }
+  return { editable: true, reason: null };
+};
+
 export const assertRevision = (seen: unknown, current: number): void => {
   if (typeof seen !== 'number' || !Number.isInteger(seen) || seen < 0) {
     throw new OrderingError('VALIDATION_ERROR', 'revision must be a non-negative integer', {

@@ -9,6 +9,7 @@ import { OrderingError } from '../domain/errors';
 import { amountFromDb } from '../domain/money';
 import { parseCartRequest, parseOrderRequest } from '../domain/storefront/parse';
 import { paidAmounts, type SelectedOptionSnapshot } from '../domain/storefront/serialize';
+import { editability } from '../domain/order-edit';
 import { isTerminal } from '../domain/workflow/transition';
 import type { TransactionClient } from '../migrations/runner';
 import orderRepository from '../repositories/order';
@@ -512,6 +513,12 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
             where: { group: deliveryGroup.id },
           })) as FulfillmentLeg | null)
         : null;
+      const openStatuses = aggregate.groups
+        .filter((group) => isTerminal(workflowOf(group), group.status) === null)
+        .map((group) => group.status);
+      const receiveKind =
+        (aggregate.order.receiveMethod as { kind?: string } | null)?.kind ?? 'pickup';
+      const editState = editability(receiveKind, aggregate.order.status, openStatuses);
       const actorIds = [
         ...new Set(
           [...events.map((event) => event.actorRef), leg?.assigneeRef]
@@ -553,6 +560,7 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
           customerNote: aggregate.order.customerNote,
           placedLocale: aggregate.order.placedLocale,
           receiveMethod: aggregate.order.receiveMethod,
+          editRevision: aggregate.order.editRevision ?? 0,
         },
         group: group
           ? {
@@ -565,6 +573,7 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
           : null,
         lines: aggregate.lines.map((line) => ({
           id: line.id,
+          addedInRevision: line.addedInRevision ?? null,
           title: line.titleSnapshot,
           sku: line.sku,
           options: ((line.selectedOptionsSnapshot as SelectedOptionSnapshot[] | null) ?? []).map((option) => ({
@@ -647,6 +656,9 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
         nextTransitions: nextTransitions(aggregate),
         paymentLink: await s.paymentLink().summary(aggregate.order.id),
         settings: { delayMinutes: (await s.settings().get()).delayMinutes },
+        editRevision: aggregate.order.editRevision ?? 0,
+        editable: editState.editable,
+        editableReason: editState.reason,
       };
     },
 

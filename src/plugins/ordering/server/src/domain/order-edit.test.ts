@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { isOrderingError } from './errors';
 import {
   assertEditable,
+  editability,
   assertHasEditRequest,
   assertReason,
   assertRevision,
@@ -95,6 +96,27 @@ describe('order edit guards', () => {
     expect(assertReason('  hết món  ')).toBe('hết món');
     expect(() => assertReason('   ')).toThrow(/1–500/);
     expect(() => assertReason('x'.repeat(501))).toThrow(/1–500/);
+  });
+});
+
+describe('editability for the order detail', () => {
+  it('names why a group cannot be edited', () => {
+    expect(editability('pickup', 'open', ['awaiting-acceptance'])).toEqual({ editable: true, reason: null });
+    expect(editability('delivery', 'open', ['ready'])).toEqual({ editable: true, reason: null });
+    expect(editability('pickup', 'open', ['ready'])).toEqual({ editable: false, reason: 'ready' });
+    expect(editability('delivery', 'open', ['out-for-delivery'])).toEqual({
+      editable: false,
+      reason: 'out-for-delivery',
+    });
+    expect(editability('pickup', 'open', ['awaiting-payment'])).toEqual({
+      editable: false,
+      reason: 'awaiting-payment',
+    });
+    expect(editability('pickup', 'draft', ['awaiting-acceptance'])).toEqual({ editable: false, reason: 'draft' });
+    expect(editability('pickup', 'completed', [])).toEqual({ editable: false, reason: 'closed' });
+    expect(editability('pickup', 'open', [])).toEqual({ editable: false, reason: 'closed' });
+    expect(editability('delivery', 'open', ['failed'])).toEqual({ editable: false, reason: 'closed' });
+    expect(editability('pickup', 'open', ['preparing', 'ready'])).toEqual({ editable: false, reason: 'ready' });
   });
 });
 

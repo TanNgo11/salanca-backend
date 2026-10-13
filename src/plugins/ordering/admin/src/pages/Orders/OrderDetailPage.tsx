@@ -29,7 +29,7 @@ import { PaymentBadge, StateBadge } from '../../components/orders/StatusBadges';
 import { useOrderingInbox } from '../../inbox/OrderingInboxProvider';
 import { useErrorToast, httpStatusOf } from '../../lib/api';
 import { formatDateTime, formatMoney, formatTime, localized, minutesSince } from '../../lib/format';
-import { useLocale, useT } from '../../lib/i18n';
+import { useLocale, useT, type Translate } from '../../lib/i18n';
 import { RBAC_DETAIL } from '../../lib/permissions';
 import type { DeliveryStaff, InboxSettings, NextTransition, OrderDetail } from '../../lib/types';
 import { useOrderActions } from '../../lib/useOrderActions';
@@ -249,15 +249,36 @@ export const OrderDetailPage = () => {
     return setDialog({ kind: 'transition', to: item.to });
   };
 
+  const editButton = can.canEdit ? (
+    detail.editable ? (
+      <Button variant="secondary" onClick={() => navigate('edit')}>
+        {t('edit.open')}
+      </Button>
+    ) : (
+      <Tooltip label={editReasonText(detail.editableReason, t)}>
+        <span>
+          <Button variant="secondary" disabled>
+            {t('edit.open')}
+          </Button>
+        </span>
+      </Tooltip>
+    )
+  ) : null;
+
   const stepButtons = order.status === 'draft' ? (
-    can.canCreate ? (
+    can.canCreate || editButton ? (
       <Flex gap={2}>
-        <Button variant="danger-light" loading={draftBusy === 'delete'} onClick={() => void draftAction('delete')}>
-          {t('draft.delete')}
-        </Button>
-        <Button loading={draftBusy === 'confirm'} onClick={() => void draftAction('confirm')}>
-          {t('draft.confirm')}
-        </Button>
+        {can.canCreate ? (
+          <Button variant="danger-light" loading={draftBusy === 'delete'} onClick={() => void draftAction('delete')}>
+            {t('draft.delete')}
+          </Button>
+        ) : null}
+        {can.canCreate ? (
+          <Button loading={draftBusy === 'confirm'} onClick={() => void draftAction('confirm')}>
+            {t('draft.confirm')}
+          </Button>
+        ) : null}
+        {editButton}
       </Flex>
     ) : null
   ) : (
@@ -274,6 +295,7 @@ export const OrderDetailPage = () => {
             </Button>
           ))
         : null}
+      {editButton}
       <SimpleMenu label="…" variant="tertiary">
         {can.canCancel && !closed ? <MenuItem onSelect={() => setDialog({ kind: 'cancel' })}>{t('detail.cancelOrder')}</MenuItem> : null}
         {can.canReview ? <MenuItem onSelect={() => setDialog({ kind: 'manual' })}>{t('review.manual')}</MenuItem> : null}
@@ -339,7 +361,12 @@ export const OrderDetailPage = () => {
                   {detail.lines.map((line) => (
                     <Tr key={line.id}>
                       <Td>
-                        <Typography fontWeight="semiBold">{line.title}</Typography>
+                        <Flex gap={2} wrap="wrap">
+                          <Typography fontWeight="semiBold">{line.title}</Typography>
+                          {line.addedInRevision ? (
+                            <Badge>{t('edit.addedBadge', { revision: line.addedInRevision })}</Badge>
+                          ) : null}
+                        </Flex>
                         {line.options.length > 0 || line.note ? (
                           <Typography variant="pi" textColor="neutral600" tag="p">
                             {[...line.options.map((option) => option.name), line.note ? `"${line.note}"` : null]
@@ -665,6 +692,23 @@ export const OrderDetailPage = () => {
   );
 };
 
+const editReasonText = (reason: string | null, t: Translate): string => {
+  switch (reason) {
+    case 'draft':
+      return t('edit.reason.draft');
+    case 'closed':
+      return t('edit.reason.closed');
+    case 'awaiting-payment':
+      return t('edit.reason.awaiting-payment');
+    case 'out-for-delivery':
+      return t('edit.reason.out-for-delivery');
+    case 'ready':
+      return t('edit.reason.ready');
+    default:
+      return t('edit.reason.closed');
+  }
+};
+
 const eventKindLabel = (t: ReturnType<typeof useT>, kind: string | null): string => {
   switch (kind) {
     case 'manual':
@@ -702,6 +746,13 @@ const timelineText = (
       ]
         .filter(Boolean)
         .join(' · ');
+    case 'order.edited':
+      return t('history.order.edited', {
+        revision: Number(payload.revision ?? 0),
+        reason: typeof payload.reason === 'string' ? payload.reason : '',
+        before: formatMoney(Number(payload.totalBefore ?? 0)),
+        after: formatMoney(Number(payload.totalAfter ?? 0)),
+      });
     case 'payment.captured':
       return t('history.paid', { amount: formatMoney(Number(payload.amount ?? 0)) });
     default:
