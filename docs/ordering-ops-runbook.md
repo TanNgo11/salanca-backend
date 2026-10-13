@@ -101,8 +101,8 @@ Cấu hình `plugin::ordering.retention` — **mặc định chờ pháp lý xá
 | Khóa | Mặc định | Ý nghĩa |
 | --- | --- | --- |
 | `paymentPayloadDays` | 180 | tuổi `receivedAt` để redact `payment-event.raw_payload` |
-| `outboxDeliveredDays` | 30 | xóa outbox đã `delivered` quá hạn |
-| `outboxFailedDays` | 90 | xóa outbox `failed` quá hạn |
+| `outboxDeliveredDays` | 30 | xóa outbox đã `delivered` quá hạn; cũng là hạn xóa `webhook-delivery` `succeeded` (theo `succeededAt`) |
+| `outboxFailedDays` | 90 | xóa outbox `failed` quá hạn; cũng là hạn xóa `webhook-delivery` `failed` (theo `updatedAt`) — payload có thể chứa thông tin khách của endpoint bật `includeCustomer` |
 | `alertResolvedDays` | 90 | xóa `ops-alert` `resolved` quá hạn |
 | `batchSize` | 500 | số dòng mỗi lô |
 | `maxBatchesPerRun` | 20 | tối đa lô mỗi lượt (backlog dồn sang lượt sau) |

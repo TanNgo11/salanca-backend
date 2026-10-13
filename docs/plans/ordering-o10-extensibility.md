@@ -212,4 +212,10 @@ khai + `openapi.mjs` + `ordering:openapi` (`4f027cd`); `parseCsv` + `catalog-csv
   `salanca_cms_o10_smoke` vì `salanca_cms` đã có nội dung editorial thật — `smoke:i18n` từ chối ghi đè.
 - Sửa trong bước 9: `schema.mjs` cập nhật kỳ vọng (35 CT, +4 index migration 0006, ledger đến
   `0006-o10-extensibility`); màn X2 "Tài liệu API" bổ sung theo screens spec.
-- Chưa làm (ngoài phase): manual UAT 3 mục trong phase spec; quyết định merge/push của chủ dự án.
+- Sửa sau review (2026-10-13): (1) job `retention` xóa `webhook-delivery` `succeeded` sau `outboxDeliveredDays` (30) và
+  `failed` sau `outboxFailedDays` (90) — trước đó payload có khối khách (endpoint `includeCustomer`) nằm vĩnh viễn; test trong
+  `retention.mjs`. (2) Mỗi lần POST webhook có hạn chót tổng `timeoutMs` (trước chỉ có timeout socket im lặng — receiver nhả từng
+  byte giữ được request quá lease → worker khác gửi lại). Chạy lại: lint, typecheck, `retention.mjs`, `webhooks-out.mjs` — exit 0.
+- Ghi chú quy trình: lần chạy `check:phase3` đầu tiên của session O10 nhắm DB dev `salanca_cms` (trái prompt) trước khi chuyển
+  sang `salanca_cms_o10_smoke`; `smoke:i18n` từ chối ghi, `smoke:crud` tự dọn fixture. Chủ dự án quyết định có kiểm `salanca_cms`.
+- Merge vào `feat/ordering` và push (2026-10-13). UAT giao diện: chủ dự án làm sau.
