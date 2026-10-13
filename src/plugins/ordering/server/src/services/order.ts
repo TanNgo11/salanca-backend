@@ -33,6 +33,7 @@ import { appliesCashRounding, type CashRoundingPolicy } from '../domain/pricing/
 import { normalizeVietnamesePhone } from '../../../shared/contact/phone';
 import type { DeliverySettings, PickupSettings } from '../domain/branch-settings';
 import { snapshotDeliveryAddress, type DeliveryAddressInput } from '../domain/contact/address';
+import { CARRIER_PRICING, resolveDeliveryProvider } from '../domain/delivery/carrier';
 import { quoteDelivery } from '../domain/delivery/zones';
 import { describeSelectedOptions } from '../domain/storefront/serialize';
 import { priceCart, type PricingAdjustmentInput } from '../domain/pricing/pipeline';
@@ -629,27 +630,42 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
           0,
         );
         const communeCode = deliveryAddress.wardCode ?? '';
-        const provider = registry.fulfillmentProvider('self-delivery');
+        // O13: the branch's configured carrier prices the leg; a removed carrier falls back to
+        // self-delivery so order placement never depends on provider env config.
+        const provider = resolveDeliveryProvider(registry, deliverySettings.carrier);
+        const carrierPriced = provider.capabilities.includes(CARRIER_PRICING);
         const money = await provider.calculatePrice({
           order: { locationRef: branch.code, subtotalAmount: merchandise } as Order,
           group: {} as FulfillmentGroup,
-          option: { communeCode, subtotal: merchandise },
+          option: { communeCode, subtotal: merchandise, address: deliveryAddress },
         });
         if (money.currency !== cfg.currency) {
           throw new OrderingError('CURRENCY_MISMATCH', 'delivery fee currency differs from config');
         }
         const quoted = quoteDelivery(deliverySettings.zones, { communeCode, subtotal: merchandise });
-        if (!quoted.available || quoted.fee !== money.amount) {
-          throw new OrderingError('TOTALS_MISMATCH', 'delivery fee does not match the provider', {
-            details: { communeCode: communeCode.trim().toUpperCase() },
+        if (!carrierPriced) {
+          if (!quoted.available || quoted.fee !== money.amount) {
+            throw new OrderingError('TOTALS_MISMATCH', 'delivery fee does not match the provider', {
+              details: { communeCode: communeCode.trim().toUpperCase() },
+            });
+          }
+        } else if (deliverySettings.zones.length > 0 && !quoted.available) {
+          // Zones still bound the service area when a branch declares them; with no zones at
+          // all the carrier's own estimate decides coverage.
+          throw new OrderingError('DELIVERY_UNAVAILABLE', 'delivery is not available for this commune', {
+            details: {
+              communeCode: communeCode.trim().toUpperCase(),
+              reason: quoted.reason,
+              ...(quoted.minOrderAmount !== undefined ? { minOrderAmount: quoted.minOrderAmount } : {}),
+            },
           });
         }
         fulfillmentAmount = money.amount;
         delivery = {
           fee: money.amount,
-          zoneCode: quoted.zoneCode,
-          extraLeadTimeMinutes: quoted.extraLeadTimeMinutes,
-          freeFrom: quoted.freeFrom,
+          zoneCode: quoted.available ? quoted.zoneCode : '',
+          extraLeadTimeMinutes: quoted.available ? quoted.extraLeadTimeMinutes : 0,
+          freeFrom: quoted.available ? quoted.freeFrom : null,
         };
       }
 
@@ -1000,17 +1016,24 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
 
           if (receiveMethod.kind === 'delivery') {
             const groupId = groupIds.values().next().value as number;
-            const provider = services().registry.fulfillmentProvider('self-delivery');
+            const provider = resolveDeliveryProvider(
+              services().registry,
+              prepared.deliverySettings?.carrier,
+            );
             await provider.create({
               order: { locationRef: branch.code, subtotalAmount: pricing.totals.subtotal } as Order,
               group: { id: String(groupId) } as FulfillmentGroup,
-              option: { communeCode: receiveMethod.address.wardCode ?? '', subtotal: pricing.totals.subtotal },
+              option: {
+                communeCode: receiveMethod.address.wardCode ?? '',
+                subtotal: pricing.totals.subtotal,
+                address: receiveMethod.address,
+              },
             });
             await strapi.db.query('plugin::ordering.fulfillment').create({
               data: {
                 order: orderId,
                 group: groupId,
-                providerCode: 'self-delivery',
+                providerCode: provider.code,
                 status: 'pending',
                 addressSnapshot: receiveMethod.address,
                 metadata: {

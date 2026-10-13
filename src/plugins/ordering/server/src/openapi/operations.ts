@@ -471,6 +471,19 @@ export const OPERATIONS: Operation[] = [
   adm('post', '/orders/:id/cash-handover', 'Orders', 'Record a cash handover', ['payment.record-cash'], {
     parameters: [pathParam('id')],
   }),
+  // O13 carrier legs ("Gọi xe"): quote, book, cancel — staff-initiated, idempotent booking.
+  adm('post', '/orders/:id/carrier/quote', 'Orders', 'Carrier fee quote for the delivery leg', ['order.process'], {
+    parameters: [pathParam('id')],
+    requestBody: obj({ serviceId: str }),
+  }),
+  adm('post', '/orders/:id/carrier/book', 'Orders', 'Book a carrier trip (idempotent)', ['order.process'], {
+    parameters: [pathParam('id')],
+    requestBody: obj({ serviceId: str, note: str, notifyCustomer: bool }),
+  }),
+  adm('post', '/orders/:id/carrier/cancel', 'Orders', 'Cancel the booked carrier trip', ['order.process'], {
+    parameters: [pathParam('id')],
+    requestBody: obj({ reason: str }),
+  }),
   adm('post', '/orders/:id/cancel', 'Orders', 'Cancel the order', ['order.cancel'], {
     parameters: [pathParam('id')],
   }),

@@ -84,5 +84,25 @@ export const useOrderActions = (onChanged?: (detail: OrderDetail | null) => void
       const { data } = await get(`/ordering/orders/${orderId}/lines/${lineId}/cancel-preview?quantity=${quantity}`);
       return data as { refundAmount: number; refundShortfall: number };
     },
+    // O13 "Gọi xe": quote → book → cancel a carrier trip on the delivery leg.
+    carrierQuote: async (orderId: number, serviceId?: string) => {
+      const { data } = await post(`/ordering/orders/${orderId}/carrier/quote`, {
+        ...(serviceId ? { serviceId } : {}),
+      });
+      return data as {
+        providerCode: string;
+        quotes: Array<{ providerCode: string; serviceId: string; fee: { amount: number; currency: string } }>;
+        due: number;
+        customerFee: number;
+      };
+    },
+    carrierBook: (orderId: number, body: { serviceId?: string; note?: string }) =>
+      run('carrier-book', () => post(`/ordering/orders/${orderId}/carrier/book`, body), t('carrier.booked')),
+    carrierCancel: (orderId: number, reason?: string) =>
+      run(
+        'carrier-cancel',
+        () => post(`/ordering/orders/${orderId}/carrier/cancel`, reason ? { reason } : {}),
+        t('carrier.canceled'),
+      ),
   };
 };

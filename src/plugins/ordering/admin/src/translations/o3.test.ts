@@ -12,6 +12,7 @@ import { o15Messages } from './o15';
 import { o10Messages } from './o10';
 import { o8Messages } from './o8';
 import { o11Messages } from './o11';
+import { o13Messages } from './o13';
 import { o14Messages } from './o14';
 
 const ROOT = join(__dirname, '..');
@@ -97,6 +98,7 @@ describe('O3 admin translations', () => {
           o10Messages[key] ||
           o11Messages[key] ||
           o8Messages[key] ||
+          o13Messages[key] ||
           o14Messages[key],
       );
     const missing = [...used].filter((key) => !known(key));
@@ -111,6 +113,7 @@ describe('O3 admin translations', () => {
       ...o10Messages,
       ...o11Messages,
       ...o8Messages,
+      ...o13Messages,
       ...o14Messages,
     })) {
       expect(vi.trim(), key).not.toBe('');

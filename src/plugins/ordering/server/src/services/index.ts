@@ -6,6 +6,7 @@ import scope from './scope';
 import idempotency from './idempotency';
 import order from './order';
 import deliveryAssignment from './delivery-assignment';
+import carrierAssignment from './carrier-assignment';
 import courier from './courier';
 import transition from './transition';
 import payment from './payment';
@@ -83,6 +84,7 @@ export default {
   storefront,
   'admin-orders': adminOrders,
   'delivery-assignment': deliveryAssignment,
+  'carrier-assignment': carrierAssignment,
   courier,
   'ordering-settings': orderingSettings,
   notification,

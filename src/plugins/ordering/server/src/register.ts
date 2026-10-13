@@ -29,6 +29,10 @@ import { createSepayPaymentProvider, sepaySettingsFromConfig } from './providers
 import { createMomoPaymentProvider, momoSettingsFromConfig } from './providers/momo/provider';
 import { createVnpayPaymentProvider, vnpaySettingsFromConfig } from './providers/vnpay/provider';
 import {
+  ahamoveSettingsFromConfig,
+  createAhamoveProvider,
+} from './providers/ahamove/provider';
+import {
   createCaptureNotificationProvider,
   createEmailNotificationProvider,
 } from './providers/email-notification';
@@ -171,6 +175,25 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
           ),
         publicApiUrl: () =>
           (strapi.config.get('plugin::ordering') as OrderingConfig).publicApiUrl,
+      }),
+    );
+  }
+  // O13 carrier: registered only when the env config parses — the same shape as the wallets.
+  // Branch delivery.carrier may name it; booking itself is always a staff "Gọi xe" action.
+  if (ahamoveSettingsFromConfig(config.providers.fulfillment)) {
+    registry.registerFulfillmentProvider(
+      createAhamoveProvider({
+        settings: () =>
+          ahamoveSettingsFromConfig(
+            (strapi.config.get('plugin::ordering') as OrderingConfig).providers.fulfillment,
+          ),
+        zonesFor: async (locationRef) => {
+          const branches = strapi
+            .plugin('ordering')
+            .service('branch') as ReturnType<typeof branchFactory>;
+          const row = await branches.findByCode(locationRef);
+          return row ? branches.deliverySettings(row).zones : [];
+        },
       }),
     );
   }

@@ -229,6 +229,10 @@ export default {
       adminRoute('POST', '/orders/:id/transition', 'admin-orders.transition', 'order.process'),
       adminRoute('POST', '/orders/:id/notes', 'admin-orders.addNote', 'order.process'),
       adminRoute('POST', '/orders/:id/cash-handover', 'admin-orders.cashHandover', 'payment.record-cash'),
+      // O13 "Gọi xe": staff quotes, books and cancels a carrier trip for the delivery leg.
+      adminRoute('POST', '/orders/:id/carrier/quote', 'admin-orders.carrierQuote', 'order.process'),
+      adminRoute('POST', '/orders/:id/carrier/book', 'admin-orders.carrierBook', 'order.process'),
+      adminRoute('POST', '/orders/:id/carrier/cancel', 'admin-orders.carrierCancel', 'order.process'),
       adminRoute('POST', '/orders/:id/cancel', 'admin-orders.cancel', 'order.cancel'),
       adminRoute(
         'GET',

@@ -106,6 +106,9 @@ export const AUDIT_ACTIONS: Record<string, ActionDef> = {
   'delivery.dispatch': { category: 'delivery', label: ['Bắt đầu giao', 'Start delivery'] },
   'delivery.fail': { category: 'delivery', label: ['Giao thất bại', 'Delivery failed'] },
   'delivery.retry': { category: 'delivery', label: ['Giao lại', 'Retry delivery'] },
+  // O13: staff-triggered carrier booking on a delivery leg (Ahamove "Gọi xe").
+  'carrier.book': { category: 'delivery', label: ['Gọi xe (đối tác)', 'Book carrier trip'] },
+  'carrier.cancel': { category: 'delivery', label: ['Hủy chuyến đối tác', 'Cancel carrier trip'] },
   // Configuration
   'branch.create': { category: 'config', label: ['Tạo chi nhánh', 'Create branch'] },
   'branch.update': { category: 'config', label: ['Sửa chi nhánh', 'Update branch'] },
