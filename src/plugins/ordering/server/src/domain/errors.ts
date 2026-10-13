@@ -78,6 +78,7 @@ export type OrderingErrorCode =
   | 'OTP_EXPIRED'
   | 'CUSTOMER_AUTH_REQUIRED'
   | 'CUSTOMER_NOT_FOUND'
+  | 'ADDRESS_NOT_FOUND'
   | 'CART_NOT_FOUND'
   | 'CART_EXPIRED'
   | 'CART_LIMIT'
@@ -160,6 +161,7 @@ const defaultStatus: Record<OrderingErrorCode, number> = {
   OTP_EXPIRED: 400,
   CUSTOMER_AUTH_REQUIRED: 401,
   CUSTOMER_NOT_FOUND: 404,
+  ADDRESS_NOT_FOUND: 404,
   CART_NOT_FOUND: 404,
   CART_EXPIRED: 410,
   CART_LIMIT: 400,

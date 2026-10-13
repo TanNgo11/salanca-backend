@@ -9,6 +9,7 @@ import catalog from './catalog';
 import catalogImport from './catalog-import';
 import categories from './categories';
 import customerAuth from './customer-auth';
+import customer from './customer';
 import notificationTemplates from './notification-templates';
 import openapi from './openapi';
 import ops from './ops';
@@ -38,4 +39,5 @@ export default {
   'audit-log': auditLog,
   'notification-templates': notificationTemplates,
   'customer-auth': customerAuth,
+  customer,
 };

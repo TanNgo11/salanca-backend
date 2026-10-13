@@ -1,7 +1,13 @@
 // O11 step 1 gate: the six customer-era content types are registered and stay CM/CTB-hidden,
 // order.customer points at the new profile, migration 0007's lookup indexes exist, and its
 // backfill links historical orders to deduplicated customers (idempotent, batches of 500).
+// O11 step 3 appends: /me over HTTP (401 without a token, foreign ids 404), profile/address
+// writes, session-first + phone-fallback order linking, and stats on completed.
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+
+// Trusted visitor-IP forwarding gives each client its own rate-limit bucket.
+process.env.FORM_INTAKE_SHARED_SECRET = 'storefront-test-secret';
 
 import {
   basicOrderInput,
@@ -11,6 +17,10 @@ import {
   systemCtx,
   withApp,
 } from './_harness.mjs';
+
+const { runOutboxDispatcher } = await import(
+  '../../src/plugins/ordering/dist/server/src/jobs/outbox-dispatcher.js'
+);
 
 const { o11CustomersMigration } = await import(
   '../../src/plugins/ordering/dist/server/src/migrations/0007-o11-customers.js'
@@ -143,4 +153,242 @@ await withApp(async (app) => {
     .first();
   assert.equal(Number(linkCount.c), 3);
   console.log('[ordering-test] migration re-run is idempotent');
+
+  // ── Step 3: /me over HTTP, order linking (session > phone), stats on completed ──────────
+  const plugin = app.plugin('ordering');
+  const capture = plugin.service('registry').notificationProvider('email');
+  await app.listen();
+  const base = `http://127.0.0.1:${process.env.PORT}/api/v1/ordering`;
+  let visitor = 100;
+  const call = async (method, path, { body, headers = {} } = {}) => {
+    const res = await fetch(`${base}${path}`, {
+      method,
+      headers: {
+        'x-salanca-intake-secret': 'storefront-test-secret',
+        'x-salanca-visitor-ip': `192.0.2.${visitor++}`,
+        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+        ...headers,
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    const text = await res.text();
+    return { status: res.status, body: text ? JSON.parse(text) : null };
+  };
+  const asCustomer = (token) => (method, path, body) =>
+    call(method, path, { body, headers: { 'x-customer-token': token } });
+  const login = async (email) => {
+    const otp = await call('POST', '/auth/otp', {
+      body: { channel: 'email', target: email, captchaToken: 'pass' },
+    });
+    assert.equal(otp.status, 200);
+    const code = capture.sent.at(-1).text.match(/\b(\d{6})\b/)[1];
+    const res = await call('POST', '/auth/verify', {
+      body: { challengeId: otp.body.challengeId, code },
+    });
+    assert.equal(res.status, 200, JSON.stringify(res.body));
+    return res.body;
+  };
+
+  // No token / dead token → 401 everywhere.
+  for (const [method, path] of [
+    ['GET', '/me'],
+    ['PUT', '/me'],
+    ['GET', '/me/addresses'],
+    ['GET', '/me/orders'],
+    ['GET', '/me/orders/ANY-CODE'],
+  ]) {
+    const res = await call(method, path);
+    assert.equal(res.status, 401, `${method} ${path} must need a session`);
+    assert.equal(res.body.error.code, 'CUSTOMER_AUTH_REQUIRED');
+  }
+  assert.equal(
+    (await call('GET', '/me', { headers: { 'x-customer-token': 'deadbeef' } })).status,
+    401,
+    'a dead token is a 401 too',
+  );
+
+  const sessionA = await login('lan@example.com');
+  const sessionB = await login('minh@example.com');
+  const lan = asCustomer(sessionA.token);
+  const minh = asCustomer(sessionB.token);
+  const idOf = async (docId) =>
+    (await app.db.query('plugin::ordering.customer').findOne({ where: { documentId: docId } })).id;
+
+  // Profile: PUT accepts name + consent (stamped); email is read-only.
+  const me = await lan('GET', '/me');
+  assert.equal(me.status, 200);
+  assert.equal(me.body.email, 'lan@example.com');
+  const updated = await lan('PUT', '/me', {
+    name: '  Lan Trần  ',
+    marketingConsent: { granted: true },
+  });
+  assert.equal(updated.status, 200, JSON.stringify(updated.body));
+  assert.equal(updated.body.name, 'Lan Trần');
+  assert.equal(updated.body.marketingConsent.granted, true);
+  assert.equal(updated.body.marketingConsent.source, 'self');
+  assert.ok(updated.body.marketingConsent.policyVersion);
+  const emailChange = await lan('PUT', '/me', { email: 'other@example.com' });
+  assert.equal(emailChange.status, 400);
+  assert.equal(emailChange.body.error.code, 'VALIDATION_ERROR');
+  const off = await lan('PUT', '/me', { marketingConsent: { granted: false } });
+  assert.equal(off.body.marketingConsent.granted, false);
+  assert.equal(off.body.marketingConsent.history[0].granted, false);
+  assert.ok(
+    off.body.marketingConsent.history.some((h) => h.granted === true),
+    'consent history keeps the earlier opt-in',
+  );
+  console.log('[ordering-test] /me profile: update name + stamped consent history; email locked');
+
+  // Address book: first becomes default; exactly one default; 10 max; foreign ids 404.
+  const addressBody = (overrides = {}) => ({
+    recipientName: 'Lan Trần',
+    phone: '0901234567',
+    line1: '12 Đường Thử',
+    communeCode: 'XT01001',
+    note: 'gọi trước khi giao',
+    ...overrides,
+  });
+  const addr1 = await lan('POST', '/me/addresses', addressBody({ label: 'Nhà' }));
+  assert.equal(addr1.status, 201, JSON.stringify(addr1.body));
+  assert.equal(addr1.body.address.isDefault, true, 'first address becomes default');
+  assert.equal(addr1.body.address.communeName, 'Phường Bến Thử');
+  assert.equal(addr1.body.address.phone, '+84901234567');
+  const addr2 = await lan('POST', '/me/addresses', addressBody({ label: 'Cty', communeCode: 'XT01002' }));
+  assert.equal(addr2.body.address.isDefault, false, 'second stays non-default');
+  const badAddr = await lan('POST', '/me/addresses', addressBody({ communeCode: 'NOPE99' }));
+  assert.equal(badAddr.status, 400);
+  assert.equal(badAddr.body.error.details.field, 'receiveMethod.address.communeCode');
+  const flip = await lan('PUT', `/me/addresses/${addr2.body.address.id}`, {
+    ...addressBody({ communeCode: 'XT01002' }),
+    isDefault: true,
+  });
+  assert.equal(flip.body.address.isDefault, true);
+  const listed = await lan('GET', '/me/addresses');
+  assert.equal(listed.body.items.length, 2);
+  assert.equal(
+    listed.body.items.filter((a) => a.isDefault).length,
+    1,
+    'exactly one default',
+  );
+  assert.equal(listed.body.items[0].isDefault, true, 'default sorts first');
+  assert.equal(
+    (await minh('GET', '/me/addresses')).body.items.length,
+    0,
+    'customer B has an empty book',
+  );
+  assert.equal(
+    (await minh('PUT', `/me/addresses/${addr1.body.address.id}`, addressBody())).status,
+    404,
+    'B cannot update A’s address',
+  );
+  assert.equal(
+    (await minh('DELETE', `/me/addresses/${addr1.body.address.id}`)).status,
+    404,
+    'B cannot delete A’s address',
+  );
+  for (let i = listed.body.items.length; i < 10; i += 1) {
+    await lan('POST', '/me/addresses', addressBody({ label: `a${i}` }));
+  }
+  const eleventh = await lan('POST', '/me/addresses', addressBody({ label: 'eleven' }));
+  assert.equal(eleventh.status, 400, 'the 11th address is refused');
+  assert.equal(eleventh.body.error.details.limit, 10);
+  const delDefault = await lan('DELETE', `/me/addresses/${addr2.body.address.id}`);
+  assert.equal(delDefault.status, 204);
+  const afterDelete = await lan('GET', '/me/addresses');
+  assert.equal(afterDelete.body.items.length, 9);
+  assert.equal(
+    afterDelete.body.items.filter((a) => a.isDefault).length,
+    1,
+    'deleting the default promotes another',
+  );
+  console.log('[ordering-test] /me/addresses: defaults, validation, 10-cap, foreign 404');
+
+  // Order linking: session wins over phone; phone attaches guests; unknown phone → unlinked.
+  const aInternal = await idOf(sessionA.customer.id);
+  const bInternal = await idOf(sessionB.customer.id);
+  const link = async (orderId) =>
+    (await app.db.query('plugin::ordering.order').findOne({
+      where: { id: orderId },
+      populate: { customer: true },
+    })).customer?.id ?? null;
+  const bySession = await order.createOrder(
+    basicOrderInput({
+      customerId: aInternal,
+      contact: { name: 'Kh A', phone: '+84909999999' }, // different phone on purpose
+    }),
+    systemCtx,
+  );
+  assert.equal(await link(bySession.order.order.id), aInternal, 'session wins over phone');
+  const byPhone = await order.createOrder(
+    basicOrderInput({ contact: { name: 'Kh B', phone: '0901234567' } }),
+    systemCtx,
+  );
+  assert.equal(await link(byPhone.order.order.id), customerB.id, 'guest phone attaches to B');
+  const unknown = await order.createOrder(
+    basicOrderInput({ contact: { name: 'Khách', phone: '+84905555555' } }),
+    systemCtx,
+  );
+  assert.equal(await link(unknown.order.order.id), null, 'unknown phone stays unlinked');
+  const toB = await order.createOrder(
+    basicOrderInput({ customerId: bInternal, contact: { name: 'Minh', phone: '+84906666666' } }),
+    systemCtx,
+  );
+  assert.equal(await link(toB.order.order.id), bInternal);
+  console.log('[ordering-test] createOrder links by session, then by contact phone');
+
+  // My orders: each session lists only its own; foreign codes 404.
+  const mineA = await lan('GET', '/me/orders');
+  assert.equal(mineA.status, 200);
+  assert.deepEqual(
+    mineA.body.items.map((o) => o.code),
+    [bySession.order.order.code],
+  );
+  const mineB = await minh('GET', '/me/orders');
+  assert.deepEqual(
+    mineB.body.items.map((o) => o.code),
+    [toB.order.order.code],
+  );
+  const codeB = toB.order.order.code;
+  assert.equal((await lan('GET', `/me/orders/${codeB}`)).status, 404, 'A reads B → 404');
+  const ownView = await minh('GET', `/me/orders/${codeB}`);
+  assert.equal(ownView.status, 200);
+  assert.equal(ownView.body.order.code, codeB);
+  assert.equal(ownView.body.order.contact, undefined, 'reduced view carries no PII');
+  console.log('[ordering-test] /me/orders scoped to the session; foreign code → 404');
+
+  // Stats: completed order refreshes via the order.transitioned outbox consumer.
+  const statOrder = bySession.order.order;
+  await app.db
+    .connection('plugins_ordering_order')
+    .where('id', statOrder.id)
+    .update({ status: 'completed' });
+  await plugin.service('outbox').enqueue(
+    {
+      type: 'order.transitioned',
+      aggregateType: 'order',
+      aggregateId: String(statOrder.id),
+      payload: { orderId: statOrder.id, from: 'open', to: 'completed', locationRef: 'Q1' },
+      uniqueKey: `test-transitioned:${randomUUID()}`,
+    },
+    systemCtx,
+  );
+  await runOutboxDispatcher(app, { owner: `test:${process.pid}` });
+  const statA = await app.db
+    .query('plugin::ordering.customer')
+    .findOne({ where: { id: aInternal } });
+  assert.equal(statA.orderCount, 1);
+  assert.equal(Number(statA.totalSpent), 195000);
+  assert.ok(
+    Math.abs(new Date(statA.lastOrderAt).getTime() - new Date(statOrder.placedAt).getTime()) < 1000,
+    `lastOrderAt ${statA.lastOrderAt} ≈ placedAt ${statOrder.placedAt}`,
+  );
+  // A non-completed transition leaves stats alone; a re-dispatch is a no-op.
+  await runOutboxDispatcher(app, { owner: `test:${process.pid}` });
+  assert.equal(
+    (await app.db.query('plugin::ordering.customer').findOne({ where: { id: aInternal } }))
+      .orderCount,
+    1,
+    'stats are idempotent',
+  );
+  console.log('[ordering-test] order.transitioned → completed refreshes customer stats');
 });

@@ -61,6 +61,16 @@ export default {
       publicRoute('POST', '/auth/otp', 'customer-auth.requestOtp'),
       publicRoute('POST', '/auth/verify', 'customer-auth.verify'),
       publicRoute('POST', '/auth/logout', 'customer-auth.logout'),
+      // O11 step 3: the signed-in customer surface — X-Customer-Token required; the controller
+      // scopes every row to the session's customer (foreign ids 404).
+      publicRoute('GET', '/me', 'customer.me'),
+      publicRoute('PUT', '/me', 'customer.update'),
+      publicRoute('GET', '/me/addresses', 'customer.listAddresses'),
+      publicRoute('POST', '/me/addresses', 'customer.createAddress'),
+      publicRoute('PUT', '/me/addresses/:id', 'customer.updateAddress'),
+      publicRoute('DELETE', '/me/addresses/:id', 'customer.deleteAddress'),
+      publicRoute('GET', '/me/orders', 'customer.myOrders'),
+      publicRoute('GET', '/me/orders/:code', 'customer.myOrder'),
       publicRoute('POST', '/webhooks/:providerCode', 'webhook.receive'),
       // O10: the public contract, self-served (cached 1h by the controller).
       publicRoute('GET', '/openapi.json', 'openapi.document'),

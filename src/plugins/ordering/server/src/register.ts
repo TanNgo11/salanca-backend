@@ -159,6 +159,14 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
   registry.registerOutboxConsumer('order.transitioned', (event) =>
     notifications().onOrderTransitioned(event as never),
   );
+  // O11: a completed order refreshes the linked customer's orderCount/totalSpent/lastOrderAt.
+  const customers = () =>
+    strapi.plugin('ordering').service('customer') as {
+      onOrderTransitioned: (event: OutboxEvent) => Promise<void>;
+    };
+  registry.registerOutboxConsumer('order.transitioned', (event) =>
+    customers().onOrderTransitioned(event),
+  );
   registry.registerOutboxConsumer('fulfillment-group.transitioned', (event) =>
     notifications().onGroupTransitioned(event as never),
   );

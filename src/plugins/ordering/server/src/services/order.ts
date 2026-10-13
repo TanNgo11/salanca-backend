@@ -41,6 +41,7 @@ import type { ServiceContext } from './context';
 import { actorRefOf, nowOf } from './context';
 import type adminUnitsFactory from './admin-units';
 import type branchFactory from './branch';
+import type customerFactory from './customer';
 import type holdFactory from './hold';
 import type pickupSchedulingFactory from './pickup-scheduling';
 import type { PickupTiming, PickupTimingInput } from './pickup-scheduling';
@@ -79,6 +80,12 @@ export type CreateOrderInput = {
   origin: { kind: 'storefront' | 'staff-draft' | 'import'; actorRef?: string };
   holds?: Array<{ lineIndex: number; resourceRef: string; quantity: number; expiresAt: string }>;
   placedAt?: string;
+  /**
+   * O11: internal customer id resolved from `X-Customer-Token` (storefront create passes it;
+   * staff drafts never do). The session customer wins; when absent the order links by
+   * `contact.phone` (E.164) so guest orders attach to a matching profile.
+   */
+  customerId?: number;
   /**
    * Requested pickup time (`{ asap: true }` or `{ slot: { startsAt } }`). O3 storefront and staff
    * callers always pass it, which turns on the branch receive rules (enabled, payment method,
@@ -156,6 +163,7 @@ type Services = {
   outbox: ReturnType<typeof outboxFactory>;
   branch: ReturnType<typeof branchFactory>;
   scheduling: ReturnType<typeof pickupSchedulingFactory>;
+  customer: ReturnType<typeof customerFactory>;
 };
 
 type BranchRow = {
@@ -184,6 +192,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
       outbox: plugin.service('outbox') as Services['outbox'],
       branch: plugin.service('branch') as Services['branch'],
       scheduling: plugin.service('pickup-scheduling') as Services['scheduling'],
+      customer: plugin.service('customer') as Services['customer'],
     };
   };
   const repo = orderRepository({ strapi });
@@ -559,7 +568,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         { scope: 'order.create', key: idempotencyKey, payload },
         ctx,
         async (trx) => {
-          const { timeline, hold, outbox, scheduling } = services();
+          const { timeline, hold, outbox, scheduling, customer } = services();
           const prepared = await service.prepareOrder(payload, ctx);
           const { branch, priced, pricing, groupsByWorkflow, placedAt, locale, timing } = prepared;
           if (input.expectedCartHash && input.expectedCartHash !== pricing.cartHash) {
@@ -592,12 +601,17 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
             ...(timing ? { timing: timingSnapshot(timing) } : {}),
           };
 
+          const customerId = await customer.linkForOrder({
+            sessionCustomerId: input.customerId ?? null,
+            phoneE164: phone.e164,
+          });
           const order = await strapi.db.query('plugin::ordering.order').create({
             data: {
               code,
               publicTokenHash: sha256Hex(publicToken),
               status: input.origin.kind === 'staff-draft' ? 'draft' : 'open',
               paymentStatus: 'unpaid',
+              ...(customerId ? { customer: customerId } : {}),
               fulfillmentStatus: 'not-started',
               subtotalAmount: pricing.totals.subtotal,
               adjustmentAmount: pricing.totals.adjustmentTotal,

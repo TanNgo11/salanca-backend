@@ -16,6 +16,7 @@ import type { OrderingRegistry } from '../services/registry';
 import type storefrontFactory from '../services/storefront';
 import type { HttpCtx } from './http';
 import { sendError, text } from './http';
+import { sessionFor } from './customer-auth';
 import { clientIpOf, rateLimited } from './storefront-guard';
 
 type BranchService = ReturnType<typeof branchFactory>;
@@ -126,6 +127,9 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       const idempotencyKey = parseIdempotencyKey(ctx.get('idempotency-key'));
       const request = parseOrderRequest(ctx.request.body);
       await verifyCaptcha(ctx, request.captchaToken, 'order-create');
+      // Optional sign-in: a live X-Customer-Token links the order to that profile (session
+      // wins over the contact phone — plan step 3 "phiên hoặc theo SĐT").
+      const session = await sessionFor(strapi, ctx, serviceCtx);
       const { captchaToken: _captcha, ...input } = request;
       const result = await storefront()
         .orders()
@@ -133,6 +137,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
           {
             ...input,
             idempotencyKey,
+            ...(session ? { customerId: session.customer.id } : {}),
             consent: { ...input.consent, channel: 'web-checkout' },
             origin: { kind: 'storefront' },
           },

@@ -52,7 +52,9 @@ const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Middlewar
         credentials: true,
         headers: [
           'Content-Type', 'Authorization', 'Origin', 'Accept',
-          ...(env.bool('ORDERING_ENABLED', false) ? ['X-Order-Token', 'Idempotency-Key'] : []),
+          ...(env.bool('ORDERING_ENABLED', false)
+            ? ['X-Order-Token', 'Idempotency-Key', 'X-Customer-Token', 'X-Cart-Token']
+            : []),
         ],
         methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'],
         keepHeaderOnError: true,

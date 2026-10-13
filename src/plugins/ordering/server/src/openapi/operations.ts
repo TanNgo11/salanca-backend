@@ -223,6 +223,61 @@ export const OPERATIONS: Operation[] = [
     parameters: [customerToken],
     response: { type: 'null', description: '204 No Content' },
   }),
+  // O11 step 3 — signed-in customer surface. X-Customer-Token on every route; foreign ids 404.
+  pub('get', '/me', 'Customer', 'Own profile + order stats', {
+    parameters: [customerToken],
+    response: generic,
+  }),
+  pub('put', '/me', 'Customer', 'Update name / marketing consent (email read-only)', {
+    parameters: [customerToken],
+    requestBody: obj({
+      name: str,
+      email: str,
+      marketingConsent: obj({ granted: bool }),
+    }),
+    response: generic,
+  }),
+  pub('get', '/me/addresses', 'Customer', 'Address book (default first)', {
+    parameters: [customerToken],
+    response: obj({ items: arr(generic) }, ['items']),
+  }),
+  pub('post', '/me/addresses', 'Customer', 'Add an address (max 10)', {
+    parameters: [customerToken],
+    requestBody: obj(
+      {
+        label: str,
+        recipientName: str,
+        phone: str,
+        line1: str,
+        communeCode: str,
+        note: str,
+        isDefault: bool,
+      },
+      ['recipientName', 'phone', 'line1', 'communeCode'],
+    ),
+    response: obj({ address: generic }, ['address']),
+  }),
+  pub('put', '/me/addresses/:id', 'Customer', 'Replace an address', {
+    parameters: [customerToken, pathParam('id', 'address documentId')],
+    requestBody: generic,
+    response: obj({ address: generic }, ['address']),
+  }),
+  pub('delete', '/me/addresses/:id', 'Customer', 'Delete an address (204)', {
+    parameters: [customerToken, pathParam('id', 'address documentId')],
+    response: { type: 'null', description: '204 No Content' },
+  }),
+  pub('get', '/me/orders', 'Customer', 'Own orders, newest first (status-only view)', {
+    parameters: [
+      customerToken,
+      { name: 'page', in: 'query', schema: int },
+      { name: 'pageSize', in: 'query', schema: int },
+    ],
+    response: obj({ items: arr(generic), page: int, pageSize: int, total: int }, ['items']),
+  }),
+  pub('get', '/me/orders/:code', 'Customer', 'Own order by code (404 for foreign codes)', {
+    parameters: [customerToken, pathParam('code', 'e.g. SLC-20261013-0001')],
+    response: obj({ order: generic }, ['order']),
+  }),
   pub('post', '/webhooks/:providerCode', 'Webhooks', 'Inbound payment-provider webhook (raw signed body)', {
     parameters: [pathParam('providerCode', 'e.g. sepay')],
     requestBody: generic,
