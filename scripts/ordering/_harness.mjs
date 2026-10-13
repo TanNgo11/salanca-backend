@@ -77,6 +77,9 @@ export async function bootOrderingTestApp({ enabled = true } = {}) {
   const app = createStrapi(await compileStrapi());
   try {
     await app.load();
+    // Test runs purge admin users, so Strapi sees a fresh install and would open a browser tab
+    // on every app.listen() in development. Never open one from a script.
+    app.config.set('admin.autoOpen', false);
     const { rows } = await app.db.connection.raw('SELECT current_database() AS name');
     assert.equal(rows[0].name, TEST_DATABASE, 'connected database must be the ordering test database');
     return app;
