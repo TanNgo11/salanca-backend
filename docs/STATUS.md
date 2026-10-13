@@ -2,6 +2,14 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
+2026-10-14: **Ordering third review round** (`feat/ordering-finish`) ? customer/order linking and erasure
+share identity + row locks; finalization recounts open orders and scrubs newly closed orders. Checkout uses
+customer-before-cart locks; erasure records waiting for busy carts. Webhook fanout commits payload + activation
+atomically and repairs old incomplete deliveries on retry. Guest-cart merges consume their source once under
+both cart locks; OTP issuance serializes per email target and sends only after outermost commit. PostgreSQL
+regressions were red before fixes and green afterwards. Compact gates passed (including 62 Vitest files / 660
+tests); full check:ordering and manual UAT were not run. [Third review record](plans/ordering-review-fixes.md).
+
 2026-10-13: **Ordering review fixes** (`feat/ordering-finish`) ? cart checkout now locks/reloads the cart
 and atomically creates the order + converted link; same-key replay remains supported. Customer cancellation
 checks locked fulfillment states. Promotion guessing guards cover cart creation, deferred quotes, reads,

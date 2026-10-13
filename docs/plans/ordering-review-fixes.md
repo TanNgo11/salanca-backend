@@ -58,15 +58,15 @@ three concurrent adds). PASS together with `schema`, `cart`, `cart-checkout`, `a
 
 ## Third review round
 
-Status: Automated verification passed before integration merge; push pending.
+Status: Automated verification passed, final verification 2026-10-14. Publication targets: feat/ordering-finish and feat/ordering.
 Owner authorization: handoff a190039, 2026-10-13. No schema changes, migrations or dependencies were added.
 
 | Issue | Regression before fix | Result after fix | Commit |
 | --- | --- | --- | --- |
-| Customer erasure / order linking | Barrier after the real initial count: request becomes done while a new order is linked; test expected waiting | Shared identity advisory lock then customer row lock; recount in final transaction. Both signed-in email-only and guest-phone orders force waiting. Newly closed orders are scrubbed under the lock before done. | e8ba8d1 |
-| Webhook fanout interruption | Inject customer read failure after the old placeholder INSERT; retry delivered 0 instead of 1 | INSERT, payload and activation commit together. Retry also repairs legacy placeholders. Three concurrent retries keep one row and deliver once; completed delivery never reactivates. | 320fb2a |
-| Concurrent guest cart merge | Three concurrent merges turn quantity 1 into 3 | Lock both carts by ascending id, reload source and skip an already consumed source. Concurrent claim also preserves one cart. | 52be7b4 |
-| Concurrent OTP requests | Eight concurrent requests persisted 8 challenges instead of sendMax=3 | Advisory lock by target around count/insert: 3 real challenges and mails, 5 phantom replies. Mail waits for outermost commit; rollback sends none. | cc5484f |
+| Customer erasure / order linking | Barrier after the real initial count: request becomes done while a new order is linked; test expected waiting | Shared identity advisory lock then customer row lock; recount in final transaction. Both signed-in email-only and guest-phone orders force waiting. Newly closed orders are scrubbed under the lock before done. Checkout takes the customer lock before the cart; erasure waits on busy carts without blocking while holding the customer lock. | 25e2ad4 |
+| Webhook fanout interruption | Inject customer read failure after the old placeholder INSERT; retry delivered 0 instead of 1 | INSERT, payload and activation commit together. Retry also repairs legacy placeholders. Three concurrent retries keep one row and deliver once; completed delivery never reactivates. | 67584a2 |
+| Concurrent guest cart merge | Three concurrent merges turn quantity 1 into 3 | Lock both carts by ascending id, reload source and skip an already consumed source. Concurrent claim also preserves one cart. | ab6c4cb |
+| Concurrent OTP requests | Eight concurrent requests persisted 8 challenges instead of sendMax=3 | Advisory lock by target around count/insert: 3 real challenges and mails, 5 phantom replies. Mail waits for outermost commit; rollback sends none. | 526c280 |
 
 PostgreSQL regression files: `review-erasure-race.mjs`, `review-webhook-fanout.mjs`, `review-cart-merge.mjs`,
 `review-otp-race.mjs`. Each can run directly. `review-round3.mjs` runs all four in one Strapi boot and is registered
@@ -84,4 +84,12 @@ All integration commands used `ORDERING_TEST_DATABASE=salanca_ordering_review_fi
 - Existing pg concurrent-query deprecation warning was observed and excluded from these fixes per the handoff.
 - No check:ordering, check:phase3, smoke, Admin build, production access or manual UAT. Other workers' worktrees remain untouched; no stash or reserved migration numbers used.
 
-Next: fetch and merge origin/feat/ordering, repeat the compact gates, then push both authorized feature branches without force.
+### Final integration verification (2026-10-14)
+
+- `git fetch origin` and `git merge origin/feat/ordering`: EXIT=0, Already up to date. No upstream-only commits or conflicts. Repeated immediately before publication with the same result.
+- After that merge check, `pnpm run build:ordering`, lint, typecheck and plugin Vitest passed; Vitest remained 62 files / 660 tests.
+- All seven compact integration scripts above passed again (EXIT=0).
+- An additional controlled PostgreSQL checkout/erasure interleaving exposed SQLSTATE 40P01. Checkout now takes the shared customer lock before its cart; erasure skips busy cart locks and records waiting. The same test now commits erasure and makes the waiting checkout see CART_NOT_FOUND, with no deadlock.
+- After this last runtime change: build:ordering, lint, typecheck, Vitest 660, `review-round3`, `data-rights`, `cart-checkout`, `create-order` all EXIT=0. Other compact scripts had already passed with unchanged runtime paths.
+- The four fix commits above remain separate and have Codex co-author trailers. The lock-order follow-up was folded into the erasure commit before any push; the final rebased tree was byte-for-byte identical to the tested tree (`git diff --name-only b9c7508 HEAD` was empty).
+- Publication uses ordinary non-force pushes to feat/ordering-finish and feat/ordering; main is excluded. Remote SHAs will be checked against HEAD in the completion report.
