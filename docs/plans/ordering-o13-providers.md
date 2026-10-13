@@ -148,4 +148,27 @@ Lỗi mới: `PROVIDER_UNAVAILABLE` 503 (provider lỗi tạm), `CARRIER_BOOKING
 
 ## Completion record
 
-- Chưa bắt đầu.
+Trạng thái: **implemented + automated verification passed — chờ UAT tay + duyệt merge/push** của
+chủ dự án (nhánh `TanNgo11/ordering-o13`, tách từ `feat/ordering`).
+
+| Bước | Nội dung | Commit |
+| --- | --- | --- |
+| 0 | Môi trường, recon, đọc tài liệu chính thức | — (không code) |
+| 1 | `docs/providers/*.md` ×5, `providers/_http.ts` + `_config.ts` (strict, tắt mặc định), env loaders, `publicApiUrl`, `notification.dailyLimit`, `OTP_CHANNELS` | `4c223f9` |
+| 2 | MoMo: create/query/refund, IPN HMAC-SHA256 (204 ACK), `payment.session`, `walletIngest` trong payment-matching, storefront `paymentSession`/`paymentReturn`, `momo.mjs` | `f3e9cf8` |
+| 3 | VNPay: ký `vnp_SecureHash` trên query IPN (GET), `RspCode` ACK, `vnpay.mjs` | `bf02262` |
+| 4 | Job `wallet-status-check` (poll `queryTransaction` trên session pending, ingest qua payment-matching), `wallet-status.mjs` | `bbd8a34` |
+| 5 | Ahamove: quote/book/cancel/webhook + cột carrier trên fulfillment + `carrier-assignment` + routes Admin + panel "Gọi xe" + `ahamove.mjs` | `b597fc6` |
+| 6 | Zalo ZNS (OAuth refresh, retry `-124`), eSMS, `notification-channel-rule` + chuỗi kênh + hạn mức ngày + alert `notification-daily-limit`, OTP kênh sms/zalo, màn P3, `zalo-zns.mjs`/`sms.mjs`, migration đổi tên `0012-o13-providers` (O9=0010, O12=0011) | `7ae278d` |
+| 7 | Trang **Nhà cung cấp** P1 (`GET /ordering/providers`, `settings.manage`, chỉ metadata đã che) + thẻ webhook 24h & wallet-status trên Ops (P4) + `docs/ordering-writing-providers.md` + bổ sung openapi còn thiếu | `bdaf373` |
+| 8 | Tài liệu/runbook/security-baseline/STATUS + gate cuối + merge/push | commit này |
+
+Gates cuối (DB test `salanca_ordering_o13`): `lint`, `typecheck`, `typecheck:admin`,
+`vitest run src/plugins/ordering` (≥ 1375 test), `build:ordering`, các script tích hợp
+`momo`/`vnpay`/`wallet-status`/`ahamove`/`zalo-zns`/`sms` + lượt bị ảnh hưởng
+(`sepay-webhook`, `sepay-refund`, `payment-refund`, `delivery-assignment`, `notifications`,
+`customer-auth`, `email-templates`, `audit-coverage`, `schema`), `openapi.mjs --write`,
+`ORDERING_ENABLED=true pnpm exec strapi build`. Kết quả ghi trong `docs/STATUS.md` mục O13.
+
+Còn lại (chủ dự án): UAT giao diện Admin (P1/P3/P4 + nút Gọi xe), UAT sandbox từng provider
+thật, quyết định bật `*_ENVIRONMENT=production`, merge/push `feat/ordering-o13` → `feat/ordering`.

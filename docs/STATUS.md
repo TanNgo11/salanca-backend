@@ -2,6 +2,39 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
+2026-10-14: **Ordering O13 (provider adapters: MoMo, VNPay, Ahamove, Zalo ZNS, eSMS) — implemented + automated verification passed, chờ manual UAT** trên `TanNgo11/ordering-o13` (tách từ `feat/ordering`; chưa merge/push). 8 commit bắt đầu từ `4c223f9` theo [`phases/phase-ordering-13-providers.md`](phases/phase-ordering-13-providers.md) + [`plans/ordering-o13-providers.md`](plans/ordering-o13-providers.md) (Completion record có bảng bước→commit đầy đủ):
+
+- **Ví MoMo/VNPay**: `POST /payments/session` (redirect/QR, `payment.session`), IPN `POST|GET
+  /webhooks/:providerCode` ký HMAC/`vnp_SecureHash` trên raw body, ACK theo spec (204 /
+  `{RspCode,Message}`), `queryTransaction` + refund qua `payment.session`; job
+  `wallet-status-check` đối soát session pending (không có list API). Bắt buộc
+  `ORDERING_PUBLIC_API_URL` khi bật.
+- **Ahamove**: quote/book/cancel idempotent (`carrier-assignment`, cột carrier trên
+  fulfillment), webhook trạng thái qua route chung, COD gate trước khi `COMPLETED`, nút
+  **Gọi xe** trên chi tiết đơn/giao.
+- **Thông báo**: Zalo ZNS (OAuth refresh, retry `-124`) + eSMS; `notification-channel-rule`
+  giữ chuỗi kênh `zalo→sms→email`, fallback khi provider chưa cấu hình/lỗi, hạn mức
+  Zalo+SMS/ngày với alert `notification-daily-limit`; OTP kênh `sms`/`zalo` opt-in qua
+  `ORDERING_OTP_CHANNELS`. Delivery row lưu hash recipient; `failureText` lọc lỗi provider.
+- **Trang Admin**: **Nhà cung cấp** (P1, `settings.manage`, chỉ đọc — badge cấu hình/lỗi, môi
+  trường, mã đối tác che 4 ký tự cuối, URL webhook/IPN, env còn thiếu); tab **Kênh thông báo**
+  (P3); Ops (P4) thêm thẻ webhook 24h (`webhook-events-24h:*`) + card `wallet-status-check`.
+  Webhook fulfillment (ahamove) nằm trong hàng sức khỏe webhook.
+- **Migration `0012-o13-providers`** (O9=0010, O12=0011 trên nhánh khác): bảng
+  `notification-channel-rule` + index `provider_reference` cho carrier webhook.
+- **Docs**: `docs/providers/{momo,vnpay,ahamove,zalo-zns,sms-esms}.md` (version, chữ ký,
+  result code, sandbox, rate limit), `docs/ordering-writing-providers.md`, cập nhật
+  integrations/runbook/security-baseline/staff-guide.
+
+Gate (DB `salanca_ordering_o13`): `lint`, `typecheck`, `typecheck:admin`, `vitest` plugin
+713 test / 73 file, `build:ordering`, 15 script tích hợp PASS (`momo`, `vnpay`,
+`wallet-status`, `ahamove`, `zalo-zns`, `sms`, `sepay-webhook`, `sepay-refund`,
+`payment-refund`, `delivery-assignment`, `notifications`, `customer-auth`, `email-templates`,
+`audit-coverage`, `schema` — cập nhật 52 bảng/index/ledger cho 0012), `openapi.mjs --write`
+(110 path), `ORDERING_ENABLED=true strapi build`. **Open:** chưa UAT giao diện Admin
+(P1/P3/P4, Gọi xe); chưa UAT sandbox provider thật — mọi provider tắt mặc định; chờ duyệt
+merge `feat/ordering`.
+
 2026-10-13: **Ordering O14 (bảng giá theo kênh, nhóm khách, khung giờ)** trên `feat/ordering-o14`.
 Bảng giá riêng và bảng điều chỉnh, nhóm khách tay/tự động, job `customer-group-refresh` 03:15.
 Giá nhóm chỉ khi phiên khách đã xác thực hoặc đơn hộ khớp hồ sơ; khách vãng lai giữ giá thường.
