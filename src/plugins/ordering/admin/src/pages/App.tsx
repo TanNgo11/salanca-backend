@@ -6,6 +6,7 @@ import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { OrderingInboxProvider, useOrderingInbox } from '../inbox/OrderingInboxProvider';
 import { useT } from '../lib/i18n';
 import {
+  PERMISSIONS,
   RBAC_ALERTS,
   RBAC_CATALOG_ACCESS,
   RBAC_CATALOG_MANAGE,
@@ -19,6 +20,7 @@ import {
 
 const OrdersPage = lazy(() => import('./Orders'));
 const DeliveriesPage = lazy(() => import('./Deliveries'));
+const CourierPage = lazy(() => import('./Courier'));
 const PaymentReviewPage = lazy(() => import('./PaymentReview'));
 const BranchesPage = lazy(() => import('./Branches'));
 const StaffPage = lazy(() => import('./Staff'));
@@ -32,6 +34,7 @@ const ReportsPage = lazy(() => import('./Reports'));
 type Section =
   | 'orders'
   | 'deliveries'
+  | 'courier'
   | 'payment-review'
   | 'alerts'
   | 'ops'
@@ -99,10 +102,11 @@ const SideNav = ({
     <SubNav aria-label={t('nav.title')}>
       <SubNavHeader label={t('nav.title')} />
       <SubNavSections>
-        {visible.orders || visible.deliveries || visible['payment-review'] || visible.alerts || visible.ops ? (
+        {visible.orders || visible.deliveries || visible.courier || visible['payment-review'] || visible.alerts || visible.ops ? (
           <SubNavSection label={t('nav.operations')}>
             {visible.orders ? link('orders', t('nav.orders'), inbox?.awaiting) : null}
             {visible.deliveries ? link('deliveries', t('nav.deliveries')) : null}
+            {visible.courier ? link('courier', t('nav.courier')) : null}
             {visible['payment-review'] ? link('payment-review', t('nav.paymentReview'), openReviews) : null}
             {visible.alerts ? link('alerts', t('nav.alerts'), openAlerts) : null}
             {visible.ops ? link('ops', t('nav.ops')) : null}
@@ -138,6 +142,8 @@ const SideNav = ({
 
 const OrderingApp = () => {
   const orders = useRBAC(RBAC_ORDERS_READ);
+  const process = useRBAC(PERMISSIONS.process);
+  const recordCash = useRBAC(PERMISSIONS.recordCash);
   const reviews = useRBAC(RBAC_PAYMENT_REVIEW);
   const alerts = useRBAC(RBAC_ALERTS);
   const ops = useRBAC(RBAC_OPS);
@@ -146,7 +152,24 @@ const OrderingApp = () => {
   const catalogAccess = useRBAC(RBAC_CATALOG_ACCESS);
   const settings = useRBAC(RBAC_SETTINGS);
   const scope = useRBAC(RBAC_SCOPE);
-  const loading = [orders, reviews, alerts, ops, report, catalogManage, catalogAccess, settings, scope].some(
+  const { get } = useFetchClient();
+  const canProcess = !process.isLoading && process.allowedActions.canProcess === true;
+  const canRecordCash = !recordCash.isLoading && recordCash.allowedActions.canRecordCash === true;
+  const [hasAssigned, setHasAssigned] = useState(false);
+  useEffect(() => {
+    if (!canProcess || canRecordCash) return undefined;
+    let live = true;
+    void get('/ordering/courier/deliveries?view=active')
+      .then(({ data }) => {
+        const count = (data as { counts?: { active?: number } }).counts?.active ?? 0;
+        if (live) setHasAssigned(count > 0);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [canProcess, canRecordCash, get]);
+  const loading = [orders, process, recordCash, reviews, alerts, ops, report, catalogManage, catalogAccess, settings, scope].some(
     (item) => item.isLoading,
   );
   if (loading) {
@@ -160,6 +183,7 @@ const OrderingApp = () => {
   const visible = {
     orders: any(orders.allowedActions),
     deliveries: any(orders.allowedActions),
+    courier: (canProcess && canRecordCash) || hasAssigned,
     'payment-review': any(reviews.allowedActions),
     alerts: any(alerts.allowedActions),
     ops: any(ops.allowedActions),
@@ -175,6 +199,7 @@ const OrderingApp = () => {
     [
       'orders',
       'deliveries',
+      'courier',
       'payment-review',
       'alerts',
       'ops',
@@ -203,6 +228,7 @@ const OrderingApp = () => {
             <Route index element={first ? <Navigate to={first} replace /> : null} />
             <Route path="orders/*" element={<OrdersPage />} />
             <Route path="deliveries/*" element={<DeliveriesPage />} />
+            <Route path="courier/*" element={<CourierPage />} />
             <Route path="payment-review/*" element={<PaymentReviewPage />} />
             <Route path="alerts/*" element={<AlertsPage />} />
             <Route path="ops/*" element={<OpsPage />} />

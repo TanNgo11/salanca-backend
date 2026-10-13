@@ -4,6 +4,7 @@ import adminUnits from './admin-units';
 import adminStream from './admin-stream';
 import availability from './availability';
 import cashClosing from './cash-closing';
+import courier from './courier';
 import catalog from './catalog';
 import categories from './categories';
 import ops from './ops';
@@ -25,5 +26,6 @@ export default {
   'payment-review': paymentReview,
   ops,
   'cash-closing': cashClosing,
+  courier,
   reports,
 };

@@ -17,6 +17,7 @@ import type { OrderAggregate } from '../repositories/types';
 import type branchFactory from './branch';
 import type { ServiceContext } from './context';
 import { actorRefOf, nowOf } from './context';
+import type courierFactory from './courier';
 import type deliveryAssignmentFactory from './delivery-assignment';
 import { isDeliveryGroup } from './delivery-assignment';
 import type lineCancelFactory from './line-cancel';
@@ -144,6 +145,7 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
     matching: () => plugin().service('payment-matching') as ReturnType<typeof paymentMatchingFactory>,
     timeline: () => plugin().service('timeline') as ReturnType<typeof timelineFactory>,
     delivery: () => plugin().service('delivery-assignment') as ReturnType<typeof deliveryAssignmentFactory>,
+    courier: () => plugin().service('courier') as ReturnType<typeof courierFactory>,
     scope: () => plugin().service('scope') as ReturnType<typeof scopeFactory>,
     branch: () => plugin().service('branch') as ReturnType<typeof branchFactory>,
     settings: () => plugin().service('ordering-settings') as ReturnType<typeof orderingSettingsFactory>,
@@ -692,6 +694,7 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
       }
       return strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
         const aggregate = await loadScoped(orderId, ctx);
+        await s.courier().assertOwnOrder(orderId, ctx);
         const group = liveGroup(aggregate);
         if (!group) throw new OrderingError('INVALID_TRANSITION', 'order has no active group');
         const definition = workflowOf(group);
@@ -821,6 +824,7 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
       }
       return strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
         const aggregate = await loadScoped(orderId, ctx);
+        await s.courier().assertOwnOrder(orderId, ctx);
         const group = liveGroup(aggregate);
         if (!group) throw new OrderingError('INVALID_TRANSITION', 'order has no active group');
         const delivery = isDeliveryGroup(group);

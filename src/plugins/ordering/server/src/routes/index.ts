@@ -176,6 +176,8 @@ export default {
       adminRoute('POST', '/branches/:code/delivery-quote', 'admin-branches.deliveryQuote', 'settings.manage'),
       adminRoute('GET', '/staff-scopes', 'admin-branches.staffList', 'scope.manage'),
       adminRoute('PUT', '/staff-scopes/:adminUserId', 'admin-branches.staffPut', 'scope.manage'),
+      // Phone page for the assigned courier (screens E4). Scope is the assignee, not the branch.
+      adminRoute('GET', '/courier/deliveries', 'courier.deliveries', 'order.process'),
       // Order inbox and actions (screens S1–S5).
       adminRoute('GET', '/orders', 'admin-orders.list', 'order.read'),
       adminRoute('GET', '/orders/summary', 'admin-orders.summary', 'order.read'),

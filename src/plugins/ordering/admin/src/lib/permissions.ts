@@ -58,6 +58,8 @@ export const RBAC_ALERTS = [
 /** Anyone holding one of these sees the "Bán hàng" menu entry. */
 export const RBAC_ANY_ORDERING = [
   ...RBAC_ORDERS_READ,
+  ...PERMISSIONS.process,
+  ...PERMISSIONS.recordCash,
   ...RBAC_CATALOG_ACCESS,
   ...RBAC_SETTINGS,
   ...RBAC_SCOPE,
