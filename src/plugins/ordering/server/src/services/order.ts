@@ -96,6 +96,8 @@ export type CreateOrderInput = {
    * skip those rules.
    */
   pickup?: PickupTimingInput;
+  /** Customer-entered code. The server decides whether it applies. */
+  promotionCode?: string;
 };
 
 export type OrderDraftInput = Omit<CreateOrderInput, 'idempotencyKey'>;
@@ -132,6 +134,7 @@ export type PreparedOrder = {
   locale: string;
   providerCode?: string;
   timing: PickupTiming | null;
+  promotions: import('./promotion').ResolvedPromotions;
 };
 
 /** Stored on order/group `receiveMethod.timing`; UTC instants. */
@@ -443,6 +446,16 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
           fulfillmentStatus: after.fulfillmentStatus,
         });
       }
+      if (before.status !== after.status && (after.status === 'completed' || after.status === 'canceled')) {
+        const promotion = strapi.plugin('ordering').service('promotion') as ReturnType<
+          typeof import('./promotion').default
+        >;
+        const now = new Date();
+        await strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
+          if (after.status === 'completed') await promotion.markApplied(trx, orderId, now);
+          if (after.status === 'canceled') await promotion.releaseForOrder(trx, orderId, 'order-canceled', now);
+        });
+      }
       return { before, after };
     },
 
@@ -606,6 +619,35 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         branch.cashRounding && appliesCashRounding(branch.cashRounding, providerCode)
           ? { multiple: branch.cashRounding.multiple }
           : null;
+      const merchandise = priced.reduce(
+        (sum, line) => sum + (line.unitAmount + line.optionAmount) * line.quantity,
+        0,
+      );
+      const promotions = await (
+        strapi.plugin('ordering').service('promotion') as ReturnType<
+          typeof import('./promotion').default
+        >
+      ).resolve({
+        now: placedAt,
+        timezone: branch.timezone,
+        locationRef: branch.code,
+        receiveKind: kind === 'delivery' ? 'delivery' : 'pickup',
+        lines: priced.map((line, index) => ({
+          index,
+          sellableUid: line.sellable.ref.uid,
+          ...(line.sellable.variant?.uid ? { variantUid: line.sellable.variant.uid } : {}),
+          categoryRefs: line.sellable.categories.map((category) => category.ref),
+          base: (line.unitAmount + line.optionAmount) * line.quantity,
+        })),
+        fulfillmentAmount,
+        subtotal: merchandise,
+        locale,
+        ...(() => {
+          const normalized = input.contact.phone ? normalizeVietnamesePhone(input.contact.phone) : null;
+          return normalized?.valid ? { phoneE164: normalized.e164 } : {};
+        })(),
+        ...(input.promotionCode ? { code: input.promotionCode } : {}),
+      });
       const pricing = priceCart({
         currency: cfg.currency,
         lines: priced.map((line) => ({
@@ -615,7 +657,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
           optionAmount: line.optionAmount,
           taxGroupRef: line.taxGroupRef,
         })),
-        adjustments: input.adjustments ?? [],
+        adjustments: [...(input.adjustments ?? []), ...promotions.adjustments],
         fulfillmentAmount,
         tax: { ...cfg.tax, ...(branch.tax ?? {}) },
         at: placedAt.toISOString(),
@@ -670,6 +712,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         locale,
         providerCode,
         timing,
+        promotions,
       };
     },
 
@@ -695,7 +738,19 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
           label: adjustment.label,
           amount: adjustment.amount,
         })),
-        totals: prepared.pricing.totals,
+        totals: {
+          ...prepared.pricing.totals,
+          discountTotal: prepared.pricing.adjustments
+            .filter((adjustment) => adjustment.kind === 'discount')
+            .reduce((sum, adjustment) => sum + adjustment.amount, 0),
+        },
+        promotions: prepared.promotions.applied.map((promo) => ({
+          code: promo.code,
+          label: promo.label,
+          amount: promo.amount,
+          target: promo.target.kind,
+        })),
+        rejectedPromotions: prepared.promotions.rejected,
         payment: { providerCode: prepared.providerCode ?? null },
         timing: timingSnapshot(prepared.timing),
         delivery: prepared.delivery,
@@ -738,7 +793,15 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         async (trx) => {
           const { timeline, hold, outbox, scheduling } = services();
           const prepared = await service.prepareOrder(payload, ctx);
-          const { branch, priced, pricing, groupsByWorkflow, placedAt, locale, timing } = prepared;
+          if (payload.promotionCode) {
+            (
+              strapi.plugin('ordering').service('promotion') as ReturnType<
+                typeof import('./promotion').default
+              >
+            ).throwIfCodeRejected(prepared.promotions, prepared.pricing.totals.subtotal);
+          }
+          let { pricing } = prepared;
+          const { branch, priced, groupsByWorkflow, placedAt, locale, timing } = prepared;
           if (input.expectedCartHash && input.expectedCartHash !== pricing.cartHash) {
             throw new OrderingError('PRICE_CHANGED', 'the quoted cart no longer matches', {
               details: { cartHash: pricing.cartHash },
@@ -808,6 +871,59 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
             },
           });
           const orderId = order.id as number;
+          if (prepared.promotions.applied.length > 0 && prepared.promotions.customerKey) {
+            const promotion = strapi.plugin('ordering').service('promotion') as ReturnType<
+              typeof import('./promotion').default
+            >;
+            const reserved = await promotion.reserveInTransaction(
+              trx as TransactionClient,
+              orderId,
+              prepared.promotions.applied,
+              prepared.promotions.customerKey,
+              now,
+            );
+            if (reserved.dropped.length > 0) {
+              const dropped = new Set(reserved.dropped.map((id) => `promotion:${id}`));
+              pricing = priceCart({
+                currency: cfg.currency,
+                lines: priced.map((line) => ({
+                  key: line.key,
+                  quantity: line.quantity,
+                  unitAmount: line.unitAmount,
+                  optionAmount: line.optionAmount,
+                  taxGroupRef: line.taxGroupRef,
+                })),
+                adjustments: pricing.adjustments
+                  .filter((adjustment) => adjustment.code !== 'cash-rounding' && !dropped.has(adjustment.sourceRef ?? ''))
+                  .map((adjustment) => ({
+                    kind: adjustment.kind,
+                    code: adjustment.code,
+                    label: adjustment.label,
+                    amount: adjustment.amount,
+                    taxable: adjustment.taxable,
+                    priority: adjustment.priority,
+                    ...(adjustment.sourceRef ? { sourceRef: adjustment.sourceRef } : {}),
+                    ...(adjustment.ruleSnapshot ? { ruleSnapshot: adjustment.ruleSnapshot } : {}),
+                    target: adjustment.target,
+                  })),
+                fulfillmentAmount: prepared.delivery?.fee ?? input.fulfillmentAmount ?? 0,
+                tax: { ...cfg.tax, ...(branch.tax ?? {}) },
+                at: placedAt.toISOString(),
+                cashRounding:
+                  branch.cashRounding && appliesCashRounding(branch.cashRounding, prepared.providerCode)
+                    ? { multiple: branch.cashRounding.multiple }
+                    : null,
+              });
+              await repo.updateOrder(orderId, {
+                subtotalAmount: pricing.totals.subtotal,
+                adjustmentAmount: pricing.totals.adjustmentTotal,
+                fulfillmentAmount: pricing.totals.fulfillmentTotal,
+                taxAmount: pricing.totals.taxTotal,
+                totalAmount: pricing.totals.grandTotal,
+                cartHash: pricing.cartHash,
+              });
+            }
+          }
 
           const groupIds = new Map<string, number>();
           let first = true;

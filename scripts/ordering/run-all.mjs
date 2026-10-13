@@ -15,6 +15,7 @@ const scripts = [
   'registry-boot.mjs',
   'idempotency.mjs',
   'create-order.mjs',
+  'promotions.mjs',
   'transition.mjs',
   'payment-refund.mjs',
   'outbox-two-process.mjs',

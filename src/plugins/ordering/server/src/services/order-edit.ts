@@ -35,6 +35,7 @@ import {
   type EditTotals,
   type LineAfterReduce,
 } from '../domain/order-edit';
+import { pricePromotion, type PromotionSnapshot } from '../domain/promotions/evaluate';
 import { appliesCashRounding } from '../domain/pricing/cash-rounding';
 import type { PricedLine, PricingAdjustmentInput } from '../domain/pricing/pipeline';
 import type { TaxContext } from '../domain/pricing/tax';
@@ -425,21 +426,86 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
       ...(line.taxGroupRef ? { taxGroupRef: line.taxGroupRef } : {}),
     }));
     const keptAdjustments = aggregate.adjustments.filter((row) => row.code !== 'cash-rounding');
+    const promotionLines: Array<{
+      index: number;
+      sellableUid: string;
+      variantUid?: string;
+      categoryRefs: string[];
+      base: number;
+    }> = [];
+    const refsOf = (value: unknown): string[] =>
+      Array.isArray(value)
+        ? value.flatMap((item) =>
+            item && typeof item === 'object' && 'ref' in item && typeof item.ref === 'string' ? [item.ref] : [],
+          )
+        : [];
+    for (const line of reduced) {
+      if (line.quantityAfter <= 0) continue;
+      const stored = lineById.get(line.lineId);
+      promotionLines.push({
+        index: promotionLines.length,
+        sellableUid: stored?.sellableUid ?? '',
+        ...(stored?.variantUid ? { variantUid: stored.variantUid } : {}),
+        categoryRefs: refsOf(stored?.categoriesSnapshot),
+        base: (line.unitAmount + line.optionAmount) * line.quantityAfter,
+      });
+    }
+    for (const line of quoted) {
+      promotionLines.push({
+        index: promotionLines.length,
+        sellableUid: line.sellable.ref.uid,
+        ...(line.variantUid ? { variantUid: line.variantUid } : {}),
+        categoryRefs: line.sellable.categories.map((category) => category.ref),
+        base: (line.unitAmount + line.optionAmount) * line.quantity,
+      });
+    }
     const adjustmentInputs: PricingAdjustmentInput[] = keptAdjustments.map((row) => {
       if (!ADJUSTMENT_KINDS.has(row.kind)) {
         throw new OrderingError('VALIDATION_ERROR', 'stored adjustment kind is not supported', {
           details: { code: row.code },
         });
       }
+      const snap = row.ruleSnapshot as Partial<PromotionSnapshot> | null;
+      let amount = row.amount;
+      let target: PricingAdjustmentInput['target'];
+      if (snap && typeof snap === 'object' && snap.discountType && snap.target) {
+        const repriced = pricePromotion(
+          {
+            id: 0,
+            code: row.code,
+            label: row.label,
+            kind: 'auto',
+            discountType: snap.discountType,
+            value: snap.value ?? null,
+            maxDiscount: snap.maxDiscount ?? null,
+            target: { kind: snap.target.kind, refs: snap.target.refs ?? [] },
+            minSubtotal: 0,
+            locationRefs: null,
+            receiveKinds: ['pickup', 'delivery'],
+            startsAt: '2020-01-01T00:00:00.000Z',
+            endsAt: null,
+            weekdays: [],
+            timeRanges: [],
+            firstOrderOnly: false,
+            perCustomerLimit: null,
+            stackable: false,
+            priority: row.priority,
+          },
+          { lines: promotionLines, fulfillmentAmount, subtotal: 0 },
+        );
+        amount = repriced?.amount ?? 0;
+        target = repriced?.target ?? { kind: 'order' };
+      }
       return {
         kind: row.kind as PricingAdjustmentInput['kind'],
         code: row.code,
         label: row.label,
-        amount: row.amount,
+        amount,
         taxable: row.taxable,
         priority: row.priority,
         ...(row.sourceRef ? { sourceRef: row.sourceRef } : {}),
         ...(row.ruleSnapshot ? { ruleSnapshot: row.ruleSnapshot } : {}),
+        ...(target ? { target } : {}),
       };
     });
     const capturedOnline = aggregate.payments.find(

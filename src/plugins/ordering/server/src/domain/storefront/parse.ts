@@ -30,6 +30,7 @@ export type CartRequest = {
     | { kind: 'delivery'; address: AddressSnapshot; providerCode: 'self-delivery' };
   pickup: { asap?: boolean; slot?: { startsAt: string } };
   payment?: { providerCode: string };
+  promotionCode?: string;
 };
 
 export type OrderRequest = CartRequest & {
@@ -132,6 +133,7 @@ export function parseCartRequest(body: unknown): CartRequest {
   const payment = isObject(body.payment)
     ? { providerCode: str(body.payment.providerCode, 'payment.providerCode', 40, true) as string }
     : undefined;
+  const promotionCode = str(body.promotionCode, 'promotionCode', 32);
   return {
     locationRef,
     locale,
@@ -139,6 +141,7 @@ export function parseCartRequest(body: unknown): CartRequest {
     receiveMethod,
     pickup,
     ...(payment ? { payment } : {}),
+    ...(promotionCode ? { promotionCode } : {}),
   };
 }
 

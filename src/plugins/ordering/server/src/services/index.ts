@@ -47,6 +47,7 @@ import paymentMatching from './payment-matching';
 import paymentReview from './payment-review';
 import manualPayment from './manual-payment';
 import paymentLink from './payment-link';
+import promotion from './promotion';
 
 export default {
   registry,
@@ -95,6 +96,7 @@ export default {
   'payment-review': paymentReview,
   'manual-payment': manualPayment,
   'payment-link': paymentLink,
+  promotion,
   migrations: ({ strapi }: { strapi: Core.Strapi }) => ({
     run: (migrations: OrderingMigration[]) => runOrderingMigrations(strapi, migrations),
   }),

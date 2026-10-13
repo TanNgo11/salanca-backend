@@ -44,7 +44,29 @@ export const rateLimited = (
   return true;
 };
 
+const CODE_WINDOW_MS = 10 * 60 * 1000;
+const codeFailures = new Map<string, { count: number; resetAt: number }>();
+
+/** Wrong promotion codes for this IP in the current 10-minute window. */
+export const promotionCodeFailureCount = (ip: string, now = Date.now()): number => {
+  const entry = codeFailures.get(ip);
+  if (!entry || now >= entry.resetAt) return 0;
+  return entry.count;
+};
+
+/** Counts one wrong code. Returns the new total for this window. */
+export const notePromotionCodeFailure = (ip: string, now = Date.now()): number => {
+  const entry = codeFailures.get(ip);
+  if (!entry || now >= entry.resetAt) {
+    codeFailures.set(ip, { count: 1, resetAt: now + CODE_WINDOW_MS });
+    return 1;
+  }
+  entry.count += 1;
+  return entry.count;
+};
+
 /** Test helper: forget every bucket (limits are re-read from config). */
 export const resetStorefrontLimiters = (): void => {
   limiters.clear();
+  codeFailures.clear();
 };

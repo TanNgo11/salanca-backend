@@ -16,7 +16,12 @@ import type { OrderingRegistry } from '../services/registry';
 import type storefrontFactory from '../services/storefront';
 import type { HttpCtx } from './http';
 import { sendError, text } from './http';
-import { clientIpOf, rateLimited } from './storefront-guard';
+import {
+  clientIpOf,
+  notePromotionCodeFailure,
+  promotionCodeFailureCount,
+  rateLimited,
+} from './storefront-guard';
 
 type BranchService = ReturnType<typeof branchFactory>;
 type StorefrontService = ReturnType<typeof storefrontFactory>;
@@ -108,17 +113,49 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     /** POST /quote */
     quote: action('quote', async (ctx, serviceCtx) => {
       const cart = parseCartRequest(ctx.request.body);
-      return storefront()
+      const body = (ctx.request.body ?? {}) as { contact?: { phone?: unknown }; captchaToken?: unknown };
+      const phone = typeof body.contact?.phone === 'string' ? body.contact.phone.slice(0, 32) : '';
+      if (cart.promotionCode) {
+        const failures = promotionCodeFailureCount(clientIpOf(strapi, ctx));
+        if (failures >= 20) {
+          ctx.status = 429;
+          ctx.body = {
+            error: { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' },
+          };
+          return undefined;
+        }
+        if (failures >= 3) {
+          await verifyCaptcha(
+            ctx,
+            typeof body.captchaToken === 'string' ? body.captchaToken : undefined,
+            'order-create',
+          );
+        }
+      }
+      const quoted = await storefront()
         .orders()
         .quote(
           {
             ...cart,
-            contact: { phone: '' },
+            contact: { phone },
             consent: { policyVersion: config().consent.policyVersion, channel: 'web-checkout' },
             origin: { kind: 'storefront' },
           },
           serviceCtx,
         );
+      const rejected = (quoted as { rejectedPromotions?: Array<{ reason: string }> }).rejectedPromotions ?? [];
+      if (cart.promotionCode && rejected.some((row) => row.reason !== 'not-best')) {
+        const ip = clientIpOf(strapi, ctx);
+        const count = notePromotionCodeFailure(ip);
+        if (count >= 20) {
+          ctx.status = 429;
+          ctx.body = {
+            error: { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' },
+          };
+          return undefined;
+        }
+      }
+      return quoted;
     }),
 
     /** POST /orders — Idempotency-Key header + captcha; returns the token once (and on replay). */

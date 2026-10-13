@@ -127,6 +127,8 @@ export const configSchema = z.object({
       create: rateWindow,
       lookup: rateWindow,
       lookupPerCode: rateWindow,
+      promotionCode: rateWindow,
+      rating: rateWindow,
     }),
   }),
   testing: z.object({ builtins: z.boolean() }).refine(
@@ -234,6 +236,8 @@ export default {
         create: { max: 10, windowMs: 600_000 },
         lookup: { max: 20, windowMs: 900_000 },
         lookupPerCode: { max: 5, windowMs: 900_000 },
+        promotionCode: { max: 20, windowMs: 600_000 },
+        rating: { max: 30, windowMs: 600_000 },
       },
     },
     testing: { builtins: false },
