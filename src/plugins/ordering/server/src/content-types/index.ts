@@ -17,6 +17,12 @@ import catalogPrice from './catalog-price';
 import catalogProduct from './catalog-product';
 import catalogSlug from './catalog-slug';
 import catalogVariant from './catalog-variant';
+import cart from './cart';
+import customer from './customer';
+import customerAddress from './customer-address';
+import customerOtp from './customer-otp';
+import customerSession from './customer-session';
+import dataRequest from './data-request';
 import fulfillment from './fulfillment';
 import fulfillmentGroup from './fulfillment-group';
 import fulfillmentLine from './fulfillment-line';
@@ -54,6 +60,12 @@ export default {
   'catalog-product': catalogProduct,
   'catalog-slug': catalogSlug,
   'catalog-variant': catalogVariant,
+  cart,
+  customer,
+  'customer-address': customerAddress,
+  'customer-otp': customerOtp,
+  'customer-session': customerSession,
+  'data-request': dataRequest,
   fulfillment,
   'fulfillment-group': fulfillmentGroup,
   'fulfillment-line': fulfillmentLine,

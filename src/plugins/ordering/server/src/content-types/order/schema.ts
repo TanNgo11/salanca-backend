@@ -37,6 +37,14 @@ export default collection(
     totalAmount: { type: 'biginteger', required: true },
     currency: { type: 'string', required: true, default: 'VND' },
     customerRef: { type: 'string' },
+    // O11: owning side of order.customer — a linked profile when the order's phone matches one
+    // (or the session's customer). Guest orders without a match keep null.
+    customer: {
+      type: 'relation',
+      relation: 'manyToOne',
+      target: 'plugin::ordering.customer',
+      inversedBy: 'orders',
+    },
     contactSnapshot: { type: 'json', required: true },
     consentSnapshot: { type: 'json', required: true },
     customerNote: { type: 'text' },

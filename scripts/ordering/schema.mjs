@@ -8,6 +8,7 @@ const EXPECTED_TABLES = [
   'plugins_ordering_adjustment_allocation',
   'plugins_ordering_admin_change_log',
   'plugins_ordering_branch',
+  'plugins_ordering_cart',
   'plugins_ordering_cash_closing',
   'plugins_ordering_catalog_availability_window',
   'plugins_ordering_catalog_category',
@@ -19,6 +20,11 @@ const EXPECTED_TABLES = [
   'plugins_ordering_catalog_product',
   'plugins_ordering_catalog_slug',
   'plugins_ordering_catalog_variant',
+  'plugins_ordering_customer',
+  'plugins_ordering_customer_address',
+  'plugins_ordering_customer_otp',
+  'plugins_ordering_customer_session',
+  'plugins_ordering_data_request',
   'plugins_ordering_fulfillment',
   'plugins_ordering_fulfillment_group',
   'plugins_ordering_fulfillment_line',
@@ -72,6 +78,16 @@ const EXPECTED_INDEXES = [
   'plugins_ordering_webhook_delivery_pending_idx',
   'plugins_ordering_notification_template_uq',
   'plugins_ordering_catalog_import_created_idx',
+  // O11 step 1 (migration 0007).
+  'plugins_ordering_customer_phone_uq',
+  'plugins_ordering_customer_phone_hash_uq',
+  'plugins_ordering_customer_session_token_uq',
+  'plugins_ordering_customer_session_expiry_idx',
+  'plugins_ordering_customer_otp_challenge_uq',
+  'plugins_ordering_customer_otp_target_idx',
+  'plugins_ordering_cart_token_uq',
+  'plugins_ordering_cart_activity_idx',
+  'plugins_ordering_data_request_status_idx',
 ];
 
 // Catalog types staff edit in Content Manager (O2 step 1).
@@ -91,8 +107,9 @@ const CM_HIDDEN_CATALOG_UIDS = [
   'plugin::ordering.catalog-location-state',
 ];
 
-// Every manyToOne owner side produces one link table (28+ relations across the types).
-const MIN_LINK_TABLES = 28;
+// Every manyToOne owner side produces one link table (28 pre-O11 + 7 customer-era relations:
+// order.customer, customer-{address,otp,session}.customer, cart.{customer,order}, data-request.customer).
+const MIN_LINK_TABLES = 35;
 
 await withApp(async (app) => {
   const { rows: tables } = await app.db.connection.raw(
@@ -148,6 +165,7 @@ await withApp(async (app) => {
     '0004-o6-ops',
     '0005-o15-audit-log',
     '0006-o10-extensibility',
+    '0007-o11-customers',
   ]) {
     assert.ok(
       applied.some((row) => row.name === migration),

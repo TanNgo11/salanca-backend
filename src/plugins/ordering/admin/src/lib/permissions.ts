@@ -17,6 +17,10 @@ export const PERMISSIONS = {
   ops: action('ops.read'),
   audit: action('audit.read'),
   webhook: action('webhook.manage'),
+  // O11 (screens C1–C3).
+  customerRead: action('customer.read'),
+  customerManage: action('customer.manage'),
+  dataRequest: action('customer.erase'),
 } as const;
 
 /** Stable arrays for `useRBAC` (a new array each render makes it re-check every time). */
@@ -50,6 +54,9 @@ export const RBAC_REPORT = [...PERMISSIONS.report];
 export const RBAC_EXPORT = [...PERMISSIONS.export];
 export const RBAC_AUDIT = [...PERMISSIONS.audit];
 export const RBAC_WEBHOOK = [...PERMISSIONS.webhook];
+/** O11: Customers list+profile needs read; staff note / status edits need manage. */
+export const RBAC_CUSTOMERS = [...PERMISSIONS.customerRead, ...PERMISSIONS.customerManage];
+export const RBAC_DATA_REQUESTS = [...PERMISSIONS.dataRequest];
 /** O6 alert list: anyone a rule could notify (ops, reports, payment review or branch staff). */
 export const RBAC_ALERTS = [
   ...PERMISSIONS.ops,
@@ -68,4 +75,6 @@ export const RBAC_ANY_ORDERING = [
   ...RBAC_REPORT,
   ...RBAC_AUDIT,
   ...RBAC_WEBHOOK,
+  ...RBAC_CUSTOMERS,
+  ...RBAC_DATA_REQUESTS,
 ];

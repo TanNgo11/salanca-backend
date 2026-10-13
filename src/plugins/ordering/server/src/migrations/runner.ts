@@ -8,7 +8,7 @@ import type { Core } from '@strapi/strapi';
  */
 export type OrderingMigration = {
   name: string;
-  up: (trx: TransactionClient) => Promise<void>;
+  up: (trx: TransactionClient, strapi: Core.Strapi) => Promise<void>;
 };
 
 // Knex transaction, kept loose so the plugin does not depend on knex types directly.
@@ -38,7 +38,7 @@ export const runOrderingMigrations = async (strapi: Core.Strapi, migrations: Ord
     );
     for (const migration of migrations) {
       if (done.has(migration.name)) continue;
-      await migration.up(trx);
+      await migration.up(trx, strapi);
       await trx(MIGRATIONS_TABLE).insert({ name: migration.name });
       applied.push(migration.name);
     }

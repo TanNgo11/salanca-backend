@@ -61,6 +61,8 @@ const scripts = [
   'openapi.mjs',
   'catalog-csv.mjs',
   'email-templates.mjs',
+  // O11: customer profiles backfill (step 1). Later O11 scripts append below.
+  'customers.mjs',
 ];
 
 const results = [];

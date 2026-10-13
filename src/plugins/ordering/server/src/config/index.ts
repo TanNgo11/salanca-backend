@@ -60,6 +60,9 @@ export const configSchema = z.object({
     retentionCron: z.string().min(1),
     auditChainCron: z.string().min(1),
     webhookDispatcherCron: z.string().min(1),
+    cartExpiryCron: z.string().min(1),
+    cartReminderCron: z.string().min(1),
+    dataRequestWaitingCron: z.string().min(1),
     /** Expected run period in minutes per job for `job-heartbeat-missed` (ops-check). */
     heartbeatMinutes: z.record(z.string(), z.number().int().positive()),
   }),
@@ -69,6 +72,10 @@ export const configSchema = z.object({
     outboxDeliveredDays: z.number().int().positive(),
     outboxFailedDays: z.number().int().positive(),
     alertResolvedDays: z.number().int().positive(),
+    /** O11: OTP rows past expiry, sessions revoked/expired, carts expired/converted. */
+    otpDays: z.number().int().positive(),
+    sessionDays: z.number().int().positive(),
+    cartDays: z.number().int().positive(),
     batchSize: z.number().int().positive(),
     maxBatchesPerRun: z.number().int().positive(),
   }),
@@ -125,7 +132,45 @@ export const configSchema = z.object({
       create: rateWindow,
       lookup: rateWindow,
       lookupPerCode: rateWindow,
+      /** O11: /auth/* (OTP request+verify) and /carts* mutating routes. */
+      auth: rateWindow,
+      cart: rateWindow,
     }),
+  }),
+  /** O11: customer accounts — OTP sign-in, sessions, profile. */
+  customers: z.object({
+    enabled: z.boolean(),
+    /** Channels allowed for OTP delivery ('email' today; 'sms'/'zalo' arrive with O13). */
+    otpChannels: z.array(z.string().min(1)).min(1),
+    otp: z.object({
+      codeMinutes: z.number().int().positive(),
+      maxAttempts: z.number().int().positive(),
+      /** Max challenges per target inside sendWindowMinutes. */
+      sendMax: z.number().int().positive(),
+      sendWindowMinutes: z.number().int().positive(),
+      /** Max challenges per client IP per hour. */
+      ipMaxPerHour: z.number().int().positive(),
+    }),
+    sessionDays: z.number().int().positive(),
+    maxSessions: z.number().int().positive(),
+    /** 0 = off: erase profiles with no order activity for this many months (retention job). */
+    inactiveErasureMonths: z.number().int().min(0),
+  }),
+  /** O11: server-side carts (guest token or session). */
+  carts: z.object({
+    enabled: z.boolean(),
+    /** A cart expires this many days after its last activity. */
+    expiryDays: z.number().int().positive(),
+    /** Expired/converted carts are hard-deleted this many days later (retention). */
+    expiredDeleteDays: z.number().int().positive(),
+    /** Abandoned-cart reminder fires once the cart idles this long. */
+    reminderIdleHours: z.number().positive(),
+    maxLines: z.number().int().positive(),
+  }),
+  /** O11: Decree 13/2023 personal-data requests. */
+  dataRights: z.object({
+    /** Staff deadline before the request is flagged late (audit + ops alert). */
+    deadlineHours: z.number().int().positive(),
   }),
   testing: z.object({ builtins: z.boolean() }).refine(
     (value) => !value.builtins || process.env.NODE_ENV !== 'production',
@@ -179,6 +224,9 @@ export default {
       retentionCron: '0 30 3 * * *',
       auditChainCron: '0 */5 * * * *',
       webhookDispatcherCron: '*/15 * * * * *',
+      cartExpiryCron: '0 */10 * * * *',
+      cartReminderCron: '0 */15 * * * *',
+      dataRequestWaitingCron: '0 */30 * * * *',
       heartbeatMinutes: {
         outbox: 2,
         'hold-expiry': 2,
@@ -190,6 +238,9 @@ export default {
         retention: 1500,
         'audit-chain': 15,
         'webhook-dispatcher': 2,
+        'cart-expiry': 15,
+        'cart-reminder': 20,
+        'data-request-waiting': 35,
       },
     },
     audit: {
@@ -206,6 +257,9 @@ export default {
       outboxDeliveredDays: 30,
       outboxFailedDays: 90,
       alertResolvedDays: 90,
+      otpDays: 7,
+      sessionDays: 30,
+      cartDays: 30,
       batchSize: 500,
       maxBatchesPerRun: 20,
     },
@@ -231,8 +285,32 @@ export default {
         create: { max: 10, windowMs: 600_000 },
         lookup: { max: 20, windowMs: 900_000 },
         lookupPerCode: { max: 5, windowMs: 900_000 },
+        auth: { max: 10, windowMs: 3_600_000 },
+        cart: { max: 120, windowMs: 60_000 },
       },
     },
+    customers: {
+      enabled: true,
+      otpChannels: ['email'],
+      otp: {
+        codeMinutes: 5,
+        maxAttempts: 5,
+        sendMax: 3,
+        sendWindowMinutes: 10,
+        ipMaxPerHour: 10,
+      },
+      sessionDays: 30,
+      maxSessions: 10,
+      inactiveErasureMonths: 0,
+    },
+    carts: {
+      enabled: true,
+      expiryDays: 7,
+      expiredDeleteDays: 30,
+      reminderIdleHours: 2,
+      maxLines: 50,
+    },
+    dataRights: { deadlineHours: 72 },
     testing: { builtins: false },
     productTypes: {},
     providers: { payment: {}, fulfillment: {}, scheduling: {}, voucher: {}, captcha: {} },
