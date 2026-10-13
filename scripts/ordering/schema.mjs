@@ -37,12 +37,16 @@ const EXPECTED_TABLES = [
   'plugins_ordering_notification_template',
   'plugins_ordering_ops_alert',
   'plugins_ordering_order',
+  'plugins_ordering_order_rating',
   'plugins_ordering_order_adjustment',
   'plugins_ordering_order_event',
   'plugins_ordering_order_job_lock',
   'plugins_ordering_order_line',
   'plugins_ordering_outbox',
   'plugins_ordering_payment',
+  'plugins_ordering_promotion',
+  'plugins_ordering_promotion_code',
+  'plugins_ordering_promotion_redemption',
   'plugins_ordering_payment_event',
   'plugins_ordering_refund',
   'plugins_ordering_refund_line',
@@ -93,6 +97,10 @@ const EXPECTED_INDEXES = [
   'plugins_ordering_cart_token_uq',
   'plugins_ordering_cart_activity_idx',
   'plugins_ordering_data_request_status_idx',
+  'plugins_ordering_promotion_code_code_uq',
+  'plugins_ordering_promotion_redemption_customer_idx',
+  'plugins_ordering_order_rating_order_uq',
+  'plugins_ordering_order_phone_idx',
 ];
 
 // Catalog types staff edit in Content Manager (O2 step 1).
@@ -175,6 +183,7 @@ await withApp(async (app) => {
     '0005-o15-audit-log',
     '0006-o10-extensibility',
     '0007-o11-customers',
+    '0008-o8-promotions-rating',
   ]) {
     assert.ok(
       applied.some((row) => row.name === migration),

@@ -401,7 +401,15 @@ export const OrderDetailPage = () => {
             <Section title={t('detail.money')}>
               <Row label={t('detail.subtotal')} value={formatMoney(totals.subtotal)} />
               {detail.adjustments.map((adjustment) => (
-                <Row key={`${adjustment.kind}:${adjustment.code}`} label={adjustment.label} value={formatMoney(adjustment.amount)} />
+                <Row
+                  key={`${adjustment.kind}:${adjustment.code}`}
+                  label={
+                    adjustment.sourceRef?.startsWith('promotion:')
+                      ? t('detail.promotion', { code: /^P\d+$/.test(adjustment.code) ? adjustment.label : adjustment.code })
+                      : adjustment.label
+                  }
+                  value={formatMoney(adjustment.amount)}
+                />
               ))}
               {totals.fulfillment ? <Row label={t('detail.fee')} value={formatMoney(totals.fulfillment)} /> : null}
               <Divider />
@@ -410,6 +418,25 @@ export const OrderDetailPage = () => {
               <Row label={t('detail.refunded')} value={formatMoney(totals.refunded)} />
               <Row label={t('detail.due')} value={formatMoney(totals.due)} strong />
             </Section>
+            {detail.rating ? (
+              <Section title={t('detail.rating')}>
+                <Typography textColor={detail.rating.stars <= 2 ? 'danger600' : 'warning600'}>
+                  {`${'★'.repeat(detail.rating.stars)}${'☆'.repeat(5 - detail.rating.stars)}`}
+                  {detail.rating.status === 'hidden' ? ` · ${t('rating.status.hidden')}` : ''}
+                </Typography>
+                {detail.rating.tags.length > 0 ? (
+                  <Typography tag="p" textColor="neutral600">
+                    {detail.rating.tags.join(', ')}
+                  </Typography>
+                ) : null}
+                {detail.rating.comment ? <Typography tag="p">{detail.rating.comment}</Typography> : null}
+                {detail.rating.staffNote ? (
+                  <Typography tag="p" variant="pi" textColor="neutral600">
+                    {`${t('rating.note')}: ${detail.rating.staffNote}`}
+                  </Typography>
+                ) : null}
+              </Section>
+            ) : null}
             <Section title={t('detail.payments')}>
               {group?.status === 'awaiting-payment' && can.canRead ? (
                 <Box paddingBottom={2}>

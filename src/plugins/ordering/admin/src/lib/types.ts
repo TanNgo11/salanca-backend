@@ -10,6 +10,12 @@ export type InboxSettings = {
   soundByDefault: boolean;
   rejectReasons: Array<{ code: string; label: Record<string, string> }>;
   delayMinutes: number[];
+  /** O8 rating block. */
+  ratingInviteEnabled: boolean;
+  ratingInviteDelayMinutes: number;
+  ratingWindowDays: number;
+  ratingEditHours: number;
+  ratingTags: Array<{ code: string; label: Record<string, string>; sentiment: 'positive' | 'negative' }>;
 };
 
 export type OrderRow = {
@@ -88,7 +94,17 @@ export type OrderDetail = {
     optionAmount: number;
     lineTotalAmount: number;
   }>;
-  adjustments: Array<{ kind: string; code: string; label: string; amount: number }>;
+  /** O8: `sourceRef` `promotion:<id>` marks a promotion discount. */
+  adjustments: Array<{ kind: string; code: string; label: string; amount: number; sourceRef?: string | null }>;
+  /** O8: the customer's rating, when there is one. */
+  rating?: {
+    id: number;
+    stars: number;
+    tags: string[];
+    comment: string | null;
+    status: 'visible' | 'hidden';
+    staffNote: string | null;
+  } | null;
   totals: {
     currency: string;
     subtotal: number;

@@ -109,6 +109,8 @@ const adminActions = [
   { uid: 'customer.read', displayName: 'Xem khách hàng' },
   { uid: 'customer.manage', displayName: 'Quản lý khách hàng' },
   { uid: 'customer.erase', displayName: 'Xử lý yêu cầu dữ liệu cá nhân' },
+  { uid: 'promotion.manage', displayName: 'Quản lý khuyến mãi' },
+  { uid: 'rating.manage', displayName: 'Quản lý đánh giá' },
 ];
 
 const register = ({ strapi }: { strapi: Core.Strapi }) => {
@@ -153,6 +155,7 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
     onOrderPlaced: (event: never) => Promise<void>;
     onOrderTransitioned: (event: never) => Promise<void>;
     onOrderEdited: (event: never) => Promise<void>;
+    onRatingInvite: (event: never) => Promise<void>;
     onGroupTransitioned: (event: never) => Promise<void>;
     onOpsAlert: (event: never) => Promise<void>;
   };
@@ -170,6 +173,7 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
     customers().onOrderTransitioned(event),
   );
   registry.registerOutboxConsumer('order.edited', (event) => notifications().onOrderEdited(event as never));
+  registry.registerOutboxConsumer('rating.invite', (event) => notifications().onRatingInvite(event as never));
   registry.registerOutboxConsumer('fulfillment-group.transitioned', (event) =>
     notifications().onGroupTransitioned(event as never),
   );

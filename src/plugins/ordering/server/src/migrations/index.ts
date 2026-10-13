@@ -6,6 +6,7 @@ import { o15AuditLogMigration } from './0005-o15-audit-log';
 import { o10ExtensibilityMigration } from './0006-o10-extensibility';
 import { o11CustomersMigration } from './0007-o11-customers';
 import { o7OpsExtrasMigration } from './0005-o7-ops-extras';
+import { o8PromotionsRatingMigration } from './0008-o8-promotions-rating';
 import type { OrderingMigration } from './runner';
 
 /** Production migrations, in order. */
@@ -18,4 +19,5 @@ export const orderingMigrations: OrderingMigration[] = [
   o10ExtensibilityMigration,
   o11CustomersMigration,
   o7OpsExtrasMigration,
+  o8PromotionsRatingMigration,
 ];

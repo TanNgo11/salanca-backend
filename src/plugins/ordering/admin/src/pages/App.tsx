@@ -16,6 +16,7 @@ import {
   RBAC_OPS,
   RBAC_ORDERS_READ,
   RBAC_PAYMENT_REVIEW,
+  RBAC_PROMOTION,
   RBAC_REPORT,
   RBAC_SCOPE,
   RBAC_SETTINGS,
@@ -40,6 +41,8 @@ const ReportsPage = lazy(() => import('./Reports'));
 const AuditLogPage = lazy(() => import('./AuditLog'));
 const WebhooksPage = lazy(() => import('./Webhooks'));
 const ApiDocsPage = lazy(() => import('./ApiDocs'));
+const PromotionsPage = lazy(() => import('./Promotions'));
+const RatingsPage = lazy(() => import('./Ratings'));
 
 type Section =
   | 'orders'
@@ -48,10 +51,12 @@ type Section =
   | 'deliveries'
   | 'courier'
   | 'payment-review'
+  | 'ratings'
   | 'alerts'
   | 'ops'
   | 'reports'
   | 'cash-closing'
+  | 'promotions'
   | 'categories'
   | 'catalog-import'
   | 'availability'
@@ -123,6 +128,7 @@ const SideNav = ({
         visible.deliveries ||
         visible.courier ||
         visible['payment-review'] ||
+        visible.ratings ||
         visible.alerts ||
         visible.ops ? (
           <SubNavSection label={t('nav.operations')}>
@@ -131,6 +137,7 @@ const SideNav = ({
             {visible.deliveries ? link('deliveries', t('nav.deliveries')) : null}
             {visible.courier ? link('courier', t('nav.courier')) : null}
             {visible['payment-review'] ? link('payment-review', t('nav.paymentReview'), openReviews) : null}
+            {visible.ratings ? link('ratings', t('nav.ratings')) : null}
             {visible.alerts ? link('alerts', t('nav.alerts'), openAlerts) : null}
             {visible.ops ? link('ops', t('nav.ops')) : null}
           </SubNavSection>
@@ -140,6 +147,9 @@ const SideNav = ({
             {visible.reports ? link('reports', t('nav.sales')) : null}
             {visible['cash-closing'] ? link('cash-closing', t('nav.cashClosing')) : null}
           </SubNavSection>
+        ) : null}
+        {visible.promotions ? (
+          <SubNavSection label={t('nav.promotionsGroup')}>{link('promotions', t('nav.promotions'))}</SubNavSection>
         ) : null}
         {visible.categories || visible['catalog-import'] || visible.availability ? (
           <SubNavSection label={t('nav.catalog')}>
@@ -199,9 +209,10 @@ const OrderingApp = () => {
   }, [canProcess, canRecordCash, get]);
   const audit = useRBAC(RBAC_AUDIT);
   const webhook = useRBAC(RBAC_WEBHOOK);
+  const promotion = useRBAC(RBAC_PROMOTION);
   const customers = useRBAC(RBAC_CUSTOMERS);
   const dataRequests = useRBAC(RBAC_DATA_REQUESTS);
-  const loading = [orders, process, recordCash, reviews, alerts, ops, report, catalogManage, catalogAccess, settings, scope, audit, webhook, customers, dataRequests].some(
+  const loading = [orders, process, recordCash, reviews, alerts, ops, report, catalogManage, catalogAccess, settings, scope, audit, webhook, customers, dataRequests, promotion].some(
     (item) => item.isLoading,
   );
   if (loading) {
@@ -219,10 +230,12 @@ const OrderingApp = () => {
     deliveries: any(orders.allowedActions),
     courier: (canProcess && canRecordCash) || hasAssigned,
     'payment-review': any(reviews.allowedActions),
+    ratings: any(orders.allowedActions),
     alerts: any(alerts.allowedActions),
     ops: any(ops.allowedActions),
     reports: any(report.allowedActions),
     'cash-closing': any(report.allowedActions),
+    promotions: any(promotion.allowedActions),
     categories: any(catalogManage.allowedActions),
     'catalog-import': any(catalogManage.allowedActions),
     availability: any(catalogAccess.allowedActions),
@@ -240,10 +253,12 @@ const OrderingApp = () => {
       'deliveries',
       'courier',
       'payment-review',
+      'ratings',
       'alerts',
       'ops',
       'reports',
       'cash-closing',
+      'promotions',
       'categories',
       'catalog-import',
       'availability',
@@ -288,6 +303,8 @@ const OrderingApp = () => {
             <Route path="audit-log/*" element={<AuditLogPage />} />
             <Route path="webhooks/*" element={<WebhooksPage />} />
             <Route path="api-docs/*" element={<ApiDocsPage />} />
+            <Route path="promotions/*" element={<PromotionsPage />} />
+            <Route path="ratings/*" element={<RatingsPage />} />
           </Routes>
         </Suspense>
       </Layouts.Root>

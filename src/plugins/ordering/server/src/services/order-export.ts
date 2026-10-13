@@ -48,6 +48,7 @@ type OrderRow = {
   lines?: OrderLineRow[];
   payments?: Array<{ providerCode?: string; status?: string; capturedAmount?: string | number }>;
   refunds?: Array<{ status?: string; amount?: string | number }>;
+  adjustments?: Array<{ kind?: string; code?: string; sourceRef?: string | null; amount?: string | number }>;
 };
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -68,6 +69,7 @@ const HEADERS = [
   'Món',
   'Tạm tính',
   'Giảm/phụ phí',
+  'Khuyến mãi',
   'Phí giao',
   'Thuế',
   'Tổng',
@@ -144,6 +146,13 @@ const lineText = (lines: OrderLineRow[]): string =>
     .filter((text): text is string => text !== null)
     .join('; ');
 
+/** O8: "GIAM10 (-22000); P3 (-15000)" — promotion adjustments only, staff discounts excluded. */
+const promotionText = (adjustments: NonNullable<OrderRow['adjustments']>): string =>
+  adjustments
+    .filter((row) => row.kind === 'discount' && row.sourceRef?.startsWith('promotion:'))
+    .map((row) => `${row.code ?? ''} (${int(row.amount)})`)
+    .join('; ');
+
 export default ({ strapi }: { strapi: Core.Strapi }) => {
   const services = (): Services => ({
     scope: strapi.plugin('ordering').service('scope') as Services['scope'],
@@ -206,7 +215,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
         where,
         orderBy: { placedAt: 'asc' },
         limit: maxRows,
-        populate: { lines: true, payments: true, refunds: true },
+        populate: { lines: true, payments: true, refunds: true, adjustments: true },
       })) as OrderRow[];
 
       const branches = new Map(
@@ -248,6 +257,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
           lineText(order.lines ?? []),
           String(int(order.subtotalAmount)),
           String(int(order.adjustmentAmount)),
+          promotionText(order.adjustments ?? []),
           String(int(order.fulfillmentAmount)),
           String(int(order.taxAmount)),
           String(int(order.totalAmount)),

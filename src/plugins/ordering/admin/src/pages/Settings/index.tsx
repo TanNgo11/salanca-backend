@@ -52,6 +52,7 @@ const ALERT_CODES = [
   'cash-closing-mismatch',
   'audit-tampered',
   'notification-template-broken',
+  'low-rating',
 ] as const;
 
 const RECIPIENT_CHOICES = ['branch-email', 'ops.read', 'report.read', 'payment.review', 'order.read'];
@@ -167,7 +168,10 @@ const AlertRulesBlock = ({ t }: { t: Translate }) => {
                 </Td>
                 <Td>
                   <Box width="120px">
-                    <Field.Root error={alertErrors[`${code}.threshold`]}>
+                    <Field.Root
+                      error={alertErrors[`${code}.threshold`]}
+                      hint={code === 'low-rating' ? t('settings.alerts.lowRatingHint') : undefined}
+                    >
                       <NumberInput
                         name={`${code}-threshold`}
                         minValue={1}
@@ -176,6 +180,7 @@ const AlertRulesBlock = ({ t }: { t: Translate }) => {
                           update(code, { threshold: numberOrUndefined(next) ?? rule.threshold })
                         }
                       />
+                      <Field.Hint />
                       <Field.Error />
                     </Field.Root>
                   </Box>
@@ -289,6 +294,14 @@ const SettingsPage = () => {
     }
   };
 
+  const tags = settings?.ratingTags ?? [];
+  const setTags = (next: InboxSettings['ratingTags']) => settings && setSettings({ ...settings, ratingTags: next });
+  const moveTag = (index: number, delta: number) => {
+    const next = [...tags];
+    const [item] = next.splice(index, 1);
+    next.splice(index + delta, 0, item);
+    setTags(next);
+  };
   const reasons = settings?.rejectReasons ?? [];
   const setReasons = (next: InboxSettings['rejectReasons']) => settings && setSettings({ ...settings, rejectReasons: next });
   const move = (index: number, delta: number) => {
@@ -380,6 +393,82 @@ const SettingsPage = () => {
                   <Field.Hint />
                   <Field.Error />
                 </Field.Root>
+                </Flex>
+              </Box>
+              <Box background="neutral0" padding={6} hasRadius shadow="tableShadow">
+                <Flex direction="column" alignItems="stretch" gap={4}>
+                  <Typography variant="delta" tag="h2">
+                    {t('settings.rating')}
+                  </Typography>
+                  <Flex gap={2}>
+                    <Switch
+                      checked={settings.ratingInviteEnabled}
+                      onCheckedChange={(value: boolean) => setSettings({ ...settings, ratingInviteEnabled: value })}
+                    />
+                    <Typography>{t('settings.rating.invite')}</Typography>
+                  </Flex>
+                  <Flex gap={4} wrap="wrap">
+                    {(
+                      [
+                        ['ratingInviteDelayMinutes', 'settings.rating.delay'],
+                        ['ratingWindowDays', 'settings.rating.window'],
+                        ['ratingEditHours', 'settings.rating.editHours'],
+                      ] as const
+                    ).map(([key, label]) => (
+                      <Box key={key} width="200px">
+                        <Field.Root error={errors[key]}>
+                          <Field.Label>{t(label)}</Field.Label>
+                          <NumberInput
+                            value={settings[key]}
+                            onValueChange={(next?: number) =>
+                              setSettings({ ...settings, [key]: numberOrUndefined(next) ?? settings[key] })
+                            }
+                          />
+                          <Field.Error />
+                        </Field.Root>
+                      </Box>
+                    ))}
+                  </Flex>
+                  <Box>
+                    <Typography variant="sigma">{t('settings.rating.tags')}</Typography>
+                    {errors.ratingTags ? <Typography textColor="danger600">{errors.ratingTags}</Typography> : null}
+                    {tags.map((tag, index) => (
+                      <Flex key={index} gap={2} paddingTop={2} alignItems="flex-end">
+                        <Field.Root error={errors[`ratingTags.${index}.code`]}>
+                          <Field.Label>{t('settings.reason.code')}</Field.Label>
+                          <TextInput value={tag.code} onChange={(event: React.ChangeEvent<HTMLInputElement>) => setTags(tags.map((item, i) => (i === index ? { ...item, code: event.target.value } : item)))} />
+                        </Field.Root>
+                        <Field.Root>
+                          <Field.Label>VI</Field.Label>
+                          <TextInput value={tag.label.vi ?? ''} onChange={(event: React.ChangeEvent<HTMLInputElement>) => setTags(tags.map((item, i) => (i === index ? { ...item, label: { ...item.label, vi: event.target.value } } : item)))} />
+                        </Field.Root>
+                        <Field.Root>
+                          <Field.Label>EN</Field.Label>
+                          <TextInput value={tag.label.en ?? ''} onChange={(event: React.ChangeEvent<HTMLInputElement>) => setTags(tags.map((item, i) => (i === index ? { ...item, label: { ...item.label, en: event.target.value } } : item)))} />
+                        </Field.Root>
+                        <Button
+                          variant={tag.sentiment === 'positive' ? 'success-light' : 'danger-light'}
+                          onClick={() => setTags(tags.map((item, i) => (i === index ? { ...item, sentiment: item.sentiment === 'positive' ? 'negative' : 'positive' } : item)))}
+                        >
+                          {t(`settings.rating.sentiment.${tag.sentiment}`)}
+                        </Button>
+                        <IconButton label={t('settings.up')} variant="ghost" disabled={index === 0} onClick={() => moveTag(index, -1)}>
+                          <ArrowUp />
+                        </IconButton>
+                        <IconButton label={t('settings.down')} variant="ghost" disabled={index === tags.length - 1} onClick={() => moveTag(index, 1)}>
+                          <ArrowDown />
+                        </IconButton>
+                        <IconButton label={t('create.remove')} variant="ghost" onClick={() => setTags(tags.filter((_, i) => i !== index))}>
+                          <Trash />
+                        </IconButton>
+                      </Flex>
+                    ))}
+                    <Box paddingTop={2}>
+                      <Button size="S" variant="tertiary" startIcon={<Plus />} onClick={() => setTags([...tags, { code: '', label: { vi: '', en: '' }, sentiment: 'positive' }])}>
+                        {t('settings.rating.addTag')}
+                      </Button>
+                    </Box>
+                  </Box>
                 </Flex>
               </Box>
               <Box background="neutral0" padding={6} hasRadius shadow="tableShadow">

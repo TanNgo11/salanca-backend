@@ -165,6 +165,22 @@ withApp(async (app) => {
   });
   await call('POST', '/carts/current/lines', { body: { sellableUid: 'bun-bo', quantity: 1 }, headers: auth });
 
+  // O8 ratings: free text is personal data; stars and tags must survive erasure.
+  const ratings = () => app.db.query('plugin::ordering.order-rating');
+  const ratingBefore = await ratings().create({ data: {
+    orderId: closed.order.order.id, locationRef: 'Q1', stars: 2, tags: ['slow'],
+    comment: 'Private review text', staffNote: 'Private internal text', staffNoteBy: 'admin:123',
+    messageLocale: 'vi', status: 'visible', ratedAt: new Date(),
+    editableUntil: new Date(Date.now() + 86400000),
+  } });
+  // Keep the promotion HMAC and all accounting fields, including on a retry.
+  const redemptionKey = plugin.service('promotion').customerKey('+84912345678');
+  const redemptions = () => app.db.query('plugin::ordering.promotion-redemption');
+  const redemptionBefore = await redemptions().create({ data: {
+    promotionId: 900001, orderId: closed.order.order.id, customerKey: redemptionKey,
+    discountAmount: 10000, status: 'applied', reservedAt: new Date(), appliedAt: new Date(),
+  } });
+
   // Sales report BEFORE erasure — must be identical after (money/lines/branch survive).
   const salesBefore = await staff.as.quanly(
     'GET',
@@ -235,6 +251,14 @@ withApp(async (app) => {
     Number(closed.order.order.totalAmount),
     'money untouched',
   );
+  const scrubbedRating = await ratings().findOne({ where: { id: ratingBefore.id } });
+  assert.equal(scrubbedRating.comment, null, 'erase clears the customer rating comment');
+  assert.equal(scrubbedRating.staffNote, null, 'erase clears the rating staff note');
+  assert.equal(scrubbedRating.staffNoteBy, null, 'no attribution left for a deleted note');
+  assert.equal(scrubbedRating.stars, ratingBefore.stars, 'rating statistics retained');
+  assert.deepEqual(scrubbedRating.tags, ratingBefore.tags);
+  assert.deepEqual(await redemptions().findOne({ where: { id: redemptionBefore.id } }), redemptionBefore,
+    'promotion customerKey and accounting fields retained byte-for-byte');
   const addr = closedRow.receiveMethod.address;
   assert.equal(addr.line1, undefined, 'street address dropped');
   assert.equal(addr.recipientName, undefined, 'recipient dropped');
@@ -287,6 +311,10 @@ withApp(async (app) => {
   job = await runDataRequestWaiting(app, { owner: 'test:data-rights' });
   assert.equal(job.done, 0, 'a second run finalizes nothing — idempotent');
   assert.equal((await erasedEvents()).length, 1, 'no duplicate webhook');
+  assert.equal((await ratings().findOne({ where: { id: ratingBefore.id } })).comment, null);
+  assert.deepEqual(await redemptions().findOne({ where: { id: redemptionBefore.id } }), redemptionBefore,
+    'redemption still unchanged after finalization and retry');
+
   const salesAfter = await staff.as.quanly(
     'GET',
     `/reports/sales?from=${businessDate}&to=${businessDate}&groupBy=day`,

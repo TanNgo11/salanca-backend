@@ -142,7 +142,7 @@ Nhập **modifiers trước, products sau** — dòng món tham chiếu nhóm t�
 
 ## 4. Mẫu email trong Admin
 
-Admin → **Bán hàng → Cài đặt bán hàng → Mẫu email** (quyền `settings.manage`): 16 mẫu × VI/EN, mỗi
+Admin → **Bán hàng → Cài đặt bán hàng → Mẫu email** (quyền `settings.manage`): 18 mẫu × VI/EN, mỗi
 mẫu sửa `subject` + `body`. Bảng liệt kê badge Mặc định/Đã sửa; sửa có xem trước bằng dữ liệu mẫu,
 "Gửi thử tới tôi", "Khôi phục mặc định" (xóa override, ghi change-log `notification-template.save` /
 `.reset`).

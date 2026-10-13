@@ -238,4 +238,52 @@ Mã lỗi mới (`domain/errors.ts`, `translations/o8.ts`):
 
 ## Completion record
 
-- Chưa bắt đầu.
+Trạng thái: **implemented, targeted gates passed, chờ UAT giao diện** (2026-10-13). Nhánh `feat/ordering-o8`.
+
+| Bước | Commit | Nội dung |
+| --- | --- | --- |
+| 1 | `80a4b95` | Pipeline nhận `target` (cả đơn / dòng / phí giao) + property test |
+| 2 | `646a9cc` | 4 content type, migration `0008-o8-promotions-rating`, quyền `promotion.manage`, `rating.manage` |
+| 3 | `03e1b17` | `evaluate` thuần, 31 ca |
+| 4 | `590fcc6`, `0088b09`, `d759a61` | Áp khuyến mãi ở quote/create, giữ/trả lượt; review: bộ đếm đoán mã, loại khuyến mãi lấy từ dòng đã khóa, mã bị tắt giữa chừng báo lỗi; `promotion-race.mjs`, chặn đoán mã qua HTTP, đơn đầu tối đa 1 lượt/số dưới khóa |
+| 6 | `60dc9c3` | Báo cáo `summary.discount`, nhóm `promotion`; cột "Khuyến mãi" trong CSV đơn |
+| 7 | `6c4749e` | Đánh giá: API công khai, `completedAt`, email mời, alert `low-rating`, retention comment, báo cáo TB; **quote bỏ số điện thoại** |
+| 5 | `d678e08` | API Admin khuyến mãi (K1–K4), sinh mã, CSV, redemptions, nhóm audit `promotion` |
+| 5, 8 | `925a9cc`, `9dba30d` | Màn K1–K4, R1–R2, thêm vào S4/Báo cáo/Cài đặt/Tạo đơn hộ; sửa `Dialog.Title` (không có trong design-system 2.2.3) ở 3 trang cũ |
+| 9 | commit chứa dòng này | OpenAPI (cả 4 route O7 còn thiếu), tài liệu, seed UAT |
+
+Lệch kế hoạch:
+
+- Migration tên `0008-o8-promotions-rating` (kế hoạch ghi `0006`).
+- **Quote không nhận số điện thoại** (chủ dự án yêu cầu 2026-10-13): khuyến mãi "đơn đầu" và "mỗi khách N lần"
+  trả trong `pendingPromotions` với giá chưa giảm, create mới kiểm theo số. Tổng thật chỉ có thể thấp hơn quote.
+  `expectedCartHash` so với giá không phụ thuộc số điện thoại. Kế hoạch cũ cho quote đọc lịch sử số → ai cũng
+  dò được một số đã từng đặt hay chưa.
+- Đơn đầu chỉ 1 lượt/số kiểm dưới khóa dòng khuyến mãi (hai đơn "đầu tiên" cùng lúc không cùng được giảm).
+- Thêm cột `order.completedAt` (hạn đánh giá tính từ đây); email mời gắn vào chuyển trạng thái đơn → `completed`
+  (một lần mỗi đơn, không theo group).
+- Thêm `GET /promotions/targets` (chi nhánh, món, danh mục từ catalog adapter) cho ô chọn ở K2 — người có
+  `promotion.manage` không nhất thiết có quyền catalog.
+- Nhóm audit mới `promotion`; `rating.hide`, `rating.note` thuộc nhóm `order`. Ghi chú nội bộ chỉ log "có/không".
+- Alert `low-rating` mức `warning`, không theo đếm (`threshold` = số sao tối đa).
+- Giỏ hàng (O11) chưa nhận `promotionCode`; thẻ quà tặng O9 chưa có. Cách ghi giảm giá trên hóa đơn điện tử chờ
+  quyết định VAT (giảm giá hiện `taxable: true`, trước thuế).
+
+Gate (có chọn lọc, `ORDERING_TEST_DATABASE=salanca_ordering_o8`, 2026-10-13):
+
+- `pnpm run lint` sạch; `pnpm run typecheck` sạch; `pnpm exec vitest run src/plugins/ordering` 620/620.
+- `pnpm run build:ordering` sạch; `ORDERING_ENABLED=true pnpm exec strapi build` OK.
+- Script mới PASS: `promotions`, `promotion-race`, `promotion-money` (sửa đơn giữ và tính lại khuyến mãi,
+  hủy món có giảm theo dòng hoàn đúng phần ròng, miễn phí giao rồi hủy món), `promotions-admin`, `rating`.
+- Script bị ảnh hưởng PASS, chạy lại sau bước cuối (hook hoàn tất đơn): `order-edit`, `daily-stock`,
+  `payment-refund`, `lookup-drafts`, `idempotency`, `courier`, `cash-closing`, `transition`, `admin-orders`,
+  `delivery-assignment`, `sepay-manual`, `sepay-refund`, `sepay-expiry`, `sepay-match`, `special-hours`,
+  `webhooks-out`, `check-admin-imports`, `check-dist-imports`. Chạy trong lúc làm (sau bước liên quan):
+  `schema`, `create-order`, `storefront`, `reports`, `order-export`, `retention`, `email-templates`,
+  `notifications`, `alerts-engine`, `audit-coverage`, `openapi --write`.
+- Ghi chú: đánh giá ẩn vẫn tính vào điểm trung bình (R1, báo cáo). Đơn hoàn tất trước O8 không có
+  `completedAt` nên không đánh giá được (chưa go-live, không cần bù).
+- `tsc` riêng cho admin (scratch config): file O8 không có lỗi; 35 lỗi kiểu cũ ở các trang trước O8 còn nguyên.
+- Chưa chạy: `check:ordering` ×2, `check:phase3`, smoke, Chrome UAT (chủ dự án tự UAT). UAT: `node
+  scripts/ordering/uat-server.mjs` (cổng 1355, DB `salanca_ordering_o8_uat`) — có GIAM10, 20 mã TET, miễn phí
+  giao từ 200.000đ, đơn đầu giảm 15.000đ, một đơn 2★ và một đơn hoàn tất chưa đánh giá.

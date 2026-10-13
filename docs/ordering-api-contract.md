@@ -1,4 +1,4 @@
-# Ordering storefront API (O3), SePay webhook (O4), self-delivery (O5) and ops extras (O7)
+# Ordering storefront API (O3), SePay webhook (O4), self-delivery (O5), ops extras (O7), promotions and ratings (O8)
 
 O7 adds `specialHours` on `GET /config` (pickup, and delivery when that method is on), `dailyLimit` /
 `sold-out-today` on the public catalog, and `ITEM_SOLD_OUT` from quote and create.
@@ -114,6 +114,18 @@ body is ignored — the delivery fee always comes from the matched zone, not the
 (the delivery fee is inside `fulfillmentTotal`), `payment.providerCode`,
 `timing { mode, slot?, requestedReadyAt }`.
 
+**Promotions (O8).** Send `promotionCode` (case-insensitive, 4–32 of `A-Z 0-9 -`); the server decides
+every discount. The quote adds `promotions[] { code, label, amount, target }` (applied, `amount` ≤ 0),
+`rejectedPromotions[] { code, reason }` and `pendingPromotions[] { code, label, condition }`, and
+`totals.discountTotal`. Automatic promotions apply without a code. Reasons: `invalid`, `not-started`,
+`ended`, `code-used`, `usage-limit`, `min-subtotal`, `location`, `receive-kind`, `time`, `products`,
+`fulfillment`, `not-best` (a better offer was chosen). **The quote never reads the phone**: first-order
+and per-customer promotions appear in `pendingPromotions` at full price and are decided at create, so
+the created order's total can only be lower than the quote (show "Ưu đãi đơn đầu — kiểm khi đặt").
+Wrong codes are counted per IP: after 3 a quote with a code needs `captchaToken`
+(`CAPTCHA_FAILED` otherwise), after `rateLimits.promotionCode.max` (20 / 10 min) → `429 RATE_LIMITED`.
+Eligibility misses on a real code are not counted.
+
 ### `POST /orders` (`Idempotency-Key` header)
 
 Quote body plus:
@@ -130,6 +142,13 @@ Quote body plus:
 
 Phone: Vietnamese numbers only (`0…`, `+84…`, `84…`), stored as E.164. `201` (new) or `200` (replay):
 `{ order: <token view>, token, replayed }`.
+
+With `promotionCode`, a code that does not apply fails the create (nothing is created):
+`400 PROMOTION_INVALID` (unknown, switched off, bad format), `400 PROMOTION_EXPIRED`
+(`details.reason` `not-started`|`ended`), `400 PROMOTION_NOT_ELIGIBLE` (`details.reason` as above;
+`min-subtotal` adds `details.minSubtotal`, `missing`), `409 PROMOTION_EXHAUSTED` (`usage-limit`|`code-used`).
+An automatic promotion that ran out between quote and create is dropped silently and the order is
+priced without it. `expectedCartHash` is compared with the quote's phone-free pricing.
 
 ### `GET /orders` (`X-Order-Token`)
 
@@ -173,6 +192,21 @@ a second create returns the same url. A new link extends the order's payment dea
 Body `{ "reason"?: "≤ 200" }`. Allowed while every live step is customer-cancellable (waiting for the
 branch, or waiting for payment) and, for a scheduled slot, until `customerCancelBeforeMinutes` before
 it. Returns the token view.
+
+### `GET /orders/rating` (`X-Order-Token`) — O8
+
+`{ rateable, reason?, tags[] { code, label, sentiment }, rating | null }`. `reason`: `not-completed`
+(the order is not completed yet) or `window-closed` (more than `ratingWindowDays`, default 7, since it
+completed). `rating { stars, tags, comment, ratedAt, editableUntil, editable }`. Show positive tags for
+≥ 4 stars and negative ones for ≤ 3. The invite email links to the order page with `&rate=1` after the
+`#t=` token (or `#rate`).
+
+### `POST /orders/rating` (`X-Order-Token`) — O8
+
+`{ stars: 1–5, tags?: string[] (configured codes, ≤ 10), comment?: ≤ 1000 }` → `{ rating }`. The first
+submit creates it; later submits edit it until `editableUntil` (`ratingEditHours`, default 24), then
+`409 RATING_LOCKED`. Not completed or past the window → `409 RATING_NOT_AVAILABLE` with
+`details.reason`. Rate-limited per IP (`rateLimits.rating`).
 
 ### `POST /orders/lookup`
 
@@ -318,3 +352,8 @@ customers once a cart idles past `carts.reminderIdleHours` (default 2h), on bran
   process and reject. Out-of-scope identifiers return 404. A staff member without a location
   scope cannot list or mutate the queue. Requests without a currently visible customer, including
   erased customers whose orders were detached, remain accessible to all-location managers only.
+- With O8 installed, erasure clears each affected order rating's `comment`, `staffNote` and
+  `staffNoteBy`; stars/tags remain. `promotion-redemption.customerKey` and accounting fields
+  remain unchanged to preserve per-customer use limits. See the O11 Completion record for the
+  retention decision. Cart quotes also omit phone history; cart `promotionCode` and OTP-aware
+  quotes remain deferred by owner decision.

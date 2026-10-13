@@ -35,7 +35,7 @@ type BranchOption = {
   businessDateToday: string;
 };
 
-type GroupBy = 'day' | 'category' | 'product' | 'payment' | 'receive';
+type GroupBy = 'day' | 'category' | 'product' | 'payment' | 'receive' | 'promotion';
 
 type ReportRow = {
   key: string;
@@ -45,6 +45,8 @@ type ReportRow = {
   gross?: number;
   revenue?: number;
   refunded?: number;
+  /** O8 `promotion` grouping: positive VND taken off. */
+  discount?: number;
 };
 
 type Report = {
@@ -58,12 +60,16 @@ type Report = {
     gross: number;
     averageOrder: number;
     net: number;
+    /** O8: Σ discount adjustments on sold orders (positive VND). */
+    discount?: number;
   };
+  /** O8: ratings of the period's orders. */
+  ratings?: { average: number | null; count: number };
   rows: ReportRow[];
   generatedAt: string;
 };
 
-const GROUPINGS: GroupBy[] = ['day', 'category', 'product', 'payment', 'receive'];
+const GROUPINGS: GroupBy[] = ['day', 'category', 'product', 'payment', 'receive', 'promotion'];
 const ALL_BRANCHES = '';
 
 const minusDays = (day: string, days: number): string => {
@@ -153,6 +159,8 @@ const ReportsPage = () => {
         return ['reports.col.payment', 'reports.col.orders', 'reports.col.revenue', 'reports.col.refunded'];
       case 'receive':
         return ['reports.col.receive', 'reports.col.orders', 'reports.col.gross'];
+      case 'promotion':
+        return ['reports.col.promotion', 'reports.col.orders', 'reports.col.gross', 'reports.col.discount'];
     }
   };
 
@@ -299,6 +307,15 @@ const ReportsPage = () => {
                       t('reports.card.net', { amount: formatMoney(summary.net) }),
                     )}
                   </Grid.Item>
+                  <Grid.Item col={3} s={6}>
+                    {summaryCard(t('reports.card.discount'), formatMoney(summary.discount ?? 0))}
+                  </Grid.Item>
+                  <Grid.Item col={3} s={6}>
+                    {summaryCard(
+                      t('reports.card.rating', { count: report.ratings?.count ?? 0 }),
+                      report.ratings?.average == null ? '—' : `${report.ratings.average} ★`,
+                    )}
+                  </Grid.Item>
                 </Grid.Root>
 
                 <Table colCount={columns(report.groupBy).length}>
@@ -330,9 +347,15 @@ const ReportsPage = () => {
                         {report.groupBy === 'day' ||
                         report.groupBy === 'category' ||
                         report.groupBy === 'product' ||
-                        report.groupBy === 'receive' ? (
+                        report.groupBy === 'receive' ||
+                        report.groupBy === 'promotion' ? (
                           <Td>
                             <Typography variant="pi">{formatMoney(row.gross ?? 0)}</Typography>
+                          </Td>
+                        ) : null}
+                        {report.groupBy === 'promotion' ? (
+                          <Td>
+                            <Typography variant="pi">{`−${formatMoney(row.discount ?? 0)}`}</Typography>
                           </Td>
                         ) : null}
                         {report.groupBy === 'day' || report.groupBy === 'payment' ? (

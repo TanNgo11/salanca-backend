@@ -54,6 +54,8 @@ export default {
       publicRoute('POST', '/orders', 'storefront.create'),
       publicRoute('GET', '/orders', 'storefront.show'),
       publicRoute('GET', '/orders/payment', 'storefront.payment'),
+      publicRoute('GET', '/orders/rating', 'storefront.rating'),
+      publicRoute('POST', '/orders/rating', 'storefront.rate'),
       publicRoute('POST', '/orders/cancel', 'storefront.cancel'),
       publicRoute('POST', '/orders/lookup', 'storefront.lookup'),
       // O11 step 2: customer OTP sign-in (email only until O13) and logout. The controller
@@ -286,6 +288,23 @@ export default {
       // Sales report (screens V4): ledger revenue + sold-order grouping by business date.
       adminRoute('GET', '/reports/sales', 'reports.sales', 'report.read'),
       // O15 "Lịch sử thay đổi" — scope filtered in the service; export needs both actions.
+      // O8 "Khuyến mãi" (screens K1–K4). Literal segments precede `/:id` routes.
+      adminRoute('GET', '/promotions', 'promotions.list', 'promotion.manage'),
+      adminRoute('POST', '/promotions', 'promotions.create', 'promotion.manage'),
+      adminRoute('GET', '/promotions/targets', 'promotions.targets', 'promotion.manage'),
+      adminRoute('GET', '/promotions/:id', 'promotions.get', 'promotion.manage'),
+      adminRoute('PUT', '/promotions/:id', 'promotions.update', 'promotion.manage'),
+      adminRoute('POST', '/promotions/:id/active', 'promotions.setActive', 'promotion.manage'),
+      adminRoute('GET', '/promotions/:id/codes/export', 'promotions.exportCodes', 'promotion.manage', 'export'),
+      adminRoute('GET', '/promotions/:id/codes', 'promotions.codes', 'promotion.manage'),
+      adminRoute('POST', '/promotions/:id/codes', 'promotions.addCodes', 'promotion.manage'),
+      adminRoute('GET', '/promotions/:id/redemptions', 'promotions.redemptions', 'promotion.manage'),
+      adminRoute('POST', '/promotion-codes/:id/active', 'promotions.codeActive', 'promotion.manage'),
+      // O8 "Đánh giá" (screens R1–R2): reading follows order scope, changes need `rating.manage`.
+      adminRoute('GET', '/ratings', 'ratings.list', 'order.read'),
+      adminRoute('GET', '/ratings/:id', 'ratings.detail', 'order.read'),
+      adminRoute('POST', '/ratings/:id/hide', 'ratings.hide', 'order.read', 'rating.manage'),
+      adminRoute('POST', '/ratings/:id/note', 'ratings.note', 'order.read', 'rating.manage'),
       adminRoute('GET', '/audit-log', 'audit-log.list', 'audit.read'),
       adminRoute('GET', '/audit-log/actors', 'audit-log.actors', 'audit.read'),
       adminRoute('GET', '/audit-log/export', 'audit-log.exportCsv', 'audit.read', 'export'),

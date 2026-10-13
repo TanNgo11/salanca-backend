@@ -2,6 +2,11 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
+2026-10-13: **O11 tích hợp O8** — `feat/ordering-o11` merge `feat/ordering` (O7, O8, O10, O15), review fix OTP
+đồng thời, scope hàng đợi NĐ13, khách vãng lai; xóa dữ liệu khách xóa luôn ghi chú đánh giá, giữ
+`customerKey` của lượt khuyến mãi (lý do trong Completion record O11). Gate targeted: lint, typecheck, vitest
+632, `build:ordering`, `strapi build`, 35 script PASS. `promotionCode` trong giỏ để đợt sau. Chưa UAT giao diện.
+
 2026-10-14: **Ordering O11 (khách hàng, giỏ server, quyền dữ liệu NĐ13) — implemented + automated verification passed, chờ manual UAT** trên
 `feat/ordering-o11` (tách từ `feat/ordering`; chưa merge/push). 7 commit `0a32a0b`…`3e7cc0c` theo
 [`phases/phase-ordering-11-customers-cart.md`](phases/phase-ordering-11-customers-cart.md) +
@@ -24,6 +29,16 @@ Gate: lint, typecheck, test 166 file / 1222, `strapi build` (server + admin), **
 61/61 hai lượt liên tiếp**, `ordering:openapi` regen (78 paths) — chi tiết Completion record trong
 plan. **Open:** manual UAT browser (checklist trong plan); merge về `feat/ordering` theo quyết định
 chủ dự án.
+
+2026-10-13: **Ordering O8 (khuyến mãi, đánh giá đơn) — targeted gates** trên `feat/ordering-o8`. Mã giảm giá
+(một mã / sinh hàng loạt), khuyến mãi tự động, miễn phí/giảm phí giao, giảm theo món/danh mục, giới hạn tổng /
+mỗi mã / mỗi khách, đơn đầu, chọn phương án giảm nhiều nhất; giữ lượt dưới khóa (`promotion-race.mjs` 2 process),
+trả lượt khi hủy, sửa đơn giữ khuyến mãi. Quote **không nhận số điện thoại** (khuyến mãi theo số ở
+`pendingPromotions`, quyết ở create). Đánh giá 1–5 sao theo token đơn, email mời 60 phút sau hoàn tất, alert
+`low-rating` (≤ 2★), xóa ghi chú sau 365 ngày. Màn K1–K4, R1–R2, thêm vào chi tiết đơn, báo cáo, cài đặt, tạo đơn
+hộ. Sửa luôn `Dialog.Title` không tồn tại ở 3 dialog cũ và 4 route O7 thiếu trong OpenAPI. Gate: lint, typecheck,
+vitest 620, `build:ordering`, `strapi build`, 5 script mới + 29 script bị ảnh hưởng PASS (danh sách trong Completion record). Chưa UAT giao diện. Plan + Completion record:
+[`plans/ordering-o8-promotions-rating.md`](plans/ordering-o8-promotions-rating.md).
 
 2026-10-13: **Ordering O7 (giờ đặc biệt, giới hạn phần mỗi ngày, sửa đơn, trang người giao) — automated gate** trên
 `feat/ordering-o7`, đã merge vào `feat/ordering` (`f7e8da4`). Review fix `faefa33`: trang người giao lọc ngày/trạng thái

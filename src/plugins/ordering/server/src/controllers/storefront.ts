@@ -17,7 +17,15 @@ import type storefrontFactory from '../services/storefront';
 import type { HttpCtx } from './http';
 import { sendError, text } from './http';
 import { sessionFor } from './customer-auth';
-import { clientIpOf, rateLimited } from './storefront-guard';
+import {
+  clientIpOf,
+  isWrongPromotionCode,
+  notePromotionCodeFailure,
+  PROMOTION_CAPTCHA_AFTER,
+  promotionCodeFailureCount,
+  promotionCodeLimit,
+  rateLimited,
+} from './storefront-guard';
 
 type BranchService = ReturnType<typeof branchFactory>;
 type StorefrontService = ReturnType<typeof storefrontFactory>;
@@ -33,6 +41,8 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
   const branches = () => strapi.plugin('ordering').service('branch') as BranchService;
   const storefront = () => strapi.plugin('ordering').service('storefront') as StorefrontService;
   const config = () => strapi.config.get('plugin::ordering') as OrderingConfig;
+  const ratings = () =>
+    strapi.plugin('ordering').service('rating') as ReturnType<typeof import('../services/rating').default>;
 
   const customerCtx = (): ServiceContext => ({
     actor: { kind: 'customer' },
@@ -109,7 +119,30 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     /** POST /quote */
     quote: action('quote', async (ctx, serviceCtx) => {
       const cart = parseCartRequest(ctx.request.body);
-      return storefront()
+      // No phone on the quote: promotion outcomes that depend on a number's history are decided
+      // at create (captcha-gated), so the quote cannot be used to probe whether a number ordered.
+      const body = (ctx.request.body ?? {}) as { captchaToken?: unknown };
+      const ip = clientIpOf(strapi, ctx);
+      const codeLimit = promotionCodeLimit(strapi);
+      const tooMany = () => {
+        ctx.status = 429;
+        ctx.body = {
+          error: { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' },
+        };
+        return undefined;
+      };
+      if (cart.promotionCode) {
+        const failures = promotionCodeFailureCount(ip);
+        if (failures >= codeLimit.max) return tooMany();
+        if (failures >= PROMOTION_CAPTCHA_AFTER) {
+          await verifyCaptcha(
+            ctx,
+            typeof body.captchaToken === 'string' ? body.captchaToken : undefined,
+            'order-create',
+          );
+        }
+      }
+      const quoted = await storefront()
         .orders()
         .quote(
           {
@@ -120,6 +153,11 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
           },
           serviceCtx,
         );
+      const rejected = (quoted as { rejectedPromotions?: Array<{ reason: string }> }).rejectedPromotions ?? [];
+      if (cart.promotionCode && rejected.some((row) => isWrongPromotionCode(row.reason))) {
+        if (notePromotionCodeFailure(ip, codeLimit.windowMs) >= codeLimit.max) return tooMany();
+      }
+      return quoted;
     }),
 
     /** POST /orders — Idempotency-Key header + captcha; returns the token once (and on replay). */
@@ -168,6 +206,14 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       await verifyCaptcha(ctx, typeof input.captchaToken === 'string' ? input.captchaToken : undefined, 'order-lookup');
       return { order: await storefront().lookup({ code, phone }) };
     }),
+
+    /** GET /orders/rating — X-Order-Token (O8). */
+    rating: action('rating', async (ctx, serviceCtx) => ratings().viewByToken(orderToken(ctx), serviceCtx)),
+
+    /** POST /orders/rating — `{ stars, tags?, comment? }` + X-Order-Token (O8). */
+    rate: action('rating', async (ctx, serviceCtx) =>
+      ratings().submitByToken(orderToken(ctx), ctx.request.body, serviceCtx),
+    ),
 
     /** POST /orders/cancel — X-Order-Token; only while customer-cancellable. */
     cancel: action('create', async (ctx, serviceCtx) => {

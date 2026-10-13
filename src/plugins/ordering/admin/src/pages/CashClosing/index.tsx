@@ -438,9 +438,7 @@ const CashClosingPage = () => {
 
       <Dialog.Root open={confirming !== null} onOpenChange={(open: boolean) => !open && setConfirming(null)}>
         <Dialog.Content>
-          <Dialog.Header>
-            <Dialog.Title>{t('cash.action.close')}</Dialog.Title>
-          </Dialog.Header>
+          <Dialog.Header>{t('cash.action.close')}</Dialog.Header>
           <Dialog.Body>
             <Typography>{t('cash.confirm')}</Typography>
           </Dialog.Body>

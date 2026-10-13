@@ -76,6 +76,8 @@ export const configSchema = z.object({
     otpDays: z.number().int().positive(),
     sessionDays: z.number().int().positive(),
     cartDays: z.number().int().positive(),
+    /** Rating comments older than this are cleared; the stars stay. */
+    ratingCommentDays: z.number().int().positive(),
     batchSize: z.number().int().positive(),
     maxBatchesPerRun: z.number().int().positive(),
   }),
@@ -135,6 +137,8 @@ export const configSchema = z.object({
       /** O11: /auth/* (OTP request+verify) and /carts* mutating routes. */
       auth: rateWindow,
       cart: rateWindow,
+      promotionCode: rateWindow,
+      rating: rateWindow,
     }),
   }),
   /** O11: customer accounts — OTP sign-in, sessions, profile. */
@@ -260,6 +264,7 @@ export default {
       otpDays: 7,
       sessionDays: 30,
       cartDays: 30,
+      ratingCommentDays: 365,
       batchSize: 500,
       maxBatchesPerRun: 20,
     },
@@ -287,6 +292,8 @@ export default {
         lookupPerCode: { max: 5, windowMs: 900_000 },
         auth: { max: 10, windowMs: 3_600_000 },
         cart: { max: 120, windowMs: 60_000 },
+        promotionCode: { max: 20, windowMs: 600_000 },
+        rating: { max: 30, windowMs: 600_000 },
       },
     },
     customers: {

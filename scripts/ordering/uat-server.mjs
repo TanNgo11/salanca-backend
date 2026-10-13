@@ -1,12 +1,12 @@
-// Manual UAT server for this O7 worktree. Defaults: port 1352, database
-// salanca_ordering_o7_uat. Never salanca_ordering_uat (O6), salanca_ordering_test,
+// Manual UAT server for this O8 worktree. Defaults: port 1355, database
+// salanca_ordering_o8_uat. Never salanca_ordering_uat (O6), salanca_ordering_test,
 // salanca_cms, or production. Resets the plugin tables, seeds two branches (24/7 pickup,
 // short lead time), a small real catalog and staff, then keeps Strapi running until Ctrl+C.
 // Q1 stays cash pay-on-pickup and also delivers inside the test commune catalog
 // (XT01001–XT01003). Q3 is pickup prepay with the test SePay provider. Emails are captured
 // in memory (test builtins), captcha accepts the token "pass". Real SePay transfers are not
 // seeded. run-all truncates ORDERING_TEST_DATABASE (this worktree's gate uses
-// salanca_ordering_o7), so this server stays on its own database.
+// salanca_ordering_o8), so this server stays on its own database.
 //
 // O6 extras seed the ops screens: today's cash collections across two collectors plus a
 // partial cash refund (Chốt tiền), two 01:30 orders landing on yesterday's business date
@@ -17,12 +17,15 @@
 // one order left in preparing (Sửa đơn), and giao-phone (order.process + payment.record-cash
 // only) with one delivery assigned today. Test accounts print at boot; the shared password
 // only lands in UAT_CRED_FILE when that env var points somewhere outside the repo.
+// O8 extras: code promotion GIAM10 (10% up to 30.000đ, one use per phone) with 20 single-use
+// TET codes, an automatic free delivery from 200.000đ, a first-order 15.000đ off, one completed
+// order rated 2★ (opens low-rating) and one completed order with an email, not rated yet.
 import { randomUUID } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { hostname } from 'node:os';
 
-process.env.PORT = process.env.UAT_PORT ?? '1352';
-process.env.ORDERING_TEST_DATABASE ??= 'salanca_ordering_o7_uat';
+process.env.PORT = process.env.UAT_PORT ?? '1355';
+process.env.ORDERING_TEST_DATABASE ??= 'salanca_ordering_o8_uat';
 const { bootOrderingTestApp, resetOrderingTables, seedBranches, systemCtx, TEST_DATABASE, ORDERING_ACTIONS } =
   await import('./_harness.mjs');
 const app = await bootOrderingTestApp();
@@ -121,7 +124,7 @@ const product = async (name, category, amount) => {
 };
 const bunBo = await product({ vi: 'Bún bò Huế', en: 'Hue beef noodle' }, mains, 100000);
 await product({ vi: 'Combo trưa 1 người', en: 'Lunch combo' }, mains, 99000);
-await product({ vi: 'Trà đào cam sả', en: 'Peach tea' }, drinks, 45000);
+const traDao = await product({ vi: 'Trà đào cam sả', en: 'Peach tea' }, drinks, 45000);
 const topping = await doc('catalog-modifier-group').create({ data: { name: { vi: 'Topping', en: 'Toppings' }, selectionType: 'multiple', rank: 0 } });
 await doc('catalog-modifier').create({ data: { name: { vi: 'Chả cua', en: 'Crab cake' }, priceDelta: 15000, group: topping.documentId, rank: 0 } });
 await doc('catalog-product').update({
@@ -134,6 +137,7 @@ const role = await app.admin.services.role.create({ name: `UAT ordering ${random
 const actions = [
   'order.read', 'order.process', 'order.cancel', 'order.create', 'order.edit-lines', 'order.edit', 'payment.record-cash',
   'payment.review', 'refund.manage', 'settings.manage', 'scope.manage', 'catalog.toggle-availability',
+  'promotion.manage', 'rating.manage', 'report.read', 'export',
 ];
 await app.admin.services.role.assignPermissions(
   role.id,
@@ -394,6 +398,46 @@ await adminOrders.transition(
   { to: 'out-for-delivery', assigneeRef: `admin:${phoneUser.id}` },
   lanCtx,
 );
+
+// ── O8 UAT extras ──────────────────────────────────────────────────────────────
+// Seeded after every fixture order so the promotions do not change their totals. The rated
+// orders use trà đào: bún bò is capped by the O7 daily limit above.
+const promoAdmin = ordering.service('promotion-admin');
+const promoBase = {
+  target: { kind: 'order', refs: [] },
+  minSubtotal: 0,
+  receiveKinds: ['pickup', 'delivery'],
+  startsAt: new Date(Date.now() - 60_000).toISOString(),
+  active: true,
+};
+const giam10 = await promoAdmin.create(
+  { ...promoBase, name: { vi: 'Giảm 10%', en: '10% off' }, kind: 'code', discountType: 'percent', value: 10, maxDiscount: 30000, perCustomerLimit: 1, code: 'GIAM10' },
+  lanCtx,
+);
+await promoAdmin.addCodes(giam10.promotion.id, { generate: { count: 20, prefix: 'TET', length: 8, batch: 'UAT' } }, lanCtx);
+await promoAdmin.create(
+  { ...promoBase, name: { vi: 'Miễn phí giao đơn từ 200.000đ', en: 'Free delivery from 200,000đ' }, kind: 'auto', discountType: 'free-delivery', minSubtotal: 200000, receiveKinds: ['delivery'], stackable: true },
+  lanCtx,
+);
+await promoAdmin.create(
+  { ...promoBase, name: { vi: 'Đơn đầu giảm 15.000đ', en: '15,000đ off a first order' }, kind: 'auto', discountType: 'amount', value: 15000, firstOrderOnly: true, stackable: true },
+  lanCtx,
+);
+const completeTea = async (phone, email) => {
+  const placed = await orders.createOrder(
+    input({ lines: [{ sellableUid: traDao.documentId, quantity: 2 }], contact: { name: 'Khách UAT', phone, ...(email ? { email } : {}) } }),
+    systemCtx,
+  );
+  await advance(placed.order.order.id, placed.order.groups[0].id, ['preparing', 'ready']);
+  await adminOrders.cashHandover(placed.order.order.id, {}, lanCtx);
+  return placed;
+};
+const ratedLow = await completeTea('+84900000201');
+await ordering
+  .service('rating')
+  .submitByToken(ratedLow.publicToken, { stars: 2, tags: ['late'], comment: 'Trà hơi nhạt, chờ lâu' }, systemCtx);
+const toRate = await completeTea('+84900000202', 'rate-me@example.invalid');
+console.log(`[ordering-uat] O8: rated 2★ ${ratedLow.order.order.code}; unrated completed ${toRate.order.order.code}`);
 
 // Credentials stay in a local file outside the repo; never printed.
 const credFile = process.env.UAT_CRED_FILE;

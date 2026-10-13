@@ -12,6 +12,7 @@ export const AUDIT_CATEGORIES = [
   'config',
   'access',
   'ops',
+  'promotion',
   'other',
 ] as const;
 export type AuditCategory = (typeof AUDIT_CATEGORIES)[number];
@@ -79,6 +80,16 @@ export const AUDIT_ACTIONS: Record<string, ActionDef> = {
   'order.complete': { category: 'order', label: ['Hoàn tất đơn', 'Complete order'] },
   'order.line-cancel': { category: 'order', label: ['Hủy bớt món', 'Cancel line items'] },
   'order.edit': { category: 'order', label: ['Sửa đơn', 'Edit order'] },
+  'rating.hide': { category: 'order', label: ['Ẩn/hiện đánh giá', 'Hide or show rating'] },
+  'rating.note': { category: 'order', label: ['Ghi chú đánh giá', 'Rating note'] },
+  // O8: own category — campaigns change prices for every new order, apart from config.
+  'promotion.create': { category: 'promotion', label: ['Tạo khuyến mãi', 'Create promotion'] },
+  'promotion.update': { category: 'promotion', label: ['Sửa khuyến mãi', 'Update promotion'] },
+  'promotion.active': { category: 'promotion', label: ['Bật/tắt khuyến mãi', 'Switch promotion'] },
+  'promotion.code-create': { category: 'promotion', label: ['Thêm mã khuyến mãi', 'Add promotion code'] },
+  'promotion.codes-generate': { category: 'promotion', label: ['Sinh mã hàng loạt', 'Generate codes'] },
+  'promotion.code-active': { category: 'promotion', label: ['Bật/tắt mã khuyến mãi', 'Switch promotion code'] },
+  'promotion.codes-export': { category: 'promotion', label: ['Xuất mã khuyến mãi', 'Export promotion codes'] },
   'order.confirm-draft': {
     category: 'order',
     label: ['Xác nhận đơn hộ khách', 'Confirm phone order'],

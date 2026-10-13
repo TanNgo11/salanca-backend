@@ -139,6 +139,7 @@ const cartBody = obj(
     lines: arr(cartLine),
     adjustments: arr(obj({ kind: str, code: str, label: str, amount: num })),
     note: str,
+    promotionCode: { ...str, description: 'O8: customer-entered code; the server decides the discount' },
   },
   ['locationRef', 'receiveMethod', 'lines'],
 );
@@ -174,13 +175,22 @@ export const OPERATIONS: Operation[] = [
     ],
   }),
   pub('post', '/quote', 'Orders', 'Price a cart without creating an order', {
-    requestBody: cartBody,
+    requestBody: obj(
+      {
+        ...((cartBody.properties ?? {}) as Record<string, JsonSchema>),
+        captchaToken: { ...str, description: 'Required with a promotionCode after 3 wrong codes from this IP' },
+      },
+      ['locationRef', 'receiveMethod', 'lines'],
+    ),
     response: obj({
       subtotal: money,
       total: money,
       fulfillmentAmount: money,
       discounts: arr(generic),
       lines: arr(generic),
+      promotions: arr(obj({ code: str, label: str, amount: money, target: str })),
+      rejectedPromotions: arr(obj({ code: str, reason: str })),
+      pendingPromotions: arr(obj({ code: str, label: str, condition: { ...str, enum: ['first-order', 'per-customer'] } })),
     }),
   }),
   pub('post', '/orders', 'Orders', 'Create an order (idempotent)', {
@@ -216,6 +226,15 @@ export const OPERATIONS: Operation[] = [
   pub('get', '/orders/payment', 'Orders', 'Payment state and QR payload by token', {
     parameters: [orderToken],
     response: obj({ payment: generic }),
+  }),
+  pub('get', '/orders/rating', 'Ratings', 'Whether the order can be rated, the tags and the current rating', {
+    parameters: [orderToken],
+    response: obj({ rateable: bool, reason: str, tags: arr(obj({ code: str, label: str, sentiment: str })), rating: generic }),
+  }),
+  pub('post', '/orders/rating', 'Ratings', 'Rate a completed order (edit until editableUntil)', {
+    parameters: [orderToken],
+    requestBody: obj({ stars: int, tags: arr(str), comment: str }, ['stars']),
+    response: obj({ rating: generic }),
   }),
   pub('post', '/orders/cancel', 'Orders', 'Cancel an order while it is customer-cancellable', {
     parameters: [orderToken],
@@ -700,6 +719,85 @@ export const OPERATIONS: Operation[] = [
   ),
 
   // ── Admin: editable email templates (O10 X4) ───────────────────────────────
+  // O7 ops extras (documented with O8: O7 predates the O10 OpenAPI gate).
+  adm('put', '/availability/daily-limit', 'Catalog', 'Set or clear a per-branch daily portion limit', ['catalog.toggle-availability'], {
+    requestBody: obj({ locationRef: str, entityType: str, entityDocumentId: str, dailyLimit: int }),
+  }),
+  adm('get', '/courier/deliveries', 'Deliveries', "Courier phone page: today's deliveries assigned to me", ['order.process'], {
+    parameters: [{ name: 'view', in: 'query', schema: str, description: 'active | done' }],
+  }),
+  adm('post', '/orders/:id/edit/preview', 'Orders', 'Price a staff edit without saving it', ['order.edit'], {
+    parameters: [pathParam('id')],
+    requestBody: generic,
+  }),
+  adm('post', '/orders/:id/edit', 'Orders', 'Apply a staff edit (lines, time, address)', ['order.edit'], {
+    parameters: [pathParam('id')],
+    requestBody: generic,
+  }),
+  // O8 promotions (screens K1–K4) and ratings (R1–R2).
+  adm('get', '/promotions', 'Promotions', 'List with running/scheduled/off/expired tabs and search', ['promotion.manage'], {
+    parameters: [
+      { name: 'status', in: 'query', schema: str },
+      { name: 'kind', in: 'query', schema: str },
+      { name: 'q', in: 'query', schema: str },
+      { name: 'page', in: 'query', schema: int },
+    ],
+  }),
+  adm('post', '/promotions', 'Promotions', 'Create a promotion (optional first `code`)', ['promotion.manage'], {
+    requestBody: generic,
+  }),
+  adm('get', '/promotions/targets', 'Promotions', 'Branches, products and categories for the picker', ['promotion.manage']),
+  adm('get', '/promotions/:id', 'Promotions', 'One promotion with stats', ['promotion.manage'], {
+    parameters: [pathParam('id')],
+  }),
+  adm('put', '/promotions/:id', 'Promotions', 'Update conditions (kind and usedCount never change)', ['promotion.manage'], {
+    parameters: [pathParam('id')],
+    requestBody: generic,
+  }),
+  adm('post', '/promotions/:id/active', 'Promotions', 'Switch on/off', ['promotion.manage'], {
+    parameters: [pathParam('id')],
+    requestBody: obj({ active: bool }, ['active']),
+  }),
+  adm('get', '/promotions/:id/codes/export', 'Promotions', 'Codes as CSV (BOM)', ['promotion.manage', 'export'], {
+    parameters: [pathParam('id')],
+  }),
+  adm('get', '/promotions/:id/codes', 'Promotions', 'Codes page', ['promotion.manage'], {
+    parameters: [pathParam('id'), { name: 'q', in: 'query', schema: str }, { name: 'page', in: 'query', schema: int }],
+  }),
+  adm('post', '/promotions/:id/codes', 'Promotions', 'Add one code or generate up to 5000', ['promotion.manage'], {
+    parameters: [pathParam('id')],
+    requestBody: obj({
+      code: str,
+      usageLimit: int,
+      generate: obj({ count: int, prefix: str, length: int, usageLimit: int, batch: str }),
+    }),
+    response: obj({ generated: int, batch: str }),
+  }),
+  adm('get', '/promotions/:id/redemptions', 'Promotions', 'Orders that used the promotion', ['promotion.manage'], {
+    parameters: [pathParam('id'), { name: 'page', in: 'query', schema: int }],
+  }),
+  adm('post', '/promotion-codes/:id/active', 'Promotions', 'Switch one code on/off', ['promotion.manage'], {
+    parameters: [pathParam('id')],
+    requestBody: obj({ active: bool }, ['active']),
+  }),
+  adm('get', '/ratings', 'Ratings', 'Ratings in scope with summary', ['order.read'], {
+    parameters: ['branch', 'stars', 'from', 'to', 'hasComment', 'status', 'page'].map((name) => ({
+      name,
+      in: 'query' as const,
+      schema: str,
+    })),
+  }),
+  adm('get', '/ratings/:id', 'Ratings', 'One rating with the order summary', ['order.read'], {
+    parameters: [pathParam('id')],
+  }),
+  adm('post', '/ratings/:id/hide', 'Ratings', 'Hide or show a rating', ['order.read', 'rating.manage'], {
+    parameters: [pathParam('id')],
+    requestBody: obj({ hidden: bool }),
+  }),
+  adm('post', '/ratings/:id/note', 'Ratings', 'Internal note (never sent to the customer)', ['order.read', 'rating.manage'], {
+    parameters: [pathParam('id')],
+    requestBody: obj({ note: str }),
+  }),
   adm('get', '/notification-templates', 'Email templates', 'All codes × locales with customized flags', [
     'settings.manage',
   ]),

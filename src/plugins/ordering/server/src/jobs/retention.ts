@@ -10,6 +10,8 @@ type RetentionResult = {
   outboxDeleted: number;
   alertsDeleted: number;
   webhookDeliveriesDeleted: number;
+  /** O8: rating comments cleared after `ratingCommentDays` (the stars stay). */
+  ratingCommentsCleared: number;
   batches: number;
 };
 
@@ -116,6 +118,22 @@ export const runRetention = async (
         .update({ payload: null });
 
       // ── Resolved alerts past their window ──────────────────────────────────────
+      let ratingCommentsCleared = 0;
+      const ratingCutoff = daysAgo(now, config.ratingCommentDays);
+      for (let batch = 0; batch < config.maxBatchesPerRun; batch += 1) {
+        const ids = (await knex('plugins_ordering_order_rating')
+          .whereNotNull('comment')
+          .where('rated_at', '<', ratingCutoff)
+          .orderBy('id')
+          .limit(config.batchSize)
+          .select('id')) as Array<{ id: number }>;
+        if (ids.length === 0) break;
+        batches += 1;
+        ratingCommentsCleared += await knex('plugins_ordering_order_rating')
+          .whereIn('id', ids.map((row) => row.id))
+          .update({ comment: null });
+      }
+
       const alertCutoff = daysAgo(now, config.alertResolvedDays);
       for (let batch = 0; batch < config.maxBatchesPerRun; batch += 1) {
         const ids = (await knex('plugins_ordering_ops_alert')
@@ -132,13 +150,21 @@ export const runRetention = async (
       }
 
       strapi.log.info(
-        `[ordering] retention redacted=${redacted} outboxDeleted=${outboxDeleted} alertsDeleted=${alertsDeleted} webhookDeliveriesDeleted=${webhookDeliveriesDeleted} batches=${batches}`,
+        `[ordering] retention redacted=${redacted} outboxDeleted=${outboxDeleted} alertsDeleted=${alertsDeleted} webhookDeliveriesDeleted=${webhookDeliveriesDeleted} ratingCommentsCleared=${ratingCommentsCleared} batches=${batches}`,
       );
-      return { redacted, outboxDeleted, alertsDeleted, webhookDeliveriesDeleted, batches };
+      return { redacted, outboxDeleted, alertsDeleted, webhookDeliveriesDeleted, ratingCommentsCleared, batches };
     },
   );
 
   return outcome.ran
     ? { ran: true, ...(outcome.result as Omit<RetentionResult, 'ran'>) }
-    : { ran: false, redacted: 0, outboxDeleted: 0, alertsDeleted: 0, webhookDeliveriesDeleted: 0, batches: 0 };
+    : {
+        ran: false,
+        redacted: 0,
+        outboxDeleted: 0,
+        alertsDeleted: 0,
+        webhookDeliveriesDeleted: 0,
+        ratingCommentsCleared: 0,
+        batches: 0,
+      };
 };

@@ -496,11 +496,8 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
                 ...(line.note ? { note: line.note } : {}),
               })),
               receiveMethod: row.receiveMethod as never,
-              contact: {
-                name: row.contact?.name,
-                phone: row.contact?.phone ?? '',
-                ...(row.contact?.email ? { email: row.contact.email } : {}),
-              },
+              // Public cart quotes do not consult a phone's order history (O8).
+              contact: { phone: '' },
               consent: { policyVersion: config().consent.policyVersion, channel: 'web-checkout' },
               origin: { kind: 'storefront' },
               ...(row.pickup ? { pickup: row.pickup as never } : {}),
@@ -683,11 +680,7 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
                 ...(line.note ? { note: line.note } : {}),
               })),
               receiveMethod: aggregate.order.receiveMethod as never,
-              contact: {
-                name: orderContact.name,
-                phone: orderContact.phone ?? '',
-                ...(orderContact.email ? { email: orderContact.email } : {}),
-              },
+              contact: { phone: '' },
               consent: { policyVersion: config().consent.policyVersion, channel: 'web-checkout' },
               origin: { kind: 'storefront' },
             },

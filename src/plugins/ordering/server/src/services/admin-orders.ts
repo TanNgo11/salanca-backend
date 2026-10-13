@@ -616,7 +616,13 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
           code: adjustment.code,
           label: adjustment.label,
           amount: adjustment.amount,
+          // O8: `promotion:<id>` marks a promotion line in the money block.
+          sourceRef: adjustment.sourceRef ?? null,
         })),
+        // O8: the customer's rating, shown on S4 (the order is already scope-checked here).
+        rating: await (
+          strapi.plugin('ordering').service('rating') as ReturnType<typeof import('./rating').default>
+        ).forOrder(aggregate.order.id),
         totals: {
           currency: aggregate.order.currency,
           subtotal: aggregate.order.subtotalAmount,

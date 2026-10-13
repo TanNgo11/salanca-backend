@@ -105,6 +105,29 @@ withApp(async (app) => {
     const keptFailed = await delivery('failed', 40);
     const keptPending = await delivery('pending', 200);
 
+    // O8: rating comments clear after ratingCommentDays (365); the stars stay.
+    const rating = async (days, orderId) => {
+      const [row] = await knex('plugins_ordering_order_rating')
+        .insert({
+          order_id: orderId,
+          location_ref: 'Q1',
+          stars: 4,
+          tags: JSON.stringify(['tasty']),
+          comment: 'Ngon, giao nhanh',
+          message_locale: 'vi',
+          status: 'visible',
+          rated_at: daysAgo(days),
+          editable_until: daysAgo(days - 1),
+          document_id: `r${Math.random().toString(36).slice(2, 12)}`,
+          created_at: daysAgo(days),
+          updated_at: daysAgo(days),
+        })
+        .returning('id');
+      return Number(row.id ?? row);
+    };
+    const oldRating = await rating(400, 990001);
+    const freshRating = await rating(30, 990002);
+
     const first = await runRetention(app, { owner, now: NOW });
     assert.equal(first.ran, true, 'first run must acquire the lock');
     assert.equal(first.redacted, 1, 'only the past-window payload redacts');
@@ -117,6 +140,12 @@ withApp(async (app) => {
     assert.equal(first.outboxDeleted, 2, 'old delivered + old failed rows go');
     assert.equal(first.alertsDeleted, 1, 'only the resolved-alert past window goes');
     assert.equal(first.webhookDeliveriesDeleted, 2, 'old succeeded + old failed deliveries go');
+    assert.equal(first.ratingCommentsCleared, 1, 'only the rating past ratingCommentDays loses its comment');
+    const ratings = await knex('plugins_ordering_order_rating').whereIn('id', [oldRating, freshRating]).select('id', 'comment', 'stars');
+    const ratingById = new Map(ratings.map((row) => [Number(row.id), row]));
+    assert.equal(ratingById.get(oldRating).comment, null);
+    assert.equal(ratingById.get(oldRating).stars, 4, 'stars stay for reports');
+    assert.equal(ratingById.get(freshRating).comment, 'Ngon, giao nhanh');
     const left = (await knex('plugins_ordering_webhook_delivery').select('id')).map((row) => Number(row.id));
     for (const id of [keptSucceeded, keptFailed, keptPending]) {
       assert.ok(left.includes(Number(id)), `delivery ${id} inside its window (or pending) stays`);

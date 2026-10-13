@@ -94,6 +94,7 @@ const dataRights = ({ strapi }: { strapi: Core.Strapi }) => {
   const orders = () => strapi.db.query('plugin::ordering.order');
   const fulfillments = () => strapi.db.query('plugin::ordering.fulfillment');
   const events = () => strapi.db.query('plugin::ordering.order-event');
+  const ratings = () => strapi.db.query('plugin::ordering.order-rating');
   const carts = () => strapi.db.query('plugin::ordering.cart');
   const sessions = () => strapi.db.query('plugin::ordering.customer-session');
   const otps = () => strapi.db.query('plugin::ordering.customer-otp');
@@ -163,41 +164,52 @@ const dataRights = ({ strapi }: { strapi: Core.Strapi }) => {
 
   /** Anonymizes one closed order. Re-running writes the same values — safe under the job. */
   const anonymizeOrder = async (order: OrderHead, phoneHash: string | null) => {
-    await orders().update({
-      where: { id: order.id },
-      data: {
-        contactSnapshot: {
-          name: ANONYMIZED_NAME,
-          phone: null,
-          ...(phoneHash ? { phoneHash } : {}),
+    // Unlink and all dependent scrubs commit together so retries cannot miss a rating.
+    await strapi.db.transaction(async () => {
+      await orders().update({
+        where: { id: order.id },
+        data: {
+          contactSnapshot: {
+            name: ANONYMIZED_NAME,
+            phone: null,
+            ...(phoneHash ? { phoneHash } : {}),
+          },
+          customerNote: null,
+          customerRef: null,
+          receiveMethod: reduceReceiveMethod(order.receiveMethod),
+          customer: null,
         },
-        customerNote: null,
-        customerRef: null,
-        receiveMethod: reduceReceiveMethod(order.receiveMethod),
-        customer: null,
-      },
-    });
-    const rows = (await fulfillments().findMany({
-      where: { order: order.id },
-      select: ['id', 'addressSnapshot'],
-    })) as Array<{ id: number; addressSnapshot: Record<string, unknown> | null }>;
-    for (const row of rows) {
-      if (!row.addressSnapshot) continue;
-      await fulfillments().update({
-        where: { id: row.id },
-        data: { addressSnapshot: reduceAddress(row.addressSnapshot) },
       });
-    }
-    const publicEvents = (await events().findMany({
-      where: { order: order.id, isPublic: true },
-      select: ['id', 'payload'],
-    })) as Array<{ id: number; payload: unknown }>;
-    for (const event of publicEvents) {
-      const scrubbed = scrubPublicPayload(event.payload);
-      if (JSON.stringify(scrubbed) !== JSON.stringify(event.payload)) {
-        await events().update({ where: { id: event.id }, data: { payload: scrubbed } });
+      const rows = (await fulfillments().findMany({
+        where: { order: order.id },
+        select: ['id', 'addressSnapshot'],
+      })) as Array<{ id: number; addressSnapshot: Record<string, unknown> | null }>;
+      for (const row of rows) {
+        if (!row.addressSnapshot) continue;
+        await fulfillments().update({
+          where: { id: row.id },
+          data: { addressSnapshot: reduceAddress(row.addressSnapshot) },
+        });
       }
-    }
+      const publicEvents = (await events().findMany({
+        where: { order: order.id, isPublic: true },
+        select: ['id', 'payload'],
+      })) as Array<{ id: number; payload: unknown }>;
+      for (const event of publicEvents) {
+        const scrubbed = scrubPublicPayload(event.payload);
+        if (JSON.stringify(scrubbed) !== JSON.stringify(event.payload)) {
+          await events().update({ where: { id: event.id }, data: { payload: scrubbed } });
+        }
+      }
+      // O8 rating free text can identify the customer even when the order is anonymous.
+      // Keep stars/tags for reports; clear both the customer comment and internal note.
+      await ratings().updateMany({
+        where: { orderId: order.id },
+        data: { comment: null, staffNote: null, staffNoteBy: null },
+      });
+      // Intentionally retain promotion-redemption.customerKey: the keyed, phone-derived
+      // pseudonym preserves per-customer use limits and the discount ledger after erasure.
+    });
   };
 
   /**

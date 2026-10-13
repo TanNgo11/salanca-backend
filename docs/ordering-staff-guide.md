@@ -249,6 +249,36 @@ pháp lý xác nhận) — yêu cầu đỏ khi quá hạn.
 - Từ trang chi tiết khách (C2) cũng có nút "Tạo yêu cầu xóa" — nút này gửi mã khách, không cần biết
   số thật.
 
+## Khuyến mãi (quản lý — quyền "Quản lý khuyến mãi")
+
+1. **Bán hàng → Khuyến mãi → Tạo khuyến mãi.** Chọn **Mã giảm giá** (khách nhập mã) hoặc **Tự động**
+   (áp cho mọi đơn đủ điều kiện). Loại không đổi được sau khi lưu.
+2. **Giảm gì:** phần trăm (có thể đặt giảm tối đa), số tiền, miễn phí giao, giảm phí giao. Phần trăm và số
+   tiền áp cho cả đơn, món chọn hoặc danh mục chọn (ô tìm không cần dấu).
+3. **Điều kiện:** tạm tính tối thiểu, chi nhánh, cách nhận, chỉ đơn đầu tiên của số điện thoại. **Thời
+   gian:** bắt đầu/kết thúc, ngày trong tuần, tối đa 3 khung giờ theo giờ chi nhánh.
+4. **Giới hạn:** tổng lượt, lượt mỗi khách, cộng dồn với khuyến mãi khác, ưu tiên. Khi nhiều khuyến mãi cùng
+   hợp, hệ thống chọn phương án giảm nhiều nhất cho khách.
+5. **Lưu nháp** (chưa chạy) hoặc **Lưu và bật**. Sửa khuyến mãi chỉ áp cho đơn mới; đơn cũ giữ số giảm.
+6. Tab **Mã**: thêm một mã, hoặc **Sinh hàng loạt** (tối đa 5000, mặc định mỗi mã dùng 1 lần, đặt tên lô).
+   **Xuất CSV** cần thêm quyền xuất. Tắt một mã bằng công tắc trên dòng.
+7. Tab **Thống kê**: số đơn, tổng giảm, doanh thu đơn có khuyến mãi, lượt đang giữ, danh sách đơn đã dùng.
+   Đơn bị hủy trả lại lượt.
+
+Khuyến mãi "đơn đầu" và "mỗi khách N lần" không hiện số giảm lúc báo giá: hệ thống chỉ kiểm theo số
+điện thoại khi lưu đơn, nên tổng thật có thể thấp hơn tổng báo. Tạo đơn hộ khách có ô **Mã khuyến mãi**.
+Sửa đơn (O7) giữ khuyến mãi đã áp và tính lại số giảm trên món còn lại.
+
+## Đánh giá đơn (Bán hàng → Đánh giá)
+
+- Khách đánh giá 1–5 sao, chọn nhãn, ghi chú trong 7 ngày sau khi đơn hoàn tất; sửa được trong 24 giờ.
+  Email mời gửi 60 phút sau khi hoàn tất (đổi ở **Cài đặt bán hàng → Đánh giá**, cùng danh sách nhãn).
+- Đánh giá ≤ 2 sao mở cảnh báo **Khách đánh giá thấp** cho người xem báo cáo của chi nhánh (đổi ngưỡng ở
+  Cảnh báo).
+- Danh sách lọc theo chi nhánh, sao, ngày, có ghi chú, trạng thái. Bấm dòng để xem đầy đủ; người có quyền
+  "Quản lý đánh giá" ẩn/hiện đánh giá và ghi chú nội bộ (không gửi khách). Chi tiết đơn có khối đánh giá;
+  báo cáo có điểm trung bình. Ghi chú của khách tự xóa sau 365 ngày, số sao giữ lại.
+
 ## Giới hạn hiện tại
 
 - Chạy một máy chủ (một instance): báo đơn realtime và giới hạn tần suất nằm trong bộ nhớ của tiến trình.
@@ -265,3 +295,7 @@ Nhân viên theo chi nhánh chỉ tạo, xem, xử lý hoặc từ chối yêu c
 trả về không tìm thấy. Quản lý có quyền toàn bộ chi nhánh vẫn xem được yêu cầu không có hồ sơ và
 lịch sử đã xóa; sau ẩn danh, liên kết đơn với khách bị gỡ nên nhân viên chi nhánh không còn thấy
 những yêu cầu đó trong hàng đợi.
+
+Khi xóa dữ liệu khách, ghi chú đánh giá và ghi chú nội bộ của đánh giá cũng bị xóa; sao và nhãn
+vẫn dùng cho báo cáo. Lịch sử lượt khuyến mãi giữ mã HMAC của số điện thoại để không đặt lại giới
+hạn lượt dùng khi xóa tài khoản; số tiền giảm và sổ đối chiếu giữ nguyên.

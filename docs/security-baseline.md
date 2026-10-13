@@ -190,10 +190,32 @@ nhạy nhất — chỉ cấp cho vai trò quản lý/kế toán.
   không đổi), xóa hồ sơ/địa chỉ/giỏ/phiên/OTP; đơn đang mở → request `waiting`, job
   `data-request-waiting` xử lý khi đơn đóng; idempotent; webhook `customer.erased` chỉ mang
   `customerHash`, không PII.
+  Khi có O8, xóa cả comment và ghi chú nội bộ của đánh giá, giữ số sao/nhãn cho báo cáo.
+  `promotion-redemption.customerKey` được giữ dưới dạng HMAC có khóa để bảo toàn giới hạn lượt
+  theo khách và dữ liệu đối chiếu khuyến mãi; đây là định danh giả, không phải dữ liệu đã mất mọi
+  khả năng liên kết. Lý do và regression được ghi trong Completion record O11.
 - **Giỏ server** (`X-Cart-Token`): token khách vãng lai ngẫu nhiên, lưu SHA-256 — sở hữu giỏ giống
   order token, không lộ trong URL/log. Giá luôn re-quote phía server; `cartHash` chỉ theo dõi nội dung.
 - `X-Customer-Token` và `X-Cart-Token` nằm trong CORS allowlist của `/api/v1/ordering` — không route
   nào chấp nhận token qua query string.
+
+## Ordering promotions and ratings (O8)
+
+- **Code guessing.** Codes are 4–32 characters; generated ones use `crypto.randomInt` over an alphabet
+  without 0/O/1/I/L. Per IP, after 3 wrong codes (unknown, switched off, not started, ended, used up) a
+  quote with a code needs a captcha, and the `rateLimits.promotionCode` limit (20 / 10 min) answers 429.
+  Eligibility misses on a real code are not counted. Create always needs a captcha. Codes are logged by
+  their last 4 characters only (change log, app logs).
+- **No phone-history oracle.** The public quote takes no phone: first-order and per-customer promotions
+  are listed as pending and decided at create, which is captcha-gated and rate-limited, so a stranger
+  cannot ask the quote whether a number has ordered before. A redemption stores
+  `HMAC-SHA256(ORDERING_ENCRYPTION_KEY, phone E.164)`, never the number.
+- **Use limits.** Reservation locks the promotion then the code rows in id order (`FOR UPDATE`) inside the
+  order transaction; `usedCount` has a `CHECK (≥ 0)`; first-order-only is one use per phone under the
+  same lock. `promotion-race.mjs` proves one use goes to exactly one of two processes.
+- **Ratings.** Rated through the order token only; comments (customer text) never reach logs, alerts,
+  webhooks or the change log (staff notes are logged as "changed", not their text) and are cleared after
+  `retention.ratingCommentDays` (365); the stars stay for reports.
 
 ## Form intake rate limiting
 

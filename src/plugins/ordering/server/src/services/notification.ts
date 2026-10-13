@@ -300,6 +300,33 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
       });
     },
 
+    /**
+     * `rating.invite` (O8): sent `ratingInviteDelayMinutes` after the order completed, once, only
+     * while the order is still completed and not yet rated. The link opens the order page on its
+     * rating block (`&rate=1` after the `#t=` token, `#rate` when the template has no fragment).
+     */
+    async onRatingInvite(event: OutboxEvent): Promise<void> {
+      const orderId = Number(event.payload.orderId);
+      const aggregate = await repo.loadOrderAggregate(orderId);
+      if (!aggregate || aggregate.order.status !== 'completed') return;
+      if (!(await settings().get()).ratingInviteEnabled) return;
+      const rated = await strapi.db.query('plugin::ordering.order-rating').count({ where: { orderId } });
+      if (rated > 0) return;
+      const email = customerEmail(aggregate);
+      if (!email) return;
+      const { locale, data } = await baseData(aggregate);
+      const link = data.link ? `${data.link}${data.link.includes('#') ? '&rate=1' : '#rate'}` : undefined;
+      await deliver({
+        event,
+        template: 'customer.rating-invite',
+        email,
+        role: 'customer',
+        orderId,
+        locale,
+        data: { ...data, ...(link ? { link } : {}) },
+      });
+    },
+
     /** `order.edited`: the updated items and total. A balance link replaces the order link. */
     async onOrderEdited(event: OutboxEvent): Promise<void> {
       if (event.payload.notifyCustomer === false) return;

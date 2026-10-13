@@ -4674,6 +4674,7 @@ export interface PluginOrderingOrder extends Struct.CollectionTypeSchema {
     code: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.Unique;
+    completedAt: Schema.Attribute.DateTime;
     consentSnapshot: Schema.Attribute.JSON & Schema.Attribute.Required;
     contactSnapshot: Schema.Attribute.JSON & Schema.Attribute.Required;
     createdAt: Schema.Attribute.DateTime;
@@ -5008,6 +5009,65 @@ export interface PluginOrderingOrderLine extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface PluginOrderingOrderRating extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_order_rating';
+  info: {
+    displayName: '\u0110\u00E1nh gi\u00E1 \u0111\u01A1n';
+    pluralName: 'order-ratings';
+    singularName: 'order-rating';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    comment: Schema.Attribute.Text;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    editableUntil: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.order-rating'
+    > &
+      Schema.Attribute.Private;
+    locationRef: Schema.Attribute.String & Schema.Attribute.Required;
+    messageLocale: Schema.Attribute.String & Schema.Attribute.Required;
+    orderId: Schema.Attribute.Integer & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    ratedAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    staffNote: Schema.Attribute.Text;
+    staffNoteBy: Schema.Attribute.String;
+    stars: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 5;
+          min: 1;
+        },
+        number
+      >;
+    status: Schema.Attribute.Enumeration<['visible', 'hidden']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'visible'>;
+    tags: Schema.Attribute.JSON & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface PluginOrderingOutbox extends Struct.CollectionTypeSchema {
   collectionName: 'plugins_ordering_outbox';
   info: {
@@ -5184,6 +5244,182 @@ export interface PluginOrderingPaymentEvent
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'auto-matched'>;
     transferType: Schema.Attribute.Enumeration<['in', 'out']>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface PluginOrderingPromotion extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_promotion';
+  info: {
+    displayName: 'Khuy\u1EBFn m\u00E3i';
+    pluralName: 'promotions';
+    singularName: 'promotion';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    active: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<true>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    createdByRef: Schema.Attribute.String;
+    discountType: Schema.Attribute.Enumeration<
+      ['percent', 'amount', 'free-delivery', 'delivery-amount']
+    > &
+      Schema.Attribute.Required;
+    endsAt: Schema.Attribute.DateTime;
+    firstOrderOnly: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<false>;
+    internalNote: Schema.Attribute.Text;
+    kind: Schema.Attribute.Enumeration<['code', 'auto']> &
+      Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.promotion'
+    > &
+      Schema.Attribute.Private;
+    locationRefs: Schema.Attribute.JSON;
+    maxDiscount: Schema.Attribute.Integer;
+    minSubtotal: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    name: Schema.Attribute.JSON & Schema.Attribute.Required;
+    perCustomerLimit: Schema.Attribute.Integer;
+    priority: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    publishedAt: Schema.Attribute.DateTime;
+    receiveKinds: Schema.Attribute.JSON & Schema.Attribute.Required;
+    stackable: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<false>;
+    startsAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    target: Schema.Attribute.JSON & Schema.Attribute.Required;
+    timeRanges: Schema.Attribute.JSON & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    usageLimit: Schema.Attribute.Integer;
+    usedCount: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    value: Schema.Attribute.Integer;
+    weekdays: Schema.Attribute.JSON & Schema.Attribute.Required;
+  };
+}
+
+export interface PluginOrderingPromotionCode
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_promotion_code';
+  info: {
+    displayName: 'M\u00E3 khuy\u1EBFn m\u00E3i';
+    pluralName: 'promotion-codes';
+    singularName: 'promotion-code';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    active: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<true>;
+    batch: Schema.Attribute.String;
+    code: Schema.Attribute.String & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.promotion-code'
+    > &
+      Schema.Attribute.Private;
+    promotionId: Schema.Attribute.Integer & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    usageLimit: Schema.Attribute.Integer;
+    usedCount: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+  };
+}
+
+export interface PluginOrderingPromotionRedemption
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_promotion_redemption';
+  info: {
+    displayName: 'L\u01B0\u1EE3t d\u00F9ng khuy\u1EBFn m\u00E3i';
+    pluralName: 'promotion-redemptions';
+    singularName: 'promotion-redemption';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    appliedAt: Schema.Attribute.DateTime;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    customerKey: Schema.Attribute.String & Schema.Attribute.Required;
+    discountAmount: Schema.Attribute.Integer & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.promotion-redemption'
+    > &
+      Schema.Attribute.Private;
+    orderId: Schema.Attribute.Integer & Schema.Attribute.Required;
+    promotionCodeId: Schema.Attribute.Integer;
+    promotionId: Schema.Attribute.Integer & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    releasedAt: Schema.Attribute.DateTime;
+    releaseReason: Schema.Attribute.String;
+    reservedAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    status: Schema.Attribute.Enumeration<['reserved', 'applied', 'released']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'reserved'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -5882,9 +6118,13 @@ declare module '@strapi/strapi' {
       'plugin::ordering.order-event': PluginOrderingOrderEvent;
       'plugin::ordering.order-job-lock': PluginOrderingOrderJobLock;
       'plugin::ordering.order-line': PluginOrderingOrderLine;
+      'plugin::ordering.order-rating': PluginOrderingOrderRating;
       'plugin::ordering.outbox': PluginOrderingOutbox;
       'plugin::ordering.payment': PluginOrderingPayment;
       'plugin::ordering.payment-event': PluginOrderingPaymentEvent;
+      'plugin::ordering.promotion': PluginOrderingPromotion;
+      'plugin::ordering.promotion-code': PluginOrderingPromotionCode;
+      'plugin::ordering.promotion-redemption': PluginOrderingPromotionRedemption;
       'plugin::ordering.refund': PluginOrderingRefund;
       'plugin::ordering.refund-line': PluginOrderingRefundLine;
       'plugin::ordering.staff-location-scope': PluginOrderingStaffLocationScope;

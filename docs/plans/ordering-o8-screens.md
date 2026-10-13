@@ -79,6 +79,17 @@ kế hoạch [`ordering-o8-promotions-rating.md`](ordering-o8-promotions-rating.
 - "Ghi chú nội bộ" (`Textarea`, quyền `rating.manage`, lưu bằng nút) — không gửi khách.
 - Nút "Ẩn đánh giá" / "Hiện lại" (`rating.manage`), ghi change-log.
 
+## Đã đổi khi code O8 (2026-10-13)
+
+- K1 không có cột ProgressBar khi tổng lượt trống ("∞"). Tìm theo tên hoặc mã.
+- K2: chọn ngày giờ bằng ô `datetime-local`, khung giờ bằng ô `time` (tối đa 3); ô chọn món/danh mục lấy từ
+  `GET /promotions/targets` (kèm danh sách chi nhánh). "Loại", "Giảm gì", "Áp cho" là nút bật/tắt, không radio.
+- K3 nút "Xuất CSV" chỉ hiện khi có quyền xuất. K4 lấy số từ adjustment của đơn đã bán (như báo cáo).
+- R2 là `Modal` (không dropdown bên trong). Hai bộ lọc chi nhánh/trạng thái ở R1 là `SingleSelect` ngoài modal.
+- Tạo đơn hộ khách: ô mã + nút "Áp dụng"; khuyến mãi theo số điện thoại hiện là "kiểm khi lưu đơn".
+- Phía khách: quote **không gửi số điện thoại**; khuyến mãi đơn đầu / mỗi khách hiện từ `pendingPromotions`
+  ("Ưu đãi đơn đầu — áp dụng khi đặt nếu đủ điều kiện"), không trừ vào tổng báo giá.
+
 ## Phía khách (OW dùng)
 
 - Checkout: ô "Mã khuyến mãi" + nút Áp dụng → gọi quote; thành công hiện dòng giảm; lỗi theo `reason`:

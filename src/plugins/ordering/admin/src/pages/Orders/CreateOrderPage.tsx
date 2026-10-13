@@ -57,7 +57,14 @@ type CartLine = {
 };
 type StaffBranch = { code: string; name: Record<string, string>; timezone: string; businessDate: string };
 type Slot = { startsAt: string; localStart: string; available: boolean };
-type Quote = { totals: { subtotal: number; adjustmentTotal: number; grandTotal: number }; lines: Array<{ lineTotalAmount: number }> };
+type Quote = {
+  totals: { subtotal: number; adjustmentTotal: number; grandTotal: number };
+  lines: Array<{ lineTotalAmount: number }>;
+  /** O8 */
+  promotions?: Array<{ code: string; label: string; amount: number }>;
+  rejectedPromotions?: Array<{ code: string; reason: string }>;
+  pendingPromotions?: Array<{ code: string; label: string; condition: string }>;
+};
 
 /** Option picker for one product (variants come from the catalog's default variant in O3). */
 const ProductModal = ({ product, onClose, onAdd }: { product: Product; onClose: () => void; onAdd: (line: Omit<CartLine, 'key'>) => void }) => {
@@ -166,6 +173,9 @@ export const CreateOrderPage = () => {
   const [consent, setConsent] = useState(false);
   const [customerNote, setCustomerNote] = useState('');
   const [quote, setQuote] = useState<Quote | null>(null);
+  // O8: the code is applied with a button so typing does not re-quote on every key.
+  const [promoInput, setPromoInput] = useState('');
+  const [promoCode, setPromoCode] = useState('');
   const [quoteError, setQuoteError] = useState<{ message: string; lineIndex?: number } | null>(null);
   const [saving, setSaving] = useState<'draft' | 'confirm' | null>(null);
   const idempotencyKey = useRef(`draft-${crypto.randomUUID()}`);
@@ -210,8 +220,9 @@ export const CreateOrderPage = () => {
         ...(line.note ? { note: line.note } : {}),
       })),
       receiveMethod: { kind: 'pickup', ...(timingMode === 'slot' && slot ? { slot: { startsAt: slot } } : {}) },
+      ...(promoCode ? { promotionCode: promoCode } : {}),
     }),
-    [branch, cart, locale, slot, timingMode],
+    [branch, cart, locale, promoCode, slot, timingMode],
   );
 
   const requote = useCallback(async () => {
@@ -362,9 +373,36 @@ export const CreateOrderPage = () => {
                 {quoteError.message}
               </Alert>
             ) : null}
+            <Flex gap={2} alignItems="flex-end">
+              <Field.Root>
+                <Field.Label>{t('create.promoCode')}</Field.Label>
+                <TextInput
+                  value={promoInput}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => setPromoInput(event.target.value.toUpperCase())}
+                />
+              </Field.Root>
+              <Button variant="secondary" onClick={() => setPromoCode(promoInput.trim())}>
+                {t('create.promoApply')}
+              </Button>
+            </Flex>
+            {quote?.rejectedPromotions?.map((row) => (
+              <Typography key={`${row.code}:${row.reason}`} tag="p" textColor="danger600">
+                {t(`promo.reason.${row.reason}`, { code: row.code }, row.reason)}
+              </Typography>
+            ))}
+            {quote?.pendingPromotions?.map((row) => (
+              <Typography key={row.code} tag="p" textColor="neutral600">
+                {t('create.promoPending', { label: row.label })}
+              </Typography>
+            ))}
             {quote ? (
               <Box>
                 <Typography>{t('detail.subtotal')}: {formatMoney(quote.totals.subtotal)}</Typography>
+                {quote.promotions?.map((promo) => (
+                  <Typography key={promo.code} tag="p">
+                    {`${t('detail.promotion', { code: /^P\d+$/.test(promo.code) ? promo.label : promo.code })}: ${formatMoney(promo.amount)}`}
+                  </Typography>
+                ))}
                 {quote.totals.adjustmentTotal ? <Typography tag="p">{formatMoney(quote.totals.adjustmentTotal)}</Typography> : null}
                 <Typography variant="beta" tag="p">
                   {t('detail.total')}: {formatMoney(quote.totals.grandTotal)}

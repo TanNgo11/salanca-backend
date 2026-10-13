@@ -240,3 +240,47 @@ Triển khai trên branch `feat/ordering-o11`, 7 commit:
   xóa; C3 4 tab + tạo/xử lý/từ chối + hàng quá hạn đỏ; link S4→C2; vai trò thiếu quyền; scope chi
   nhánh bằng mắt.
 - Merge `origin/feat/ordering` vào `feat/ordering-o11`, rồi hợp về `feat/ordering`; push hai branch.
+
+### Review fixes và tích hợp O8 — 2026-10-13
+
+Phạm vi bổ sung được chủ dự án yêu cầu trong phiên review local. Commit local `fdf87ad` giải quyết
+merge O7 đang dở và ba lỗi O11; tiếp tục tích hợp `origin/feat/ordering` tại `1de85e1` (đã có O8).
+Các kết quả lịch sử phía trên không thay thế gate của bản đã tích hợp này.
+
+- OTP: khóa dòng challenge trong transaction PostgreSQL trước khi đọc/kiểm tra. Lần thử sai được
+  commit rồi mới trả lỗi; tiêu thụ mã và tạo phiên thành công cùng transaction. Regression: 8 lần
+  xác minh đồng thời chỉ tạo 1 phiên; 8 lần sai ghi đủ 5 lần rồi chặn cả mã đúng.
+- Scope: tạo yêu cầu bằng SĐT hoặc customerId đều kiểm phạm vi; list/count/process/reject dùng cùng
+  điều kiện chi nhánh. Không có scope thì không được truy cập hàng đợi. Yêu cầu không còn khách có
+  đơn trong scope (sau ẩn danh) chỉ quản lý allLocations xem được.
+- Khách vãng lai: tạo hồ sơ unverified khi số E.164 chưa có; advisory lock theo phoneHash trong
+  transaction đặt đơn ngăn tạo trùng khi đồng thời. Không khôi phục hồ sơ erased và không coi SĐT
+  nhập lúc checkout là danh tính đã xác minh.
+- Merge lấy đủ routes, register, errors, i18n, test dịch, audit (có nhóm promotion), alert codes,
+  schema và các script của O7/O8/O11. Giữ `0007-o11-customers` và `0008-o8-promotions-rating`.
+  Danh mục email là **18 mẫu**, gồm `customer.rating-invite`, `customer.otp`, `customer.cart-reminder`.
+- Xóa dữ liệu O8: xóa `order-rating.comment`, `staffNote`, `staffNoteBy` của đơn được ẩn danh;
+  giữ sao, nhãn, trạng thái và thời gian đánh giá để báo cáo không đổi. Gỡ liên kết đơn, ẩn danh
+  địa chỉ/timeline và xóa ghi chú đánh giá cùng transaction: lỗi giữa chừng không làm mất đường
+  tìm dữ liệu để chạy lại.
+- **Quyết định customerKey:** giữ nguyên `promotion-redemption.customerKey` và các cột số tiền,
+  trạng thái, thời gian của redemption. Đây là HMAC có khóa (dữ liệu định danh giả, không phải
+  SĐT thô). Lý do: duy trì giới hạn lượt theo khách và đối chiếu khuyến mãi; xóa hoặc đổi khóa sẽ
+  làm số đã dùng được xem như chưa dùng sau khi xóa tài khoản. Không ghi thêm bảng ánh xạ về SĐT.
+  Test so toàn bộ redemption trước/sau ẩn danh và sau chạy lại bằng nhau; báo cáo bán hàng giữ nguyên.
+- Quote công khai và quote giỏ không dùng lịch sử SĐT; ưu đãi theo số tiếp tục ở pendingPromotions,
+  quyết khi tạo đơn. Quote theo danh tính OTP để sau. **Chủ dự án chọn để promotionCode trong giỏ
+  sang đợt sau**; bản này không thêm field giỏ hay giao diện áp mã.
+- Không đổi dependency. Audit public npm registry báo 6 critical / 38 high / 61 moderate / 6 low
+  trong cây dependency hiện tại; gate audit không đạt, chưa sửa framework/dependency trong phạm vi này.
+
+Gate của bản tích hợp (targeted, `salanca_ordering_o11`, 2026-10-13): lint, typecheck sạch; vitest plugin
+61 file / 632 test; `build:ordering` sạch; `ts:generate-types` không đổi types; `ORDERING_ENABLED=true strapi
+build` OK sau khi sửa chuỗi i18n gộp lẫn `||` với `??` (esbuild từ chối). Script PASS: `customers`,
+`customer-auth`, `admin-customers`, `cart`, `cart-checkout`, `cart-reminder`, `data-rights`, `promotions`,
+`promotion-money`, `promotion-race`, `promotions-admin`, `rating`, `email-templates`, `audit-coverage`,
+`audit-log`, `schema`, `openapi --write` (94 path), `reports`, `retention`, `order-edit`, `cash-closing`,
+`storefront`, `create-order`, `idempotency`, `notifications`, `alerts-engine`, `webhooks-out`,
+`lookup-drafts`, `order-export`, `courier`, `daily-stock`, `payment-refund`, `transition`,
+`check-admin-imports`, `check-dist-imports`. Không chạy full `check:ordering`, phase3 hay smoke CMS.
+Chưa UAT trình duyệt.

@@ -379,6 +379,7 @@ export const ORDERING_ACTIONS = [
   'export', 'settings.manage', 'scope.manage', 'ops.read', 'catalog.manage',
   'catalog.toggle-availability', 'audit.read', 'webhook.manage',
   'customer.read', 'customer.manage', 'customer.erase',
+  'promotion.manage', 'rating.manage',
 ];
 
 /**

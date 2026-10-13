@@ -1,6 +1,6 @@
 /**
  * The operational alert codes (contracts §12, + O15 `audit-tampered`) and their staff-facing
- * labels. The set is fixed: alert rules, the alert engine and the ops-alert email all key off this list.
+ * labels (+ O8 `low-rating`). The set is fixed: alert rules, the alert engine and the ops-alert email all key off this list.
  */
 export const ALERT_CODES = [
   'webhook-failing',
@@ -14,6 +14,7 @@ export const ALERT_CODES = [
   'cash-closing-mismatch',
   'audit-tampered',
   'notification-template-broken',
+  'low-rating',
 ] as const;
 
 export type AlertCode = (typeof ALERT_CODES)[number];
@@ -42,6 +43,7 @@ const labels: Record<AlertCode, { vi: string; en: string }> = {
     vi: 'Mẫu email tùy biến lỗi, đã dùng mẫu mặc định',
     en: 'Custom email template failed, the default was used',
   },
+  'low-rating': { vi: 'Khách đánh giá thấp', en: 'Low customer rating' },
 };
 
 export const alertLabel = (code: string, locale: string | null | undefined): string =>
