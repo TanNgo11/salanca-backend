@@ -294,6 +294,19 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
             dineIn: activePause(pause, 'dineIn', now),
           },
           busy: busyExtra > 0 ? { extraMinutes: busyExtra, until: busy?.until ?? null } : null,
+          // O12: configured fees so checkout can list them before quoting.
+          fees: branches()
+            .branchFees(branch)
+            .map((fee) => ({
+              code: fee.code,
+              label: fee.label,
+              kind: fee.kind,
+              ...(fee.amount !== undefined ? { amount: fee.amount } : {}),
+              ...(fee.percent !== undefined ? { percent: fee.percent } : {}),
+              receiveKinds: fee.receiveKinds,
+              taxable: fee.taxable,
+              ...(fee.minSubtotal !== undefined ? { minSubtotal: fee.minSubtotal } : {}),
+            })),
           pickup: pickup.enabled ? receiveConfig(pickup, branch.timezone, now, busyExtra) : null,
           ...(delivery.enabled
             ? { delivery: receiveConfig(delivery, branch.timezone, now, busyExtra) }

@@ -59,6 +59,14 @@ export const o12Messages: Record<string, [string, string]> = {
   'print.failed': ['Không tạo được bản in', 'Could not build the print view'],
 
   // ── N4 branch editor: fees, auto-reject, print, dine-in ────────────────────
+  'branch.tab.restaurant': ['Nhà hàng', 'Restaurant'],
+  'branch.autoReject.title': ['Tự từ chối đơn', 'Auto-reject orders'],
+  'branch.autoReject.hint': [
+    'Đơn chờ nhận quá thời gian này bị từ chối; khách đã trả được hoàn tự động. Trống = tắt.',
+    'Orders left unaccepted past this are rejected; paid customers are refunded automatically. Empty = off.',
+  ],
+  'branch.autoRejectOff': ['Tắt', 'Off'],
+  'branch.dineIn.enabled': ['Nhận đơn tại bàn', 'Accept dine-in orders'],
   'branch.fees.title': ['Phí dịch vụ & đóng gói', 'Service & packaging fees'],
   'branch.fees.add': ['Thêm phí', 'Add fee'],
   'branch.fees.empty': ['Chưa có phí nào', 'No fees yet'],

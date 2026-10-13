@@ -36,6 +36,12 @@ import { snapshotDeliveryAddress, type DeliveryAddressInput } from '../domain/co
 import { quoteDelivery } from '../domain/delivery/zones';
 import { describeSelectedOptions } from '../domain/storefront/serialize';
 import { priceCart, type PricingAdjustmentInput } from '../domain/pricing/pipeline';
+import {
+  branchFeeAdjustments,
+  branchFeeAmount,
+  discountedMerchandise,
+  type BranchFeeSnapshot,
+} from '../domain/pricing/branch-fees';
 import { scopeIncludes } from '../domain/scope';
 import {
   projectFulfillmentStatus,
@@ -692,6 +698,23 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         })(),
         ...(input.promotionCode ? { code: input.promotionCode } : {}),
       });
+      // O12: configured branch fees become pipeline `fee` adjustments. A percent fee prices
+      // on the merchandise subtotal after merchandise discounts (decision: fee % trên subtotal
+      // sau giảm giá món), so it is resolved here — not left to the pipeline's own percent.
+      const fees = branchService.branchFees(branch);
+      const lineBases = priced.map((line) => (line.unitAmount + line.optionAmount) * line.quantity);
+      const feeFor = (promotionAdjustments: PricingAdjustmentInput[]): PricingAdjustmentInput[] => {
+        if (fees.length === 0) return [];
+        return branchFeeAdjustments(fees, {
+          receiveKind: kind,
+          merchandiseSubtotal: merchandise,
+          discountedSubtotal: discountedMerchandise(lineBases, [
+            ...(input.adjustments ?? []),
+            ...promotionAdjustments,
+          ]),
+          labelFor: (fee) => fee.label[locale] ?? fee.label.vi ?? fee.code,
+        });
+      };
       const priceWith = (promotionAdjustments: PricingAdjustmentInput[]) =>
         priceCart({
           currency: cfg.currency,
@@ -702,7 +725,11 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
             optionAmount: line.optionAmount,
             taxGroupRef: line.taxGroupRef,
           })),
-          adjustments: [...(input.adjustments ?? []), ...promotionAdjustments],
+          adjustments: [
+            ...(input.adjustments ?? []),
+            ...promotionAdjustments,
+            ...feeFor(promotionAdjustments),
+          ],
           fulfillmentAmount,
           tax: { ...cfg.tax, ...(branch.tax ?? {}) },
           at: placedAt.toISOString(),
@@ -948,6 +975,17 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
             );
             if (reserved.dropped.length > 0) {
               const dropped = new Set(reserved.dropped.map((id) => `promotion:${id}`));
+              const kept = pricing.adjustments.filter(
+                (adjustment) =>
+                  adjustment.code !== 'cash-rounding' && !dropped.has(adjustment.sourceRef ?? ''),
+              );
+              // A dropped promotion shrinks the discounted base: percent fees reprice on it
+              // (fees below their minimum or outside the order's kind drop with it).
+              const repricedBases = prepared.priced.map(
+                (line) => (line.unitAmount + line.optionAmount) * line.quantity,
+              );
+              const repricedMerchandise = repricedBases.reduce((sum, base) => sum + base, 0);
+              const repricedDiscounted = discountedMerchandise(repricedBases, kept);
               pricing = priceCart({
                 currency: cfg.currency,
                 lines: priced.map((line) => ({
@@ -957,19 +995,33 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
                   optionAmount: line.optionAmount,
                   taxGroupRef: line.taxGroupRef,
                 })),
-                adjustments: pricing.adjustments
-                  .filter((adjustment) => adjustment.code !== 'cash-rounding' && !dropped.has(adjustment.sourceRef ?? ''))
-                  .map((adjustment) => ({
-                    kind: adjustment.kind,
-                    code: adjustment.code,
-                    label: adjustment.label,
-                    amount: adjustment.amount,
-                    taxable: adjustment.taxable,
-                    priority: adjustment.priority,
-                    ...(adjustment.sourceRef ? { sourceRef: adjustment.sourceRef } : {}),
-                    ...(adjustment.ruleSnapshot ? { ruleSnapshot: adjustment.ruleSnapshot } : {}),
-                    target: adjustment.target,
-                  })),
+                adjustments: kept
+                  .flatMap((adjustment) => {
+                    const snap = (adjustment.ruleSnapshot as BranchFeeSnapshot | null)?.branchFee;
+                    let amount = adjustment.amount;
+                    if (snap) {
+                      const applied = branchFeeAmount(snap, {
+                        receiveKind: kind,
+                        merchandiseSubtotal: repricedMerchandise,
+                        discountedSubtotal: repricedDiscounted,
+                      });
+                      if (applied === null) return [];
+                      amount = applied;
+                    }
+                    return [
+                      {
+                        kind: adjustment.kind,
+                        code: adjustment.code,
+                        label: adjustment.label,
+                        amount,
+                        taxable: adjustment.taxable,
+                        priority: adjustment.priority,
+                        ...(adjustment.sourceRef ? { sourceRef: adjustment.sourceRef } : {}),
+                        ...(adjustment.ruleSnapshot ? { ruleSnapshot: adjustment.ruleSnapshot } : {}),
+                        target: adjustment.target,
+                      },
+                    ];
+                  }),
                 fulfillmentAmount: prepared.delivery?.fee ?? input.fulfillmentAmount ?? 0,
                 tax: { ...cfg.tax, ...(branch.tax ?? {}) },
                 at: placedAt.toISOString(),
