@@ -147,6 +147,15 @@ export const AUDIT_ACTIONS: Record<string, ActionDef> = {
     category: 'config',
     label: ['Khôi phục mẫu email', 'Reset email template'],
   },
+  // O13: per-template channel ordering / ZNS mapping (Settings → Kênh thông báo).
+  'notification-channel.update': {
+    category: 'config',
+    label: ['Sửa quy tắc kênh thông báo', 'Update notification channel rule'],
+  },
+  'notification-channel.test': {
+    category: 'config',
+    label: ['Gửi thử thông báo', 'Send test notification'],
+  },
   // Access
   'scope.update': { category: 'access', label: ['Gán chi nhánh cho nhân viên', 'Update staff scope'] },
   // O11: personal-data requests (Decree 13). entityLabel stays null — no customer data.

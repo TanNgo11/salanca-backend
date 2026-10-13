@@ -15,10 +15,16 @@ import {
 import type { AnyMailData } from '../domain/notifications/template-vars';
 import orderRepository from '../repositories/order';
 import type { OrderAggregate } from '../repositories/types';
+import type alertFactory from './alert';
 import type alertRecipientsFactory from './alert-recipients';
 import type alertRulesFactory from './alert-rules';
 import type branchFactory from './branch';
 import type idempotencyFactory from './idempotency';
+import type {
+  ChannelRule,
+  NotificationChannel,
+} from './notification-channel';
+import type notificationChannelFactory from './notification-channel';
 import type notificationTemplateFactory from './notification-template';
 import type orderingSettingsFactory from './ordering-settings';
 import type { OrderingRegistry } from './registry';
@@ -28,11 +34,44 @@ const isUniqueViolation = (error: unknown): boolean =>
   (error as { cause?: { code?: string } }).cause?.code === '23505';
 
 /**
- * Email notifications driven by outbox events (contracts §12, §14; plan step 11):
- * staff get "đơn mới" at the branch email; customers who left an email get each public step in the
- * language they ordered in. Each (event, template, recipient) has one delivery-log row keyed by
- * the recipient's hash, so a dispatcher re-run (or a retried event) never sends twice. Addresses
- * never reach logs or the delivery table.
+ * Safe failure text for the delivery log: OrderingError code + message (+ machine-readable
+ * `details.reason`, e.g. `zalo-error:-1121`). Codes/reasons are whitelisted metadata — never
+ * provider bodies, phones, or tokens.
+ */
+const failureText = (error: unknown): string => {
+  const err = error as { code?: string; message?: unknown; details?: { reason?: unknown } };
+  const message = String(err?.message ?? error).slice(0, 400);
+  const reason =
+    typeof err?.details?.reason === 'string' ? ` (${err.details.reason.slice(0, 64)})` : '';
+  const code = typeof err?.code === 'string' && /^[A-Z_]+$/.test(err.code) ? `${err.code}: ` : '';
+  return `${code}${message}${reason}`.slice(0, 500);
+};
+
+/** Channels that count against `notifications.dailyLimit` (paid sends). */
+const PAID_CHANNELS = new Set<NotificationChannel>(['zalo', 'sms']);
+
+const utcDayStart = (): Date => {
+  const date = new Date();
+  date.setUTCHours(0, 0, 0, 0);
+  return date;
+};
+
+type DeliveryRow = {
+  id: number;
+  status: string;
+  attempts: number;
+};
+
+type Recipient = { email?: string; phone?: string };
+
+/**
+ * Outbox-driven notifications (contracts §12, §14; O13 step 6): staff get "đơn mới" at the
+ * branch email; customers get each public step on the channel chain of the matching
+ * `notification-channel-rule` row (default `['email']` — the pre-O13 behavior). Every
+ * (event, template, channel, recipient) has one delivery-log row: the hash key carries the
+ * channel so Zalo→SMS→email fallbacks never collide on dedupe. `sent` stops the chain,
+ * `failed`/`skipped` fall through to the next channel, and a re-run retries failed rows.
+ * Addresses never reach logs or the delivery table — only SHA-256(`channel:value`).
  */
 const notification = ({ strapi }: { strapi: Core.Strapi }) => {
   const plugin = () => strapi.plugin('ordering');
@@ -44,74 +83,224 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
   const settings = () => plugin().service('ordering-settings') as ReturnType<typeof orderingSettingsFactory>;
   const templates = () =>
     plugin().service('notification-template') as ReturnType<typeof notificationTemplateFactory>;
+  const channelRules = () =>
+    plugin().service('notification-channel') as ReturnType<typeof notificationChannelFactory>;
   const alertRules = () => plugin().service('alert-rules') as ReturnType<typeof alertRulesFactory>;
   const alertRecipients = () =>
     plugin().service('alert-recipients') as ReturnType<typeof alertRecipientsFactory>;
+  const alerts = () => plugin().service('alert') as ReturnType<typeof alertFactory>;
   const repo = orderRepository({ strapi });
+
+  /** Value a channel reaches the recipient by — phone for zalo/sms (E.164), email for email. */
+  const channelValue = (channel: NotificationChannel, recipient: Recipient): string | null => {
+    const value = channel === 'email' ? recipient.email : recipient.phone;
+    return typeof value === 'string' && value !== '' ? value : null;
+  };
+
+  /**
+   * Why a channel cannot send right now, or null. `no-recipient` is checked by the caller —
+   * it never writes a delivery row.
+   */
+  const blockedReason = async (
+    channel: NotificationChannel,
+    rule: ChannelRule | null,
+    paidAtLimit: boolean,
+  ): Promise<string | null> => {
+    if (channel === 'email') {
+      return config().notifications.email.enabled ? null : 'email-disabled';
+    }
+    if (!registry().hasNotificationProvider(channel)) return 'provider-not-configured';
+    if (channel === 'zalo' && !rule?.zns?.templateId) return 'zns-template-missing';
+    if (PAID_CHANNELS.has(channel) && paidAtLimit) return 'daily-limit';
+    return null;
+  };
+
+  /** Writes a `skipped` row once — the audit trail for "channel had a recipient but could not send". */
+  const markSkipped = async (
+    input: {
+      event: OutboxEvent;
+      template: TemplateCode;
+      channel: NotificationChannel;
+      value: string;
+      role: 'staff' | 'customer';
+      orderId?: number | null;
+      locale: string;
+    },
+    reason: string,
+  ) => {
+    const key = {
+      eventId: String(input.event.id),
+      template: input.template,
+      recipientHash: sha256Hex(`${input.channel}:${input.value}`),
+    };
+    const existing = (await deliveries().findOne({ where: key })) as DeliveryRow | null;
+    if (existing) return;
+    await deliveries()
+      .create({
+        data: {
+          ...key,
+          channel: input.channel,
+          recipientRole: input.role,
+          orderId: input.orderId ?? null,
+          messageLocale: input.locale,
+          status: 'skipped',
+          attempts: 0,
+          lastError: reason,
+        },
+      })
+      .catch((error: unknown) => {
+        if (!isUniqueViolation(error)) throw error;
+      });
+  };
 
   const deliver = async (input: {
     event: OutboxEvent;
     template: TemplateCode;
-    email: string;
+    /** O13: `email` and/or `phone` (E.164); channels without a value are skipped silently. */
+    recipient: Recipient;
     role: 'staff' | 'customer';
     /** Alerts carry no order; the delivery log column is nullable. */
     orderId?: number | null;
     locale: string;
     data: AnyMailData;
   }) => {
-    const recipientHash = sha256Hex(input.email.trim().toLowerCase());
-    const key = { eventId: String(input.event.id), template: input.template, recipientHash };
-    let row = (await deliveries().findOne({ where: key })) as {
-      id: number;
-      status: string;
-      attempts: number;
-    } | null;
-    if (row && (row.status === 'sent' || row.status === 'skipped')) return;
-    if (!row) {
-      try {
-        row = (await deliveries().create({
-          data: {
-            ...key,
-            channel: 'email',
-            recipientRole: input.role,
-            orderId: input.orderId ?? null,
-            messageLocale: input.locale,
-            status: 'pending',
-            attempts: 0,
-          },
-        })) as { id: number; status: string; attempts: number };
-      } catch (error) {
-        if (!isUniqueViolation(error)) throw error;
-        row = (await deliveries().findOne({ where: key })) as typeof row;
-        if (!row || row.status === 'sent' || row.status === 'skipped') return;
-      }
-    }
-    if (!config().notifications.email.enabled) {
-      await deliveries().update({ where: { id: row.id }, data: { status: 'skipped' } });
-      return;
-    }
+    const notifications = config().notifications;
+    const rule = await channelRules().ruleFor(input.template);
+    // Staff templates have no rules on file → the pre-O13 single email send.
+    const chain: NotificationChannel[] = rule?.channels.length
+      ? rule.channels
+      : ['email'];
     // A staff-edited `notification-template` row overrides the built-in copy; a broken one falls
     // back to the default and raises `notification-template-broken` inside renderFor.
     const rendered = await templates().renderFor(input.template, input.locale, input.data);
-    try {
-      await registry()
-        .notificationProvider('email')
-        .send({ recipient: { email: input.email }, template: input.template, data: rendered });
-      await deliveries().update({
-        where: { id: row.id },
-        data: { status: 'sent', sentAt: new Date(), attempts: row.attempts + 1, lastError: null },
-      });
-    } catch (error) {
-      await deliveries().update({
-        where: { id: row.id },
-        data: {
-          status: 'failed',
-          attempts: row.attempts + 1,
-          lastError: String((error as Error)?.message ?? error).slice(0, 500),
-        },
-      });
-      throw error; // the outbox retries with backoff
+    // Daily cap for paid channels is evaluated once per delivery attempt.
+    let paidAtLimit: boolean | null = null;
+    const paidLimitHit = async (): Promise<boolean> => {
+      if (paidAtLimit !== null) return paidAtLimit;
+      const sentToday = (await deliveries().count({
+        where: { channel: { $in: [...PAID_CHANNELS] }, status: 'sent', sentAt: { $gt: utcDayStart() } },
+      })) as number;
+      paidAtLimit = sentToday >= notifications.dailyLimit;
+      if (paidAtLimit) {
+        await alerts()
+          .open(
+            {
+              alertCode: 'notification-daily-limit',
+              dedupeKey: `notification-daily-limit:${utcDayStart().toISOString().slice(0, 10)}`,
+              severity: 'warning',
+            },
+            { actor: { kind: 'system' } },
+          )
+          .catch(() => undefined);
+      }
+      return paidAtLimit;
+    };
+
+    let lastError: Error | null = null;
+    for (const channel of chain) {
+      const value = channelValue(channel, input.recipient);
+      if (!value) continue; // no address for this channel — nothing logged, next channel
+      const limitHit = PAID_CHANNELS.has(channel) ? await paidLimitHit() : false;
+      const blocked = await blockedReason(channel, rule, limitHit);
+      if (blocked) {
+        await markSkipped(
+          {
+            event: input.event,
+            template: input.template,
+            channel,
+            value,
+            role: input.role,
+            orderId: input.orderId,
+            locale: input.locale,
+          },
+          blocked,
+        );
+        continue;
+      }
+      const key = {
+        eventId: String(input.event.id),
+        template: input.template,
+        recipientHash: sha256Hex(`${channel}:${value}`),
+      };
+      let row = (await deliveries().findOne({ where: key })) as DeliveryRow | null;
+      if (row?.status === 'sent') return; // already delivered on this channel — done
+      if (row?.status === 'skipped') continue;
+      if (!row) {
+        try {
+          row = (await deliveries().create({
+            data: {
+              ...key,
+              channel,
+              recipientRole: input.role,
+              orderId: input.orderId ?? null,
+              messageLocale: input.locale,
+              status: 'pending',
+              attempts: 0,
+            },
+          })) as DeliveryRow;
+        } catch (error) {
+          if (!isUniqueViolation(error)) throw error;
+          row = (await deliveries().findOne({ where: key })) as DeliveryRow | null;
+          if (!row) continue;
+          if (row.status === 'sent') return;
+          if (row.status === 'skipped') continue;
+        }
+      }
+      // Channel-specific payload: rendered copy for email/sms (`smsText`), ZNS mapping for zalo.
+      const data = { ...(input.data as Record<string, unknown>), ...rendered } as Record<
+        string,
+        unknown
+      >;
+      data.trackingId = `nd-${row.id}`;
+      if (channel === 'zalo') {
+        data.znsTemplateId = rule?.zns?.templateId;
+        data.znsParams = Object.fromEntries(
+          Object.entries(rule?.zns?.params ?? {}).map(([key, varName]) => [
+            key,
+            (input.data as Record<string, unknown>)[varName] ?? '',
+          ]),
+        );
+      }
+      // SMS stands alone — the order code lives in the subject, so prepend it to the body.
+      if (channel === 'sms') data.smsText = `${rendered.subject} — ${rendered.text}`;
+      try {
+        const result = await registry().notificationProvider(channel).send({
+          recipient: channel === 'email' ? { email: value } : { phone: value },
+          template: input.template,
+          data,
+        });
+        const providerMessageId =
+          result && typeof result === 'object'
+            ? ((result as { providerMessageId?: string }).providerMessageId ?? null)
+            : null;
+        await deliveries().update({
+          where: { id: row.id },
+          data: {
+            status: 'sent',
+            sentAt: new Date(),
+            attempts: row.attempts + 1,
+            lastError: null,
+            providerMessageId,
+            costEstimate: notifications.costEstimates[channel] ?? null,
+          },
+        });
+        return; // first successful channel ends the chain
+      } catch (error) {
+        lastError = error as Error;
+        await deliveries().update({
+          where: { id: row.id },
+          data: {
+            status: 'failed',
+            attempts: row.attempts + 1,
+            lastError: failureText(lastError ?? error),
+          },
+        });
+        // fall through to the next channel
+      }
     }
+    // Nothing sent: retryable failures rethrow so the outbox backs off and re-runs the chain
+    // (each failed row retries once per event run); all-skipped/all-unavailable ends quietly.
+    if (lastError) throw lastError;
   };
 
   const baseData = async (aggregate: OrderAggregate) => {
@@ -148,9 +337,14 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
     return { branch, locale, data };
   };
 
-  const customerEmail = (aggregate: OrderAggregate): string | undefined => {
-    const email = (aggregate.order.contactSnapshot as { email?: string }).email;
-    return typeof email === 'string' && email.includes('@') ? email : undefined;
+  /** O13: customer contact channels — email plus the E.164 phone left at checkout. */
+  const customerRecipient = (aggregate: OrderAggregate): Recipient | null => {
+    const contact = aggregate.order.contactSnapshot as { email?: string; phone?: string };
+    const email = typeof contact.email === 'string' && contact.email.includes('@')
+      ? contact.email
+      : undefined;
+    const phone = typeof contact.phone === 'string' && contact.phone !== '' ? contact.phone : undefined;
+    return email || phone ? { email, phone } : null;
   };
 
   const service = {
@@ -164,7 +358,7 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
         await deliver({
           event,
           template: 'staff.order-created',
-          email: branch.email,
+          recipient: { email: branch.email },
           role: 'staff',
           orderId,
           locale: 'vi',
@@ -175,9 +369,17 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
           },
         });
       }
-      const email = customerEmail(aggregate);
-      if (email && aggregate.order.origin.kind === 'storefront') {
-        await deliver({ event, template: 'customer.order-placed', email, role: 'customer', orderId, locale, data });
+      const recipient = customerRecipient(aggregate);
+      if (recipient && aggregate.order.origin.kind === 'storefront') {
+        await deliver({
+          event,
+          template: 'customer.order-placed',
+          recipient,
+          role: 'customer',
+          orderId,
+          locale,
+          data,
+        });
       }
     },
 
@@ -193,7 +395,7 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
       await deliver({
         event,
         template: 'staff.order-overdue',
-        email: branch.email,
+        recipient: { email: branch.email },
         role: 'staff',
         orderId,
         locale: 'vi',
@@ -245,7 +447,7 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
         await deliver({
           event,
           template: 'staff.ops-alert',
-          email,
+          recipient: { email },
           role: 'staff',
           orderId: null,
           locale: 'vi',
@@ -277,8 +479,8 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
         receiveKind,
       });
       if (!template) return;
-      const email = customerEmail(aggregate);
-      if (!email) return;
+      const recipient = customerRecipient(aggregate);
+      if (!recipient) return;
       const { locale, data } = await baseData(aggregate);
       let reason: string | undefined;
       const reasonCode = event.payload.reasonCode;
@@ -292,7 +494,7 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
       await deliver({
         event,
         template,
-        email,
+        recipient,
         role: 'customer',
         orderId,
         locale,
@@ -312,14 +514,14 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
       if (!(await settings().get()).ratingInviteEnabled) return;
       const rated = await strapi.db.query('plugin::ordering.order-rating').count({ where: { orderId } });
       if (rated > 0) return;
-      const email = customerEmail(aggregate);
-      if (!email) return;
+      const recipient = customerRecipient(aggregate);
+      if (!recipient) return;
       const { locale, data } = await baseData(aggregate);
       const link = data.link ? `${data.link}${data.link.includes('#') ? '&rate=1' : '#rate'}` : undefined;
       await deliver({
         event,
         template: 'customer.rating-invite',
-        email,
+        recipient,
         role: 'customer',
         orderId,
         locale,
@@ -333,8 +535,8 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
       const orderId = Number(event.payload.orderId);
       const aggregate = await repo.loadOrderAggregate(orderId);
       if (!aggregate) return;
-      const email = customerEmail(aggregate);
-      if (!email) return;
+      const recipient = customerRecipient(aggregate);
+      if (!recipient) return;
       const { locale, data } = await baseData(aggregate);
       const paymentLink = event.payload.paymentLink === true;
       let link = data.link;
@@ -354,7 +556,7 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
       await deliver({
         event,
         template: 'customer.order-updated',
-        email,
+        recipient,
         role: 'customer',
         orderId,
         locale,

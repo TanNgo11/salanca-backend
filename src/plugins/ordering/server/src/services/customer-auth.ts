@@ -14,6 +14,8 @@ import {
 import { OrderingError } from '../domain/errors';
 import { sha256Hex } from '../domain/hashing';
 import { decryptSecret, encryptSecret, parseEncryptionKey } from '../domain/token-cipher';
+import { normalizeVietnamesePhone } from '../../../shared/contact/phone';
+import type notificationChannelFactory from './notification-channel';
 import type notificationTemplateFactory from './notification-template';
 import { nowOf, type ServiceContext } from './context';
 import type { OrderingRegistry } from './registry';
@@ -66,8 +68,8 @@ export type CustomerView = {
 const SLIDE_AFTER_MS = 60_000;
 
 /**
- * O11 step 2 — OTP sign-in (email only; sms/zalo land in O13) and bearer sessions.
- * Never reveals whether an email maps to a profile: requests always answer `{challengeId}`
+ * O11 step 2 — OTP sign-in and bearer sessions; O13 step 6 adds the `sms`/`zalo` channels.
+ * Never reveals whether a target maps to a profile: requests always answer `{challengeId}`
  * and an over-limit target gets a phantom challenge that simply never verifies. Hashes, not
  * secrets, reach the tables (code → HMAC, token → sha256, target → HMAC + sealed copy for
  * binding).
@@ -82,6 +84,8 @@ const customerAuth = ({ strapi }: { strapi: Core.Strapi }) => {
   const deliveries = () => strapi.db.query('plugin::ordering.notification-delivery');
   const templates = () =>
     plugin().service('notification-template') as ReturnType<typeof notificationTemplateFactory>;
+  const channelRules = () =>
+    plugin().service('notification-channel') as ReturnType<typeof notificationChannelFactory>;
   const registry = () => plugin().service('registry') as OrderingRegistry;
 
   const viewOf = (row: CustomerRow): CustomerView => ({
@@ -117,30 +121,49 @@ const customerAuth = ({ strapi }: { strapi: Core.Strapi }) => {
       where: { email, status: { $ne: 'erased' } },
     })) as CustomerRow | null;
 
-  /** Sends the code through the editable `customer.otp` template; mail failures never surface. */
-  const sendOtpMail = async (input: {
+  const findByPhone = async (e164: string): Promise<CustomerRow | null> =>
+    (await customers().findOne({
+      where: { phoneHash: hashing().phoneHash(e164), status: { $ne: 'erased' } },
+    })) as CustomerRow | null;
+
+  /** OTP delivery channel — `email` renders the editable template; `sms`/`zalo` are O13. */
+  type OtpChannel = 'email' | 'sms' | 'zalo';
+
+  /**
+   * Sends the code on `channel`; failures mark the delivery row but never surface (the
+   * challenge stays usable on retry). `zalo` needs a channel-rule ZNS mapping for
+   * `customer.otp` — without one the row is `skipped`, matching an unconfigured provider.
+   */
+  const sendOtp = async (input: {
     challengeId: string;
-    email: string;
+    channel: OtpChannel;
+    target: string;
     code: string;
     minutes: number;
   }) => {
-    const recipientHash = sha256Hex(input.email);
-    const data = {
-      eventId: `otp:${input.challengeId}`,
-      template: 'customer.otp',
-      recipientHash,
-      channel: 'email',
-      recipientRole: 'customer',
-      orderId: null,
-      messageLocale: 'vi',
-      status: 'pending',
-      attempts: 0,
-    };
-    const row = (await deliveries().create({ data })) as { id: number };
+    const recipientHash = sha256Hex(`${input.channel}:${input.target}`);
+    const row = (await deliveries().create({
+      data: {
+        eventId: `otp:${input.challengeId}`,
+        template: 'customer.otp',
+        recipientHash,
+        channel: input.channel,
+        recipientRole: 'customer',
+        orderId: null,
+        messageLocale: 'vi',
+        status: 'pending',
+        attempts: 0,
+      },
+    })) as { id: number };
     const mark = (status: string, extra: Record<string, unknown> = {}) =>
       deliveries().update({ where: { id: row.id }, data: { status, ...extra } });
-    if (!config().notifications.email.enabled) {
-      await mark('skipped');
+    const unavailable =
+      input.channel === 'email'
+        ? !config().notifications.email.enabled
+        : !registry().hasNotificationProvider(input.channel);
+    const rule = input.channel === 'zalo' ? await channelRules().ruleFor('customer.otp') : null;
+    if (unavailable || (input.channel === 'zalo' && !rule?.zns?.templateId)) {
+      await mark('skipped', { lastError: unavailable ? 'provider-not-configured' : 'zns-template-missing' });
       return;
     }
     try {
@@ -148,17 +171,48 @@ const customerAuth = ({ strapi }: { strapi: Core.Strapi }) => {
         otp: input.code,
         minutes: input.minutes,
       });
-      await registry()
-        .notificationProvider('email')
-        .send({ recipient: { email: input.email }, template: 'customer.otp', data: rendered });
-      await mark('sent', { sentAt: new Date(), attempts: 1 });
+      const data: Record<string, unknown> = {
+        otp: input.code,
+        minutes: input.minutes,
+        ...rendered,
+        trackingId: `nd-${row.id}`,
+      };
+      if (input.channel === 'sms') data.smsText = rendered.text;
+      if (input.channel === 'zalo' && rule?.zns) {
+        data.znsTemplateId = rule.zns.templateId;
+        data.znsParams = Object.fromEntries(
+          Object.entries(rule.zns.params).map(([key, varName]) => [
+            key,
+            ({ otp: input.code, minutes: input.minutes } as Record<string, unknown>)[varName] ?? '',
+          ]),
+        );
+      }
+      const result = await registry()
+        .notificationProvider(input.channel)
+        .send({
+          recipient:
+            input.channel === 'email' ? { email: input.target } : { phone: input.target },
+          template: 'customer.otp',
+          data,
+        });
+      const providerMessageId =
+        result && typeof result === 'object'
+          ? ((result as { providerMessageId?: string }).providerMessageId ?? null)
+          : null;
+      await mark('sent', {
+        sentAt: new Date(),
+        attempts: 1,
+        providerMessageId,
+        costEstimate:
+          input.channel === 'email' ? null : (config().notifications.costEstimates[input.channel] ?? null),
+      });
     } catch (error) {
       // The challenge stays usable on retry; delivery rows carry status only, never the target.
       await mark('failed', {
         attempts: 1,
         lastError: String((error as Error)?.message ?? error).slice(0, 500),
       });
-      strapi.log.warn('[ordering] customer.otp mail failed (challenge stays valid)');
+      strapi.log.warn(`[ordering] customer.otp ${input.channel} send failed (challenge stays valid)`);
     }
   };
 
@@ -174,19 +228,30 @@ const customerAuth = ({ strapi }: { strapi: Core.Strapi }) => {
     ): Promise<{ challengeId: string }> {
       const customers = config().customers;
       const channel = typeof input.channel === 'string' ? input.channel : '';
-      if (!customers.enabled || channel !== 'email' || !customers.otpChannels.includes(channel)) {
+      const allowed: OtpChannel[] = ['email', 'sms', 'zalo'];
+      if (
+        !customers.enabled ||
+        !allowed.includes(channel as OtpChannel) ||
+        !customers.otpChannels.includes(channel)
+      ) {
         throw new OrderingError('VALIDATION_ERROR', 'unsupported OTP channel', {
           details: { channel: channel || null },
         });
       }
-      const email = normalizeEmailTarget(input.target);
-      if (!email) {
-        throw new OrderingError('VALIDATION_ERROR', 'target must be an email address', {
-          details: { channel },
-        });
+      // O13: `sms`/`zalo` reach the customer by phone (E.164); `email` by email.
+      const isEmail = channel === 'email';
+      const phone = isEmail ? null : normalizeVietnamesePhone(input.target);
+      const email = isEmail ? normalizeEmailTarget(input.target) : null;
+      const target = email ?? (phone && phone.valid ? phone.e164 : null);
+      if (!target) {
+        throw new OrderingError(
+          'VALIDATION_ERROR',
+          isEmail ? 'target must be an email address' : 'target must be a Vietnamese phone number',
+          { details: { channel } },
+        );
       }
       const now = nowOf(ctx);
-      const targetHash = hashing().otpTargetHash(email);
+      const targetHash = hashing().otpTargetHash(target);
       const windowStart = new Date(now.getTime() - customers.otp.sendWindowMinutes * 60_000);
       const recent = (await otps().count({
         where: { targetHash, createdAt: { $gt: windowStart } },
@@ -198,13 +263,13 @@ const customerAuth = ({ strapi }: { strapi: Core.Strapi }) => {
 
       const challengeId = generateChallengeId();
       const code = generateOtpCode();
-      const existing = await findByEmail(email);
+      const existing = email ? await findByEmail(email) : await findByPhone(target);
       await otps().create({
         data: {
           challengeId,
           channel,
           targetHash,
-          targetSealed: sealTarget(email),
+          targetSealed: sealTarget(target),
           codeHash: hashing().otpCodeHash(code, challengeId),
           purpose: 'login',
           ...(existing ? { customer: existing.id } : {}),
@@ -212,7 +277,13 @@ const customerAuth = ({ strapi }: { strapi: Core.Strapi }) => {
           expiresAt: new Date(now.getTime() + customers.otp.codeMinutes * 60_000),
         },
       });
-      await sendOtpMail({ challengeId, email, code, minutes: customers.otp.codeMinutes });
+      await sendOtp({
+        challengeId,
+        channel: channel as OtpChannel,
+        target,
+        code,
+        minutes: customers.otp.codeMinutes,
+      });
       return { challengeId };
     },
 
@@ -267,7 +338,8 @@ const customerAuth = ({ strapi }: { strapi: Core.Strapi }) => {
         await otps().update({ where: { id: row.id }, data: { consumedAt: now } });
 
         // Resolve the profile: a challenge bound at request time wins; else bind/create by the
-        // sealed email. `erased` profiles can never sign back in.
+        // sealed target — email challenges by address, O13 sms/zalo challenges by E.164 phone.
+        // `erased` profiles can never sign back in.
         const linked = row.customer;
         let customer: CustomerRow | null =
           linked && typeof linked === 'object'
@@ -276,12 +348,25 @@ const customerAuth = ({ strapi }: { strapi: Core.Strapi }) => {
               ? ((await customers().findOne({ where: { id: linked } })) as CustomerRow | null)
               : null;
         if (!customer) {
-          const email = openTarget(row.targetSealed);
-          if (email && row.channel === 'email') {
-            customer = await findByEmail(email);
+          const target = openTarget(row.targetSealed);
+          if (target && row.channel === 'email') {
+            customer = await findByEmail(target);
             if (!customer) {
               customer = (await customers().create({
-                data: { email, emailVerifiedAt: now, status: 'active' },
+                data: { email: target, emailVerifiedAt: now, status: 'active' },
+              })) as CustomerRow;
+              await otps().update({ where: { id: row.id }, data: { customer: customer.id } });
+            }
+          }
+          if (target && (row.channel === 'sms' || row.channel === 'zalo')) {
+            customer = await findByPhone(target);
+            if (!customer) {
+              customer = (await customers().create({
+                data: {
+                  phone: target,
+                  phoneHash: hashing().phoneHash(target),
+                  status: 'active',
+                },
               })) as CustomerRow;
               await otps().update({ where: { id: row.id }, data: { customer: customer.id } });
             }

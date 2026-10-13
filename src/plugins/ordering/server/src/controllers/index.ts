@@ -13,6 +13,7 @@ import categories from './categories';
 import customerAuth from './customer-auth';
 import customer from './customer';
 import cart from './cart';
+import notificationChannels from './notification-channels';
 import notificationTemplates from './notification-templates';
 import openapi from './openapi';
 import ops from './ops';
@@ -50,6 +51,7 @@ export default {
   'price-lists': priceLists,
   'customer-groups': customerGroups,
   'audit-log': auditLog,
+  'notification-channels': notificationChannels,
   'notification-templates': notificationTemplates,
   'customer-auth': customerAuth,
   customer,

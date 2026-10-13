@@ -8,7 +8,7 @@ import { o11CustomersMigration } from './0007-o11-customers';
 import { o7OpsExtrasMigration } from './0005-o7-ops-extras';
 import { o8PromotionsRatingMigration } from './0008-o8-promotions-rating';
 import { o14PriceListsMigration } from './0009-o14-price-lists';
-import { o13ProvidersMigration } from './0010-o13-providers';
+import { o13ProvidersMigration } from './0012-o13-providers';
 import type { OrderingMigration } from './runner';
 
 /** Production migrations, in order. */

@@ -57,7 +57,7 @@ const DYNAMIC: Record<string, string[]> = {
   'settings.rating.sentiment': ['positive', 'negative'],
   'reports.group': ['day', 'category', 'product', 'payment', 'receive', 'promotion'],
   'reports.col': ['promotion', 'discount'],
-  'alert.code': ['low-rating'],
+  'alert.code': ['low-rating', 'notification-daily-limit'],
   'webhook.group': ['order', 'fulfillment', 'payment', 'refund', 'ops', 'promotion', 'gift-card', 'rating'],
   'webhook.deliveries.filter': ['all', 'pending', 'succeeded', 'failed'],
   'error.WEBHOOK_URL_INVALID': ['scheme', 'invalid', 'private-address', 'unresolvable'],

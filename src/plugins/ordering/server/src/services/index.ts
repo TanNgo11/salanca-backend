@@ -32,6 +32,7 @@ import storefront from './storefront';
 import adminOrders from './admin-orders';
 import orderingSettings from './ordering-settings';
 import notification from './notification';
+import notificationChannel from './notification-channel';
 import notificationTemplate from './notification-template';
 import adminUnits from './admin-units';
 import alert from './alert';
@@ -88,6 +89,7 @@ export default {
   courier,
   'ordering-settings': orderingSettings,
   notification,
+  'notification-channel': notificationChannel,
   'notification-template': notificationTemplate,
   'admin-units': adminUnits,
   alert,

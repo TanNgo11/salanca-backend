@@ -34,6 +34,7 @@ import fulfillmentGroup from './fulfillment-group';
 import fulfillmentLine from './fulfillment-line';
 import hold from './hold';
 import idempotencyKey from './idempotency-key';
+import notificationChannelRule from './notification-channel-rule';
 import notificationDelivery from './notification-delivery';
 import notificationTemplate from './notification-template';
 import opsAlert from './ops-alert';
@@ -87,6 +88,7 @@ export default {
   'fulfillment-line': fulfillmentLine,
   hold,
   'idempotency-key': idempotencyKey,
+  'notification-channel-rule': notificationChannelRule,
   'notification-delivery': notificationDelivery,
   'notification-template': notificationTemplate,
   'ops-alert': opsAlert,

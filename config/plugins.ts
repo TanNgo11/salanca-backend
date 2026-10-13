@@ -252,6 +252,12 @@ export const resolveOrderingPluginConfig = (
       throw new Error('ORDERING_NOTIFY_COST_ESTIMATES must be a JSON object keyed by channel');
     }
   }
+  // O13: OTP channels beyond email are opt-in (`email,sms,zalo`); sms/zalo also need the
+  // matching provider config or sends are skipped at delivery time.
+  const otpChannels = env('ORDERING_OTP_CHANNELS', '')
+    .split(',')
+    .map((channel) => channel.trim())
+    .filter(Boolean);
   return {
     enabled,
     resolve: orderingPluginPath,
@@ -287,6 +293,7 @@ export const resolveOrderingPluginConfig = (
       // Builtins replace it with the in-memory captcha. SePay and captcha share `providers`.
       ...(Object.keys(providers).length > 0 ? { providers } : {}),
       ...(turnstileSecret && !builtins ? { storefront: { captchaProvider: 'turnstile' } } : {}),
+      ...(otpChannels.length > 0 ? { customers: { otpChannels } } : {}),
       ...(builtins
         ? {
             testing: { builtins: true },

@@ -86,6 +86,13 @@ const scripts = [
   'admin-customers.mjs',
   // O14: channel, group and time-window prices.
   'price-lists.mjs',
+  // O13: provider adapters — all fake-server, no real network.
+  'momo.mjs',
+  'vnpay.mjs',
+  'wallet-status.mjs',
+  'ahamove.mjs',
+  'zalo-zns.mjs',
+  'sms.mjs',
 ];
 
 const results = [];

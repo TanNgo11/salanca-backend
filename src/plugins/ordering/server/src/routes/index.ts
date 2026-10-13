@@ -398,6 +398,21 @@ export default {
         'notification-templates.remove',
         'settings.manage',
       ),
+      // O13 "Kênh thông báo" (screens P3): ordered channel chain + ZNS mapping per template,
+      // plus a staff test-send that writes a `test:*` delivery row.
+      adminRoute('GET', '/notification-channels', 'notification-channels.list', 'settings.manage'),
+      adminRoute(
+        'PUT',
+        '/notification-channels/:template',
+        'notification-channels.put',
+        'settings.manage',
+      ),
+      adminRoute(
+        'POST',
+        '/notification-channels/test',
+        'notification-channels.test',
+        'settings.manage',
+      ),
     ],
   },
 };

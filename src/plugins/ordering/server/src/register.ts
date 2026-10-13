@@ -36,6 +36,14 @@ import {
   createCaptureNotificationProvider,
   createEmailNotificationProvider,
 } from './providers/email-notification';
+import {
+  createZaloNotificationProvider,
+  zaloSettingsFromConfig,
+} from './providers/zalo-zns/provider';
+import {
+  createEsmsNotificationProvider,
+  esmsSettingsFromConfig,
+} from './providers/esms/provider';
 import { createOrderingCatalogAdapter } from './providers/ordering-catalog/adapter';
 import {
   createTestCaptchaProvider,
@@ -202,6 +210,30 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
     'email',
     config.testing.builtins ? createCaptureNotificationProvider() : createEmailNotificationProvider(strapi),
   );
+  // O13 paid channels: registered only when their env config parses (same opt-in gate as the
+  // wallet providers). `sms` is the eSMS adapter; `zalo` is ZNS template messaging.
+  if (zaloSettingsFromConfig(config.providers.notification)) {
+    registry.registerNotificationProvider(
+      'zalo',
+      createZaloNotificationProvider({
+        settings: () =>
+          zaloSettingsFromConfig(
+            (strapi.config.get('plugin::ordering') as OrderingConfig).providers.notification,
+          ),
+      }),
+    );
+  }
+  if (esmsSettingsFromConfig(config.providers.notification)) {
+    registry.registerNotificationProvider(
+      'sms',
+      createEsmsNotificationProvider({
+        settings: () =>
+          esmsSettingsFromConfig(
+            (strapi.config.get('plugin::ordering') as OrderingConfig).providers.notification,
+          ),
+      }),
+    );
+  }
   type NotificationService = {
     onOrderPlaced: (event: never) => Promise<void>;
     onOrderTransitioned: (event: never) => Promise<void>;
