@@ -44,7 +44,39 @@ const TOKEN_QUERY_KEYS = ['token', 't', 'orderToken', 'order_token', 'publicToke
 export default ({ strapi }: { strapi: Core.Strapi }) => {
   const branches = () => strapi.plugin('ordering').service('branch') as BranchService;
   const storefront = () => strapi.plugin('ordering').service('storefront') as StorefrontService;
+  const alerts = () =>
+    strapi.plugin('ordering').service('alert') as ReturnType<typeof import('../services/alert').default>;
+  const alertRules = () =>
+    strapi.plugin('ordering').service('alert-rules') as ReturnType<typeof import('../services/alert-rules').default>;
   const config = () => strapi.config.get('plugin::ordering') as OrderingConfig;
+
+  /**
+   * O9: once one IP's wrong-card-code count reaches the `gift-card-probing` threshold the ops
+   * board gets one alert per IP (dedupeKey); further failures bump its count and the alert
+   * escalates at `criticalThreshold`. Shares the in-memory limiter window — a process restart
+   * resets both. Alerting must never break a public request.
+   */
+  const maybeAlertProbing = async (ip: string, count: number, serviceCtx: ServiceContext) => {
+    try {
+      const rule = await alertRules().ruleOf('gift-card-probing');
+      if (!rule.enabled || count < rule.threshold) return;
+      await alerts().open(
+        {
+          alertCode: 'gift-card-probing',
+          dedupeKey: `gift-card-probing:${ip}`,
+          severity:
+            rule.criticalThreshold !== undefined && count >= rule.criticalThreshold
+              ? 'critical'
+              : 'warning',
+          aggregateRef: `${count} wrong codes`,
+        },
+        serviceCtx,
+      );
+    } catch (error) {
+      // alerting must never break a public request — warn so a broken pipeline is visible
+      strapi.log.warn(`[ordering] gift-card-probing alert failed: ${(error as Error).message}`);
+    }
+  };
   const ratings = () =>
     strapi.plugin('ordering').service('rating') as ReturnType<typeof import('../services/rating').default>;
 
@@ -151,7 +183,11 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       const cardLimit = giftCardLimit(strapi);
       if (cart.payment?.giftCardCode) {
         const failures = giftCardFailureCount(ip);
-        if (failures >= cardLimit.max) return tooMany();
+        if (failures >= cardLimit.max) {
+          // Still counting while limited — a prober hammering 429s is the escalation signal.
+          await maybeAlertProbing(ip, noteGiftCardFailure(ip, cardLimit.windowMs), serviceCtx);
+          return tooMany();
+        }
         if (failures >= GIFT_CARD_CAPTCHA_AFTER) {
           await verifyCaptcha(
             ctx,
@@ -179,7 +215,9 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       }
       const cardResult = (quoted as { giftCard?: { reason?: string } | null }).giftCard;
       if (cart.payment?.giftCardCode && cardResult?.reason === 'invalid') {
-        if (noteGiftCardFailure(ip, cardLimit.windowMs) >= cardLimit.max) return tooMany();
+        const count = noteGiftCardFailure(ip, cardLimit.windowMs);
+        await maybeAlertProbing(ip, count, serviceCtx);
+        if (count >= cardLimit.max) return tooMany();
       }
       return quoted;
     }),
@@ -202,7 +240,11 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
         return undefined;
       };
       const failures = giftCardFailureCount(ip);
-      if (failures >= cardLimit.max) return tooMany();
+      if (failures >= cardLimit.max) {
+        // Still counting while limited — a prober hammering 429s is the escalation signal.
+        await maybeAlertProbing(ip, noteGiftCardFailure(ip, cardLimit.windowMs), serviceCtx);
+        return tooMany();
+      }
       if (failures >= GIFT_CARD_CAPTCHA_AFTER) {
         await verifyCaptcha(
           ctx,
@@ -212,7 +254,9 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       }
       const card = await storefront().giftCardBalance(code, serviceCtx);
       if (!card) {
-        if (noteGiftCardFailure(ip, cardLimit.windowMs) >= cardLimit.max) return tooMany();
+        const count = noteGiftCardFailure(ip, cardLimit.windowMs);
+        await maybeAlertProbing(ip, count, serviceCtx);
+        if (count >= cardLimit.max) return tooMany();
         // Same error for unknown, malformed and inactive codes — no existence oracle.
         throw new OrderingError('GIFT_CARD_INVALID', 'gift card cannot be used');
       }
@@ -231,6 +275,8 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       // O9: a guessed card code at create counts against the same IP budget as at quote —
       // the captcha above already makes probing expensive, this closes a second window.
       if (input.payment?.giftCardCode && giftCardFailureCount(clientIpOf(strapi, ctx)) >= giftCardLimit(strapi).max) {
+        const ip = clientIpOf(strapi, ctx);
+        await maybeAlertProbing(ip, noteGiftCardFailure(ip, giftCardLimit(strapi).windowMs), serviceCtx);
         ctx.status = 429;
         ctx.body = {
           error: { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' },
@@ -253,7 +299,9 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
           );
       } catch (error) {
         if (error instanceof OrderingError && error.code === 'GIFT_CARD_INVALID') {
-          noteGiftCardFailure(clientIpOf(strapi, ctx), giftCardLimit(strapi).windowMs);
+          const ip = clientIpOf(strapi, ctx);
+          const count = noteGiftCardFailure(ip, giftCardLimit(strapi).windowMs);
+          await maybeAlertProbing(ip, count, serviceCtx);
         }
         throw error;
       }

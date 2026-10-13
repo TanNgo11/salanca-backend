@@ -2,6 +2,7 @@ import type { Core } from '@strapi/strapi';
 
 import type { OrderingConfig } from '../config';
 import { redactPayload } from '../domain/pii';
+import type giftCardFactory from '../services/gift-card';
 import type jobLockFactory from '../services/job-lock';
 
 type RetentionResult = {
@@ -12,6 +13,8 @@ type RetentionResult = {
   webhookDeliveriesDeleted: number;
   /** O8: rating comments cleared after `ratingCommentDays` (the stars stay). */
   ratingCommentsCleared: number;
+  /** O9: sealed plaintext card codes wiped after `sealedCodeHours`. */
+  sealsPurged: number;
   batches: number;
 };
 
@@ -29,6 +32,7 @@ export const runRetention = async (
 ): Promise<RetentionResult> => {
   const plugin = strapi.plugin('ordering');
   const jobLock = plugin.service('job-lock') as ReturnType<typeof jobLockFactory>;
+  const giftCard = plugin.service('gift-card') as ReturnType<typeof giftCardFactory>;
   const now = options.now ?? new Date();
 
   const outcome = await jobLock.withLock(
@@ -149,10 +153,21 @@ export const runRetention = async (
           .delete();
       }
 
+      // ── O9: a sealed plaintext card code lives only `sealedCodeHours` past issue — the
+      // HMAC hash and last4 stay, so lookup and masked views keep working.
+      let sealsPurged = 0;
+      const sealCutoff = new Date(now.getTime() - config.sealedCodeHours * 60 * 60 * 1000);
+      for (let batch = 0; batch < config.maxBatchesPerRun; batch += 1) {
+        const purged = await giftCard.purgeSealedCodes(sealCutoff, config.batchSize);
+        if (purged === 0) break;
+        batches += 1;
+        sealsPurged += purged;
+      }
+
       strapi.log.info(
-        `[ordering] retention redacted=${redacted} outboxDeleted=${outboxDeleted} alertsDeleted=${alertsDeleted} webhookDeliveriesDeleted=${webhookDeliveriesDeleted} ratingCommentsCleared=${ratingCommentsCleared} batches=${batches}`,
+        `[ordering] retention redacted=${redacted} outboxDeleted=${outboxDeleted} alertsDeleted=${alertsDeleted} webhookDeliveriesDeleted=${webhookDeliveriesDeleted} ratingCommentsCleared=${ratingCommentsCleared} sealsPurged=${sealsPurged} batches=${batches}`,
       );
-      return { redacted, outboxDeleted, alertsDeleted, webhookDeliveriesDeleted, ratingCommentsCleared, batches };
+      return { redacted, outboxDeleted, alertsDeleted, webhookDeliveriesDeleted, ratingCommentsCleared, sealsPurged, batches };
     },
   );
 
@@ -165,6 +180,7 @@ export const runRetention = async (
         alertsDeleted: 0,
         webhookDeliveriesDeleted: 0,
         ratingCommentsCleared: 0,
+        sealsPurged: 0,
         batches: 0,
       };
 };

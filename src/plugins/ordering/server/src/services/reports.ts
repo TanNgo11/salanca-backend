@@ -109,9 +109,16 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
   };
 
   type Aggregates = {
-    byDate: Map<string, { orders: number; gross: number; revenue: number; refunded: number }>;
+    byDate: Map<
+      string,
+      { orders: number; gross: number; revenue: number; refunded: number; cardSales: number }
+    >;
     byProvider: Map<string, { orders: Set<number>; revenue: number; refunded: number }>;
     byReceive: Map<string, { orders: number; gross: number }>;
+    /** O9: Σ balance of `active` cards right now — a stock figure, not a range flow. */
+    circulating: number;
+    /** O9: Σ remaining balance written off by `expire` ledger rows inside the range. */
+    expiredValue: number;
     lines: Array<{
       orderId: number;
       sellableUid: string;
@@ -130,6 +137,8 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       refunded: number;
       /** Positive VND of every `discount` adjustment on sold orders (promotions and staff). */
       discount: number;
+      /** O9: Σ captured payments on `digital` (gift-card-sale) orders — never food revenue. */
+      cardSales: number;
     };
   };
 
@@ -164,11 +173,18 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       .groupBy('p.provider_code', 'p.business_date')
       .select('p.provider_code', 'p.business_date')
       .select(knex().raw('coalesce(sum(p.captured_amount), 0) as captured'))
+      // O9: captured money that bought cards (a `digital` order) — separated from food revenue.
+      .select(
+        knex().raw(
+          `coalesce(sum(p.captured_amount) filter (where o.receive_method ->> 'kind' = 'digital'), 0) as card_sales`,
+        ),
+      )
       // Distinct orders per provider span days — collect ids and dedupe in JS.
       .select(knex().raw('array_agg(distinct link.order_id) as order_ids'))) as Array<{
       provider_code: string;
       business_date: string | Date;
       captured: string | number;
+      card_sales: string | number;
       order_ids: Array<number | string> | null;
     }>;
 
@@ -266,7 +282,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
 
     const byDate = new Map<
       string,
-      { orders: number; gross: number; revenue: number; refunded: number }
+      { orders: number; gross: number; revenue: number; refunded: number; cardSales: number }
     >();
     const byProvider = new Map<
       string,
@@ -276,7 +292,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     const bucket = (day: string) => {
       const existing = byDate.get(day);
       if (existing) return existing;
-      const created = { orders: 0, gross: 0, revenue: 0, refunded: 0 };
+      const created = { orders: 0, gross: 0, revenue: 0, refunded: 0, cardSales: 0 };
       byDate.set(day, created);
       return created;
     };
@@ -295,6 +311,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     for (const row of paymentRows) {
       const captured = int(row.captured);
       bucket(dateText(row.business_date)).revenue += captured;
+      bucket(dateText(row.business_date)).cardSales += int(row.card_sales);
       const provider = byProvider.get(row.provider_code) ?? {
         orders: new Set<number>(),
         revenue: 0,
@@ -332,11 +349,29 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       };
     });
 
+    // O9: circulating card value (stock figure — range-independent) and the balance written
+    // off by `expire` ledger rows inside the range (the "Số dư thẻ hết hạn" decision).
+    const circulatingRow = (await knex()
+      .from('plugins_ordering_gift_card')
+      .where('status', 'active')
+      .select(knex().raw('coalesce(sum(balance), 0) as total'))
+      .first()) as { total: string | number } | undefined;
+    const dayStart = (day: string) => new Date(`${day}T00:00:00Z`);
+    const expiredRow = (await knex()
+      .from('plugins_ordering_gift_card_ledger as l')
+      .where('l.kind', 'expire')
+      .where('l.created_at', '>=', dayStart(from))
+      .where('l.created_at', '<', new Date(dayStart(to).getTime() + 86400000))
+      .select(knex().raw('coalesce(sum(-l.amount), 0) as total'))
+      .first()) as { total: string | number } | undefined;
+
     let revenue = 0;
     let refunded = 0;
+    let cardSales = 0;
     for (const day of byDate.values()) {
       revenue += day.revenue;
       refunded += day.refunded;
+      cardSales += day.cardSales;
     }
     return {
       byDate,
@@ -344,12 +379,15 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       byReceive,
       lines: normalizedLines,
       promotions,
+      circulating: int(circulatingRow?.total),
+      expiredValue: int(expiredRow?.total),
       summary: {
         discount,
         orders: orderRows.length,
         gross: orderRows.reduce((sum, row) => sum + int(row.total_amount), 0),
         revenue,
         refunded,
+        cardSales,
       },
     };
   };
@@ -451,7 +489,8 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       }
       const { locations, branch } = await scopedLocations(query.branch, ctx);
       const data = await collect(from, to, locations);
-      const { orders, gross, revenue, refunded, discount } = data.summary;
+      const { orders, gross, revenue, refunded, discount, cardSales } = data.summary;
+      const giftCardProvider = data.byProvider.get('gift-card');
       return {
         range: { from, to },
         branch: branch?.code ?? null,
@@ -464,6 +503,19 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
           averageOrder: orders > 0 ? Math.round(gross / orders) : 0,
           net: revenue - refunded,
           discount,
+          /**
+           * O9 (decisions 2026-10-13): card money kept apart from food revenue.
+           * `sold` = captured payments on card-sale (digital) orders; `redeemed`/`refunded` =
+           * the `gift-card` provider ledgers; `circulating` = live card balances right now;
+           * `expired` = Σ expire write-offs inside the range.
+           */
+          giftCards: {
+            sold: cardSales,
+            redeemed: giftCardProvider?.revenue ?? 0,
+            refunded: giftCardProvider?.refunded ?? 0,
+            circulating: data.circulating,
+            expired: data.expiredValue,
+          },
         },
         rows: rowsFor(groupBy, data),
         // O8: average stars of the period's orders (by order business date).

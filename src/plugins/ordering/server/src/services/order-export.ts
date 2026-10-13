@@ -46,7 +46,12 @@ type OrderRow = {
   origin: unknown;
   consentSnapshot: unknown;
   lines?: OrderLineRow[];
-  payments?: Array<{ providerCode?: string; status?: string; capturedAmount?: string | number }>;
+  payments?: Array<{
+    id?: number;
+    providerCode?: string;
+    status?: string;
+    capturedAmount?: string | number;
+  }>;
   refunds?: Array<{ status?: string; amount?: string | number }>;
   adjustments?: Array<{ kind?: string; code?: string; sourceRef?: string | null; amount?: string | number }>;
 };
@@ -76,6 +81,7 @@ const HEADERS = [
   'Đã thu',
   'Đã hoàn',
   'Cách trả',
+  'Thẻ quà tặng',
   'Ghi chú khách',
   'Nguồn',
   'Đồng ý chính sách',
@@ -221,6 +227,32 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       const branches = new Map(
         ((await services().branch.list()) as BranchRow[]).map((row) => [row.code, row]),
       );
+      // O9: gift-card payments render "•••• last4" — resolved through the redeem ledger row,
+      // same join as the admin order detail. Plaintext codes never reach a CSV.
+      const cardPaymentIds = rows.flatMap((order) =>
+        (order.payments ?? [])
+          .filter((payment) => payment.providerCode === 'gift-card')
+          .map((payment) => payment.id)
+          .filter((id): id is number => typeof id === 'number'),
+      );
+      const last4ByPayment = new Map<number, string>();
+      if (cardPaymentIds.length > 0) {
+        const links = (await strapi.db.connection
+          .from('plugins_ordering_gift_card_ledger_payment_lnk as lp')
+          .join(
+            'plugins_ordering_gift_card_ledger_card_lnk as lc',
+            'lc.gift_card_ledger_id',
+            'lp.gift_card_ledger_id',
+          )
+          .join('plugins_ordering_gift_card_ledger as l', 'l.id', 'lp.gift_card_ledger_id')
+          .join('plugins_ordering_gift_card as c', 'c.id', 'lc.gift_card_id')
+          .whereIn('lp.payment_id', cardPaymentIds)
+          .where('l.kind', 'redeem')
+          .select('lp.payment_id', 'c.last_4')) as Array<{ payment_id: number; last_4: string }>;
+        for (const link of links) {
+          if (!last4ByPayment.has(link.payment_id)) last4ByPayment.set(link.payment_id, link.last_4);
+        }
+      }
       const cells = rows.map((order) => {
         const branchRow = branches.get(order.locationRef);
         const timezone = branchRow?.timezone ?? 'Asia/Ho_Chi_Minh';
@@ -264,6 +296,10 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
           String(captured),
           String(refunded),
           providers.join(','),
+          payments
+            .filter((payment) => payment.providerCode === 'gift-card')
+            .map((payment) => `•••• ${last4ByPayment.get(payment.id ?? 0) ?? ''}`.trim())
+            .join('; '),
           order.customerNote ?? '',
           (origin.kind as string) ?? '',
           (consent.policyVersion as string) ?? '',

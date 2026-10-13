@@ -94,6 +94,8 @@ const scripts = [
   'gift-card-payment.mjs',
   // O9 step 5: staff admin — masked list/detail, issue/resend, lifecycle, physical batches.
   'gift-card-admin.mjs',
+  // O9 step 6: card metrics, cash closing, CSV column, expiry job, seal retention, probing alert.
+  'gift-card-report.mjs',
 ];
 
 const results = [];

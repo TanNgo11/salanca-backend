@@ -6,6 +6,7 @@ import { runCartExpiry } from './cart-expiry';
 import { runCustomerGroupRefresh } from './customer-group-refresh';
 import { runCartReminder } from './cart-reminder';
 import { runDataRequestWaiting } from './data-request-waiting';
+import { runGiftCardExpiry } from './gift-card-expiry';
 import { runHoldExpiry } from './hold-expiry';
 import { runIdempotencyCleanup } from './idempotency-cleanup';
 import { runManualPaymentCheck } from './manual-confirmation';
@@ -87,6 +88,8 @@ export const ORDERING_JOBS: OrderingJob[] = [
     run: runCustomerGroupRefresh,
     runnable: true,
   },
+  // O9: daily write-off of expired card balances (`expire` ledger rows).
+  { name: 'gift-card-expiry', cronKey: 'giftCardExpiryCron', run: runGiftCardExpiry, runnable: true },
 ];
 
 export const jobByName = (name: string): OrderingJob | undefined =>

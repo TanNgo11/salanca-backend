@@ -53,6 +53,7 @@ const ALERT_CODES = [
   'audit-tampered',
   'notification-template-broken',
   'low-rating',
+  'gift-card-probing',
 ] as const;
 
 const RECIPIENT_CHOICES = ['branch-email', 'ops.read', 'report.read', 'payment.review', 'order.read'];

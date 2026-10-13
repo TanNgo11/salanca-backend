@@ -167,6 +167,9 @@ export const o9Messages: Record<string, [string, string]> = {
   ],
   'batch.cards': ['Thẻ trong lô', 'Cards in batch'],
 
+  'ops.job.gift-card-expiry': ['Hết hạn thẻ quà tặng', 'Gift-card expiry'],
+  'alert.code.gift-card-probing': ['Dò mã thẻ quà tặng', 'Gift-card code probing'],
+
   // errors surfaced through the admin toast
   'error.GIFT_CARD_NOT_FOUND': ['Không tìm thấy thẻ.', 'Gift card not found.'],
   'error.GIFT_CARD_INVALID': ['Mã thẻ không đúng hoặc không dùng được.', 'The card code is invalid or unusable.'],

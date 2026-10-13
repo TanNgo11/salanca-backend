@@ -191,7 +191,7 @@ Admin (`/ordering`):
 
 ## Completion record
 
-Trạng thái: **đang thực hiện — bước 1–5 implemented, targeted gates passed** (2026-10-14). Nhánh
+Trạng thái: **đang thực hiện — bước 1–6 implemented, targeted gates passed** (2026-10-14). Nhánh
 `TanNgo11/ordering-o9`.
 
 | Bước | Commit | Nội dung |
@@ -200,7 +200,8 @@ Trạng thái: **đang thực hiện — bước 1–5 implemented, targeted gat
 | 2 | `1547595` | `gift-card` service (issue/find/redeem/credit/block/extend, `expireDue`), `gift-card-ledger.mjs` — từ chối credit thẻ `inactive` |
 | 3 | `6d9f1e3` | Luồng bán digital: `receiveMethod.kind='digital'`, workflow `gift-card`, phát hành sau capture qua outbox, email người nhận, bán quầy thẻ giấy quét mã, `gift-card-sale.mjs` |
 | 4 | `43dd031` | Thẻ làm phương thức co-payment: debit ở create, refund/cancel/expiry hoàn về thẻ, race an toàn, balance endpoint + chống dò mã, `gift-card-payment.mjs` |
-| 5 | commit chứa dòng này | API Admin G1–G3 + lô thẻ giấy, `gift-card-admin` service, controller/routes/quyền (`gift-card.manage`, `gift-card.adjust`, `export`), sealed code/recipient + resend, Admin pages GiftCards + order-detail hiển thị thẻ, `gift-card-admin.mjs`, OpenAPI 14 op |
+| 5 | `a8d3dba` | API Admin G1–G3 + lô thẻ giấy, `gift-card-admin` service, controller/routes/quyền (`gift-card.manage`, `gift-card.adjust`, `export`), sealed code/recipient + resend, Admin pages GiftCards + order-detail hiển thị thẻ, `gift-card-admin.mjs`, OpenAPI 14 op |
+| 6 | commit chứa dòng này | Báo cáo `summary.giftCards` (sold/redeemed/refunded/circulating/expired), cột `Thẻ quà tặng` `•••• last4` trong CSV, job `gift-card-expiry` (lock + heartbeat, expire ledger idempotent), retention xoá `sealedCode` sau `sealedCodeHours`, alert `gift-card-probing` mở 1 lần/IP + escalate, `gift-card-report.mjs` |
 
 Lệch kế hoạch:
 
@@ -209,8 +210,13 @@ Lệch kế hoạch:
 - `gift-card-batch.createdBy` đổi thành `createdByRef` — `createdBy` là tên Strapi dành cho khóa admin user (ghi vào `created_by_id` integer, không phải actor-ref string).
 - `issueInTransaction` trả thêm `expiresAt` để response create báo hạn hiệu lực; `unblock` nhận `reason` tuỳ chọn.
 - Response `POST /gift-cards` chỉ trả `code` khi không có email người nhận hoặc gửi mail thất bại — nhân viên không bao giờ thấy mã đã gửi qua mail.
+- `giftCards.expired` (số dư ghi hết hạn) lọc `expire` ledger theo `created_at` ngày UTC — ledger không có
+  `business_date`; lệch tối đa ±1 ngày quanh nửa đêm UTC, chấp nhận cho báo cáo theo ngày.
+- Alert `gift-card-probing` đếm cả lượt gọi khi IP đã bị 429 — một đợt dò mã vượt `criticalThreshold`
+  (mặc định 60) vẫn escalate dù limiter `max` chặn sớm hơn; bộ đếm in-memory theo chung cửa sổ limiter,
+  restart process reset cả hai.
 
-Targeted gates đã chạy (đến hết bước 5, `ORDERING_TEST_DATABASE=salanca_ordering_o9`):
+Targeted gates đã chạy (đến hết bước 6, `ORDERING_TEST_DATABASE=salanca_ordering_o9`):
 
 - `pnpm run lint` — pass; `pnpm run typecheck` — pass; `pnpm run typecheck:admin` — pass.
 - `pnpm exec vitest run src/plugins/ordering` — 63 files / 666 tests pass.
@@ -222,3 +228,5 @@ Targeted gates đã chạy (đến hết bước 5, `ORDERING_TEST_DATABASE=sala
 - `node scripts/ordering/gift-card-admin.mjs` — pass (403 gates, masked detail/search, issue mailed/handover, block→public invalid, extend/adjust, resend, batch generate/import/export, change-log không rò mã).
 - `node scripts/ordering/email-templates.mjs` — pass; `node scripts/ordering/audit-log.mjs` — pass; `node scripts/ordering/admin-orders.mjs` — pass.
 - `node scripts/ordering/openapi.mjs --write` — pass (115 admin paths).
+- `node scripts/ordering/gift-card-report.mjs` — pass (sold/redeemed/circulating/expired tách khỏi doanh thu món; chốt tiền mặt chỉ tính `cash`; CSV `•••• last4` không rò mã; job expire 1 lần, chạy lại no-op; retention xoá seal giữ HMAC; alert dò mã 1 dòng/IP, escalate critical).
+- `node scripts/ordering/reports.mjs`, `cash-closing.mjs`, `order-export.mjs`, `gift-card-payment.mjs`, `jobs.mjs`, `alerts-engine.mjs`, `data-rights.mjs` — pass (regression sau bước 6).

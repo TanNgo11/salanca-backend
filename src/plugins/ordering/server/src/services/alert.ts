@@ -58,6 +58,7 @@ const COUNT_ESCALATED = new Set([
   'reconciliation-mismatch',
   'cash-closing-mismatch',
   'notification-template-broken',
+  'gift-card-probing',
 ]);
 
 /**
