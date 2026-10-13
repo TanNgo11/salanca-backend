@@ -2,6 +2,13 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
+2026-10-13: **Ordering hoàn thiện sau O8/O11** (`feat/ordering-finish`): pnpm audit 6 critical / 38 high → 2 / 3
+(overrides trong major; còn vite 6, webpack-dev-middleware 7, tinypool 2 chỉ dùng lúc build/dev/test và braces chưa có
+bản vá), nodemailer 10.1.0; bỏ `minimumReleaseAge: 0` tạm, `.npmrc` trỏ npm công khai. Giỏ hàng nhận `promotionCode`
+(cùng bộ chặn đoán mã). Đánh giá ẩn không tính điểm TB. `pnpm run typecheck:admin` mới (0 lỗi; sửa 5 dialog O11 dùng
+`Dialog.Title` bị crash). Script test không tự mở tab trình duyệt nữa. Gate gọn: lint, typecheck, typecheck:admin,
+vitest, `cart-promotion`/`cart`/`cart-checkout`/`cart-reminder`/`rating`, `strapi build`. Chưa UAT giao diện.
+
 2026-10-13: **O11 tích hợp O8** — `feat/ordering-o11` merge `feat/ordering` (O7, O8, O10, O15), review fix OTP
 đồng thời, scope hàng đợi NĐ13, khách vãng lai; xóa dữ liệu khách xóa luôn ghi chú đánh giá, giữ
 `customerKey` của lượt khuyến mãi (lý do trong Completion record O11). Gate targeted: lint, typecheck, vitest
