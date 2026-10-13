@@ -34,6 +34,30 @@ Gate (DB `salanca_ordering_o13`): `lint`, `typecheck`, `typecheck:admin`, `vites
 (110 path), `ORDERING_ENABLED=true strapi build`. **Open:** chưa UAT giao diện Admin
 (P1/P3/P4, Gọi xe); chưa UAT sandbox provider thật — mọi provider tắt mặc định; chờ duyệt
 merge `feat/ordering`.
+2026-10-14: **Ordering fourth review fixes** (`feat/ordering-finish`) — price-list writes
+commit metadata, derived prices and audit together; OTP verification serializes by target;
+session count/revoke/insert serializes by customer. Line refunds lock lines in ascending id
+order before payment, matching cancellation and order editing. All four defects reproduced
+on PostgreSQL before fixes; seven regression cases pass afterwards. Build:ordering, lint,
+typecheck, 62 Vitest files / 660 tests and eight targeted integration scripts passed.
+Changes remain uncommitted; full check:ordering and browser UAT were not run.
+[Fourth review record](plans/ordering-review-fixes-4.md).
+
+2026-10-14: **Ordering third review round** (`feat/ordering-finish`) ? customer/order linking and erasure
+share identity + row locks; finalization recounts open orders and scrubs newly closed orders. Checkout uses
+customer-before-cart locks; erasure records waiting for busy carts. Webhook fanout commits payload + activation
+atomically and repairs old incomplete deliveries on retry. Guest-cart merges consume their source once under
+both cart locks; OTP issuance serializes per email target and sends only after outermost commit. PostgreSQL
+regressions were red before fixes and green afterwards. Compact gates passed (including 62 Vitest files / 660
+tests); full check:ordering and manual UAT were not run. [Third review record](plans/ordering-review-fixes.md).
+
+2026-10-13: **Ordering review fixes** (`feat/ordering-finish`) ? cart checkout now locks/reloads the cart
+and atomically creates the order + converted link; same-key replay remains supported. Customer cancellation
+checks locked fulfillment states. Promotion guessing guards cover cart creation, deferred quotes, reads,
+line mutations and customer reorder. Automated verification: build:ordering, lint, typecheck, typecheck:admin,
+171 Vitest files / 1298 tests, and 9 targeted integration scripts passed on isolated
+`salanca_ordering_review_fixes`. Full check:ordering and browser UAT were not run; existing pg query
+deprecation warning remains. Evidence: [review fix record](plans/ordering-review-fixes.md).
 
 2026-10-13: **Ordering O14 (bảng giá theo kênh, nhóm khách, khung giờ)** trên `feat/ordering-o14`.
 Bảng giá riêng và bảng điều chỉnh, nhóm khách tay/tự động, job `customer-group-refresh` 03:15.

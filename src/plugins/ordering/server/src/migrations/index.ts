@@ -8,6 +8,7 @@ import { o11CustomersMigration } from './0007-o11-customers';
 import { o7OpsExtrasMigration } from './0005-o7-ops-extras';
 import { o8PromotionsRatingMigration } from './0008-o8-promotions-rating';
 import { o14PriceListsMigration } from './0009-o14-price-lists';
+import { o11CustomerDocumentIdsMigration } from './0009b-o11-customer-document-ids';
 import { o13ProvidersMigration } from './0012-o13-providers';
 import type { OrderingMigration } from './runner';
 
@@ -23,5 +24,6 @@ export const orderingMigrations: OrderingMigration[] = [
   o7OpsExtrasMigration,
   o8PromotionsRatingMigration,
   o14PriceListsMigration,
+  o11CustomerDocumentIdsMigration,
   o13ProvidersMigration,
 ];

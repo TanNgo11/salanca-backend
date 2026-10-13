@@ -10,6 +10,7 @@ import { OrderingError } from '../domain/errors';
 import { sha256Hex } from '../domain/hashing';
 import type { SelectedOptionSnapshot } from '../domain/storefront/serialize';
 import { normalizeVietnamesePhone } from '../../../shared/contact/phone';
+import type { TransactionClient } from '../migrations/runner';
 import orderRepository from '../repositories/order';
 import type adminUnitsFactory from './admin-units';
 import type branchFactory from './branch';
@@ -19,6 +20,7 @@ import type { CreateOrderResult } from './order';
 import type { OrderingRegistry } from './registry';
 import type { ServiceContext } from './context';
 import { nowOf } from './context';
+import { lockCustomer } from './customer-lock';
 
 type CartLine = {
   id: string;
@@ -40,7 +42,7 @@ type CartRow = {
   contact: { name?: string; phone?: string; email?: string } | null;
   lines: CartLine[] | null;
   status: 'active' | 'converted' | 'expired';
-  order: number | null;
+  order: number | { id: number } | null;
   locale: string | null;
   promotionCode: string | null;
   lastActivityAt: string | Date;
@@ -220,7 +222,7 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
   const reload = async (rowId: number): Promise<CartRow> =>
     (await carts().findOne({
       where: { id: rowId },
-      populate: { customer: true },
+      populate: { customer: true, order: true },
     })) as CartRow;
 
   const save = async (
@@ -231,6 +233,24 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
     await carts().update({ where: { id: row.id }, data: { ...data, ...touch(ctx) } });
     return reload(row.id);
   };
+
+  /**
+   * Read-modify-write of one cart under its row lock: concurrent requests on the same cart
+   * (two "add" taps, a line edit racing a merge) each see the previous one's lines instead of
+   * overwriting them from a stale snapshot.
+   */
+  const mutateLocked = async (
+    row: CartRow,
+    ctx: ServiceContext,
+    change: (fresh: CartRow) => Record<string, unknown> | Promise<Record<string, unknown>>,
+  ): Promise<CartRow> =>
+    strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
+      const locked = await trx('plugins_ordering_cart').where({ id: row.id }).forUpdate().first('id');
+      if (!locked) throw new OrderingError('CART_NOT_FOUND', 'cart not found');
+      const fresh = await reload(row.id);
+      if (fresh.status !== 'active') expiredOrMissing(fresh);
+      return save(fresh, await change(fresh), ctx);
+    });
 
   const loadByToken = async (token: string): Promise<CartRow | null> =>
     (await carts().findOne({
@@ -368,30 +388,48 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
      * guest cart is expired — leftovers beyond the cap are dropped.
      */
     async merge(customerId: number, guest: CartRow, ctx: ServiceContext): Promise<CartRow> {
-      const target = await loadForCustomer(customerId);
-      if (!target) {
-        await carts().update({ where: { id: guest.id }, data: { customer: customerId } });
-        return reload(guest.id);
-      }
-      const merged = linesOf(target);
-      const byKey = new Map(merged.map((line) => [lineKey(line), line]));
-      for (const line of linesOf(guest)) {
-        const existing = byKey.get(lineKey(line));
-        if (existing) {
-          existing.quantity = Math.min(existing.quantity + line.quantity, QUANTITY_CAP);
-        } else {
-          if (merged.length >= config().carts.maxLines) break;
-          const mergedLine = { ...line, id: randomUUID() };
-          merged.push(mergedLine);
-          byKey.set(lineKey(mergedLine), mergedLine);
+      return strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
+        // Serialize merges for a customer even before their target cart exists.
+        await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [`ordering-cart-merge:${customerId}`]);
+        const target = await loadForCustomer(customerId);
+        const ids = [...new Set([guest.id, ...(target ? [target.id] : [])])].sort((a, b) => a - b);
+        for (const id of ids) {
+          const locked = await trx('plugins_ordering_cart').where({ id }).forUpdate().first('id');
+          if (!locked) throw new OrderingError('CART_NOT_FOUND', 'cart not found');
         }
-      }
-      await carts().update({ where: { id: guest.id }, data: { status: 'expired' } });
-      return save(
-        target,
-        { lines: merged, ...(!target.promotionCode && guest.promotionCode ? { promotionCode: guest.promotionCode } : {}) },
-        ctx,
-      );
+        const source = await reload(guest.id);
+        const fresh = target ? await reload(target.id) : null;
+        const sourceOwner = source.customer?.id ?? null;
+        if (sourceOwner !== null && sourceOwner !== customerId) {
+          throw new OrderingError('CART_NOT_FOUND', 'cart not found');
+        }
+        if (fresh && fresh.status !== 'active') expiredOrMissing(fresh);
+        if (source.status !== 'active') return fresh ?? expiredOrMissing(source);
+        if (!fresh || fresh.id === source.id) {
+          if (sourceOwner === null) {
+            await carts().update({ where: { id: source.id }, data: { customer: customerId } });
+          }
+          return reload(source.id);
+        }
+        const merged = linesOf(fresh);
+        const byKey = new Map(merged.map((line) => [lineKey(line), line]));
+        for (const line of linesOf(source)) {
+          const existing = byKey.get(lineKey(line));
+          if (existing) {
+            existing.quantity = Math.min(existing.quantity + line.quantity, QUANTITY_CAP);
+          } else {
+            if (merged.length >= config().carts.maxLines) break;
+            const mergedLine = { ...line, id: randomUUID() };
+            merged.push(mergedLine);
+            byKey.set(lineKey(mergedLine), mergedLine);
+          }
+        }
+        await carts().update({ where: { id: source.id }, data: { status: 'expired' } });
+        return save(fresh, {
+          lines: merged,
+          ...(!fresh.promotionCode && source.promotionCode ? { promotionCode: source.promotionCode } : {}),
+        }, ctx);
+      });
     },
 
     /** PATCH /carts/current — shallow merge of the editable fields. */
@@ -433,19 +471,21 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
       ctx: ServiceContext,
     ): Promise<CartRow> {
       const line = normalizeLine(input);
-      const lines = linesOf(row);
-      const existing = lines.find((candidate) => lineKey(candidate) === lineKey(line));
-      if (existing) {
-        existing.quantity = Math.min(existing.quantity + line.quantity, QUANTITY_CAP);
-      } else {
-        if (lines.length >= config().carts.maxLines) {
-          throw new OrderingError('CART_LIMIT', 'the cart holds at most 50 lines', {
-            details: { limit: config().carts.maxLines },
-          });
+      return mutateLocked(row, ctx, (fresh) => {
+        const lines = linesOf(fresh);
+        const existing = lines.find((candidate) => lineKey(candidate) === lineKey(line));
+        if (existing) {
+          existing.quantity = Math.min(existing.quantity + line.quantity, QUANTITY_CAP);
+        } else {
+          if (lines.length >= config().carts.maxLines) {
+            throw new OrderingError('CART_LIMIT', 'the cart holds at most 50 lines', {
+              details: { limit: config().carts.maxLines },
+            });
+          }
+          lines.push(line);
         }
-        lines.push(line);
-      }
-      return save(row, { lines }, ctx);
+        return { lines };
+      });
     },
 
     /** PATCH /carts/current/lines/:lineId — quantity/selected/note; foreign ids 404. */
@@ -455,22 +495,26 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
       input: Record<string, unknown>,
       ctx: ServiceContext,
     ): Promise<CartRow> {
-      const lines = linesOf(row);
-      const index = lines.findIndex((candidate) => candidate.id === lineId);
-      if (index < 0) {
-        throw new OrderingError('CART_NOT_FOUND', 'line not found', { details: { lineId } });
-      }
-      lines[index] = { ...normalizeLine({ ...lines[index], ...input }), id: lineId };
-      return save(row, { lines }, ctx);
+      return mutateLocked(row, ctx, (fresh) => {
+        const lines = linesOf(fresh);
+        const index = lines.findIndex((candidate) => candidate.id === lineId);
+        if (index < 0) {
+          throw new OrderingError('CART_NOT_FOUND', 'line not found', { details: { lineId } });
+        }
+        lines[index] = { ...normalizeLine({ ...lines[index], ...input }), id: lineId };
+        return { lines };
+      });
     },
 
     /** DELETE /carts/current/lines/:lineId — 404 when the id is not in this cart. */
     async removeLine(row: CartRow, lineId: string, ctx: ServiceContext): Promise<CartRow> {
-      const lines = linesOf(row);
-      if (!lines.some((candidate) => candidate.id === lineId)) {
-        throw new OrderingError('CART_NOT_FOUND', 'line not found', { details: { lineId } });
-      }
-      return save(row, { lines: lines.filter((candidate) => candidate.id !== lineId) }, ctx);
+      return mutateLocked(row, ctx, (fresh) => {
+        const lines = linesOf(fresh);
+        if (!lines.some((candidate) => candidate.id === lineId)) {
+          throw new OrderingError('CART_NOT_FOUND', 'line not found', { details: { lineId } });
+        }
+        return { lines: lines.filter((candidate) => candidate.id !== lineId) };
+      });
     },
 
     /**
@@ -540,7 +584,7 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
 
     /**
      * POST /carts/current/checkout → createOrder with the cart's live contents (the order
-     * re-prices inside its own transaction; no `expectedCartHash` is enforced — reads re-quote
+     * re-prices in the cart checkout transaction; no `expectedCartHash` is enforced — reads re-quote
      * continuously). The cart flips to `converted` and stores the order link — also on replay,
      * so a crash between order-create and cart-update self-heals.
      */
@@ -554,67 +598,86 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
       },
       ctx: ServiceContext,
     ): Promise<CreateOrderResult> {
-      // A converted cart may only replay: the presented key must be the original one —
-      // `createOrder` then answers the stored order (or mismatches → IDEMPOTENCY_PAYLOAD_MISMATCH).
-      // Any other key would mint a duplicate order, so it reads as a dead cart.
-      if (row.status === 'converted') {
-        const seen = await strapi.db.query('plugin::ordering.idempotency-key').findOne({
-          where: { scope: 'order.create', key: input.idempotencyKey },
-          select: ['id'],
-        });
-        if (!seen) throw new OrderingError('CART_EXPIRED', 'this cart is no longer active');
-      }
-      if (!row.locationRef || !row.receiveMethod) {
-        throw new OrderingError('VALIDATION_ERROR', 'cart needs a branch and a receive method', {
-          details: { field: 'locationRef' },
-        });
-      }
-      const contact = row.contact?.phone
-        ? row.contact
-        : input.customerId
-          ? await service.contactForCustomer(input.customerId)
-          : null;
-      if (!contact?.phone) {
-        throw new OrderingError('VALIDATION_ERROR', 'contact.phone is required', {
-          details: { field: 'contact.phone' },
-        });
-      }
-      const result = await orders().createOrder(
-        {
-          idempotencyKey: input.idempotencyKey,
-          locationRef: row.locationRef,
-          ...(row.locale ? { locale: row.locale } : {}),
-          lines: linesOf(row).map((line) => ({
-            sellableUid: line.sellableUid,
-            quantity: line.quantity,
-            selected: line.selected,
-            ...(line.variantUid ? { variantUid: line.variantUid } : {}),
-            ...(line.note ? { note: line.note } : {}),
-          })),
-          receiveMethod: row.receiveMethod as never,
-          contact: {
-            name: contact.name,
-            phone: contact.phone as string,
-            ...(contact.email ? { email: contact.email } : {}),
+      return strapi.db.transaction(async ({ trx }) => {
+        // Erasure locks the customer before deleting their carts. Use that same order,
+        // rather than holding a cart while waiting for the customer's advisory lock.
+        const customerId = input.customerId ?? row.customer?.id;
+        if (customerId) {
+          const identity = (await strapi.db.query('plugin::ordering.customer').findOne({
+            where: { id: customerId }, select: ['id', 'phoneHash'],
+          })) as { id: number; phoneHash: string | null } | null;
+          if (identity) await lockCustomer(trx, identity);
+        }
+        // Serialize checkout by cart, then read its committed status and live contents.
+        const locked = await trx('plugins_ordering_cart').where({ id: row.id }).forUpdate().first('id');
+        if (!locked) throw new OrderingError('CART_NOT_FOUND', 'cart not found');
+        row = await reload(row.id);
+        if (row.status !== 'active' && row.status !== 'converted') expiredOrMissing(row);
+        // A converted cart may only replay: the presented key must be the original one —
+        // `createOrder` then answers the stored order (or mismatches → IDEMPOTENCY_PAYLOAD_MISMATCH).
+        // Any other key would mint a duplicate order, so it reads as a dead cart.
+        if (row.status === 'converted') {
+          const seen = await strapi.db.query('plugin::ordering.idempotency-key').findOne({
+            where: { scope: 'order.create', key: input.idempotencyKey },
+            select: ['id', 'responseRef'],
+          });
+          const orderId = typeof row.order === 'object' ? row.order?.id : row.order;
+          if (!seen || seen.responseRef !== `order:${orderId}`) {
+            throw new OrderingError('CART_EXPIRED', 'this cart is no longer active');
+          }
+        }
+        if (!row.locationRef || !row.receiveMethod) {
+          throw new OrderingError('VALIDATION_ERROR', 'cart needs a branch and a receive method', {
+            details: { field: 'locationRef' },
+          });
+        }
+        const contact = row.contact?.phone
+          ? row.contact
+          : input.customerId
+            ? await service.contactForCustomer(input.customerId)
+            : null;
+        if (!contact?.phone) {
+          throw new OrderingError('VALIDATION_ERROR', 'contact.phone is required', {
+            details: { field: 'contact.phone' },
+          });
+        }
+        const result = await orders().createOrder(
+          {
+            idempotencyKey: input.idempotencyKey,
+            locationRef: row.locationRef,
+            ...(row.locale ? { locale: row.locale } : {}),
+            lines: linesOf(row).map((line) => ({
+              sellableUid: line.sellableUid,
+              quantity: line.quantity,
+              selected: line.selected,
+              ...(line.variantUid ? { variantUid: line.variantUid } : {}),
+              ...(line.note ? { note: line.note } : {}),
+            })),
+            receiveMethod: row.receiveMethod as never,
+            contact: {
+              name: contact.name,
+              phone: contact.phone as string,
+              ...(contact.email ? { email: contact.email } : {}),
+            },
+            consent: {
+              policyVersion: input.consent.policyVersion,
+              marketingOptIn: input.consent.marketingOptIn,
+              channel: 'web-checkout',
+            },
+            ...(input.payment ? { payment: input.payment } : {}),
+            origin: { kind: 'storefront' },
+            ...(input.customerId ? { customerId: input.customerId } : {}),
+            ...(row.pickup ? { pickup: row.pickup as never } : {}),
+            ...(row.promotionCode ? { promotionCode: row.promotionCode } : {}),
           },
-          consent: {
-            policyVersion: input.consent.policyVersion,
-            marketingOptIn: input.consent.marketingOptIn,
-            channel: 'web-checkout',
-          },
-          ...(input.payment ? { payment: input.payment } : {}),
-          origin: { kind: 'storefront' },
-          ...(input.customerId ? { customerId: input.customerId } : {}),
-          ...(row.pickup ? { pickup: row.pickup as never } : {}),
-          ...(row.promotionCode ? { promotionCode: row.promotionCode } : {}),
-        },
-        ctx,
-      );
-      await carts().update({
-        where: { id: row.id },
-        data: { status: 'converted', order: result.order.order.id },
+          ctx,
+        );
+        await carts().update({
+          where: { id: row.id },
+          data: { status: 'converted', order: result.order.order.id },
+        });
+        return result;
       });
-      return result;
     },
 
     /** Customer profile phone/name/email for a signed-in checkout without `cart.contact`. */

@@ -210,41 +210,47 @@ const priceList = ({ strapi }: { strapi: Core.Strapi }) => {
 
     async create(raw: unknown, ctx: ServiceContext) {
       const input = parsePriceListInput(raw);
-      await assertVariants(input.lines);
-      const created = (await lists().create({ data: dataOf(input, ctx, true) })) as ListRow;
-      const row = await load(created.id);
-      await syncOverride(row, input);
-      await changeLog().record(
-        {
-          action: 'price-list.create',
-          entityType: 'price-list',
-          entityId: row.id,
-          entityLabel: input.name.vi,
-          after: { kind: input.kind, priority: input.priority, active: input.active, lines: input.lines.length },
-        },
-        ctx,
-      );
-      return { item: view(await load(row.id)) };
+      return strapi.db.transaction(async () => {
+        await assertVariants(input.lines);
+        const created = (await lists().create({ data: dataOf(input, ctx, true) })) as ListRow;
+        const row = await load(created.id);
+        await syncOverride(row, input);
+        await changeLog().record(
+          {
+            action: 'price-list.create',
+            entityType: 'price-list',
+            entityId: row.id,
+            entityLabel: input.name.vi,
+            after: { kind: input.kind, priority: input.priority, active: input.active, lines: input.lines.length },
+          },
+          ctx,
+        );
+        return { item: view(await load(row.id)) };
+      });
     },
 
     async update(id: number, raw: unknown, ctx: ServiceContext) {
-      const before = await load(id);
       const input = parsePriceListInput(raw);
-      await assertVariants(input.lines);
-      await lists().update({ where: { id }, data: dataOf(input, ctx, false) });
-      await syncOverride(await load(id), input);
-      await changeLog().record(
-        {
-          action: 'price-list.update',
-          entityType: 'price-list',
-          entityId: id,
-          entityLabel: input.name.vi,
-          before: { kind: before.kind, priority: before.priority, active: before.active },
-          after: { kind: input.kind, priority: input.priority, active: input.active, lines: input.lines.length },
-        },
-        ctx,
-      );
-      return { item: view(await load(id)) };
+      return strapi.db.transaction(async ({ trx }) => {
+        // Keep metadata, derived prices and audit coherent across competing updates.
+        await trx('plugins_ordering_price_list').where({ id }).forUpdate().first('id');
+        const before = await load(id);
+        await assertVariants(input.lines);
+        await lists().update({ where: { id }, data: dataOf(input, ctx, false) });
+        await syncOverride(await load(id), input);
+        await changeLog().record(
+          {
+            action: 'price-list.update',
+            entityType: 'price-list',
+            entityId: id,
+            entityLabel: input.name.vi,
+            before: { kind: before.kind, priority: before.priority, active: before.active },
+            after: { kind: input.kind, priority: input.priority, active: input.active, lines: input.lines.length },
+          },
+          ctx,
+        );
+        return { item: view(await load(id)) };
+      });
     },
 
     async setActive(id: number, active: unknown, ctx: ServiceContext) {

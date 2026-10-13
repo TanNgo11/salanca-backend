@@ -357,6 +357,8 @@ export const OPERATIONS: Operation[] = [
       pickup: obj({ asap: bool, slot: obj({ startsAt: str }, ['startsAt']) }),
       locale: str,
       contact: obj({ name: str, phone: str, email: str }),
+      promotionCode: { type: ['string', 'null'] },
+      captchaToken: str,
     }),
     response: obj({ cartToken: str, cart: generic, quote: generic, issues: arr(generic) }, ['cart']),
   }),

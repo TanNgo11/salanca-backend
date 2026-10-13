@@ -136,6 +136,58 @@ withApp(async (app) => {
   console.log('[ordering-test] checkout: consent/captcha/contact, converts cart, replay-safe');
 
   // ── Session cart: profile-phone fallback + order.customer set ──────────────────────────
+  // Concurrent stale snapshots: different keys must create at most one order.
+  const raceToken = await newCart();
+  await addLine(raceToken, { sellableUid: 'goi-cuon', quantity: 1 });
+  await call('PATCH', '/carts/current', { body: { contact: { phone: '0901234567' } }, headers: withCart(raceToken) });
+  const cartService = plugin.service('cart');
+  const ctx = { actor: { kind: 'customer' }, requestId: randomUUID() };
+  const stale = await cartService.resolve({ cartToken: raceToken, customerId: null }, ctx);
+  const countBefore = await app.db.query('plugin::ordering.order').count();
+  const input = { consent: { policyVersion: 'v1' }, customerId: null };
+  const competing = await Promise.allSettled(['a', 'b'].map((suffix) => cartService.checkout(
+    stale, { ...input, idempotencyKey: `race-${randomUUID()}-${suffix}` }, ctx,
+  )));
+  assert.equal(competing.filter((r) => r.status === 'fulfilled').length, 1);
+  assert.equal(competing.find((r) => r.status === 'rejected').reason.code, 'CART_EXPIRED');
+  assert.equal(await app.db.query('plugin::ordering.order').count(), countBefore + 1);
+  const winner = competing.find((r) => r.status === 'fulfilled').value;
+  const converted = await app.db.query('plugin::ordering.cart').findOne({ where: { id: stale.id }, populate: { order: true } });
+  assert.equal(converted.order.id, winner.order.order.id);
+
+  const sameToken = await newCart();
+  await addLine(sameToken, { sellableUid: 'goi-cuon', quantity: 1 });
+  await call('PATCH', '/carts/current', { body: { contact: { phone: '0901234567' } }, headers: withCart(sameToken) });
+  const sameRow = await cartService.resolve({ cartToken: sameToken, customerId: null }, ctx);
+  const sameInput = { ...input, idempotencyKey: `same-${randomUUID()}` };
+  const same = await Promise.all([cartService.checkout(sameRow, sameInput, ctx), cartService.checkout(sameRow, sameInput, ctx)]);
+  assert.equal(same[0].publicToken, same[1].publicToken);
+  assert.equal(same[0].order.order.id, same[1].order.order.id);
+  assert.equal(same.filter((r) => r.replayed).length, 1);
+  assert.equal(await app.db.query('plugin::ordering.order').count(), countBefore + 2);
+  await assert.rejects(cartService.checkout(converted, sameInput, ctx), { code: 'CART_EXPIRED' });
+  // Inject a failure after order creation; both the order and its idempotency row must
+  // roll back with checkout, leaving the cart active and retryable.
+  const rollbackToken = await newCart();
+  await addLine(rollbackToken, { sellableUid: 'goi-cuon', quantity: 1 });
+  await call('PATCH', '/carts/current', { body: { contact: { phone: '0901234567' } }, headers: withCart(rollbackToken) });
+  const rollbackRow = await cartService.resolve({ cartToken: rollbackToken, customerId: null }, ctx);
+  const rollbackInput = { ...input, idempotencyKey: `rollback-${randomUUID()}` };
+  const orderService = plugin.service('order');
+  const originalCreate = orderService.createOrder;
+  orderService.createOrder = async (...args) => {
+    await originalCreate.apply(orderService, args);
+    throw new Error('injected-checkout-failure');
+  };
+  try {
+    await assert.rejects(cartService.checkout(rollbackRow, rollbackInput, ctx), /injected-checkout-failure/);
+  } finally { orderService.createOrder = originalCreate; }
+  assert.equal(await app.db.query('plugin::ordering.order').count(), countBefore + 2);
+  assert.equal(await app.db.query('plugin::ordering.idempotency-key').count({ where: { key: rollbackInput.idempotencyKey } }), 0);
+  assert.equal((await cartService.resolve({ cartToken: rollbackToken, customerId: null }, ctx)).status, 'active');
+  assert.equal((await cartService.checkout(rollbackRow, rollbackInput, ctx)).replayed, false);
+  console.log('[ordering-test] checkout concurrency: different keys create one order; same key replays; foreign key refused');
+
   const session = await login('lan@example.com');
   const auth = { 'x-customer-token': session.token };
   const customer = await app.db

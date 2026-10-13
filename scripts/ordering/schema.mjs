@@ -196,6 +196,7 @@ await withApp(async (app) => {
     '0007-o11-customers',
     '0008-o8-promotions-rating',
     '0009-o14-price-lists',
+    '0009b-o11-customer-document-ids',
     '0012-o13-providers',
   ]) {
     assert.ok(

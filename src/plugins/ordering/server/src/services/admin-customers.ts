@@ -181,9 +181,12 @@ const adminCustomers = ({ strapi }: { strapi: Core.Strapi }) => {
      */
     async detail(documentId: string, ctx: ServiceContext) {
       const customer = await loadCustomer(documentId, ctx);
+      // A branch-scoped caller sees only the orders of their branches (the profile is visible
+      // because one order is in scope; the others are not theirs to read).
+      const refs = await scopedRefs(ctx);
       const [orderRows, addressRows, requestRows] = await Promise.all([
         orders().findMany({
-          where: { customer: customer.id },
+          where: { customer: customer.id, ...(refs === null ? {} : { locationRef: { $in: refs } }) },
           select: ['id', 'code', 'status', 'paymentStatus', 'totalAmount', 'placedAt', 'locationRef'],
           orderBy: { placedAt: 'desc' },
           limit: 20,

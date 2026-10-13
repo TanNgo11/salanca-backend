@@ -78,6 +78,8 @@ const scripts = [
   'cart.mjs',
   'cart-checkout.mjs',
   'cart-promotion.mjs',
+  'review-extra.mjs',
+  'review-round3.mjs',
   // O11 step 5: reorder + abandoned-cart reminder.
   'cart-reminder.mjs',
   // O11 step 6: Decree 13 export/erasure + staff data-request queue.
@@ -86,6 +88,7 @@ const scripts = [
   'admin-customers.mjs',
   // O14: channel, group and time-window prices.
   'price-lists.mjs',
+  'review-round4.mjs',
   // O13: provider adapters — all fake-server, no real network.
   'momo.mjs',
   'vnpay.mjs',

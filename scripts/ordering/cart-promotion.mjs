@@ -11,6 +11,10 @@ process.env.FORM_INTAKE_SHARED_SECRET = 'storefront-test-secret';
 import { seedBranches, seedMenu, withApp } from './_harness.mjs';
 
 withApp(async (app) => {
+  // Exercise the code guard independently of the generic auth request cap.
+  const config = app.config.get('plugin::ordering');
+  config.storefront.rateLimits.auth.max = 100;
+  app.config.set('plugin::ordering', config);
   await seedBranches(app);
   seedMenu(app);
   const promo = await app.db.query('plugin::ordering.promotion').create({
@@ -89,6 +93,47 @@ withApp(async (app) => {
   assert.equal(withCaptcha.body.quote.totals.grandTotal, 117000);
   console.log('[ordering-test] cart code: 3 wrong codes from one IP, then a captcha is required');
 
+  const createBlocked = await call('POST', '/carts', {
+    body: { locationRef: 'Q1', receiveMethod: { kind: 'pickup' }, promotionCode: 'GUESS' }, ip: guesser,
+  });
+  assert.equal(createBlocked.body.error?.code, 'CAPTCHA_FAILED');
+  const delayedIp = '198.51.100.42';
+  let delayedHeader;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const fresh = await call('POST', '/carts', {
+      body: { promotionCode: `EMPTY${attempt}` }, ip: delayedIp,
+    });
+    assert.equal(fresh.status, 201);
+    const delayedCart = { 'x-cart-token': fresh.body.cartToken };
+    delayedHeader = delayedCart;
+    const added = await call('POST', '/carts/current/lines', {
+      body: { sellableUid: 'goi-cuon', quantity: 1 }, headers: delayedCart, ip: delayedIp,
+    });
+    assert.equal(added.status, 200);
+    assert.equal(added.body.quote, null);
+    const quoted = await call('PATCH', '/carts/current', {
+      body: { locationRef: 'Q1', receiveMethod: { kind: 'pickup' } }, headers: delayedCart, ip: delayedIp,
+    });
+    assert.equal(quoted.status, 200, JSON.stringify(quoted.body));
+    assert.equal(quoted.body.quote.rejectedPromotions[0].reason, 'invalid');
+  }
+  const delayedBlocked = await call('POST', '/carts', { body: { promotionCode: 'EMPTYNEXT' }, ip: delayedIp });
+  assert.equal(delayedBlocked.body.error?.code, 'CAPTCHA_FAILED');
+  // The cart already carries its (wrong) code: reading it or changing lines is not a new guess —
+  // no captcha, and the same cart+code is never counted twice, so the owner is not locked out.
+  const lineOk = await call('POST', '/carts/current/lines', {
+    body: { sellableUid: 'goi-cuon', quantity: 1 }, headers: delayedHeader, ip: delayedIp,
+  });
+  assert.equal(lineOk.status, 200, JSON.stringify(lineOk.body));
+  for (let read = 0; read < 25; read += 1) {
+    const again = await call('GET', '/carts/current', { headers: delayedHeader, ip: delayedIp });
+    assert.equal(again.status, 200, `read ${read} of a cart with a stored wrong code stays open`);
+    assert.equal(again.body.quote.rejectedPromotions[0].reason, 'invalid');
+  }
+  const stillGated = await call('POST', '/carts', { body: { promotionCode: 'EMPTYNEXT2' }, ip: delayedIp });
+  assert.equal(stillGated.body.error?.code, 'CAPTCHA_FAILED', 'a new code still needs the captcha');
+  console.log('[ordering-test] cart code: delayed quotes count once; reads of a stored code never lock the owner out');
+
   const cleared = await call('PATCH', '/carts/current', { body: { promotionCode: null }, headers: cart });
   assert.equal(cleared.body.cart.promotionCode, null);
   assert.equal(cleared.body.quote.totals.grandTotal, 130000);
@@ -104,4 +149,22 @@ withApp(async (app) => {
   assert.equal(Number(order.totalAmount), 117000);
   assert.equal(await app.db.query('plugin::ordering.promotion-redemption').count({ where: { promotionId: promo.id } }), 1);
   console.log('[ordering-test] cart checkout carries the code: order 117.000 with one redemption');
+  // Reorder also quotes a stored code; it must share the cart guessing guard.
+  const owner = await app.db.query('plugin::ordering.customer').create({
+    data: { email: 'guard-test@example.invalid', status: 'active' },
+  });
+  const sessionToken = await app.plugin('ordering').service('customer-auth').issueSession(owner,
+    { actor: { kind: 'system' }, requestId: randomUUID() });
+  const auth = { 'x-customer-token': sessionToken };
+  await app.db.query('plugin::ordering.order').update({ where: { id: order.id }, data: { customer: owner.id } });
+  const pendingCode = await call('POST', '/carts', { body: { promotionCode: 'REORDERWRONG' }, headers: auth });
+  assert.equal(pendingCode.status, 201);
+  assert.equal(pendingCode.body.quote, null);
+  const reorder = await call('POST', `/me/orders/${order.code}/reorder`, { headers: auth, ip: delayedIp });
+  assert.equal(reorder.status, 200, JSON.stringify(reorder.body));
+  assert.equal(reorder.body.quote.rejectedPromotions[0].reason, 'invalid');
+  const counted = await call('POST', '/carts', { body: { promotionCode: 'AFTERREORDER' }, ip: '198.51.100.43' });
+  assert.equal(counted.status, 201, 'another IP is unaffected');
+  console.log('[ordering-test] reorder quotes the stored code under the same guard');
+
 });
