@@ -168,7 +168,28 @@ withApp(async (app) => {
       },
     );
 
-    console.log('[ordering-test] audit coverage: order flow, cash, reject, cancel, payment link, catalog, promotion — one row each');
+    await expectOne(
+      'price-list.create',
+      async () => {
+        const res = await as('POST', '/price-lists', {
+          name: { vi: 'Bảng giá O14' },
+          kind: 'adjust',
+          rules: { channels: ['pickup'], locationRefs: [], customerGroups: [], weekdays: [], timeRanges: [] },
+          adjust: { type: 'percent', value: 10, target: { kind: 'all', refs: [] } },
+          lines: [],
+          priority: 1,
+          active: true,
+        });
+        assert.equal(res.status, 201, JSON.stringify(res.body));
+        return res;
+      },
+      (row) => {
+        assert.equal(row.category, 'catalog');
+        assert.equal(row.entityLabel, 'Bảng giá O14');
+      },
+    );
+
+    console.log('[ordering-test] audit coverage: order flow, cash, reject, cancel, payment link, catalog, promotion, price list — one row each');
   } finally {
     await staff.cleanup();
   }

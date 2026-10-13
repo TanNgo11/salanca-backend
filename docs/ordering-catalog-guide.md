@@ -81,8 +81,30 @@ Mỗi sản phẩm có **ít nhất một biến thể** (mặc định), mỗi 
 - `rules` (JSON, có thể trống): `{"locationRef":"Q1"}` (giá riêng chi nhánh),
   `{"channel":"web"}` (kênh), `{"customerGroup":"vip"}`. Hàng có nhiều rule khớp hơn
   được ưu tiên; hàng rule lệch ngữ cảnh bị loại. `priority` phá hòa.
-- `validFrom`/`validTo`: cửa sổ khuyến mãi theo thời gian.
+- `validFrom`/`validTo`: cửa sổ theo thời gian.
 - `minQuantity`: giá chỉ áp dụng khi số lượng ≥ ngưỡng (giá sỉ theo số lượng).
+- `rules.channel`: `pickup`, `delivery`, `dine-in` hoặc `staff`. Kênh cũ `web-checkout` không còn là kênh giá
+  (migration `0009-o14-price-lists` bỏ rule đó); `phone-staff` được đổi thành `staff`.
+- `rules.weekdays` (`mon`…`sun`) và `rules.timeRanges` (`{start,end}` giờ địa phương chi nhánh, cuối khoảng
+  không tính). Khoảng qua đêm khi `end` nhỏ hơn `start`. Không có timezone thì rule giờ không khớp.
+
+### 3b. Bảng giá và nhóm khách (O14) — Món → Bảng giá, Vận hành → Nhóm khách
+
+Quyền `price.manage`. Không sửa từng dòng giá trong Content Manager cho các bảng này.
+
+- **Giá riêng (override):** mỗi món/biến thể một giá. Hệ thống nhân điều kiện (kênh × chi nhánh × nhóm)
+  thành các dòng giá catalog. Tắt bảng thì các dòng vẫn còn nhưng không được chọn.
+- **Điều chỉnh (adjust):** giảm % hoặc số tiền trên giá đã chọn. Không cộng dồn nhiều bảng: ưu tiên cao
+  nhất thắng; hòa ưu tiên thì lấy giá thấp hơn. Giảm làm tròn xuống đồng, không âm, không vượt giá gốc.
+  Khi giá giảm, `compareAtAmount` là giá trước điều chỉnh.
+- **Nhóm khách:** mã không đổi sau khi tạo. Thành viên tay (`manual`) hoặc tự động (`auto`: tổng chi,
+  số đơn hoàn tất, và/hoặc trong N ngày). Job `customer-group-refresh` (03:15 mỗi ngày) chỉ gỡ thành viên
+  tự động không còn đủ điều kiện. Gỡ tay một khách tự động: job hôm sau có thể thêm lại nếu khách vẫn đủ
+  điều kiện.
+- Giá nhóm chỉ áp khi khách đã đăng nhập (`X-Customer-Token`) hoặc khi nhân viên tạo đơn hộ và số điện
+  thoại khớp hồ sơ. Khách vãng lai luôn trả giá thường, kể cả khi số trùng hồ sơ trong nhóm.
+- Khuyến mãi tính **sau** bảng giá. Đơn đã đặt giữ giá lúc đặt; sửa đơn chỉ tính lại dòng mới theo nhóm
+  của hồ sơ đang gắn vào đơn.
 
 ### 4. Tùy chọn (modifier) — thư viện dùng chung
 

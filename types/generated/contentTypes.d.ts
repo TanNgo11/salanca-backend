@@ -3744,6 +3744,10 @@ export interface PluginOrderingCatalogPrice
     > &
       Schema.Attribute.Private;
     minQuantity: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<1>;
+    priceList: Schema.Attribute.Relation<
+      'manyToOne',
+      'plugin::ordering.price-list'
+    >;
     priority: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
     publishedAt: Schema.Attribute.DateTime;
     rules: Schema.Attribute.JSON;
@@ -4060,6 +4064,96 @@ export interface PluginOrderingCustomerAddress
       Schema.Attribute.Private;
     wardCode: Schema.Attribute.String & Schema.Attribute.Required;
     wardName: Schema.Attribute.String;
+  };
+}
+
+export interface PluginOrderingCustomerGroup
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_customer_group';
+  info: {
+    displayName: 'Nh\u00F3m kh\u00E1ch';
+    pluralName: 'customer-groups';
+    singularName: 'customer-group';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    active: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<true>;
+    auto: Schema.Attribute.JSON;
+    code: Schema.Attribute.String & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.customer-group'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.JSON & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface PluginOrderingCustomerGroupMember
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_customer_group_member';
+  info: {
+    displayName: 'Th\u00E0nh vi\u00EAn nh\u00F3m kh\u00E1ch';
+    pluralName: 'customer-group-members';
+    singularName: 'customer-group-member';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    customerDocumentId: Schema.Attribute.String & Schema.Attribute.Required;
+    customerId: Schema.Attribute.Integer & Schema.Attribute.Required;
+    groupDocumentId: Schema.Attribute.String & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.customer-group-member'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    source: Schema.Attribute.Enumeration<['manual', 'auto']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'manual'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
   };
 }
 
@@ -5251,6 +5345,59 @@ export interface PluginOrderingPaymentEvent
   };
 }
 
+export interface PluginOrderingPriceList extends Struct.CollectionTypeSchema {
+  collectionName: 'plugins_ordering_price_list';
+  info: {
+    displayName: 'B\u1EA3ng gi\u00E1';
+    pluralName: 'price-lists';
+    singularName: 'price-list';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+    i18n: {
+      localized: false;
+    };
+  };
+  attributes: {
+    active: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<true>;
+    adjust: Schema.Attribute.JSON;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    createdByRef: Schema.Attribute.String;
+    kind: Schema.Attribute.Enumeration<['override', 'adjust']> &
+      Schema.Attribute.Required;
+    lines: Schema.Attribute.JSON;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::ordering.price-list'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.JSON & Schema.Attribute.Required;
+    priority: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    publishedAt: Schema.Attribute.DateTime;
+    rules: Schema.Attribute.JSON;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    validFrom: Schema.Attribute.DateTime;
+    validTo: Schema.Attribute.DateTime;
+  };
+}
+
 export interface PluginOrderingPromotion extends Struct.CollectionTypeSchema {
   collectionName: 'plugins_ordering_promotion';
   info: {
@@ -6103,6 +6250,8 @@ declare module '@strapi/strapi' {
       'plugin::ordering.catalog-variant': PluginOrderingCatalogVariant;
       'plugin::ordering.customer': PluginOrderingCustomer;
       'plugin::ordering.customer-address': PluginOrderingCustomerAddress;
+      'plugin::ordering.customer-group': PluginOrderingCustomerGroup;
+      'plugin::ordering.customer-group-member': PluginOrderingCustomerGroupMember;
       'plugin::ordering.customer-otp': PluginOrderingCustomerOtp;
       'plugin::ordering.customer-session': PluginOrderingCustomerSession;
       'plugin::ordering.data-request': PluginOrderingDataRequest;
@@ -6123,6 +6272,7 @@ declare module '@strapi/strapi' {
       'plugin::ordering.outbox': PluginOrderingOutbox;
       'plugin::ordering.payment': PluginOrderingPayment;
       'plugin::ordering.payment-event': PluginOrderingPaymentEvent;
+      'plugin::ordering.price-list': PluginOrderingPriceList;
       'plugin::ordering.promotion': PluginOrderingPromotion;
       'plugin::ordering.promotion-code': PluginOrderingPromotionCode;
       'plugin::ordering.promotion-redemption': PluginOrderingPromotionRedemption;

@@ -2,6 +2,12 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
+2026-10-13: **Ordering O14 (bảng giá theo kênh, nhóm khách, khung giờ)** trên `feat/ordering-o14`.
+Bảng giá riêng và bảng điều chỉnh, nhóm khách tay/tự động, job `customer-group-refresh` 03:15.
+Giá nhóm chỉ khi phiên khách đã xác thực hoặc đơn hộ khớp hồ sơ; khách vãng lai giữ giá thường.
+Catalog có phiên trả `private, no-store`. Khuyến mãi tính trên giá sau bảng giá. Chi tiết và số gate
+nằm trong Completion record của [`plans/ordering-o14-price-lists.md`](plans/ordering-o14-price-lists.md).
+
 2026-10-13: **Ordering hoàn thiện sau O8/O11** (`feat/ordering-finish`): pnpm audit 6 critical / 38 high → 2 / 3
 (overrides trong major; còn vite 6, webpack-dev-middleware 7, tinypool 2 chỉ dùng lúc build/dev/test và braces chưa có
 bản vá), nodemailer 10.1.0; bỏ `minimumReleaseAge: 0` tạm, `.npmrc` trỏ npm công khai. Giỏ hàng nhận `promotionCode`
