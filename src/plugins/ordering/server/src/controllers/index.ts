@@ -1,4 +1,5 @@
 import adminBranches from './admin-branches';
+import adminCustomers from './admin-customers';
 import adminOrders from './admin-orders';
 import adminUnits from './admin-units';
 import adminStream from './admin-stream';
@@ -22,6 +23,7 @@ import webhooks from './webhooks';
 
 export default {
   'admin-branches': adminBranches,
+  'admin-customers': adminCustomers,
   'admin-orders': adminOrders,
   'admin-units': adminUnits,
   'admin-stream': adminStream,

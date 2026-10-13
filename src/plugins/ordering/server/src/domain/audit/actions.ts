@@ -122,6 +122,23 @@ export const AUDIT_ACTIONS: Record<string, ActionDef> = {
   },
   // Access
   'scope.update': { category: 'access', label: ['Gán chi nhánh cho nhân viên', 'Update staff scope'] },
+  // O11: personal-data requests (Decree 13). entityLabel stays null — no customer data.
+  'customer.export': {
+    category: 'access',
+    label: ['Xuất dữ liệu khách', 'Export customer data'],
+  },
+  'data-request.create': {
+    category: 'access',
+    label: ['Tạo yêu cầu dữ liệu', 'Create data request'],
+  },
+  'data-request.process': {
+    category: 'access',
+    label: ['Xử lý yêu cầu dữ liệu', 'Process data request'],
+  },
+  'data-request.reject': {
+    category: 'access',
+    label: ['Từ chối yêu cầu dữ liệu', 'Reject data request'],
+  },
   // Ops
   'ops.job-run': { category: 'ops', label: ['Chạy job', 'Run job'] },
   'ops.outbox-retry': { category: 'ops', label: ['Gửi lại sự kiện', 'Retry outbox event'] },

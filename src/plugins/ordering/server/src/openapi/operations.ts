@@ -304,6 +304,21 @@ export const OPERATIONS: Operation[] = [
       ['cart', 'unavailable'],
     ),
   }),
+  // O11 step 6 — Decree 13 self-service data rights.
+  pub('get', '/me/data-export', 'Customer', 'Own data as JSON (profile, addresses, orders)', {
+    parameters: [customerToken],
+    response: obj({ generatedAt: str, profile: generic, addresses: arr(generic), orders: arr(generic) }, [
+      'generatedAt',
+      'profile',
+      'addresses',
+      'orders',
+    ]),
+  }),
+  pub('post', '/me/erase', 'Customer', 'Request erasure; revokes every session (202)', {
+    parameters: [customerToken],
+    requestBody: obj({ confirm: bool }, ['confirm']),
+    response: obj({ request: generic }, ['request']),
+  }),
   // O11 step 4 — server carts. X-Cart-Token (guest) and/or X-Customer-Token (session); both
   // together merge the guest cart into the customer's. Every response re-quotes server-side.
   pub('post', '/carts', 'Carts', 'Create a cart (guests get a cartToken; sessions reuse theirs)', {
@@ -471,6 +486,36 @@ export const OPERATIONS: Operation[] = [
   }),
   adm('delete', '/drafts/:id', 'Orders', 'Discard a draft', ['order.create'], {
     parameters: [pathParam('id')],
+  }),
+
+  // ── Admin: customers & Decree 13 data rights ─────────────────────────────────
+  adm('get', '/customers/:id/export', 'Customers', 'Decree 13 export (branch-scoped)', ['customer.manage'], {
+    parameters: [pathParam('id', 'Customer documentId')],
+    response: obj(
+      { generatedAt: str, profile: generic, addresses: arr(generic), orders: arr(generic) },
+      ['generatedAt', 'profile', 'addresses', 'orders'],
+    ),
+  }),
+  adm('get', '/data-requests', 'Customers', 'Data-request queue (filter by status)', ['customer.erase'], {
+    parameters: [
+      { name: 'status', in: 'query', schema: str },
+      { name: 'page', in: 'query', schema: int },
+      { name: 'pageSize', in: 'query', schema: int },
+    ],
+    response: obj({ items: arr(generic), page: int, pageSize: int, total: int }, ['items']),
+  }),
+  adm('post', '/data-requests', 'Customers', 'File a request by phone (hash only stored)', ['customer.erase'], {
+    requestBody: obj({ phone: str, kind: str, note: str }, ['phone', 'kind']),
+    response: obj({ request: generic }, ['request']),
+  }),
+  adm('post', '/data-requests/:id/process', 'Customers', 'Run erasure now (open orders → waiting)', ['customer.erase'], {
+    parameters: [pathParam('id', 'Request documentId')],
+    response: obj({ request: generic }, ['request']),
+  }),
+  adm('post', '/data-requests/:id/reject', 'Customers', 'Refuse a request with a reason', ['customer.erase'], {
+    parameters: [pathParam('id', 'Request documentId')],
+    requestBody: obj({ reason: str }, ['reason']),
+    response: obj({ request: generic }, ['request']),
   }),
 
   // ── Admin: settings ─────────────────────────────────────────────────────────

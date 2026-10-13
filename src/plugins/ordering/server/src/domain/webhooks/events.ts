@@ -21,7 +21,8 @@ export type PublicEventGroup =
   | 'ops'
   | 'promotion'
   | 'gift-card'
-  | 'rating';
+  | 'rating'
+  | 'customer';
 
 export type PublicEventSpec = {
   type: string;
@@ -197,6 +198,19 @@ export const PUBLIC_EVENTS: readonly PublicEventSpec[] = [
       severity: 'critical',
       count: 8,
     },
+  },
+  {
+    // O11 step 6: Decree 13 erasure notice. `customerHash` is the irreversible HMAC the
+    // profile kept — enough for receivers to forget their own copy of that identity.
+    type: 'customer.erased',
+    group: 'customer',
+    description: {
+      vi: 'Dữ liệu khách hàng đã được ẩn danh theo yêu cầu xóa',
+      en: 'A customer profile was anonymized per an erasure request',
+    },
+    fields: ['customerId', 'customerHash'],
+    orderScoped: false,
+    sample: { customerId: 42, customerHash: 'f2b9…c41d' },
   },
 ];
 

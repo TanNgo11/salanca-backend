@@ -2,9 +2,11 @@ import { randomUUID } from 'node:crypto';
 
 import type { Core } from '@strapi/strapi';
 
+import { OrderingError } from '../domain/errors';
 import { LIMITS } from '../domain/storefront/parse';
 import type cartFactory from '../services/cart';
 import type customerFactory from '../services/customer';
+import type dataRightsFactory from '../services/data-rights';
 import type { ServiceContext } from '../services/context';
 import { requireCustomer } from './customer-auth';
 import type { HttpCtx } from './http';
@@ -13,6 +15,7 @@ import { rateLimited } from './storefront-guard';
 
 type CustomerService = ReturnType<typeof customerFactory>;
 type CartService = ReturnType<typeof cartFactory>;
+type DataRightsService = ReturnType<typeof dataRightsFactory>;
 
 /**
  * Public `/me*` (O11 step 3): every action needs a live `X-Customer-Token` — an absent or dead
@@ -23,6 +26,8 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
   const customers = () =>
     strapi.plugin('ordering').service('customer') as CustomerService;
   const carts = () => strapi.plugin('ordering').service('cart') as CartService;
+  const dataRights = () =>
+    strapi.plugin('ordering').service('data-rights') as DataRightsService;
 
   const customerCtx = (): ServiceContext => ({
     actor: { kind: 'customer' },
@@ -117,6 +122,27 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       );
       const view = await carts().view(row, serviceCtx);
       return { ...view, unavailable };
+    }),
+
+    /** GET /me/data-export — the customer's own data as JSON (Decree 13 access right). */
+    dataExport: action(async (_ctx, _serviceCtx, customerId) =>
+      dataRights().exportForSelf(customerId),
+    ),
+
+    /**
+     * POST /me/erase {confirm:true} — records the erasure request, signs out every session
+     * (this token included), and erases at once unless an order is still open (→ waiting).
+     */
+    erase: action(async (ctx, serviceCtx, customerId) => {
+      const body = (ctx.request.body ?? {}) as { confirm?: unknown };
+      if (body.confirm !== true) {
+        throw new OrderingError('VALIDATION_ERROR', 'confirm:true is required to erase data', {
+          details: { field: 'confirm' },
+        });
+      }
+      const request = await dataRights().requestSelfErase(customerId, serviceCtx);
+      ctx.status = 202;
+      return { request };
     }),
   };
 };

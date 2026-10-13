@@ -4,6 +4,7 @@ import type { OrderingConfig } from '../config';
 import { runAuditChain } from './audit-chain';
 import { runCartExpiry } from './cart-expiry';
 import { runCartReminder } from './cart-reminder';
+import { runDataRequestWaiting } from './data-request-waiting';
 import { runHoldExpiry } from './hold-expiry';
 import { runIdempotencyCleanup } from './idempotency-cleanup';
 import { runManualPaymentCheck } from './manual-confirmation';
@@ -70,9 +71,15 @@ export const ORDERING_JOBS: OrderingJob[] = [
     run: runWebhookDispatcher,
     runnable: true,
   },
-  // O11: server-cart lifecycle (expiry + retention). The data-request job lands in step 6.
+  // O11: server-cart lifecycle (expiry + retention + reminders) and Decree 13 erasure waits.
   { name: 'cart-expiry', cronKey: 'cartExpiryCron', run: runCartExpiry, runnable: true },
   { name: 'cart-reminder', cronKey: 'cartReminderCron', run: runCartReminder, runnable: true },
+  {
+    name: 'data-request-waiting',
+    cronKey: 'dataRequestWaitingCron',
+    run: runDataRequestWaiting,
+    runnable: true,
+  },
 ];
 
 export const jobByName = (name: string): OrderingJob | undefined =>

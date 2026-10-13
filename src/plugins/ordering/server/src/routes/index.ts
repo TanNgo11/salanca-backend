@@ -72,6 +72,9 @@ export default {
       publicRoute('GET', '/me/orders', 'customer.myOrders'),
       publicRoute('GET', '/me/orders/:code', 'customer.myOrder'),
       publicRoute('POST', '/me/orders/:code/reorder', 'customer.reorder'),
+      // O11 step 6: Decree 13 self-service — export everything, then erase it.
+      publicRoute('GET', '/me/data-export', 'customer.dataExport'),
+      publicRoute('POST', '/me/erase', 'customer.erase'),
       // O11 step 4: server-side carts — X-Cart-Token for guests, X-Customer-Token for
       // sessions; when both arrive the guest cart merges into the customer's.
       publicRoute('POST', '/carts', 'cart.create'),
@@ -279,6 +282,13 @@ export default {
       adminRoute('GET', '/audit-log/actors', 'audit-log.actors', 'audit.read'),
       adminRoute('GET', '/audit-log/export', 'audit-log.exportCsv', 'audit.read', 'export'),
       adminRoute('GET', '/audit-log/:id', 'audit-log.detail', 'audit.read'),
+      // O11: customers (screen C2 export) and Decree 13 data requests (screen C3). Staff see a
+      // customer only through an in-scope order — hidden customers 404.
+      adminRoute('GET', '/customers/:id/export', 'admin-customers.exportCustomer', 'customer.manage'),
+      adminRoute('GET', '/data-requests', 'admin-customers.listRequests', 'customer.erase'),
+      adminRoute('POST', '/data-requests', 'admin-customers.createRequest', 'customer.erase'),
+      adminRoute('POST', '/data-requests/:id/process', 'admin-customers.processRequest', 'customer.erase'),
+      adminRoute('POST', '/data-requests/:id/reject', 'admin-customers.rejectRequest', 'customer.erase'),
       // O10 "Nhập/Xuất menu" (screens X3): catalog CSV round-trip. Import posts the file as
       // text/csv (≤256 KB) or application/octet-stream (≤2 MB); export needs both actions.
       adminRoute('GET', '/catalog/imports', 'catalog-import.list', 'catalog.manage'),

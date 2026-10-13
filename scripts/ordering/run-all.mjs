@@ -70,6 +70,8 @@ const scripts = [
   'cart-checkout.mjs',
   // O11 step 5: reorder + abandoned-cart reminder.
   'cart-reminder.mjs',
+  // O11 step 6: Decree 13 export/erasure + staff data-request queue.
+  'data-rights.mjs',
 ];
 
 const results = [];
