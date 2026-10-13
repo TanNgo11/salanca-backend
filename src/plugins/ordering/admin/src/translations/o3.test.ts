@@ -10,9 +10,10 @@ import { o6Messages } from './o6';
 import { o7Messages } from './o7';
 import { o15Messages } from './o15';
 import { o10Messages } from './o10';
+import { o8Messages } from './o8';
 
 const ROOT = join(__dirname, '..');
-const O3_DIRS = ['inbox', 'components/orders', 'pages/Orders', 'pages/Deliveries', 'pages/Courier', 'pages/Branches', 'pages/Staff', 'pages/Settings', 'pages/PaymentReview', 'pages/Ops', 'pages/Alerts', 'pages/CashClosing', 'pages/Reports', 'pages/AuditLog', 'pages/Webhooks', 'pages/CatalogImport', 'pages/ApiDocs', 'lib'];
+const O3_DIRS = ['inbox', 'components/orders', 'pages/Orders', 'pages/Deliveries', 'pages/Courier', 'pages/Branches', 'pages/Staff', 'pages/Settings', 'pages/PaymentReview', 'pages/Ops', 'pages/Alerts', 'pages/CashClosing', 'pages/Reports', 'pages/AuditLog', 'pages/Webhooks', 'pages/CatalogImport', 'pages/ApiDocs', 'pages/Promotions', 'pages/Ratings', 'lib'];
 const EXTRA_FILES = ['pages/App.tsx', 'components/OrderExportModal.tsx'];
 
 const files = (dir: string): string[] =>
@@ -38,7 +39,22 @@ const DYNAMIC: Record<string, string[]> = {
   'deliveries.tab': ['ready', 'out', 'failed'],
   'deliveries.empty': ['ready', 'out', 'failed', 'filtered'],
   'deliveries.failReason': ['unreachable', 'wrong-address', 'refused', 'other'],
-  'audit.category': ['all', 'money', 'order', 'catalog', 'delivery', 'config', 'access', 'ops', 'other'],
+  'audit.category': ['all', 'money', 'order', 'catalog', 'delivery', 'config', 'access', 'ops', 'promotion', 'other'],
+  'promo.tab': ['running', 'scheduled', 'off', 'expired', 'all'],
+  'promo.col': ['name', 'discount', 'conditions', 'time', 'used', 'total', 'active'],
+  'promo.kind': ['code', 'auto'],
+  'promo.type': ['percent', 'amount', 'free-delivery', 'delivery-amount'],
+  'promo.target': ['order', 'products', 'categories'],
+  'promo.receive': ['pickup', 'delivery'],
+  'promo.codes.col': ['code', 'used', 'batch', 'active', 'created'],
+  'promo.stats.col': ['order', 'date', 'branch', 'code', 'amount', 'status'],
+  'promo.redemption': ['reserved', 'applied', 'released'],
+  'promo.reason': ['invalid', 'not-started', 'ended', 'code-used', 'usage-limit', 'min-subtotal', 'location', 'receive-kind', 'time', 'products', 'fulfillment', 'not-best'],
+  'rating.col': ['stars', 'tags', 'comment', 'order', 'branch', 'at'],
+  'settings.rating.sentiment': ['positive', 'negative'],
+  'reports.group': ['day', 'category', 'product', 'payment', 'receive', 'promotion'],
+  'reports.col': ['promotion', 'discount'],
+  'alert.code': ['low-rating'],
   'webhook.group': ['order', 'fulfillment', 'payment', 'refund', 'ops', 'promotion', 'gift-card', 'rating'],
   'webhook.deliveries.filter': ['all', 'pending', 'succeeded', 'failed'],
   'error.WEBHOOK_URL_INVALID': ['scheme', 'invalid', 'private-address', 'unresolvable'],
@@ -71,7 +87,8 @@ describe('O3 admin translations', () => {
           o6Messages[key] ||
           o7Messages[key] ||
           o15Messages[key] ||
-          o10Messages[key],
+          o10Messages[key] ||
+          o8Messages[key],
       );
     const missing = [...used].filter((key) => !known(key));
     expect(missing).toEqual([]);
@@ -83,6 +100,7 @@ describe('O3 admin translations', () => {
       ...o7Messages,
       ...o15Messages,
       ...o10Messages,
+      ...o8Messages,
     })) {
       expect(vi.trim(), key).not.toBe('');
       expect(en.trim(), key).not.toBe('');

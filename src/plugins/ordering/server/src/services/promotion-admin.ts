@@ -2,6 +2,7 @@ import { randomInt } from 'node:crypto';
 
 import type { Core } from '@strapi/strapi';
 
+import type { OrderingConfig } from '../config';
 import { buildCsv } from '../domain/csv';
 import { OrderingError } from '../domain/errors';
 import { parsePromotionInput, type PromotionInput } from '../domain/promotions/schema';
@@ -9,6 +10,7 @@ import type changeLogFactory from './change-log';
 import type { ServiceContext } from './context';
 import { actorRefOf, nowOf } from './context';
 import { normalizePromotionCode } from './promotion';
+import type { OrderingRegistry } from './registry';
 
 /**
  * Admin side of promotions (O8 step 5, screens K1–K4), `promotion.manage`. Promotions are
@@ -528,6 +530,54 @@ const promotionAdmin = ({ strapi }: { strapi: Core.Strapi }) => {
           ]),
         ),
         fileName: `ma-khuyen-mai-${id}.csv`,
+      };
+    },
+
+    /**
+     * GET /promotions/targets — branches, products and categories the K2 picker offers, from the catalog
+     * adapter (refs are what a cart line carries: `sellable.ref.uid` and category refs).
+     */
+    async targets(locale: string) {
+      const cfg = strapi.config.get('plugin::ordering') as OrderingConfig;
+      const adapter = (strapi.plugin('ordering').service('registry') as OrderingRegistry).catalogAdapter(
+        cfg.catalog.adapter,
+      );
+      const products = new Map<string, { ref: string; title: string; categories: string[] }>();
+      const categories = new Map<string, { ref: string; title: string }>();
+      let cursor: string | undefined;
+      for (let pageIndex = 0; pageIndex < 40; pageIndex += 1) {
+        const { items, nextCursor } = await adapter.listSellables(
+          { now: new Date().toISOString() },
+          { locale: locale === 'en' ? 'en' : 'vi', limit: 50, ...(cursor ? { cursor } : {}) },
+        );
+        for (const item of items) {
+          if (!products.has(item.ref.uid)) {
+            products.set(item.ref.uid, {
+              ref: item.ref.uid,
+              title: item.title,
+              categories: item.categories.map((category) => category.ref),
+            });
+          }
+          for (const category of item.categories) {
+            if (!categories.has(category.ref)) categories.set(category.ref, { ref: category.ref, title: category.title });
+          }
+        }
+        if (!nextCursor) break;
+        cursor = nextCursor;
+      }
+      const byTitle = (a: { title: string }, b: { title: string }) => a.title.localeCompare(b.title, 'vi');
+      const branches = (
+        (await (strapi.plugin('ordering').service('branch') as { list(): Promise<Array<{ code: string; name: unknown; isActive: boolean }>> }).list())
+      )
+        .filter((row) => row.isActive)
+        .map((row) => {
+          const name = parseJson<Record<string, string>>(row.name, {});
+          return { code: row.code, name: name[locale] ?? name.vi ?? row.code };
+        });
+      return {
+        products: [...products.values()].sort(byTitle),
+        categories: [...categories.values()].sort(byTitle),
+        branches,
       };
     },
 

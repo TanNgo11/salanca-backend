@@ -263,6 +263,7 @@ export default {
       // O8 "Khuyến mãi" (screens K1–K4). Literal segments precede `/:id` routes.
       adminRoute('GET', '/promotions', 'promotions.list', 'promotion.manage'),
       adminRoute('POST', '/promotions', 'promotions.create', 'promotion.manage'),
+      adminRoute('GET', '/promotions/targets', 'promotions.targets', 'promotion.manage'),
       adminRoute('GET', '/promotions/:id', 'promotions.get', 'promotion.manage'),
       adminRoute('PUT', '/promotions/:id', 'promotions.update', 'promotion.manage'),
       adminRoute('POST', '/promotions/:id/active', 'promotions.setActive', 'promotion.manage'),

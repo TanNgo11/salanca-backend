@@ -66,6 +66,10 @@ withApp(async (app) => {
     assert.deepEqual(await tab('scheduled'), [scheduled.body.promotion.id]);
     assert.deepEqual((await as('GET', '/promotions?q=tet20')).body.items.map((row) => row.id), [promoId], 'search by code');
     assert.deepEqual((await as('GET', '/promotions?q=s%E1%BA%AFp')).body.items.map((row) => row.id), [scheduled.body.promotion.id], 'search by name');
+    const targets = await as('GET', '/promotions/targets');
+    assert.equal(targets.status, 200);
+    assert.ok(targets.body.products.some((row) => row.ref === 'bun-bo'), 'the picker lists catalog products');
+    assert.ok(targets.body.categories.length > 0, 'and their categories');
     console.log('[ordering-test] promotions admin: 403 without promotion.manage, validation, unique code, tabs, search');
 
     // ── Codes ────────────────────────────────────────────────────────────────────

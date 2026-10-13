@@ -23,6 +23,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
         serviceCtx,
       ),
     ),
+    targets: adminAction(strapi, async (ctx) => service().targets(text(ctx.query.locale) ?? 'vi')),
     get: adminAction(strapi, async (ctx, serviceCtx) => service().get(id(ctx), serviceCtx)),
     create: adminAction(strapi, async (ctx, serviceCtx) => {
       const created = await service().create(ctx.request.body, serviceCtx);
