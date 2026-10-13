@@ -71,7 +71,7 @@ const paymentService = ({ strapi }: { strapi: Core.Strapi }) => {
      * reference-less pending row (initiate crashed) is resumed instead of duplicated.
      */
     async createWalletSession(
-      input: { orderId: number; providerCode: string; returnUrl?: string },
+      input: { orderId: number; providerCode: string; returnUrl?: string; ipAddr?: string },
       ctx: ServiceContext,
     ): Promise<{ payment: PaymentRow; session: Record<string, unknown>; reused: boolean }> {
       const { registry, order, timeline, outbox } = services();
@@ -152,7 +152,7 @@ const paymentService = ({ strapi }: { strapi: Core.Strapi }) => {
         order: asContractOrder(aggregate.order),
         amount: toMoney(due, aggregate.order.currency),
         returnUrl: input.returnUrl,
-        metadata: { reference },
+        metadata: { reference, ...(input.ipAddr ? { ipAddr: input.ipAddr } : {}) },
       });
       const session: JsonObject = {
         ...(initiation.session ?? {}),

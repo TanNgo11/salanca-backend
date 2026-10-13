@@ -449,6 +449,7 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
                 status: string;
                 requestedAmount: string | number;
                 currency: string;
+                session: unknown;
               } | null;
               if (!locked) return walletPark('needs-review', 'order-not-found');
               const orderId =
@@ -483,6 +484,20 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
                   locked.id,
                 );
               }
+              // The provider's transaction id is folded into the session — refund/query APIs
+              // (VNPay refund needs vnp_TransactionNo; querydr derives the transaction date
+              // from session.initiatedAt, which initiate already stored).
+              const session = {
+                ...(locked.session !== null &&
+                typeof locked.session === 'object' &&
+                !Array.isArray(locked.session)
+                  ? (locked.session as Record<string, unknown>)
+                  : {}),
+                transactionNo: event.providerTransactionId,
+                ...(typeof event.metadata?.payDate === 'string'
+                  ? { payDate: event.metadata.payDate }
+                  : {}),
+              };
               await payments().update({
                 where: { id: locked.id },
                 data: {
@@ -490,6 +505,7 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
                   status: 'captured',
                   capturedAt: nowOf(ctx),
                   actorRef: actorRefOf(ctx),
+                  session,
                 },
               });
               await insertEvent(

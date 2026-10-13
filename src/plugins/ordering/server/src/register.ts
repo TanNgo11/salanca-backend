@@ -27,6 +27,7 @@ import { createSelfDeliveryProvider } from './providers/self-delivery';
 import { createFixtureSepayClient, createSepayTransactionClient } from './providers/sepay/client';
 import { createSepayPaymentProvider, sepaySettingsFromConfig } from './providers/sepay/provider';
 import { createMomoPaymentProvider, momoSettingsFromConfig } from './providers/momo/provider';
+import { createVnpayPaymentProvider, vnpaySettingsFromConfig } from './providers/vnpay/provider';
 import {
   createCaptureNotificationProvider,
   createEmailNotificationProvider,
@@ -154,6 +155,18 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
       createMomoPaymentProvider({
         settings: () =>
           momoSettingsFromConfig(
+            (strapi.config.get('plugin::ordering') as OrderingConfig).providers.payment,
+          ),
+        publicApiUrl: () =>
+          (strapi.config.get('plugin::ordering') as OrderingConfig).publicApiUrl,
+      }),
+    );
+  }
+  if (vnpaySettingsFromConfig(config.providers.payment)) {
+    registry.registerPaymentProvider(
+      createVnpayPaymentProvider({
+        settings: () =>
+          vnpaySettingsFromConfig(
             (strapi.config.get('plugin::ordering') as OrderingConfig).providers.payment,
           ),
         publicApiUrl: () =>

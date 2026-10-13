@@ -202,7 +202,10 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     paymentSession: action('create', async (ctx, serviceCtx) =>
       storefront().paymentSessionByToken(
         orderToken(ctx),
-        (ctx.request.body ?? {}) as { provider?: unknown; returnUrl?: unknown },
+        {
+          ...((ctx.request.body ?? {}) as { provider?: unknown; returnUrl?: unknown }),
+          ipAddr: clientIpOf(strapi, ctx),
+        },
         serviceCtx,
       ),
     ),

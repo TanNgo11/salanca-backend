@@ -229,7 +229,7 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
      */
     async paymentSessionByToken(
       token: unknown,
-      input: { provider?: unknown; returnUrl?: unknown },
+      input: { provider?: unknown; returnUrl?: unknown; ipAddr?: string },
       ctx: ServiceContext,
     ) {
       let aggregate: OrderAggregate;
@@ -268,7 +268,7 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
           ? input.returnUrl.slice(0, 500)
           : undefined;
       const { payment, session } = await paymentService().createWalletSession(
-        { orderId: aggregate.order.id, providerCode, returnUrl },
+        { orderId: aggregate.order.id, providerCode, returnUrl, ipAddr: input.ipAddr },
         ctx,
       );
       return {

@@ -13,6 +13,8 @@ export type Payment = {
   currency: Currency;
   status: 'pending' | 'authorized' | 'captured' | 'failed' | 'cancelled';
   providerReference?: string;
+  /** O13 wallet session row (`payment.session`) — initiatedAt, provider txn ids for refunds. */
+  session?: JsonObject;
 };
 
 export type PaymentEvent = {
@@ -119,7 +121,14 @@ export interface PaymentProvider {
     headers?: Record<string, string>;
     body?: JsonObject;
   };
-  queryTransaction?(reference: string): Promise<NormalizedPaymentEvent | null>;
+  /**
+   * Status query by session reference. `context.session` carries the stored wallet session
+   * (initiatedAt, transactionNo) — VNPay querydr signs the original transaction's create date.
+   */
+  queryTransaction?(
+    reference: string,
+    context?: { session?: JsonObject },
+  ): Promise<NormalizedPaymentEvent | null>;
   listTransactions?(input: {
     from: string;
     to: string;
