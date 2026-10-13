@@ -43,7 +43,6 @@ const Card = ({
   order,
   busy,
   failing,
-  onStart,
   onDelivered,
   onCollect,
   onOpenFail,
@@ -52,7 +51,6 @@ const Card = ({
   order: CourierOrder;
   busy: boolean;
   failing: boolean;
-  onStart: () => void;
   onDelivered: () => void;
   onCollect: () => void;
   onOpenFail: () => void;
@@ -134,13 +132,6 @@ const Card = ({
           </Typography>
         )}
       </Box>
-      {order.status === 'ready' ? (
-        <Box paddingTop={3}>
-          <Button style={wide} disabled={busy} loading={busy} onClick={onStart}>
-            {t('courier.start')}
-          </Button>
-        </Box>
-      ) : null}
       {order.status === 'out-for-delivery' ? (
         <Flex direction="column" gap={2} paddingTop={3} alignItems="stretch">
           {order.due > 0 ? (
@@ -307,17 +298,6 @@ const CourierList = () => {
                 onOpenFail={() => {
                   setFailingId(order.id);
                 }}
-                onStart={() =>
-                  void run(
-                    () =>
-                      post(`/ordering/orders/${order.id}/transition`, {
-                        to: 'out-for-delivery',
-                        assigneeRef: data.actorRef,
-                        notifyCustomer: true,
-                      }),
-                    t('action.saved'),
-                  )
-                }
                 onDelivered={() =>
                   void run(
                     () =>

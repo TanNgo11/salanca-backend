@@ -12,7 +12,13 @@ import type { ServiceContext } from './context';
 import { actorRefOf, nowOf } from './context';
 import type scopeFactory from './scope';
 
-const ACTIVE = new Set(['ready', 'out-for-delivery', 'failed']);
+/**
+ * A courier is only attached to a leg when it is dispatched (out-for-delivery); a `ready` order has
+ * no assignee yet (and a retry clears it), so the phone page lists the legs in hand and today's
+ * delivered ones. Dispatch stays a manager action on the delivery board.
+ */
+const ACTIVE = new Set(['out-for-delivery', 'failed']);
+const LISTED = [...ACTIVE, 'delivered'];
 const PREFIX = 'plugin::ordering.';
 
 export type CourierView = 'active' | 'done';
@@ -126,8 +132,19 @@ const courier = ({ strapi }: { strapi: Core.Strapi }) => {
         todayOf.set(row.code, businessDate(nowOf(ctx), row.timezone || 'Asia/Ho_Chi_Minh', cutoff));
       }
       const ref = actorRefOf(ctx);
+      const dates = [...new Set(todayOf.values())];
+      if (dates.length === 0) {
+        return { actorName: await nameOf(strapi, ctx), actorRef: ref, dates, counts: { active: 0, done: 0 }, orders: [] };
+      }
+      // Narrowed in SQL (today's business dates, listed statuses) — a courier's history grows
+      // every day and the page refreshes every 30 s.
       const legs = (await strapi.db.query('plugin::ordering.fulfillment').findMany({
-        where: { assigneeRef: ref },
+        where: {
+          assigneeRef: ref,
+          group: { status: { $in: LISTED } },
+          order: { businessDate: { $in: dates } },
+        },
+        limit: 200,
         populate: {
           order: { select: ['id', 'businessDate', 'locationRef'] },
           group: { select: ['id', 'status'] },
@@ -168,7 +185,7 @@ const courier = ({ strapi }: { strapi: Core.Strapi }) => {
       return {
         actorName,
         actorRef: ref,
-        dates: [...new Set(todayOf.values())],
+        dates,
         counts: { active: active.length, done: done.length },
         orders: view === 'done' ? done : active,
       };

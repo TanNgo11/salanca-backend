@@ -118,7 +118,6 @@ export const o7Messages: Record<string, [string, string]> = {
   'courier.map': ['Bản đồ', 'Map'],
   'courier.collectCash': ['Thu {amount} tiền mặt', 'Collect {amount} in cash'],
   'courier.paid': ['Đã thanh toán', 'Paid'],
-  'courier.start': ['Bắt đầu giao', 'Start delivery'],
   'courier.delivered': ['Đã giao', 'Delivered'],
   'courier.collect': ['Thu tiền và giao', 'Collect and hand over'],
   'courier.fail': ['Giao thất bại', 'Delivery failed'],

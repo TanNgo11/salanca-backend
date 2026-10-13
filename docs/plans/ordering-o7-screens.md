@@ -94,12 +94,13 @@ dropdown/`SimpleMenu` trong `Modal`).
 - Bố cục một cột, rộng tối đa 480px, chữ ≥ 16px, nút cao ≥ 48px, không bảng. Đầu trang: tên người giao, ngày,
   2 tab `Đang làm (n)` / `Đã xong (n)`, nút làm mới; tự làm mới mỗi 30 giây.
 - Mỗi đơn là một thẻ:
-  - dòng 1: mã đơn, `Badge` trạng thái (Sẵn sàng / Đang giao / Giao thất bại), giờ hẹn;
+  - dòng 1: mã đơn, `Badge` trạng thái (Đang giao / Giao thất bại), giờ hẹn;
   - địa chỉ đầy đủ (chữ to), tên khách; nút **Gọi** (`tel:`), **Bản đồ** (mở
     `https://www.google.com/maps/search/?api=1&query=<địa chỉ>` tab mới);
   - ghi chú khách; danh sách món rút gọn (`2× Cơm gà`);
   - số tiền: "Thu 235.000đ tiền mặt" (đỏ đậm) hoặc "Đã thanh toán" (xanh);
-  - nút theo trạng thái: Sẵn sàng → **Bắt đầu giao** (`transition out-for-delivery` với `assigneeRef` = mình);
+  - nút theo trạng thái (sửa sau review 2026-10-13: bỏ "Bắt đầu giao" — người giao chỉ được gán lúc quản lý bấm bắt đầu giao
+    trên board Đơn giao, nên đơn Sẵn sàng chưa thuộc ai; trang chỉ liệt kê đơn đang giao/thất bại/đã giao hôm nay);
     Đang giao → **Đã giao** (khi đã trả) hoặc **Thu tiền và giao** (`cash-handover`, `Dialog` xác nhận số tiền),
     và **Giao thất bại** (panel chọn lý do bằng nút: Không liên lạc được / Sai địa chỉ / Khách từ chối / Khác +
     ghi chú); Giao thất bại → chỉ xem (quản lý quyết định giao lại/hủy).

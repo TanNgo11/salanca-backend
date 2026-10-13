@@ -125,15 +125,9 @@ await withApp(async (app) => {
       return ready.orderId;
     };
 
+    // A ready order has no courier yet (the assignee is set at dispatch): not on the phone page.
     const readyCreated = await place();
     const ready = await toReady(readyCreated);
-    const readyLeg = await app.db
-      .query('plugin::ordering.fulfillment')
-      .findOne({ where: { group: ready.groupId } });
-    await app.db.query('plugin::ordering.fulfillment').update({
-      where: { id: readyLeg.id },
-      data: { assigneeRef: aRef },
-    });
 
     const outA = await dispatch(await place(), aRef);
     const outB = await dispatch(await place(), bRef);
@@ -157,13 +151,12 @@ await withApp(async (app) => {
 
     const active = await couriers.as.an('GET', '/courier/deliveries?view=active');
     assert.equal(active.status, 200);
-    assert.deepEqual(idsOf(active.body), [ready.orderId, outA].sort((left, right) => left - right));
-    assert.equal(active.body.counts.active, 2);
+    assert.deepEqual(idsOf(active.body), [outA]);
+    assert.equal(active.body.counts.active, 1);
     assert.equal(active.body.counts.done, 0);
     assert.equal(idsOf(active.body).includes(outB), false);
     assert.equal(idsOf(active.body).includes(stale), false);
     const byId = new Map(active.body.orders.map((row) => [row.id, row.status]));
-    assert.equal(byId.get(ready.orderId), 'ready');
     assert.equal(byId.get(outA), 'out-for-delivery');
     const mine = active.body.orders.find((row) => row.id === outA);
     assert.equal(mine.due, 145000);
@@ -185,11 +178,13 @@ await withApp(async (app) => {
     assert.equal(deniedMove.status, 404);
     assert.equal(deniedMove.body?.error?.code, 'ORDER_NOT_FOUND');
 
-    const started = await couriers.as.an('POST', `/orders/${ready.orderId}/transition`, {
+    // A courier-only user cannot dispatch an unassigned ready order to themselves; the manager does.
+    const selfStart = await couriers.as.an('POST', `/orders/${ready.orderId}/transition`, {
       to: 'out-for-delivery',
       assigneeRef: aRef,
     });
-    assert.equal(started.status, 200);
+    assert.equal(selfStart.status, 404);
+    await adminOrders.transition(ready.orderId, { to: 'out-for-delivery', assigneeRef: aRef }, lanCtx);
 
     const handed = await couriers.as.an('POST', `/orders/${outA}/cash-handover`, { method: 'cash' });
     assert.equal(handed.status, 200);
