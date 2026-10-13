@@ -2,6 +2,15 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
+2026-10-14: **Ordering fourth review fixes** (`feat/ordering-finish`) — price-list writes
+commit metadata, derived prices and audit together; OTP verification serializes by target;
+session count/revoke/insert serializes by customer. Line refunds lock lines in ascending id
+order before payment, matching cancellation and order editing. All four defects reproduced
+on PostgreSQL before fixes; seven regression cases pass afterwards. Build:ordering, lint,
+typecheck, 62 Vitest files / 660 tests and eight targeted integration scripts passed.
+Changes remain uncommitted; full check:ordering and browser UAT were not run.
+[Fourth review record](plans/ordering-review-fixes-4.md).
+
 2026-10-14: **Ordering third review round** (`feat/ordering-finish`) ? customer/order linking and erasure
 share identity + row locks; finalization recounts open orders and scrubs newly closed orders. Checkout uses
 customer-before-cart locks; erasure records waiting for busy carts. Webhook fanout commits payload + activation

@@ -88,6 +88,7 @@ const scripts = [
   'admin-customers.mjs',
   // O14: channel, group and time-window prices.
   'price-lists.mjs',
+  'review-round4.mjs',
 ];
 
 const results = [];

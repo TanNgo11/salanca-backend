@@ -32,6 +32,7 @@ type CustomerRow = {
 
 type OtpRow = {
   id: number;
+  targetHash: string;
   challengeId: string;
   channel: string;
   targetSealed: string | null;
@@ -239,6 +240,17 @@ const customerAuth = ({ strapi }: { strapi: Core.Strapi }) => {
       // Lock before reading the challenge. Returning validation failures commits the attempt
       // counter; throwing inside the transaction would roll it back.
       const outcome = await strapi.db.transaction(async ({ trx }) => {
+        // Different challenges for one mailbox must resolve/create a single profile.
+        // Take the target lock before the challenge lock, matching OTP issuance.
+        const identity = (await otps().findOne({
+          where: { challengeId },
+          select: ['targetHash'],
+        })) as Pick<OtpRow, 'targetHash'> | null;
+        if (identity) {
+          await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [
+            `ordering-otp:${identity.targetHash}`,
+          ]);
+        }
         await trx('plugins_ordering_customer_otp')
           .where({ challenge_id: challengeId })
           .forUpdate()
@@ -321,27 +333,33 @@ const customerAuth = ({ strapi }: { strapi: Core.Strapi }) => {
       ctx: ServiceContext,
       userAgent?: string,
     ): Promise<string> {
-      const now = nowOf(ctx);
-      const sessionDays = config().customers.sessionDays;
-      const maxSessions = config().customers.maxSessions;
-      const live = (await sessions().findMany({
-        where: { customer: customer.id, revokedAt: null, expiresAt: { $gt: now } },
-        orderBy: { lastSeenAt: 'asc' },
-      })) as SessionRow[];
-      for (const stale of live.slice(0, Math.max(0, live.length - maxSessions + 1))) {
-        await sessions().update({ where: { id: stale.id }, data: { revokedAt: now } });
-      }
-      const token = generateBearerToken();
-      await sessions().create({
-        data: {
-          customer: customer.id,
-          tokenHash: hashing().sessionTokenHash(token),
-          lastSeenAt: now,
-          expiresAt: new Date(now.getTime() + sessionDays * 86_400_000),
-          userAgent: userAgent ? userAgent.slice(0, 255) : null,
-        },
+      return strapi.db.transaction(async ({ trx }) => {
+        // Advisory lock also covers callers that already own an outer transaction.
+        await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [
+          `ordering-customer-session:${customer.id}`,
+        ]);
+        const now = nowOf(ctx);
+        const sessionDays = config().customers.sessionDays;
+        const maxSessions = config().customers.maxSessions;
+        const live = (await sessions().findMany({
+          where: { customer: customer.id, revokedAt: null, expiresAt: { $gt: now } },
+          orderBy: { lastSeenAt: 'asc' },
+        })) as SessionRow[];
+        for (const stale of live.slice(0, Math.max(0, live.length - maxSessions + 1))) {
+          await sessions().update({ where: { id: stale.id }, data: { revokedAt: now } });
+        }
+        const token = generateBearerToken();
+        await sessions().create({
+          data: {
+            customer: customer.id,
+            tokenHash: hashing().sessionTokenHash(token),
+            lastSeenAt: now,
+            expiresAt: new Date(now.getTime() + sessionDays * 86_400_000),
+            userAgent: userAgent ? userAgent.slice(0, 255) : null,
+          },
+        });
+        return token;
       });
-      return token;
     },
 
     /**

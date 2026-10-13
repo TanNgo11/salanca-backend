@@ -129,6 +129,31 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
   ): Promise<{ refund: RefundRow; amount: number; orderId: number; status: string }> => {
     const { registry, order, timeline, outbox } = services();
     const countsAs = input.countsAs ?? 'returned';
+    if (input.lines) {
+      // Cancellation and order editing already hold lines before entering this core.
+      // Scope-check before locking any requested line, then use the same stable order.
+      const parent = (await payments().findOne({
+        where: { id: input.paymentId },
+        select: ['id'],
+        populate: { order: { columns: ['id'] } },
+      })) as { order: { id: number } | number | null } | null;
+      const parentId = relationId(parent?.order);
+      if (parentId === null) {
+        throw new OrderingError('PAYMENT_NOT_FOUND', 'payment not found', {
+          details: { paymentId: input.paymentId },
+        });
+      }
+      const scoped = await order.getOrder(parentId, ctx);
+      const lineIds = [...new Set(input.lines.map((line) => line.lineId))].sort((a, b) => a - b);
+      for (const lineId of lineIds) {
+        if (!scoped.lines.some((line) => line.id === lineId)) {
+          throw new OrderingError('REFUND_LINE_INVALID', 'line does not belong to the order', {
+            details: { lineId },
+          });
+        }
+      }
+      for (const lineId of lineIds) await repo.lockLine(trx, lineId);
+    }
     const locked = await repo.lockPayment(trx, input.paymentId);
     if (!locked) {
       throw new OrderingError('PAYMENT_NOT_FOUND', 'payment not found', {
@@ -153,7 +178,6 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
     if (input.lines) {
       let sum = 0;
       for (const requested of input.lines) {
-        await repo.lockLine(trx, requested.lineId);
         const line = (await lines().findOne({
           where: { id: requested.lineId },
         })) as LineRow | null;
