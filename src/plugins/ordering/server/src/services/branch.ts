@@ -28,6 +28,7 @@ export type BranchRow = {
   timezone: string;
   isActive: boolean;
   onlineOrdering: boolean;
+  cartReminderEnabled: boolean;
   rank: number;
   fulfillment: Record<string, unknown> | null;
   tax: Record<string, unknown> | null;
@@ -51,6 +52,7 @@ const BRANCH_FIELDS = [
   'timezone',
   'isActive',
   'onlineOrdering',
+  'cartReminderEnabled',
   'rank',
   'cashRounding',
 ] as const;
@@ -96,6 +98,7 @@ const branch = ({ strapi }: { strapi: Core.Strapi }) => {
     timezone: row.timezone,
     isActive: row.isActive,
     onlineOrdering: row.onlineOrdering,
+    cartReminderEnabled: row.cartReminderEnabled ?? false,
     rank: row.rank ?? 0,
     cashRounding: row.cashRounding ?? null,
     fulfillment: {

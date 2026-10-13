@@ -116,6 +116,7 @@ export const branchInputSchema = z.object({
   timezone: z.string().min(1).optional(),
   isActive: z.boolean().optional(),
   onlineOrdering: z.boolean().optional(),
+  cartReminderEnabled: z.boolean().optional(),
   rank: z.number().int().optional(),
   cashRounding: cashRoundingSchema.optional(),
   fulfillment: z

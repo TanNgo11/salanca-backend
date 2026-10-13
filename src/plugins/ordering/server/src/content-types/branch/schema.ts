@@ -11,6 +11,8 @@ export default collection(
     timezone: { type: 'string', required: true, default: 'Asia/Ho_Chi_Minh' },
     isActive: { type: 'boolean', default: true },
     onlineOrdering: { type: 'boolean', default: false },
+    // O11: abandoned-cart reminder mails are opt-in per branch (marketing consent still rules).
+    cartReminderEnabled: { type: 'boolean', default: false },
     rank: { type: 'integer', default: 0 },
     fulfillment: { type: 'json' },
     tax: { type: 'json' },

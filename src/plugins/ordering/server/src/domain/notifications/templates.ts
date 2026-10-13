@@ -18,7 +18,8 @@ export type TemplateCode =
   | 'customer.delivery-delivered'
   | 'customer.delivery-failed'
   | 'customer.delivery-retry'
-  | 'customer.otp';
+  | 'customer.otp'
+  | 'customer.cart-reminder';
 
 export type TemplateData = {
   code: string;
@@ -72,6 +73,11 @@ const copy: Record<TemplateCode, Record<Locale, { subject: string; lead: string 
   },
   // `customer.otp` renders through `renderOtp`; this entry only satisfies the copy record.
   'customer.otp': {
+    vi: { subject: '', lead: '' },
+    en: { subject: '', lead: '' },
+  },
+  // `customer.cart-reminder` renders through `renderCartReminder`.
+  'customer.cart-reminder': {
     vi: { subject: '', lead: '' },
     en: { subject: '', lead: '' },
   },
@@ -224,6 +230,65 @@ export function renderOtp(
   return { subject, text, html };
 }
 
+/** O11 abandoned-cart reminder data: the cart contents + branch, no recipient PII. */
+export type CartReminderData = {
+  branch: string;
+  items: Array<{ title: string; quantity: number }>;
+  total?: number;
+};
+
+const reminderLabels: Record<Locale, Record<string, string>> = {
+  vi: {
+    lead: 'Bạn còn món đang chờ trong giỏ tại {branch}. Hoàn tất đơn trước khi giỏ hết hạn nhé!',
+    total: 'Tạm tính',
+    action: 'Mở website và đăng nhập để xem lại giỏ của bạn.',
+  },
+  en: {
+    lead: 'You still have items waiting in your cart at {branch}. Finish your order before the cart expires!',
+    total: 'Estimated total',
+    action: 'Open the website and sign in to pick your cart back up.',
+  },
+};
+
+/** Renders `customer.cart-reminder` — marketing mail, sent once per cart after the idle window. */
+export function renderCartReminder(
+  localeInput: string | null | undefined,
+  data: CartReminderData,
+): { subject: string; text: string; html: string } {
+  const locale: Locale = localeInput === 'en' ? 'en' : 'vi';
+  const words = reminderLabels[locale];
+  const fill = (value: string) => value.replaceAll('{branch}', data.branch);
+  const subject =
+    locale === 'en'
+      ? `Your cart at ${data.branch} is waiting`
+      : `Giỏ của bạn tại ${data.branch} đang chờ`;
+  const items = data.items.map((item) => `${item.quantity} × ${item.title}`);
+  const rows: Array<[string, string]> = [];
+  if (typeof data.total === 'number') rows.push([words.total, formatVnd(data.total)]);
+  const text = [
+    fill(words.lead),
+    '',
+    ...items,
+    '',
+    ...rows.map(([key, value]) => `${key}: ${value}`),
+    '',
+    words.action,
+  ]
+    .join('\n')
+    .trim();
+  const html = [
+    `<p>${escapeHtml(fill(words.lead))}</p>`,
+    `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`,
+    rows.length
+      ? `<table>${rows
+          .map(([key, value]) => `<tr><td>${escapeHtml(key)}</td><td><strong>${escapeHtml(value)}</strong></td></tr>`)
+          .join('')}</table>`
+      : '',
+    `<p>${escapeHtml(words.action)}</p>`,
+  ].join('\n');
+  return { subject, text, html };
+}
+
 /** Ops-alert mail data: refs and counts only, never PII (contracts §12). */
 export type OpsAlertData = {
   label: string;
@@ -325,6 +390,14 @@ export function defaultTemplateSource(
     return {
       subject: locale === 'en' ? 'Your sign-in code: {{otp}}' : 'Mã đăng nhập của bạn: {{otp}}',
       body: [w.lead, '', '**{{otp}}**', '', w.hint.replace('{minutes}', '{{minutes}}')].join('\n'),
+    };
+  }
+  if (template === 'customer.cart-reminder') {
+    const w = reminderLabels[locale];
+    return {
+      subject:
+        locale === 'en' ? 'Your cart at {{branch}} is waiting' : 'Giỏ của bạn tại {{branch}} đang chờ',
+      body: [fill(w.lead), '', '{{items}}', '', '{{total}}', '', w.action].join('\n'),
     };
   }
   if (template === 'staff.ops-alert') {

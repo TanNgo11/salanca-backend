@@ -68,6 +68,8 @@ const scripts = [
   // O11 step 4: server carts (lifecycle) + checkout.
   'cart.mjs',
   'cart-checkout.mjs',
+  // O11 step 5: reorder + abandoned-cart reminder.
+  'cart-reminder.mjs',
 ];
 
 const results = [];

@@ -71,6 +71,7 @@ export default {
       publicRoute('DELETE', '/me/addresses/:id', 'customer.deleteAddress'),
       publicRoute('GET', '/me/orders', 'customer.myOrders'),
       publicRoute('GET', '/me/orders/:code', 'customer.myOrder'),
+      publicRoute('POST', '/me/orders/:code/reorder', 'customer.reorder'),
       // O11 step 4: server-side carts — X-Cart-Token for guests, X-Customer-Token for
       // sessions; when both arrive the guest cart merges into the customer's.
       publicRoute('POST', '/carts', 'cart.create'),

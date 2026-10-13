@@ -2,14 +2,15 @@ import {
   formatVnd,
   opsAlertWords,
   templateWords,
+  type CartReminderData,
   type OpsAlertData,
   type OtpMailData,
   type TemplateCode,
   type TemplateData,
 } from './templates';
 
-/** Mail payloads the render pipeline accepts (order mail, ops alerts, OTP). */
-export type AnyMailData = TemplateData | OpsAlertData | OtpMailData;
+/** Mail payloads the render pipeline accepts (order mail, ops alerts, OTP, cart reminder). */
+export type AnyMailData = TemplateData | OpsAlertData | OtpMailData | CartReminderData;
 
 /**
  * O10 editable email templates — the allowlisted `{{var}}` names each template may use plus the
@@ -40,6 +41,7 @@ export const TEMPLATE_CODES: TemplateCode[] = [
   'customer.delivery-failed',
   'customer.delivery-retry',
   'customer.otp',
+  'customer.cart-reminder',
 ];
 
 // Compile-time exhaustiveness: a new TemplateCode without a list entry fails typecheck.
@@ -59,6 +61,7 @@ const _allCodes: Record<TemplateCode, true> = {
   'customer.delivery-failed': true,
   'customer.delivery-retry': true,
   'customer.otp': true,
+  'customer.cart-reminder': true,
 };
 void _allCodes;
 
@@ -87,6 +90,7 @@ export const TEMPLATE_NAMES: Record<TemplateCode, [vi: string, en: string]> = {
   'customer.delivery-failed': ['Giao chưa thành công (khách)', 'Delivery failed (customer)'],
   'customer.delivery-retry': ['Đơn sẽ giao lại (khách)', 'Order redelivery (customer)'],
   'customer.otp': ['Mã đăng nhập OTP (khách)', 'Sign-in OTP code (customer)'],
+  'customer.cart-reminder': ['Nhắc giỏ bỏ dở (khách)', 'Abandoned-cart reminder (customer)'],
 };
 
 export const templateAudience = (code: TemplateCode): 'staff' | 'customer' =>
@@ -158,6 +162,21 @@ const OTP_VARS: TemplateVar[] = [
   { name: 'minutes', description: ['Số phút hiệu lực của mã', 'Minutes the code stays valid'] },
 ];
 
+const REMINDER_VARS: TemplateVar[] = [
+  { name: 'branch', description: ['Tên chi nhánh', 'Branch name'] },
+  {
+    name: 'items',
+    line: true,
+    markdown: true,
+    description: ['Danh sách món trong giỏ, mỗi dòng một món', 'Cart item list, one per line'],
+  },
+  {
+    name: 'total',
+    line: true,
+    description: ['Dòng "- Tạm tính: …" khi giỏ định giá được', '"- Estimated total: …" line when priced'],
+  },
+];
+
 const OPS_VARS: TemplateVar[] = [
   { name: 'label', description: ['Tên cảnh báo', 'Alert label'] },
   {
@@ -186,7 +205,13 @@ const OPS_VARS: TemplateVar[] = [
 
 /** Allowed `{{var}}` names for a template — used by the editor, validation and preview. */
 export const variablesFor = (code: TemplateCode): TemplateVar[] =>
-  code === 'staff.ops-alert' ? OPS_VARS : code === 'customer.otp' ? OTP_VARS : ORDER_VARS;
+  code === 'staff.ops-alert'
+    ? OPS_VARS
+    : code === 'customer.otp'
+      ? OTP_VARS
+      : code === 'customer.cart-reminder'
+        ? REMINDER_VARS
+        : ORDER_VARS;
 
 const mdEscape = (value: string): string => value.replace(/([\\[\]()*])/g, '\\$1');
 
@@ -200,6 +225,15 @@ export const buildVars = (
   if (code === 'customer.otp') {
     const d = data as OtpMailData;
     return { otp: d.otp, minutes: String(d.minutes) };
+  }
+  if (code === 'customer.cart-reminder') {
+    const d = data as CartReminderData;
+    const label = locale === 'en' ? 'Estimated total' : 'Tạm tính';
+    return {
+      branch: d.branch,
+      items: d.items.map((item) => `- ${item.quantity} × ${mdEscape(item.title)}`).join('\n'),
+      total: typeof d.total === 'number' ? `- ${label}: ${formatVnd(d.total)}` : '',
+    };
   }
   if (code === 'staff.ops-alert') {
     const d = data as OpsAlertData;
@@ -243,7 +277,16 @@ export const buildVars = (
 export const sampleDataFor = (code: TemplateCode): AnyMailData =>
   code === 'customer.otp'
     ? { otp: '123456', minutes: 5 }
-    : code === 'staff.ops-alert'
+    : code === 'customer.cart-reminder'
+      ? {
+          branch: 'Quán Quận 1',
+          items: [
+            { title: 'Phở bò', quantity: 2 },
+            { title: 'Trà đá', quantity: 1 },
+          ],
+          total: 148000,
+        }
+      : code === 'staff.ops-alert'
     ? {
         label: 'Endpoint webhook tự tắt sau 50 lỗi liên tiếp',
         severity: 'warning',

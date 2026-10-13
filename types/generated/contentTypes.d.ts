@@ -3034,6 +3034,8 @@ export interface PluginOrderingBranch extends Struct.CollectionTypeSchema {
   };
   attributes: {
     address: Schema.Attribute.JSON;
+    cartReminderEnabled: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<false>;
     cashRounding: Schema.Attribute.JSON;
     code: Schema.Attribute.String &
       Schema.Attribute.Required &

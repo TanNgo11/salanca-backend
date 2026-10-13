@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { Core } from '@strapi/strapi';
 
 import { LIMITS } from '../domain/storefront/parse';
+import type cartFactory from '../services/cart';
 import type customerFactory from '../services/customer';
 import type { ServiceContext } from '../services/context';
 import { requireCustomer } from './customer-auth';
@@ -11,6 +12,7 @@ import { positiveInt, sendError } from './http';
 import { rateLimited } from './storefront-guard';
 
 type CustomerService = ReturnType<typeof customerFactory>;
+type CartService = ReturnType<typeof cartFactory>;
 
 /**
  * Public `/me*` (O11 step 3): every action needs a live `X-Customer-Token` — an absent or dead
@@ -20,6 +22,7 @@ type CustomerService = ReturnType<typeof customerFactory>;
 export default ({ strapi }: { strapi: Core.Strapi }) => {
   const customers = () =>
     strapi.plugin('ordering').service('customer') as CustomerService;
+  const carts = () => strapi.plugin('ordering').service('cart') as CartService;
 
   const customerCtx = (): ServiceContext => ({
     actor: { kind: 'customer' },
@@ -104,5 +107,16 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     myOrder: action(async (ctx, _serviceCtx, customerId) => ({
       order: await customers().orderByCode(customerId, ctx.params.code ?? ''),
     })),
+
+    /** POST /me/orders/:code/reorder — still-sellable lines land in the current cart. */
+    reorder: action(async (ctx, serviceCtx, customerId) => {
+      const { row, unavailable } = await carts().fromOrder(
+        customerId,
+        ctx.params.code ?? '',
+        serviceCtx,
+      );
+      const view = await carts().view(row, serviceCtx);
+      return { ...view, unavailable };
+    }),
   };
 };

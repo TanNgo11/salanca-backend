@@ -297,6 +297,13 @@ export const OPERATIONS: Operation[] = [
     parameters: [customerToken, pathParam('code', 'e.g. SLC-20261013-0001')],
     response: obj({ order: generic }, ['order']),
   }),
+  pub('post', '/me/orders/:code/reorder', 'Customer', 'Still-sellable lines land in the cart', {
+    parameters: [customerToken, pathParam('code', 'e.g. SLC-20261013-0001')],
+    response: obj(
+      { cart: generic, quote: generic, issues: arr(generic), unavailable: arr(generic) },
+      ['cart', 'unavailable'],
+    ),
+  }),
   // O11 step 4 — server carts. X-Cart-Token (guest) and/or X-Customer-Token (session); both
   // together merge the guest cart into the customer's. Every response re-quotes server-side.
   pub('post', '/carts', 'Carts', 'Create a cart (guests get a cartToken; sessions reuse theirs)', {

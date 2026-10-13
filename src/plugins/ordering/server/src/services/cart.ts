@@ -7,10 +7,16 @@ import { snapshotDeliveryAddress } from '../domain/contact/address';
 import { hashingForConfig } from '../domain/customers/identity';
 import { generateBearerToken } from '../domain/customers/otp';
 import { OrderingError } from '../domain/errors';
+import { sha256Hex } from '../domain/hashing';
+import type { SelectedOptionSnapshot } from '../domain/storefront/serialize';
 import { normalizeVietnamesePhone } from '../../../shared/contact/phone';
+import orderRepository from '../repositories/order';
 import type adminUnitsFactory from './admin-units';
+import type branchFactory from './branch';
+import type notificationTemplateFactory from './notification-template';
 import type orderFactory from './order';
 import type { CreateOrderResult } from './order';
+import type { OrderingRegistry } from './registry';
 import type { ServiceContext } from './context';
 import { nowOf } from './context';
 
@@ -61,6 +67,11 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
   const carts = () => strapi.db.query('plugin::ordering.cart');
   const orders = () => plugin().service('order') as ReturnType<typeof orderFactory>;
   const units = () => plugin().service('admin-units') as ReturnType<typeof adminUnitsFactory>;
+  const branches = () => plugin().service('branch') as ReturnType<typeof branchFactory>;
+  const templates = () =>
+    plugin().service('notification-template') as ReturnType<typeof notificationTemplateFactory>;
+  const registry = () => plugin().service('registry') as OrderingRegistry;
+  const repo = orderRepository({ strapi });
 
   const assertEnabled = () => {
     if (!config().carts.enabled) {
@@ -603,6 +614,300 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
         ...(row.phone ? { phone: row.phone } : {}),
         ...(row.email ? { email: row.email } : {}),
       };
+    },
+
+    /**
+     * POST /me/orders/:code/reorder (O11 step 5): the order's still-sellable lines land in the
+     * customer's active cart ("giỏ mới" — existing lines are replaced, not merged). Fully
+     * canceled lines and lines the catalog can no longer price fall into `unavailable`
+     * ({title, reason, code}); a cart-level quote failure keeps every line — issues surface on
+     * the next read anyway. Branch, receive kind and address carry over; the old timing does
+     * not (a past slot is meaningless). Foreign codes 404 like `orderByCode`.
+     */
+    async fromOrder(
+      customerId: number,
+      code: string,
+      ctx: ServiceContext,
+    ): Promise<{ row: CartRow; unavailable: Array<{ title: string; reason: string; code: string }> }> {
+      assertEnabled();
+      const orderRow = (await strapi.db.query('plugin::ordering.order').findOne({
+        where: { code: code.trim().toUpperCase(), customer: customerId, status: { $ne: 'draft' } },
+        select: ['id'],
+      })) as { id: number } | null;
+      if (!orderRow) throw new OrderingError('ORDER_NOT_FOUND', 'order not found');
+      const aggregate = await repo.loadOrderAggregate(orderRow.id);
+      if (!aggregate) throw new OrderingError('ORDER_NOT_FOUND', 'order not found');
+
+      const unavailable: Array<{ title: string; reason: string; code: string }> = [];
+      const candidates = aggregate.lines
+        .map((line) => ({
+          title: line.titleSnapshot,
+          line: {
+            id: randomUUID(),
+            sellableUid: line.sellableUid,
+            ...(line.variantUid ? { variantUid: line.variantUid } : {}),
+            selected: ((line.selectedOptionsSnapshot as SelectedOptionSnapshot[] | null) ?? []).map(
+              (pick) => ({
+                groupUid: pick.groupUid,
+                optionUid: pick.optionUid,
+                quantity: pick.quantity ?? 1,
+              }),
+            ),
+            quantity: line.quantity - line.canceledQuantity,
+            ...(line.note ? { note: line.note } : {}),
+          } as CartLine,
+        }))
+        .filter(({ title, line }) => {
+          if (line.quantity > 0) return true;
+          unavailable.push({ title, reason: 'the line was canceled', code: 'LINE_CANCELED' });
+          return false;
+        });
+
+      // Availability: quote the set, drop each line the catalog rejects, retry until clean.
+      const orderContact = aggregate.order.contactSnapshot as {
+        name?: string;
+        phone?: string;
+        email?: string;
+      };
+      const candidates2 = candidates.map(({ line }) => line);
+      for (;;) {
+        try {
+          await orders().quote(
+            {
+              locationRef: aggregate.order.locationRef,
+              lines: candidates2.map((line) => ({
+                sellableUid: line.sellableUid,
+                quantity: line.quantity,
+                selected: line.selected,
+                ...(line.variantUid ? { variantUid: line.variantUid } : {}),
+                ...(line.note ? { note: line.note } : {}),
+              })),
+              receiveMethod: aggregate.order.receiveMethod as never,
+              contact: {
+                name: orderContact.name,
+                phone: orderContact.phone ?? '',
+                ...(orderContact.email ? { email: orderContact.email } : {}),
+              },
+              consent: { policyVersion: config().consent.policyVersion, channel: 'web-checkout' },
+              origin: { kind: 'storefront' },
+            },
+            ctx,
+          );
+          break;
+        } catch (error) {
+          const index =
+            error instanceof OrderingError
+              ? (error.details as { lineIndex?: unknown } | undefined)?.lineIndex
+              : undefined;
+          if (typeof index === 'number' && candidates2[index]) {
+            unavailable.push({
+              title: candidates[index].title,
+              reason: (error as Error).message,
+              code: (error as OrderingError).code,
+            });
+            candidates2.splice(index, 1);
+            candidates.splice(index, 1);
+            continue;
+          }
+          // Cart-level failure (inactive branch, mixed workflows): keep every line.
+          break;
+        }
+      }
+      const lines = candidates2.slice(0, config().carts.maxLines);
+      for (const dropped of candidates2.slice(config().carts.maxLines)) {
+        const entry = candidates.find(({ line }) => line === dropped);
+        unavailable.push({
+          title: entry?.title ?? dropped.sellableUid,
+          reason: 'the cart holds at most 50 lines',
+          code: 'CART_LIMIT',
+        });
+      }
+
+      // Receive method: kind + delivery address carry; timing never does.
+      const stored = aggregate.order.receiveMethod as {
+        kind?: string;
+        address?: Record<string, unknown>;
+        providerCode?: string;
+      };
+      const receiveMethod =
+        stored.kind === 'delivery'
+          ? {
+              kind: 'delivery',
+              providerCode: stored.providerCode ?? 'self-delivery',
+              ...(stored.address ? { address: stored.address } : {}),
+            }
+          : { kind: 'pickup', locationRef: aggregate.order.locationRef };
+
+      const existing = await loadForCustomer(customerId);
+      const data = {
+        lines,
+        locationRef: aggregate.order.locationRef,
+        receiveMethod,
+        pickup: null,
+        locale: aggregate.order.placedLocale ?? null,
+        reminderSentAt: null,
+        ...(existing?.contact
+          ? {}
+          : {
+              contact: {
+                ...(orderContact.name ? { name: orderContact.name } : {}),
+                ...(orderContact.phone ? { phone: orderContact.phone } : {}),
+                ...(orderContact.email ? { email: orderContact.email } : {}),
+              },
+            }),
+      };
+      if (existing) {
+        return { row: await save(existing, data, ctx), unavailable };
+      }
+      const now = nowOf(ctx);
+      const row = (await carts().create({
+        data: {
+          ...data,
+          tokenHash: null,
+          customer: customerId,
+          status: 'active',
+          lastActivityAt: now,
+          expiresAt: new Date(now.getTime() + config().carts.expiryDays * 86_400_000),
+        },
+      })) as CartRow;
+      return { row, unavailable };
+    },
+
+    /**
+     * `cart-reminder` job body (O11 step 5): active carts that have been idle at least
+     * `carts.reminderIdleHours` get ONE `customer.cart-reminder` mail — only when the branch
+     * opted in (`cartReminderEnabled`), the customer holds marketing consent and an email is
+     * reachable (cart contact first, then the profile). Ineligible carts stay unmarked and are
+     * re-evaluated next run; a failed send also retries — `reminderSentAt` is set only on a
+     * sent/skipped delivery. Guest carts never qualify: no consent record exists.
+     */
+    async remindDue(now: Date) {
+      if (!config().carts.enabled) return { sent: 0, failed: 0, skipped: 0 };
+      const cutoff = new Date(now.getTime() - config().carts.reminderIdleHours * 3_600_000);
+      const candidates = (await carts().findMany({
+        where: {
+          status: 'active',
+          reminderSentAt: null,
+          lastActivityAt: { $lte: cutoff },
+        },
+        populate: { customer: true },
+        orderBy: { lastActivityAt: 'asc' },
+        limit: 200,
+      })) as CartRow[];
+      let sent = 0;
+      let failed = 0;
+      let skipped = 0;
+      for (const row of candidates) {
+        if (!row.customer || linesOf(row).length === 0 || !row.locationRef) continue;
+        const customer = (await strapi.db.query('plugin::ordering.customer').findOne({
+          where: { id: row.customer.id },
+        })) as {
+          status: string;
+          email: string | null;
+          marketingConsent: { granted?: boolean } | null;
+        } | null;
+        if (!customer || customer.status === 'erased' || customer.marketingConsent?.granted !== true) {
+          continue;
+        }
+        const email = row.contact?.email ?? customer.email;
+        if (!email) continue;
+        const branch = await branches().findByCode(row.locationRef);
+        if (!branch?.isActive || branch.cartReminderEnabled !== true) continue;
+        const outcome = await service.sendReminder(row, email, now);
+        if (outcome === 'sent') sent += 1;
+        else if (outcome === 'failed') failed += 1;
+        else skipped += 1;
+      }
+      return { sent, failed, skipped };
+    },
+
+    /**
+     * One reminder delivery for `row`: the delivery log dedupes on the deterministic event id,
+     * so a job rerun after a crash can't double-send. Returns the outcome that decides whether
+     * `reminderSentAt` is stamped.
+     */
+    async sendReminder(
+      row: CartRow,
+      email: string,
+      now: Date,
+    ): Promise<'sent' | 'skipped' | 'failed' | 'already'> {
+      const deliveries = () => strapi.db.query('plugin::ordering.notification-delivery');
+      const key = {
+        eventId: `cart-reminder:${row.id}`,
+        template: 'customer.cart-reminder',
+        recipientHash: sha256Hex(email.trim().toLowerCase()),
+      };
+      let delivery = (await deliveries().findOne({ where: key })) as {
+        id: number;
+        status: string;
+        attempts: number;
+      } | null;
+      if (delivery && (delivery.status === 'sent' || delivery.status === 'skipped')) {
+        await carts().update({ where: { id: row.id }, data: { reminderSentAt: now } });
+        return 'already';
+      }
+      if (!delivery) {
+        delivery = (await deliveries().create({
+          data: {
+            ...key,
+            channel: 'email',
+            recipientRole: 'customer',
+            orderId: null,
+            messageLocale: row.locale === 'en' ? 'en' : 'vi',
+            status: 'pending',
+            attempts: 0,
+          },
+        })) as { id: number; status: string; attempts: number };
+      }
+      const rowId = delivery.id;
+      const attempt = delivery.attempts + 1;
+      const mark = (status: string, extra: Record<string, unknown> = {}) =>
+        deliveries().update({ where: { id: rowId }, data: { status, attempts: attempt, ...extra } });
+      const finish = async (status: 'sent' | 'skipped') => {
+        await mark(status, status === 'sent' ? { sentAt: now } : {});
+        await carts().update({ where: { id: row.id }, data: { reminderSentAt: now } });
+        return status;
+      };
+      if (!config().notifications.email.enabled) return finish('skipped');
+      const locale = row.locale === 'en' ? 'en' : 'vi';
+      const branch = await branches().findByCode(row.locationRef ?? '');
+      const name = (branch?.name ?? {}) as Record<string, string>;
+      // Items + total are best-effort from a live quote; a cart that no longer prices just
+      // lists its sellable uids. Titles map 1:1 by sellableUid (variants share the title).
+      let total: number | undefined;
+      let titleByUid = new Map<string, string>();
+      try {
+        const { quote } = await service.view(row, { actor: { kind: 'system' }, requestId: randomUUID() });
+        const quoted = quote as {
+          totals?: { grandTotal?: number };
+          lines?: Array<{ sellableUid: string; title?: string }>;
+        } | null;
+        total = quoted?.totals?.grandTotal;
+        titleByUid = new Map(
+          (quoted?.lines ?? []).map((line) => [line.sellableUid, line.title ?? line.sellableUid]),
+        );
+      } catch {
+        total = undefined;
+      }
+      try {
+        const rendered = await templates().renderFor('customer.cart-reminder', locale, {
+          branch: name[locale] ?? name.vi ?? row.locationRef ?? '',
+          items: linesOf(row).map((line) => ({
+            title: titleByUid.get(line.sellableUid) ?? line.sellableUid,
+            quantity: line.quantity,
+          })),
+          ...(total !== undefined ? { total } : {}),
+        });
+        await registry()
+          .notificationProvider('email')
+          .send({ recipient: { email }, template: 'customer.cart-reminder', data: rendered });
+        return finish('sent');
+      } catch (error) {
+        await mark('failed', {
+          lastError: String((error as Error)?.message ?? error).slice(0, 500),
+        });
+        return 'failed';
+      }
     },
 
     /**

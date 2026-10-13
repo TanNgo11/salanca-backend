@@ -15,6 +15,7 @@ import {
 } from '../domain/notifications/template-vars';
 import {
   defaultTemplateSource,
+  renderCartReminder,
   renderOpsAlert,
   renderOtp,
   renderTemplate,
@@ -83,7 +84,9 @@ const notificationTemplate = ({ strapi }: { strapi: Core.Strapi }) => {
       ? renderOpsAlert(locale, data as Parameters<typeof renderOpsAlert>[1])
       : code === 'customer.otp'
         ? renderOtp(locale, data as Parameters<typeof renderOtp>[1])
-        : renderTemplate(code, locale, data as TemplateData);
+        : code === 'customer.cart-reminder'
+          ? renderCartReminder(locale, data as Parameters<typeof renderCartReminder>[1])
+          : renderTemplate(code, locale, data as TemplateData);
 
   const describe = async (code: TemplateCode, locale: TemplateLocale) => {
     const row = await findRow(code, locale);
