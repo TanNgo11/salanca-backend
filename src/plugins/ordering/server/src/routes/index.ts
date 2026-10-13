@@ -227,6 +227,12 @@ export default {
       adminRoute('GET', '/orders/:id', 'admin-orders.detail', 'order.read'),
       // O12 print pages (screens N1): kitchen ticket / provisional receipt payload.
       adminRoute('GET', '/print/orders/:id', 'print.order', 'order.read'),
+      // O12 KDS (screens N2): board, per-line prepared, whole-order ready, KDS-scoped SSE.
+      adminRoute('GET', '/kitchen', 'kitchen.board', 'kitchen.read'),
+      adminRoute('GET', '/kitchen/stream', 'admin-stream.stream', 'kitchen.read'),
+      adminRoute('POST', '/kitchen/lines/:lineId/prepared', 'kitchen.prepared', 'kitchen.read'),
+      adminRoute('POST', '/kitchen/orders/:id/start', 'kitchen.start', 'kitchen.read'),
+      adminRoute('POST', '/kitchen/orders/:id/complete', 'kitchen.complete', 'kitchen.read'),
       adminRoute('POST', '/orders/:id/payment-link', 'admin-orders.paymentLink', 'order.read'),
       adminRoute('POST', '/orders/:id/transition', 'admin-orders.transition', 'order.process'),
       adminRoute('POST', '/orders/:id/notes', 'admin-orders.addNote', 'order.process'),

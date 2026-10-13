@@ -12,6 +12,7 @@ import catalogImport from './catalog-import';
 import categories from './categories';
 import customerAuth from './customer-auth';
 import customer from './customer';
+import kitchen from './kitchen';
 import cart from './cart';
 import notificationTemplates from './notification-templates';
 import openapi from './openapi';
@@ -42,6 +43,7 @@ export default {
   webhooks,
   'payment-review': paymentReview,
   print,
+  kitchen,
   openapi,
   ops,
   'cash-closing': cashClosing,

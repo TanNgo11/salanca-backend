@@ -4,6 +4,7 @@ import { type OrderingMigration, runOrderingMigrations } from '../migrations/run
 import registry from './registry';
 import scope from './scope';
 import idempotency from './idempotency';
+import kitchen from './kitchen';
 import order from './order';
 import deliveryAssignment from './delivery-assignment';
 import courier from './courier';
@@ -118,6 +119,8 @@ export default {
   'customer-group': customerGroup,
   // O12 (plan step 5): kitchen-ticket / provisional-receipt print payloads.
   print,
+  // O12 (plan step 6): kitchen display board + line prepared state.
+  kitchen,
   migrations: ({ strapi }: { strapi: Core.Strapi }) => ({
     run: (migrations: OrderingMigration[]) => runOrderingMigrations(strapi, migrations),
   }),

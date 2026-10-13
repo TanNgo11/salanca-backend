@@ -50,6 +50,13 @@ export const o12Messages: Record<string, [string, string]> = {
   'kitchen.loadFailed': ['Không tải được màn hình bếp', 'Could not load the kitchen display'],
   'kitchen.orderAt': ['Đặt {time}', 'Ordered {time}'],
   'kitchen.items': ['{count} món', '{count} items'],
+  'kitchen.branch': ['Mã chi nhánh', 'Branch code'],
+  'kitchen.start': ['Bắt đầu', 'Start'],
+  'kitchen.stale': ['Đơn đã được người khác cập nhật', 'Someone else updated this order'],
+  'kitchen.column.fresh': ['Mới', 'New'],
+  'kitchen.column.doing': ['Đang làm', 'In progress'],
+  'kitchen.column.done': ['Xong', 'Done'],
+  'kitchen.fullscreen': ['Phóng to', 'Fullscreen'],
 
   // ── N1 print ───────────────────────────────────────────────────────────────
   'print.kitchenTicket': ['In phiếu bếp', 'Print kitchen ticket'],

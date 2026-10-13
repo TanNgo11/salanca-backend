@@ -96,6 +96,8 @@ const scripts = [
   'allergens.mjs',
   // O12 step 5: kitchen-ticket / provisional-receipt print payloads (privacy + scope).
   'print.mjs',
+  // O12 step 6: kitchen display board — stations, prepared toggles, complete.
+  'kds.mjs',
 ];
 
 const results = [];
