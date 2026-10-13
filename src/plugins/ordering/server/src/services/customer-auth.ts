@@ -188,32 +188,43 @@ const customerAuth = ({ strapi }: { strapi: Core.Strapi }) => {
       const now = nowOf(ctx);
       const targetHash = hashing().otpTargetHash(email);
       const windowStart = new Date(now.getTime() - customers.otp.sendWindowMinutes * 60_000);
-      const recent = (await otps().count({
-        where: { targetHash, createdAt: { $gt: windowStart } },
-      })) as number;
-      if (recent >= customers.otp.sendMax) {
-        // Phantom challenge: identical response shape, no mail, verifies nowhere.
-        return { challengeId: generateChallengeId() };
-      }
+      let delivery: Promise<void> | undefined;
+      const reply = await strapi.db.transaction(async ({ trx, onCommit }) => {
+        await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [`ordering-otp:${targetHash}`]);
+        const recent = (await otps().count({
+          where: { targetHash, createdAt: { $gt: windowStart } },
+        })) as number;
+        if (recent >= customers.otp.sendMax) {
+          // Phantom challenge: identical response shape, no mail, verifies nowhere.
+          return { challengeId: generateChallengeId() };
+        }
 
-      const challengeId = generateChallengeId();
-      const code = generateOtpCode();
-      const existing = await findByEmail(email);
-      await otps().create({
-        data: {
-          challengeId,
-          channel,
-          targetHash,
-          targetSealed: sealTarget(email),
-          codeHash: hashing().otpCodeHash(code, challengeId),
-          purpose: 'login',
-          ...(existing ? { customer: existing.id } : {}),
-          attempts: 0,
-          expiresAt: new Date(now.getTime() + customers.otp.codeMinutes * 60_000),
-        },
+        const challengeId = generateChallengeId();
+        const code = generateOtpCode();
+        const existing = await findByEmail(email);
+        await otps().create({
+          data: {
+            challengeId,
+            channel,
+            targetHash,
+            targetSealed: sealTarget(email),
+            codeHash: hashing().otpCodeHash(code, challengeId),
+            purpose: 'login',
+            ...(existing ? { customer: existing.id } : {}),
+            attempts: 0,
+            expiresAt: new Date(now.getTime() + customers.otp.codeMinutes * 60_000),
+          },
+        });
+        onCommit(() => {
+          delivery = sendOtpMail({ challengeId, email, code, minutes: customers.otp.codeMinutes })
+            .catch(() => { strapi.log.warn('[ordering] customer.otp delivery failed after commit'); });
+        });
+        return { challengeId };
       });
-      await sendOtpMail({ challengeId, email, code, minutes: customers.otp.codeMinutes });
-      return { challengeId };
+      // Root calls wait for delivery. A nested caller returns before its outer commit;
+      // the registered callback sends only after that commit, never after rollback.
+      if (delivery) await delivery;
+      return reply;
     },
 
     /**
