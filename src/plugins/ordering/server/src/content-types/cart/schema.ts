@@ -4,8 +4,9 @@ import { collection } from '../internal';
  * Server-side cart (O11, contracts §15). Guest carts are addressed by a bearer token sent in
  * `X-Cart-Token` (only `tokenHash` stored); customer carts ride the session. `lines` is a JSON
  * list of `{ id, sellableUid, variantUid?, selected, quantity, note? }` capped at 50 entries —
- * the cart is never the source of truth for prices: every read re-quotes on the server. Promo
- * codes and gift cards are deliberately absent (O8/O9). Expiry slides 7 days from last
+ * the cart is never the source of truth for prices: every read re-quotes on the server.
+ * `promotionCode` is the customer-entered code (O8) — kept as typed, decided by each quote and
+ * by checkout; gift cards are absent (O9). Expiry slides 7 days from last
  * activity; `reminderSentAt` marks the one abandoned-cart email.
  */
 export default collection(
@@ -35,6 +36,7 @@ export default collection(
       target: 'plugin::ordering.order',
     },
     locale: { type: 'string' },
+    promotionCode: { type: 'string' },
     lastActivityAt: { type: 'datetime', required: true },
     expiresAt: { type: 'datetime', required: true },
     reminderSentAt: { type: 'datetime' },

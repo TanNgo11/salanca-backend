@@ -331,7 +331,8 @@ and parks in `waiting` while an order is open — the `data-request-waiting` job
 
 `POST /carts { locationRef, receiveMethod, contact?, marketingOptIn? }` → `{ cartToken, cart, quote,
 issues }` (the guest token comes back once here). `GET /carts/current`, `PATCH /carts/current`
-(`receiveMethod`/`contact`/`marketingOptIn`), `POST /carts/current/lines { sellableUid, quantity,
+(`receiveMethod`/`contact`/`marketingOptIn`/`promotionCode` — `null` clears it; a new code counts toward the
+per-IP wrong-code guard of `POST /quote`, so send `captchaToken` once it asks), `POST /carts/current/lines { sellableUid, quantity,
 selected?, note? }`, `PATCH`/`DELETE /carts/current/lines/:lineId`, `POST /carts/current/checkout`
 (`Idempotency-Key` required — the converted cart replays the same response on the same key). Every read
 re-quotes: `quote.totals.grandTotal` is current money, `cartHash` tracks content, `issues[]`
@@ -355,5 +356,5 @@ customers once a cart idles past `carts.reminderIdleHours` (default 2h), on bran
 - With O8 installed, erasure clears each affected order rating's `comment`, `staffNote` and
   `staffNoteBy`; stars/tags remain. `promotion-redemption.customerKey` and accounting fields
   remain unchanged to preserve per-customer use limits. See the O11 Completion record for the
-  retention decision. Cart quotes also omit phone history; cart `promotionCode` and OTP-aware
-  quotes remain deferred by owner decision.
+  retention decision. Cart quotes also omit phone history; carts carry `promotionCode` (decided at
+  checkout like `POST /orders`). OTP-aware quotes remain deferred.

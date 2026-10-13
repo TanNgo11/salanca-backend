@@ -77,6 +77,7 @@ const scripts = [
   // O11 step 4: server carts (lifecycle) + checkout.
   'cart.mjs',
   'cart-checkout.mjs',
+  'cart-promotion.mjs',
   // O11 step 5: reorder + abandoned-cart reminder.
   'cart-reminder.mjs',
   // O11 step 6: Decree 13 export/erasure + staff data-request queue.

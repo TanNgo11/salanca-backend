@@ -42,12 +42,17 @@ type CartRow = {
   status: 'active' | 'converted' | 'expired';
   order: number | null;
   locale: string | null;
+  promotionCode: string | null;
   lastActivityAt: string | Date;
   expiresAt: string | Date;
   reminderSentAt: string | Date | null;
 };
 
 export type CartIssue = { lineId?: string; code: string; message: string };
+
+/** Customer-entered code, kept as typed (trimmed, upper-case, ≤ 32) so the quote can say why it fails. */
+const promotionCodeOf = (value: unknown): string | null =>
+  typeof value === 'string' && value.trim() !== '' ? value.trim().toUpperCase().slice(0, 32) : null;
 
 type CartOwner = { customerId: number | null; cartToken: string | undefined };
 
@@ -277,6 +282,7 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
         pickup?: unknown;
         locale?: unknown;
         contact?: unknown;
+        promotionCode?: unknown;
       },
       owner: { customerId: number | null },
       ctx: ServiceContext,
@@ -304,6 +310,7 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
           pickup: input.pickup === undefined ? null : normalizePickup(input.pickup),
           contact: normalizeContact(input.contact),
           locale: typeof input.locale === 'string' ? input.locale.slice(0, 10) : null,
+          promotionCode: promotionCodeOf(input.promotionCode),
           lines: [],
           status: 'active',
           lastActivityAt: now,
@@ -380,7 +387,11 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
         }
       }
       await carts().update({ where: { id: guest.id }, data: { status: 'expired' } });
-      return save(target, { lines: merged }, ctx);
+      return save(
+        target,
+        { lines: merged, ...(!target.promotionCode && guest.promotionCode ? { promotionCode: guest.promotionCode } : {}) },
+        ctx,
+      );
     },
 
     /** PATCH /carts/current — shallow merge of the editable fields. */
@@ -392,10 +403,12 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
         pickup?: unknown;
         locale?: unknown;
         contact?: unknown;
+        promotionCode?: unknown;
       },
       ctx: ServiceContext,
     ): Promise<CartRow> {
       const data: Record<string, unknown> = {};
+      if (input.promotionCode !== undefined) data.promotionCode = promotionCodeOf(input.promotionCode);
       if (input.locationRef !== undefined) {
         data.locationRef =
           typeof input.locationRef === 'string' ? input.locationRef.slice(0, 32) : null;
@@ -474,6 +487,7 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
         contact: row.contact,
         lines: linesOf(row),
         locale: row.locale,
+        promotionCode: row.promotionCode ?? null,
         expiresAt: new Date(row.expiresAt).toISOString(),
       };
       if (!row.locationRef || !row.receiveMethod) {
@@ -501,6 +515,7 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
               consent: { policyVersion: config().consent.policyVersion, channel: 'web-checkout' },
               origin: { kind: 'storefront' },
               ...(row.pickup ? { pickup: row.pickup as never } : {}),
+              ...(row.promotionCode ? { promotionCode: row.promotionCode } : {}),
             },
             ctx,
           );
@@ -590,6 +605,7 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
           origin: { kind: 'storefront' },
           ...(input.customerId ? { customerId: input.customerId } : {}),
           ...(row.pickup ? { pickup: row.pickup as never } : {}),
+          ...(row.promotionCode ? { promotionCode: row.promotionCode } : {}),
         },
         ctx,
       );

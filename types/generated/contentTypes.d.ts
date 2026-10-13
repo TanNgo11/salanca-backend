@@ -3113,6 +3113,7 @@ export interface PluginOrderingCart extends Struct.CollectionTypeSchema {
     locationRef: Schema.Attribute.String;
     order: Schema.Attribute.Relation<'manyToOne', 'plugin::ordering.order'>;
     pickup: Schema.Attribute.JSON;
+    promotionCode: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
     receiveMethod: Schema.Attribute.JSON;
     reminderSentAt: Schema.Attribute.DateTime;

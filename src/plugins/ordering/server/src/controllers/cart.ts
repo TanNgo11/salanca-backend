@@ -12,7 +12,15 @@ import type storefrontFactory from '../services/storefront';
 import type { HttpCtx } from './http';
 import { sendError } from './http';
 import { sessionFor } from './customer-auth';
-import { clientIpOf, rateLimited } from './storefront-guard';
+import {
+  clientIpOf,
+  isWrongPromotionCode,
+  notePromotionCodeFailure,
+  PROMOTION_CAPTCHA_AFTER,
+  promotionCodeFailureCount,
+  promotionCodeLimit,
+  rateLimited,
+} from './storefront-guard';
 
 type CartService = ReturnType<typeof cartFactory>;
 type StorefrontService = ReturnType<typeof storefrontFactory>;
@@ -116,13 +124,37 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       carts().view(await carts().resolve(await owner(ctx, serviceCtx), serviceCtx), serviceCtx),
     ),
 
-    /** PATCH /carts/current — branch/receiveMethod/pickup/contact/locale. */
-    patch: mutate('auth', async (ctx, serviceCtx, cartRow) => {
-      await carts().patch(
-        cartRow,
-        (ctx.request.body ?? {}) as Record<string, unknown>,
-        serviceCtx,
-      );
+    /**
+     * PATCH /carts/current — branch/receiveMethod/pickup/contact/locale/promotionCode. A new code
+     * goes through the same per-IP guessing guard as `POST /quote` (captcha after 3 wrong codes,
+     * 429 at the limit), so the cart is no side door for trying codes.
+     */
+    patch: action('auth', async (ctx, serviceCtx) => {
+      const body = (ctx.request.body ?? {}) as Record<string, unknown>;
+      const code = typeof body.promotionCode === 'string' && body.promotionCode.trim() !== '' ? body.promotionCode : null;
+      const ip = clientIpOf(strapi, ctx);
+      const limit = promotionCodeLimit(strapi);
+      const tooMany = () => {
+        ctx.status = 429;
+        ctx.body = { error: { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' } };
+        return undefined;
+      };
+      if (code) {
+        const failures = promotionCodeFailureCount(ip);
+        if (failures >= limit.max) return tooMany();
+        if (failures >= PROMOTION_CAPTCHA_AFTER) {
+          await verifyCaptcha(ctx, typeof body.captchaToken === 'string' ? body.captchaToken : undefined, 'order-create');
+        }
+      }
+      const cartRow = await carts().resolve(await owner(ctx, serviceCtx), serviceCtx);
+      const { captchaToken: _captcha, ...input } = body;
+      await carts().patch(cartRow, input, serviceCtx);
+      const view = await carts().view(await carts().resolve(await owner(ctx, serviceCtx), serviceCtx), serviceCtx);
+      const rejected = (view.quote as { rejectedPromotions?: Array<{ reason: string }> } | null)?.rejectedPromotions ?? [];
+      if (code && rejected.some((row) => isWrongPromotionCode(row.reason))) {
+        if (notePromotionCodeFailure(ip, limit.windowMs) >= limit.max) return tooMany();
+      }
+      return view;
     }),
 
     /** POST /carts/current/lines — add a line (identical signature tops up quantity). */
