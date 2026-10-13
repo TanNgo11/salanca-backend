@@ -12,9 +12,25 @@ minimumReleaseAgeExclude:
 # One sharp (and one libvips) per process: Strapi's upload plugin pins an
 # older sharp, and two libvips builds loaded together crash image uploads.
 overrides:
-  sharp: 0.35.4
-
-# TEMP until 2026-10-10 07:10 UTC: pnpm 11.7 ignores minimumReleaseAgeExclude when it
-# verifies the lockfile, so @tanngo11/log@0.5.1 (published 2026-10-09) fails every install.
-# Remove this line after that time to restore the default 1-day release age.
-minimumReleaseAge: 0
+  sharp: 0.35.5
+  # Security floors for transitive dependencies (pnpm audit, 2026-10-13), each kept inside
+  # the major the parent package asks for. vite 6, webpack-dev-middleware 7 and tinypool 2
+  # would cross a major Strapi 5.51 / vitest pin; they run only at build/dev/test time.
+  # braces (<=3.0.3, ReDoS) has no fixed release on npm yet.
+  'handlebars@<4.7.10': ^4.7.10
+  'proxy-addr@<2.0.8': ^2.0.8
+  'shell-quote@<1.11.0': ^1.11.0
+  '@modelcontextprotocol/sdk@<1.31.0': ^1.31.0
+  'axios@<1.20.0': ^1.20.0
+  'brace-expansion@<1.1.20': ^1.1.20
+  'brace-expansion@>=4.0.0 <5.0.11': ^5.0.11
+  'browserslist@<4.28.7': ^4.28.7
+  'fast-uri@<3.1.7': ^3.1.7
+  'ip-address@<10.3.1': ^10.3.1
+  'js-yaml@>=4.0.0 <4.3.2': ^4.3.2
+  'nanoid@<3.3.18': ^3.3.18
+  # 10.x only drops Node < 20 (this repo runs Node 22); 9.x has no fix for the <=10.0.5 advisory.
+  'nodemailer@<10.0.6': ^10.1.0
+  'source-map-js@<1.2.2': ^1.2.2
+  'undici@>=6.0.0 <6.28.1': ^6.28.1
+  'undici@>=7.0.0 <7.29.1': ^7.29.1
