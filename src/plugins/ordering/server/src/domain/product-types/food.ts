@@ -31,7 +31,10 @@ export const foodProductType: ProductTypeDefinition = {
         }
         return { name: 'delivery-pay-on-delivery', version: '1' };
       default:
-        throw new OrderingError('LINE_INVALID', 'food does not support appointment');
+        throw new OrderingError(
+          'LINE_INVALID',
+          `food does not support "${receiveMethod.kind}"`,
+        );
     }
   },
 };

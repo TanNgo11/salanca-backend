@@ -88,6 +88,8 @@ const scripts = [
   'price-lists.mjs',
   // O9 step 2: gift-card ledger invariant under a seeded random walk.
   'gift-card-ledger.mjs',
+  // O9 step 3: digital gift-card sale — workflow, issuance, mail, counter stock.
+  'gift-card-sale.mjs',
 ];
 
 const results = [];

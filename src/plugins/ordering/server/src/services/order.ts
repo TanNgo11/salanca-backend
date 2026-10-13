@@ -49,11 +49,13 @@ import type { OrderAggregate } from '../repositories/types';
 import type { ServiceContext } from './context';
 import { priceChannelOf } from '../domain/catalog/price-selection';
 import { sellableForLine } from '../providers/ordering-catalog/adapter';
+import { isOnlinePaymentProvider } from '../providers/cash';
 import { actorRefOf, nowOf } from './context';
 import type adminUnitsFactory from './admin-units';
 import type branchFactory from './branch';
 import type customerFactory from './customer';
 import type dailyStockFactory from './daily-stock';
+import type giftCardFactory from './gift-card';
 import type holdFactory from './hold';
 import type pickupSchedulingFactory from './pickup-scheduling';
 import type { PickupTiming, PickupTimingInput } from './pickup-scheduling';
@@ -185,6 +187,7 @@ type Services = {
   scheduling: ReturnType<typeof pickupSchedulingFactory>;
   customer: ReturnType<typeof customerFactory>;
   dailyStock: ReturnType<typeof dailyStockFactory>;
+  giftCard: ReturnType<typeof giftCardFactory>;
 };
 
 type BranchRow = {
@@ -215,6 +218,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
       scheduling: plugin.service('pickup-scheduling') as Services['scheduling'],
       customer: plugin.service('customer') as Services['customer'],
       dailyStock: plugin.service('daily-stock') as Services['dailyStock'],
+      giftCard: plugin.service('gift-card') as Services['giftCard'],
     };
   };
   const cutoffFromFulfillment = (fulfillment: unknown, kind: string): string => {
@@ -513,6 +517,15 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
       }
 
       const kind = input.receiveMethod.kind;
+      // O9: a gift-card order is `digital` — no pickup/delivery rules, but gift cards must be
+      // enabled and every line must be a gift-card line (the product types enforce that in
+      // `selectWorkflow`: food refuses "digital", gift-card refuses anything else).
+      const digital = kind === 'digital';
+      if (digital && !cfg.giftCards.enabled) {
+        throw new OrderingError('GIFT_CARD_NOT_ALLOWED', 'gift cards are not enabled', {
+          details: { reason: 'disabled' },
+        });
+      }
       const pickupSettings: PickupSettings | null =
         kind === 'pickup' ? branchService.pickupSettings(branch) : null;
       const deliverySettings: DeliverySettings | null =
@@ -610,7 +623,33 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
       }
 
       let providerCode = input.payment?.providerCode;
-      if (enforce && receiveSettings) {
+      if (digital) {
+        // O9: online sales prepay through one of the branch's configured online providers
+        // (the union of its pickup/delivery method lists, there is no digital settings block);
+        // counter sales may also name `cash`, which cash-handover records at the counter.
+        const branchProviders = [
+          ...new Set([
+            ...branchService.pickupSettings(branch).paymentProviders,
+            ...branchService.deliverySettings(branch).paymentProviders,
+            'cash',
+          ]),
+        ].filter((code) => registry.hasPaymentProvider(code));
+        if (input.origin.kind === 'storefront') {
+          const online = branchProviders.filter((code) =>
+            isOnlinePaymentProvider(registry.paymentProvider(code)),
+          );
+          providerCode ??= online[0];
+          if (!providerCode || !online.includes(providerCode)) {
+            throw new OrderingError('VALIDATION_ERROR', 'payment method is not offered here', {
+              details: { field: 'payment.providerCode', allowed: online },
+            });
+          }
+        } else if (providerCode && !branchProviders.includes(providerCode)) {
+          throw new OrderingError('VALIDATION_ERROR', 'payment method is not offered here', {
+            details: { field: 'payment.providerCode', allowed: branchProviders },
+          });
+        }
+      } else if (enforce && receiveSettings) {
         providerCode ??= receiveSettings.paymentTiming === 'pay-on-pickup' ? 'cash' : undefined;
         if (!providerCode || !receiveSettings.paymentProviders.includes(providerCode)) {
           throw new OrderingError('VALIDATION_ERROR', 'payment method is not offered here', {
@@ -669,7 +708,9 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         now: placedAt,
         timezone: branch.timezone,
         locationRef: branch.code,
-        receiveKind: kind === 'delivery' ? 'delivery' : 'pickup',
+        // O9: digital carts match only promotions that declare the `digital` receive kind —
+        // an ordinary pickup/delivery promo can never discount a card purchase.
+        receiveKind: kind === 'digital' ? 'digital' : kind === 'delivery' ? 'delivery' : 'pickup',
         lines: priced.map((line, index) => ({
           index,
           sellableUid: line.sellable.ref.uid,
@@ -717,6 +758,18 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
       }
       for (const workflow of groupsByWorkflow.values()) {
         registry.workflow(workflow.name, workflow.version);
+      }
+
+      if (digital) {
+        // O9 plan step 3: each line unit issues one card; the whole order caps at maxCardsPerOrder.
+        const cardQuantity = priced.reduce((sum, line) => sum + line.quantity, 0);
+        if (cardQuantity > cfg.giftCards.maxCardsPerOrder) {
+          throw new OrderingError(
+            'VALIDATION_ERROR',
+            `an order may hold at most ${cfg.giftCards.maxCardsPerOrder} gift cards`,
+            { details: { max: cfg.giftCards.maxCardsPerOrder, quantity: cardQuantity } },
+          );
+        }
       }
 
       if (enforce && receiveSettings && pricing.totals.subtotal < receiveSettings.minOrderAmount) {
@@ -827,6 +880,32 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
       if (input.lines.length === 0) {
         throw new OrderingError('VALIDATION_ERROR', 'order needs at least one line');
       }
+      // O9: a public card sale must reach a mailbox — the recipient's or the purchaser's.
+      // Checked at create (not quote): a gift-card cart may be priced before the address is typed.
+      if (
+        input.receiveMethod.kind === 'digital' &&
+        input.origin.kind === 'storefront' &&
+        !input.receiveMethod.recipientEmail &&
+        !input.contact.email
+      ) {
+        throw new OrderingError(
+          'VALIDATION_ERROR',
+          'a gift-card order needs a recipient or contact email',
+          { details: { field: 'receiveMethod.recipientEmail' } },
+        );
+      }
+      // Scanned preprinted stock activates only on a staff counter sale — never a public order.
+      if (
+        input.receiveMethod.kind === 'digital' &&
+        input.receiveMethod.physicalCodes?.length &&
+        input.origin.kind !== 'staff-draft'
+      ) {
+        throw new OrderingError(
+          'VALIDATION_ERROR',
+          'scanned card stock is a counter-sale feature',
+          { details: { field: 'receiveMethod.physicalCodes' } },
+        );
+      }
       // The order token is sealed on the idempotency row; refuse before claiming without a key.
       services().idempotency.assertSealingConfigured();
 
@@ -837,6 +916,31 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         async (trx) => {
           const { timeline, hold, outbox, scheduling, customer } = services();
           const prepared = await service.prepareOrder(payload, ctx);
+          // Counter sale: fail the scan while the staff member is still at the counter —
+          // one code per unit sold, every code a sellable preprinted card. The outbox
+          // consumer re-checks transactionally; this pass only catches early what it can.
+          if (
+            payload.receiveMethod.kind === 'digital' &&
+            payload.receiveMethod.physicalCodes?.length
+          ) {
+            const scans = payload.receiveMethod.physicalCodes;
+            const units = prepared.priced.reduce((sum, line) => sum + line.quantity, 0);
+            if (scans.length !== units) {
+              throw new OrderingError('VALIDATION_ERROR', 'scan one card per card sold', {
+                details: { field: 'receiveMethod.physicalCodes', scanned: scans.length, units },
+              });
+            }
+            for (const scanned of scans) {
+              const stock = await services().giftCard.findByCode(scanned);
+              if (!stock || stock.source !== 'batch' || stock.status !== 'inactive') {
+                throw new OrderingError(
+                  'GIFT_CARD_INVALID',
+                  'a scanned card is not sellable stock',
+                  { details: { field: 'receiveMethod.physicalCodes' } },
+                );
+              }
+            }
+          }
           if (payload.promotionCode) {
             (
               strapi.plugin('ordering').service('promotion') as ReturnType<

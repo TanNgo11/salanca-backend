@@ -150,14 +150,29 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
       const due = Math.max(0, aggregate.order.totalAmount - captured);
       const receive = aggregate.order.receiveMethod as { kind?: string };
       const branch = await branches().findByCode(aggregate.order.locationRef);
-      const settings =
-        receive.kind === 'delivery'
-          ? branches().deliverySettings(branch ?? { fulfillment: null })
-          : branches().pickupSettings(branch ?? { fulfillment: null });
+      const fallback = branch ?? { fulfillment: null };
+      // O9: digital (gift-card) orders have no receive-method settings block of their own —
+      // they prepay through the union of the branch's online providers and follow the same
+      // payment timeout; `paymentTiming` reports 'prepay' for them.
+      const digital = receive.kind === 'digital';
+      const providers = digital
+        ? [
+            ...new Set([
+              ...branches().pickupSettings(fallback).paymentProviders,
+              ...branches().deliverySettings(fallback).paymentProviders,
+            ]),
+          ]
+        : null;
+      const settings = digital
+        ? null
+        : receive.kind === 'delivery'
+          ? branches().deliverySettings(fallback)
+          : branches().pickupSettings(fallback);
       const awaitingPayment = aggregate.groups.some((group) => group.status === 'awaiting-payment');
+      const candidates = providers ?? settings?.paymentProviders;
       let presentation: Record<string, unknown> | null = null;
-      if (awaitingPayment && due > 0 && settings) {
-        const online = settings.paymentProviders.find((code) => {
+      if (awaitingPayment && due > 0 && candidates) {
+        const online = candidates.find((code) => {
           if (!registry().hasPaymentProvider(code)) return false;
           return isOnlinePaymentProvider(registry().paymentProvider(code));
         });
@@ -178,7 +193,11 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
           const deadline = await links().effectiveDeadline(
             aggregate.order.id,
             start,
-            settings.paymentTimeoutMinutes,
+            settings?.paymentTimeoutMinutes ??
+              Math.max(
+                branches().pickupSettings(fallback).paymentTimeoutMinutes,
+                branches().deliverySettings(fallback).paymentTimeoutMinutes,
+              ),
           );
           if (deadline.getTime() <= Date.now()) {
             presentation = null;
@@ -202,8 +221,8 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
         currency: aggregate.order.currency,
         total: aggregate.order.totalAmount,
         due,
-        paymentTiming: settings?.paymentTiming ?? null,
-        methods: settings?.paymentProviders ?? [],
+        paymentTiming: digital ? 'prepay' : (settings?.paymentTiming ?? null),
+        methods: providers ?? settings?.paymentProviders ?? [],
         presentation,
       };
     },
@@ -265,6 +284,11 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
         currency: cfg.currency,
         consentPolicyVersion: cfg.consent.policyVersion,
         captcha: cfg.storefront.captchaProvider ? { provider: cfg.storefront.captchaProvider } : null,
+        // O9: whether the storefront may offer a `digital` gift-card checkout at all.
+        giftCards: {
+          enabled: cfg.giftCards.enabled,
+          maxCardsPerOrder: cfg.giftCards.maxCardsPerOrder,
+        },
       };
       if (!branchCode) return { ...base, branch: null };
       const branch = await branches().findByCode(branchCode);

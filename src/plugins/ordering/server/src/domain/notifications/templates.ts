@@ -21,7 +21,8 @@ export type TemplateCode =
   | 'customer.delivery-failed'
   | 'customer.delivery-retry'
   | 'customer.otp'
-  | 'customer.cart-reminder';
+  | 'customer.cart-reminder'
+  | 'customer.gift-card-issued';
 
 export type TemplateData = {
   code: string;
@@ -56,6 +57,18 @@ export const formatLocalTime = (iso: string, timezone: string): string => {
   return `${part('hour')}:${part('minute')} · ${part('day')}/${part('month')}`;
 };
 
+/** `12/10/2027` in the branch timezone — card expiry is a date, not a time. */
+export const formatLocalDate = (iso: string, timezone: string): string => {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: timezone,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).formatToParts(new Date(iso));
+  const part = (type: string) => parts.find((value) => value.type === type)?.value ?? '';
+  return `${part('day')}/${part('month')}/${part('year')}`;
+};
+
 const escapeHtml = (value: string): string =>
   value.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
 
@@ -80,6 +93,11 @@ const copy: Record<TemplateCode, Record<Locale, { subject: string; lead: string 
   },
   // `customer.cart-reminder` renders through `renderCartReminder`.
   'customer.cart-reminder': {
+    vi: { subject: '', lead: '' },
+    en: { subject: '', lead: '' },
+  },
+  // `customer.gift-card-issued` renders through `renderGiftCardIssued` (O9).
+  'customer.gift-card-issued': {
     vi: { subject: '', lead: '' },
     en: { subject: '', lead: '' },
   },
@@ -299,6 +317,105 @@ export function renderCartReminder(
   return { subject, text, html };
 }
 
+/** O9 gift-card mail data: the issued codes are the mail's whole point (plan step 3). */
+export type GiftCardMailData = {
+  /** The order code, for context — not a card code. */
+  orderCode: string;
+  branch: string;
+  cards: Array<{ code: string; amount: number }>;
+  /** `12/10/2027` formatted in the branch timezone. */
+  expiresAt?: string;
+  recipientName?: string;
+  /** Optional gift message the purchaser left for the recipient (≤ 300 chars). */
+  message?: string;
+  /** Order lookup link — only when the recipient is the purchaser. */
+  link?: string;
+};
+
+const giftCardLabels: Record<Locale, Record<string, string>> = {
+  vi: {
+    subject: 'Thẻ quà tặng từ {branch}',
+    lead: '{branch} gửi bạn thẻ quà tặng — nhập mã dưới đây khi thanh toán đơn online.',
+    expiry: 'Hạn dùng',
+    greeting: 'Kính gửi {name},',
+    messageLabel: 'Lời chúc',
+    hint: 'Nhập mã khi thanh toán đơn hàng online.',
+    warning: 'Ai có mã đều dùng được — giữ mã cẩn thận.',
+    viewOrder: 'Xem đơn',
+    orderLabel: 'Đơn',
+  },
+  en: {
+    subject: 'A gift card from {branch}',
+    lead: '{branch} sent you a gift card — enter the code below when paying online.',
+    expiry: 'Valid until',
+    greeting: 'Dear {name},',
+    messageLabel: 'Message',
+    hint: 'Enter the code when paying online.',
+    warning: 'Anyone holding the code can spend it — keep it safe.',
+    viewOrder: 'View order',
+    orderLabel: 'Order',
+  },
+};
+
+/**
+ * Renders `customer.gift-card-issued` (O9 plan step 3): one row per card with its plaintext code —
+ * the only surface besides the staff reveal that ever shows it. Plain text plus minimal HTML with
+ * every value escaped; the sender side is deduped by the delivery log like every other template.
+ */
+export function renderGiftCardIssued(
+  localeInput: string | null | undefined,
+  data: GiftCardMailData,
+): { subject: string; text: string; html: string } {
+  const locale: Locale = localeInput === 'en' ? 'en' : 'vi';
+  const words = giftCardLabels[locale];
+  const fill = (value: string) => value.replaceAll('{branch}', data.branch);
+  const subject = fill(words.subject);
+  const lines: string[] = [];
+  if (data.recipientName) {
+    lines.push(words.greeting.replace('{name}', data.recipientName), '');
+  }
+  lines.push(fill(words.lead), '');
+  for (const card of data.cards) {
+    lines.push(`${card.code} — ${formatVnd(card.amount)}`);
+  }
+  lines.push('');
+  if (data.expiresAt) lines.push(`${words.expiry}: ${data.expiresAt}`);
+  lines.push(`${words.orderLabel}: ${data.orderCode}`);
+  if (data.message) {
+    lines.push('', `${words.messageLabel}: ${data.message}`);
+  }
+  lines.push('', words.hint, words.warning);
+  if (data.link) {
+    lines.push('', `${words.viewOrder}: ${data.link}`);
+  }
+  const text = lines.join('\n').trim();
+  const html = [
+    ...(data.recipientName
+      ? [`<p>${escapeHtml(words.greeting.replace('{name}', data.recipientName))}</p>`]
+      : []),
+    `<p>${escapeHtml(fill(words.lead))}</p>`,
+    `<ul>${data.cards
+      .map(
+        (card) =>
+          `<li><code>${escapeHtml(card.code)}</code> — <strong>${escapeHtml(formatVnd(card.amount))}</strong></li>`,
+      )
+      .join('')}</ul>`,
+    `<table><tr><td>${escapeHtml(words.orderLabel)}</td><td><strong>${escapeHtml(data.orderCode)}</strong></td></tr>${
+      data.expiresAt
+        ? `<tr><td>${escapeHtml(words.expiry)}</td><td><strong>${escapeHtml(data.expiresAt)}</strong></td></tr>`
+        : ''
+    }</table>`,
+    ...(data.message
+      ? [`<p>${escapeHtml(words.messageLabel)}: ${escapeHtml(data.message)}</p>`]
+      : []),
+    `<p>${escapeHtml(words.hint)}<br>${escapeHtml(words.warning)}</p>`,
+    ...(data.link
+      ? [`<p><a href="${escapeHtml(data.link)}">${escapeHtml(words.viewOrder)}</a></p>`]
+      : []),
+  ].join('\n');
+  return { subject, text, html };
+}
+
 /** Ops-alert mail data: refs and counts only, never PII (contracts §12). */
 export type OpsAlertData = {
   label: string;
@@ -382,6 +499,9 @@ export const templateWords = (localeInput: string | null | undefined): Record<st
 export const opsAlertWords = (localeInput: string | null | undefined): Record<string, string> =>
   opsAlertLabels[localeInput === 'en' ? 'en' : 'vi'];
 
+export const giftCardWords = (localeInput: string | null | undefined): Record<string, string> =>
+  giftCardLabels[localeInput === 'en' ? 'en' : 'vi'];
+
 /**
  * Default editable source of a template (O10): the built-in copy expressed in the restricted
  * markdown `notification-template` syntax — `{code}`/`{branch}` become `{{var}}` placeholders and
@@ -408,6 +528,27 @@ export function defaultTemplateSource(
       subject:
         locale === 'en' ? 'Your cart at {{branch}} is waiting' : 'Giỏ của bạn tại {{branch}} đang chờ',
       body: [fill(w.lead), '', '{{items}}', '', '{{total}}', '', w.action].join('\n'),
+    };
+  }
+  if (template === 'customer.gift-card-issued') {
+    const w = giftCardLabels[locale];
+    return {
+      subject: fill(w.subject),
+      body: [
+        '{{greeting}}',
+        fill(w.lead),
+        '',
+        '{{cards}}',
+        '',
+        `- ${w.orderLabel}: {{orderCode}}`,
+        '{{expiry}}',
+        '{{message}}',
+        '',
+        w.hint,
+        w.warning,
+        '',
+        '{{link}}',
+      ].join('\n'),
     };
   }
   if (template === 'staff.ops-alert') {

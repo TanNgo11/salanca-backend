@@ -32,7 +32,7 @@ export const promotionInputSchema = z
       .strict(),
     minSubtotal: z.number().int().min(0).default(0),
     locationRefs: z.array(z.string().trim().min(1).max(64)).max(50).nullable().optional(),
-    receiveKinds: z.array(z.enum(['pickup', 'delivery'])).min(1).max(2),
+    receiveKinds: z.array(z.enum(['pickup', 'delivery', 'digital'])).min(1).max(3),
     startsAt: z.string().datetime(),
     endsAt: z.string().datetime().nullable().optional(),
     weekdays: z.array(z.enum(WEEKDAYS)).max(7).default([]),

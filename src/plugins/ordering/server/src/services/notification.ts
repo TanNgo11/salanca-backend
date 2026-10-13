@@ -7,7 +7,9 @@ import { sha256Hex } from '../domain/hashing';
 import {
   customerTemplateFor,
   deliveryFailureReason,
+  formatLocalDate,
   formatLocalTime,
+  type GiftCardMailData,
   type OpsAlertData,
   type TemplateCode,
   type TemplateData,
@@ -324,6 +326,50 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
         orderId,
         locale,
         data: { ...data, ...(link ? { link } : {}) },
+      });
+    },
+
+    /**
+     * O9 `customer.gift-card-issued`: the purchaser's or recipient's mailbox gets the plaintext
+     * codes — the only mail that ever carries them. Deduped by the delivery log on
+     * (event, template, recipientHash); the order link only rides along when the recipient is
+     * the purchaser, so a gifted recipient never gets the buyer's token URL.
+     */
+    async sendGiftCardIssued(
+      event: OutboxEvent,
+      input: {
+        orderId: number;
+        email: string;
+        recipientName?: string;
+        message?: string;
+        cards: Array<{ code: string; amount: number }>;
+        /** True when `email` is the purchaser's own contact address. */
+        includeOrderLink: boolean;
+        expiresAt?: string;
+      },
+    ): Promise<void> {
+      const aggregate = await repo.loadOrderAggregate(input.orderId);
+      if (!aggregate) return;
+      const { branch, locale, data } = await baseData(aggregate);
+      const timezone = branch?.timezone ?? 'Asia/Ho_Chi_Minh';
+      const name = (branch?.name ?? {}) as Record<string, string>;
+      const mail: GiftCardMailData = {
+        orderCode: aggregate.order.code,
+        branch: name[locale] ?? name.vi ?? aggregate.order.locationRef,
+        cards: input.cards,
+        ...(input.expiresAt ? { expiresAt: formatLocalDate(input.expiresAt, timezone) } : {}),
+        ...(input.recipientName ? { recipientName: input.recipientName } : {}),
+        ...(input.message ? { message: input.message } : {}),
+        ...(input.includeOrderLink && data.link ? { link: data.link } : {}),
+      };
+      await deliver({
+        event,
+        template: 'customer.gift-card-issued',
+        email: input.email,
+        role: 'customer',
+        orderId: input.orderId,
+        locale,
+        data: mail,
       });
     },
 

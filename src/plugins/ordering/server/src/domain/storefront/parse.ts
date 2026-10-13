@@ -27,7 +27,14 @@ export type CartRequest = {
   }>;
   receiveMethod:
     | { kind: 'pickup'; locationRef: string }
-    | { kind: 'delivery'; address: AddressSnapshot; providerCode: 'self-delivery' };
+    | { kind: 'delivery'; address: AddressSnapshot; providerCode: 'self-delivery' }
+    | {
+        kind: 'digital';
+        recipientEmail?: string;
+        recipientName?: string;
+        message?: string;
+        physicalCodes?: string[];
+      };
   pickup: { asap?: boolean; slot?: { startsAt: string } };
   payment?: { providerCode: string };
   promotionCode?: string;
@@ -124,6 +131,41 @@ export function parseCartRequest(body: unknown): CartRequest {
         wardCode: communeCode.toUpperCase(),
         ...(str(address.note, 'receiveMethod.address.note', 200) ? { note: str(address.note, 'receiveMethod.address.note', 200) } : {}),
       },
+    };
+  } else if (receive.kind === 'digital') {
+    // O9 gift cards: the recipient mailbox is optional at parse — staff counter sales may
+    // hand a printed card — but prepareOrder requires it (or a contact email) for storefront.
+    const recipientEmail = str(
+      receive.recipientEmail,
+      'receiveMethod.recipientEmail',
+      LIMITS.email,
+    );
+    if (recipientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+      throw invalid(
+        'receiveMethod.recipientEmail',
+        'receiveMethod.recipientEmail is not a valid address',
+      );
+    }
+    receiveMethod = {
+      kind: 'digital',
+      ...(recipientEmail ? { recipientEmail } : {}),
+      ...(str(receive.recipientName, 'receiveMethod.recipientName', LIMITS.name)
+        ? { recipientName: str(receive.recipientName, 'receiveMethod.recipientName', LIMITS.name) }
+        : {}),
+      // Gift message to the recipient (plan: ≤ 300 chars).
+      ...(str(receive.message, 'receiveMethod.message', 300)
+        ? { message: str(receive.message, 'receiveMethod.message', 300) }
+        : {}),
+      // Counter sale of preprinted stock (staff drafts only): scanned codes to activate.
+      ...(Array.isArray(receive.physicalCodes) && receive.physicalCodes.length > 0
+        ? {
+            physicalCodes: receive.physicalCodes
+              .slice(0, 50)
+              .map((code, index) =>
+                str(code, `receiveMethod.physicalCodes[${index}]`, 40, true) as string,
+              ),
+          }
+        : {}),
     };
   } else {
     throw new OrderingError('FULFILLMENT_UNAVAILABLE', 'this receive method is not available', {

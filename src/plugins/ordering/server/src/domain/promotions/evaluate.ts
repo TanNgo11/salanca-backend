@@ -31,7 +31,7 @@ export type PromotionSnapshot = {
   minSubtotal: number;
   /** `null` or empty means every branch. */
   locationRefs: string[] | null;
-  receiveKinds: Array<'pickup' | 'delivery'>;
+  receiveKinds: Array<'pickup' | 'delivery' | 'digital'>;
   startsAt: string;
   endsAt: string | null;
   /** Empty means every day. */
@@ -48,7 +48,7 @@ export type EvaluateInput = {
   now: Date;
   timezone: string;
   locationRef: string;
-  receiveKind: 'pickup' | 'delivery';
+  receiveKind: 'pickup' | 'delivery' | 'digital';
   lines: PromotionLine[];
   fulfillmentAmount: number;
   subtotal: number;

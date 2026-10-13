@@ -18,6 +18,7 @@ import {
 import { OrderingError } from './domain/errors';
 import { PUBLIC_EVENT_TYPES } from './domain/webhooks/events';
 import { foodProductType } from './domain/product-types/food';
+import { giftCardProductType } from './domain/product-types/gift-card';
 import { testFoodProductType } from './domain/product-types/test-food';
 import { testServiceProductType } from './domain/product-types/test-service';
 import { builtinWorkflows } from './domain/workflow/definitions';
@@ -123,6 +124,8 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
 
   registry.registerCatalogAdapter(createOrderingCatalogAdapter({ strapi }));
   registry.registerProductType(foodProductType);
+  // O9 step 3: digital gift-card sales — fixed denominations, `gift-card` workflow.
+  registry.registerProductType(giftCardProductType);
   registry.registerPaymentProvider(createCashPaymentProvider());
   registry.registerFulfillmentProvider(
     createSelfDeliveryProvider({
@@ -180,6 +183,15 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
   registry.registerOutboxConsumer('rating.invite', (event) => notifications().onRatingInvite(event as never));
   registry.registerOutboxConsumer('fulfillment-group.transitioned', (event) =>
     notifications().onGroupTransitioned(event as never),
+  );
+  // O9 step 3: capture lands a gift-card group on `issued`; the consumer mints one card per
+  // line unit (idempotent) and mails the codes to the recipient.
+  const giftCards = () =>
+    strapi.plugin('ordering').service('gift-card') as {
+      onGroupIssued: (event: OutboxEvent) => Promise<void>;
+    };
+  registry.registerOutboxConsumer('fulfillment-group.transitioned', (event) =>
+    giftCards().onGroupIssued(event),
   );
   registry.registerOutboxConsumer('ops-alert.opened', (event) =>
     notifications().onOpsAlert(event as never),

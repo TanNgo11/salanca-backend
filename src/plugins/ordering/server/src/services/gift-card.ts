@@ -3,6 +3,7 @@ import { createHmac } from 'node:crypto';
 import type { Core } from '@strapi/strapi';
 
 import type { OrderingConfig } from '../config';
+import type { OutboxEvent } from '../contracts';
 import { OrderingError } from '../domain/errors';
 import {
   formatGiftCardCode,
@@ -13,6 +14,7 @@ import {
 } from '../domain/gift-cards/code';
 import { decryptSecret, encryptSecret, parseEncryptionKey } from '../domain/token-cipher';
 import type { TransactionClient } from '../migrations/runner';
+import orderRepository from '../repositories/order';
 import { actorRefOf, nowOf, type ServiceContext } from './context';
 
 const CARD_UID = 'plugin::ordering.gift-card';
@@ -84,8 +86,37 @@ const lockCard = async (
  */
 const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
   const config = () => strapi.config.get('plugin::ordering') as OrderingConfig;
+  const plugin = () => strapi.plugin('ordering');
   const cards = () => strapi.db.query(CARD_UID);
   const ledger = () => strapi.db.query(LEDGER_UID);
+  const outbox = () =>
+    plugin().service('outbox') as {
+      enqueue(
+        input: {
+          type: string;
+          aggregateType: string;
+          aggregateId: string;
+          payload: Record<string, unknown>;
+          uniqueKey?: string;
+        },
+        ctx: ServiceContext,
+      ): Promise<unknown>;
+    };
+  const notifications = () =>
+    plugin().service('notification') as {
+      sendGiftCardIssued(
+        event: OutboxEvent,
+        input: {
+          orderId: number;
+          email: string;
+          recipientName?: string;
+          message?: string;
+          cards: Array<{ code: string; amount: number }>;
+          includeOrderLink: boolean;
+          expiresAt?: string;
+        },
+      ): Promise<void>;
+    };
 
   let keyBuffer: Buffer | null = null;
   const key = (): Buffer => {
@@ -572,6 +603,195 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
         .orderBy('id')
         .limit(limit)
         .update({ sealed_code: null });
+    },
+
+    /**
+     * `fulfillment-group.transitioned` consumer (O9 plan step 3): when a `gift-card` group
+     * reaches `issued` after payment capture, every live line unit becomes one card —
+     * `source: 'sale'`, denomination = the line's unit amount. Idempotent by counting cards
+     * already linked to a line inside a `FOR UPDATE` lock, so a redelivered event can only
+     * finish a half-completed run, never double-issue. One `gift-card.issued` webhook event
+     * rides the same transaction per new card; the recipient mail sends after commit, deduped
+     * by the delivery log like every other template.
+     */
+    async onGroupIssued(event: OutboxEvent): Promise<void> {
+      if (String(event.payload?.to ?? '') !== 'issued') return;
+      if (String(event.payload?.workflowName ?? '') !== 'gift-card') return;
+      const orderId = Number(event.payload.orderId);
+      const groupId = Number(event.payload.groupId);
+      if (!Number.isSafeInteger(orderId) || !Number.isSafeInteger(groupId)) return;
+
+      const aggregate = await orderRepository({ strapi }).loadOrderAggregate(orderId);
+      if (!aggregate) return;
+      const group = aggregate.groups.find((item) => item.id === groupId);
+      if (!group || group.workflowName !== 'gift-card' || group.status !== 'issued') return;
+      const receive = aggregate.order.receiveMethod as {
+        kind?: string;
+        recipientEmail?: string;
+        recipientName?: string;
+        message?: string;
+        physicalCodes?: string[];
+      };
+      if (receive.kind !== 'digital') return;
+      const contactEmail =
+        ((aggregate.order.contactSnapshot as { email?: string }).email ?? '').trim();
+      const recipientEmail = (receive.recipientEmail ?? '').trim() || contactEmail;
+      // Counter sale of preprinted stock: staff scanned the cards the customer takes home;
+      // those activate instead of minting (step 5 builds the staff UI on top).
+      const physicalQueue = Array.isArray(receive.physicalCodes) ? [...receive.physicalCodes] : [];
+      const ctx: ServiceContext = { actor: { kind: 'system' } };
+
+      const freshCodes = new Map<number, string>();
+      await strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
+        // Lock this group's lines so two dispatches of the same event can never double-issue.
+        const { rows: locked } = (await trx.raw(
+          `SELECT ol.id, ol.quantity, ol.canceled_quantity, ol.unit_amount, ol.option_amount,
+                  ol.currency
+             FROM plugins_ordering_order_line ol
+             JOIN plugins_ordering_order_line_fulfillment_group_lnk lnk
+               ON lnk.order_line_id = ol.id
+            WHERE lnk.fulfillment_group_id = ? FOR UPDATE OF ol`,
+          [groupId],
+        )) as {
+          rows: Array<{
+            id: number;
+            quantity: number;
+            canceled_quantity: number;
+            unit_amount: number | string;
+            option_amount: number | string;
+            currency: string;
+          }>;
+        };
+        // Redelivery tolerance: a code whose card is already sold on THIS order was consumed by
+        // a committed run — drop it now so leftover scans only ever hold unsold stock. A card
+        // sold on a different order stays in the queue and fails the strict check below.
+        while (physicalQueue.length > 0) {
+          const stock = await service.findByCode(physicalQueue[0]);
+          if (
+            !stock ||
+            stock.source !== 'batch' ||
+            stock.status === 'inactive' ||
+            stock.orderId !== orderId
+          ) {
+            break;
+          }
+          physicalQueue.shift();
+        }
+        for (const line of locked) {
+          const live = asInt(line.quantity) - asInt(line.canceled_quantity);
+          if (live <= 0) continue;
+          const existing = await cards().count({ where: { orderLine: line.id } });
+          for (let i = existing; i < live; i += 1) {
+            let cardId: number;
+            let last4: string;
+            const physical = physicalQueue.shift();
+            const lineAmount = asInt(line.unit_amount) + asInt(line.option_amount);
+            if (physical) {
+              const stock = await service.findByCode(physical);
+              if (!stock || stock.status !== 'inactive' || stock.source !== 'batch') {
+                throw new OrderingError(
+                  'GIFT_CARD_INVALID',
+                  'a scanned card is not sellable stock',
+                  { details: { orderId } },
+                );
+              }
+              if (stock.initialAmount !== lineAmount) {
+                throw new OrderingError(
+                  'GIFT_CARD_INVALID',
+                  'a scanned card does not match the sold denomination',
+                  { details: { orderId, cardId: stock.id } },
+                );
+              }
+              await service.activateInTransaction(
+                trx,
+                { cardId: stock.id, orderId, reason: `order:${aggregate.order.code}` },
+                ctx,
+              );
+              await cards().update({
+                where: { id: stock.id },
+                data: { order: orderId, orderLine: line.id },
+              });
+              cardId = stock.id;
+              last4 = stock.last4;
+            } else {
+              const card = await service.issueInTransaction(
+                trx,
+                {
+                  amount: lineAmount,
+                  currency: line.currency,
+                  source: 'sale',
+                  orderId,
+                  orderLineId: line.id,
+                  recipientEmail: recipientEmail || null,
+                  issuedBy: `order:${aggregate.order.code}`,
+                },
+                ctx,
+              );
+              cardId = card.id;
+              last4 = card.last4;
+              if (card.code) freshCodes.set(card.id, card.code);
+            }
+            // Webhook subscribers see one event per card; the consumer reads the card row,
+            // so the event must ride this transaction — a crash before commit replays
+            // cleanly because no card exists either.
+            await outbox().enqueue(
+              {
+                type: 'gift-card.issued',
+                aggregateType: 'gift-card',
+                aggregateId: String(cardId),
+                payload: {
+                  orderId,
+                  cardId,
+                  last4,
+                  amount: lineAmount,
+                  currency: line.currency,
+                  locationRef: aggregate.order.locationRef,
+                },
+                uniqueKey: `gift-card.issued:${cardId}`,
+              },
+              ctx,
+            );
+          }
+        }
+        if (physicalQueue.length > 0) {
+          // More scanned cards than live units — the staff entry was wrong; fail so the
+          // event retries loudly instead of silently dropping a sold card.
+          throw new OrderingError('GIFT_CARD_INVALID', 'scanned more cards than the order sells', {
+            details: { orderId, remaining: physicalQueue.length },
+          });
+        }
+      });
+
+      // After commit: mail the codes we can reveal — fresh ones from this run, or the sealed
+      // copies while retention holds. No recipient mailbox means a counter sale: staff hands
+      // the codes over through the admin reveal instead.
+      if (!recipientEmail) return;
+      const rows = (await cards().findMany({
+        where: { order: orderId },
+        select: ['id', 'initialAmount', 'expiresAt'],
+        orderBy: [{ id: 'asc' }],
+      })) as Array<{ id: number; initialAmount: number | string; expiresAt: string }>;
+      const mailCards: Array<{ code: string; amount: number }> = [];
+      for (const row of rows) {
+        const code = freshCodes.get(row.id) ?? (await service.revealCode(row.id));
+        if (code) mailCards.push({ code, amount: asInt(row.initialAmount) });
+      }
+      if (mailCards.length === 0) {
+        strapi.log.warn(
+          `[ordering] gift-card order ${orderId} issued ${rows.length} card(s) but no code can be mailed`,
+        );
+        return;
+      }
+      await notifications().sendGiftCardIssued(event, {
+        orderId,
+        email: recipientEmail,
+        recipientName: receive.recipientName,
+        message: receive.message,
+        cards: mailCards,
+        // The order link carries the purchaser's token — only for the purchaser's own address.
+        includeOrderLink: recipientEmail.toLowerCase() === contactEmail.toLowerCase(),
+        expiresAt: rows[0]?.expiresAt ? String(rows[0].expiresAt) : undefined,
+      });
     },
 
     /** One-time reveal for staff resend/order screens — only while the seal survives. */

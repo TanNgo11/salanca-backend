@@ -1,16 +1,23 @@
 import {
   formatVnd,
+  giftCardWords,
   opsAlertWords,
   templateWords,
   type CartReminderData,
+  type GiftCardMailData,
   type OpsAlertData,
   type OtpMailData,
   type TemplateCode,
   type TemplateData,
 } from './templates';
 
-/** Mail payloads the render pipeline accepts (order mail, ops alerts, OTP, cart reminder). */
-export type AnyMailData = TemplateData | OpsAlertData | OtpMailData | CartReminderData;
+/** Mail payloads the render pipeline accepts (order mail, ops alerts, OTP, cart reminder, O9 cards). */
+export type AnyMailData =
+  | TemplateData
+  | OpsAlertData
+  | OtpMailData
+  | CartReminderData
+  | GiftCardMailData;
 
 /**
  * O10 editable email templates — the allowlisted `{{var}}` names each template may use plus the
@@ -44,6 +51,7 @@ export const TEMPLATE_CODES: TemplateCode[] = [
   'customer.delivery-retry',
   'customer.otp',
   'customer.cart-reminder',
+  'customer.gift-card-issued',
 ];
 
 // Compile-time exhaustiveness: a new TemplateCode without a list entry fails typecheck.
@@ -66,6 +74,7 @@ const _allCodes: Record<TemplateCode, true> = {
   'customer.delivery-retry': true,
   'customer.otp': true,
   'customer.cart-reminder': true,
+  'customer.gift-card-issued': true,
 };
 void _allCodes;
 
@@ -97,6 +106,7 @@ export const TEMPLATE_NAMES: Record<TemplateCode, [vi: string, en: string]> = {
   'customer.delivery-retry': ['Đơn sẽ giao lại (khách)', 'Order redelivery (customer)'],
   'customer.otp': ['Mã đăng nhập OTP (khách)', 'Sign-in OTP code (customer)'],
   'customer.cart-reminder': ['Nhắc giỏ bỏ dở (khách)', 'Abandoned-cart reminder (customer)'],
+  'customer.gift-card-issued': ['Thẻ quà tặng đã phát hành (khách)', 'Gift card issued (customer)'],
 };
 
 export const templateAudience = (code: TemplateCode): 'staff' | 'customer' =>
@@ -209,6 +219,44 @@ const OPS_VARS: TemplateVar[] = [
   { name: 'action', description: ['Câu hướng dẫn mở Admin', 'The open-Admin instruction'] },
 ];
 
+const GIFT_CARD_VARS: TemplateVar[] = [
+  { name: 'orderCode', description: ['Mã đơn mua thẻ', 'The order the cards were bought on'] },
+  { name: 'branch', description: ['Tên chi nhánh', 'Branch name'] },
+  {
+    name: 'cards',
+    line: true,
+    markdown: true,
+    description: [
+      'Danh sách thẻ, mỗi dòng "MÃ — mệnh giá"',
+      'Card list, one "CODE — amount" per line',
+    ],
+  },
+  {
+    name: 'greeting',
+    line: true,
+    description: ['Dòng chào "Kính gửi tên," khi có tên', '"Dear name," line when set'],
+  },
+  {
+    name: 'expiry',
+    line: true,
+    description: ['Dòng "- Hạn dùng: …" khi thẻ có hạn', '"- Valid until: …" line when set'],
+  },
+  {
+    name: 'message',
+    line: true,
+    description: ['Dòng "- Lời chúc: …" của người mua', '"- Message: …" line from the buyer'],
+  },
+  {
+    name: 'link',
+    line: true,
+    markdown: true,
+    description: [
+      'Link "Xem đơn" — chỉ khi người nhận là người mua',
+      '"View order" link — only when the recipient is the buyer',
+    ],
+  },
+];
+
 /** Allowed `{{var}}` names for a template — used by the editor, validation and preview. */
 export const variablesFor = (code: TemplateCode): TemplateVar[] =>
   code === 'staff.ops-alert'
@@ -217,7 +265,9 @@ export const variablesFor = (code: TemplateCode): TemplateVar[] =>
       ? OTP_VARS
       : code === 'customer.cart-reminder'
         ? REMINDER_VARS
-        : ORDER_VARS;
+        : code === 'customer.gift-card-issued'
+          ? GIFT_CARD_VARS
+          : ORDER_VARS;
 
 const mdEscape = (value: string): string => value.replace(/([\\[\]()*])/g, '\\$1');
 
@@ -239,6 +289,21 @@ export const buildVars = (
       branch: d.branch,
       items: d.items.map((item) => `- ${item.quantity} × ${mdEscape(item.title)}`).join('\n'),
       total: typeof d.total === 'number' ? `- ${label}: ${formatVnd(d.total)}` : '',
+    };
+  }
+  if (code === 'customer.gift-card-issued') {
+    const d = data as GiftCardMailData;
+    const w = giftCardWords(locale);
+    return {
+      orderCode: d.orderCode,
+      branch: d.branch,
+      cards: d.cards
+        .map((card) => `- ${card.code} — ${formatVnd(card.amount)}`)
+        .join('\n'),
+      greeting: d.recipientName ? w.greeting.replace('{name}', d.recipientName) : '',
+      expiry: d.expiresAt ? `- ${w.expiry}: ${d.expiresAt}` : '',
+      message: d.message ? `- ${w.messageLabel}: ${d.message}` : '',
+      link: d.link ? `[${w.viewOrder}](${d.link})` : '',
     };
   }
   if (code === 'staff.ops-alert') {
@@ -292,7 +357,20 @@ export const sampleDataFor = (code: TemplateCode): AnyMailData =>
           ],
           total: 148000,
         }
-      : code === 'staff.ops-alert'
+      : code === 'customer.gift-card-issued'
+        ? {
+            orderCode: 'A1B2C3',
+            branch: 'Quán Quận 1',
+            cards: [
+              { code: 'ABCD-EFGH-JKMN-PQRS', amount: 200000 },
+              { code: 'WXYZ-2345-6789-ABCD', amount: 100000 },
+            ],
+            expiresAt: '12/10/2027',
+            recipientName: 'Chị Lan',
+            message: 'Chúc mừng sinh nhật!',
+            link: 'https://example.invalid/don-hang#t=demo',
+          }
+        : code === 'staff.ops-alert'
     ? {
         label: 'Endpoint webhook tự tắt sau 50 lỗi liên tiếp',
         severity: 'warning',

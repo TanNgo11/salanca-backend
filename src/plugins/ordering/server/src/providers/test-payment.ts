@@ -5,7 +5,7 @@ import type { PaymentProvider } from '../contracts';
 /** Deterministic provider for integration tests; only registered under `testing.builtins`. */
 export const createTestPaymentProvider = (): PaymentProvider => ({
   code: 'test',
-  capabilities: ['capture', 'refund'],
+  capabilities: ['online', 'capture', 'refund'],
   webhookAckMode: 'immediate',
   async getPresentation() {
     return { memo: 'TEST' };

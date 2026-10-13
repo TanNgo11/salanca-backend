@@ -16,6 +16,7 @@ import {
 import {
   defaultTemplateSource,
   renderCartReminder,
+  renderGiftCardIssued,
   renderOpsAlert,
   renderOtp,
   renderTemplate,
@@ -86,7 +87,9 @@ const notificationTemplate = ({ strapi }: { strapi: Core.Strapi }) => {
         ? renderOtp(locale, data as Parameters<typeof renderOtp>[1])
         : code === 'customer.cart-reminder'
           ? renderCartReminder(locale, data as Parameters<typeof renderCartReminder>[1])
-          : renderTemplate(code, locale, data as TemplateData);
+          : code === 'customer.gift-card-issued'
+            ? renderGiftCardIssued(locale, data as Parameters<typeof renderGiftCardIssued>[1])
+            : renderTemplate(code, locale, data as TemplateData);
 
   const describe = async (code: TemplateCode, locale: TemplateLocale) => {
     const row = await findRow(code, locale);

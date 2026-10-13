@@ -539,7 +539,7 @@ const toSellable = async (
     requiresShipping: fulfillmentKinds.includes('delivery'),
     isVirtual: false,
     isDownloadable: false,
-    isGiftCard: false,
+    isGiftCard: (product.productType ?? 'food') === 'gift-card',
     fulfillmentKinds,
     options,
     availability: {},

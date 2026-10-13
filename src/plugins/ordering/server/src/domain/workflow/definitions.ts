@@ -163,6 +163,28 @@ export const deliveryAcceptThenPayWorkflow: WorkflowDefinition = {
   },
 };
 
+/**
+ * O9 gift-card sale (plan step 3): a digital order pays first, then the outbox consumer issues
+ * one card per line unit. `awaiting-payment` ends at `issued` on capture — the only success
+ * terminal — and the payment-expiry job (or a staff cancel) lands on `expired`/`canceled`.
+ */
+export const giftCardWorkflow: WorkflowDefinition = {
+  name: 'gift-card',
+  version: '1',
+  initial: 'awaiting-payment',
+  cancelState: 'canceled',
+  states: {
+    'awaiting-payment': {
+      next: ['issued', 'expired', 'canceled'],
+      isPublic: true,
+      customerCancellable: true,
+    },
+    issued: { next: [], terminal: 'success', isPublic: true },
+    expired: { next: [], terminal: 'canceled', isPublic: true },
+    canceled: { next: [], terminal: 'canceled', isPublic: true },
+  },
+};
+
 export const testServiceWorkflow: WorkflowDefinition = {
   name: 'test-service',
   version: '1',
@@ -183,5 +205,6 @@ export const builtinWorkflows: WorkflowDefinition[] = [
   deliveryPayOnDeliveryWorkflow,
   deliveryPrepayWorkflow,
   deliveryAcceptThenPayWorkflow,
+  giftCardWorkflow,
   testServiceWorkflow,
 ];
