@@ -47,6 +47,7 @@ describe('public event catalog', () => {
       'refund.settled',
       'ops-alert.opened',
       'ops-alert.escalated',
+      'gift-card.issued',
       'customer.erased',
     ]);
   });

@@ -32,6 +32,9 @@ import dataRequest from './data-request';
 import fulfillment from './fulfillment';
 import fulfillmentGroup from './fulfillment-group';
 import fulfillmentLine from './fulfillment-line';
+import giftCard from './gift-card';
+import giftCardBatch from './gift-card-batch';
+import giftCardLedger from './gift-card-ledger';
 import hold from './hold';
 import idempotencyKey from './idempotency-key';
 import notificationDelivery from './notification-delivery';
@@ -85,6 +88,9 @@ export default {
   fulfillment,
   'fulfillment-group': fulfillmentGroup,
   'fulfillment-line': fulfillmentLine,
+  'gift-card': giftCard,
+  'gift-card-batch': giftCardBatch,
+  'gift-card-ledger': giftCardLedger,
   hold,
   'idempotency-key': idempotencyKey,
   'notification-delivery': notificationDelivery,

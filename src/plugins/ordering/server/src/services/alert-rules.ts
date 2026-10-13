@@ -123,6 +123,14 @@ export const ALERT_RULE_DEFAULTS: AlertRules = {
     aggregationMinutes: 1440,
     recipients: ['report.read'],
   },
+  // O9: one alert per IP once wrong-code attempts reach `threshold` inside the window.
+  'gift-card-probing': {
+    enabled: true,
+    threshold: 20,
+    criticalThreshold: 60,
+    aggregationMinutes: 60,
+    recipients: ['ops.read'],
+  },
 };
 
 /** Unknown codes (custom callers) behave as a minimal warning rule rather than being dropped. */

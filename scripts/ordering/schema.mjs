@@ -33,6 +33,9 @@ const EXPECTED_TABLES = [
   'plugins_ordering_fulfillment',
   'plugins_ordering_fulfillment_group',
   'plugins_ordering_fulfillment_line',
+  'plugins_ordering_gift_card',
+  'plugins_ordering_gift_card_batch',
+  'plugins_ordering_gift_card_ledger',
   'plugins_ordering_hold',
   'plugins_ordering_idempotency_key',
   'plugins_ordering_notification_delivery',
@@ -107,6 +110,16 @@ const EXPECTED_INDEXES = [
   // O14 (migration 0009).
   'plugins_ordering_customer_group_code_uq',
   'plugins_ordering_customer_group_member_pair_uq',
+  // O9 (migration 0010).
+  'plugins_ordering_gift_card_code_hash_uq',
+  'plugins_ordering_gift_card_status_expires_idx',
+  'plugins_ordering_gift_card_last4_idx',
+  'plugins_ordering_gift_card_sealed_idx',
+  'plugins_ordering_gift_card_batch_lnk_batch_idx',
+  'plugins_ordering_gift_card_order_lnk_order_idx',
+  'plugins_ordering_gift_card_ledger_card_lnk_card_idx',
+  'plugins_ordering_gift_card_ledger_at_idx',
+  'plugins_ordering_gift_card_ledger_kind_at_idx',
 ];
 
 // Catalog types staff edit in Content Manager (O2 step 1).
@@ -131,8 +144,9 @@ const CM_HIDDEN_CATALOG_UIDS = [
 
 // Every manyToOne owner side produces one link table (28 pre-O11 + 7 customer-era relations:
 // order.customer, customer-{address,otp,session}.customer, cart.{customer,order}, data-request.customer,
-// plus O14 catalog-price.priceList).
-const MIN_LINK_TABLES = 36;
+// plus O14 catalog-price.priceList, plus 7 O9 gift-card relations:
+// gift-card.{order,orderLine,batch}, gift-card-ledger.{card,order,payment,refund}).
+const MIN_LINK_TABLES = 45;
 
 await withApp(async (app) => {
   const { rows: tables } = await app.db.connection.raw(
@@ -192,6 +206,7 @@ await withApp(async (app) => {
     '0007-o11-customers',
     '0008-o8-promotions-rating',
     '0009-o14-price-lists',
+    '0010-o9-gift-cards',
   ]) {
     assert.ok(
       applied.some((row) => row.name === migration),

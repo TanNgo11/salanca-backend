@@ -64,6 +64,7 @@ export const configSchema = z.object({
     cartReminderCron: z.string().min(1),
     dataRequestWaitingCron: z.string().min(1),
     customerGroupRefreshCron: z.string().min(1),
+    giftCardExpiryCron: z.string().min(1),
     /** Expected run period in minutes per job for `job-heartbeat-missed` (ops-check). */
     heartbeatMinutes: z.record(z.string(), z.number().int().positive()),
   }),
@@ -79,6 +80,8 @@ export const configSchema = z.object({
     cartDays: z.number().int().positive(),
     /** Rating comments older than this are cleared; the stars stay. */
     ratingCommentDays: z.number().int().positive(),
+    /** O9: a card's sealed plaintext code is deleted this many hours after issue. */
+    sealedCodeHours: z.number().int().positive(),
     batchSize: z.number().int().positive(),
     maxBatchesPerRun: z.number().int().positive(),
   }),
@@ -140,6 +143,8 @@ export const configSchema = z.object({
       cart: rateWindow,
       promotionCode: rateWindow,
       rating: rateWindow,
+      /** O9: wrong gift-card attempts per IP (and the /gift-cards/balance read). */
+      giftCard: rateWindow,
     }),
   }),
   /** O11: customer accounts — OTP sign-in, sessions, profile. */
@@ -176,6 +181,26 @@ export const configSchema = z.object({
   dataRights: z.object({
     /** Staff deadline before the request is flagged late (audit + ops alert). */
     deadlineHours: z.number().int().positive(),
+  }),
+  /** O9: gift cards — fixed denominations, 12-month validity by default. */
+  giftCards: z.object({
+    enabled: z.boolean(),
+    validityMonths: z.number().int().positive(),
+    maxCardsPerOrder: z.number().int().positive(),
+    /** Decision 2026-10-13: unused-card refunds stay outside the system in v1. */
+    refundUnused: z.boolean(),
+    /** Wrong-code probing guard: captcha after N misses, hard block after M per window. */
+    failedAttempts: z.object({
+      captchaAfter: z.number().int().positive(),
+      blockAfter: z.number().int().positive(),
+      windowMinutes: z.number().int().positive(),
+    }),
+    /** Physical preprinted-card batches (import/generate + counter activation). */
+    physicalBatches: z.object({
+      enabled: z.boolean(),
+      maxBatchQuantity: z.number().int().positive(),
+      maxDenominationAmount: z.number().int().positive(),
+    }),
   }),
   testing: z.object({ builtins: z.boolean() }).refine(
     (value) => !value.builtins || process.env.NODE_ENV !== 'production',
@@ -233,6 +258,7 @@ export default {
       cartReminderCron: '0 */15 * * * *',
       dataRequestWaitingCron: '0 */30 * * * *',
       customerGroupRefreshCron: '0 15 3 * * *',
+      giftCardExpiryCron: '0 45 3 * * *',
       heartbeatMinutes: {
         outbox: 2,
         'hold-expiry': 2,
@@ -248,6 +274,7 @@ export default {
         'cart-reminder': 20,
         'data-request-waiting': 35,
         'customer-group-refresh': 1500,
+        'gift-card-expiry': 1500,
       },
     },
     audit: {
@@ -268,6 +295,7 @@ export default {
       sessionDays: 30,
       cartDays: 30,
       ratingCommentDays: 365,
+      sealedCodeHours: 24,
       batchSize: 500,
       maxBatchesPerRun: 20,
     },
@@ -297,6 +325,7 @@ export default {
         cart: { max: 120, windowMs: 60_000 },
         promotionCode: { max: 20, windowMs: 600_000 },
         rating: { max: 30, windowMs: 600_000 },
+        giftCard: { max: 20, windowMs: 600_000 },
       },
     },
     customers: {
@@ -321,6 +350,14 @@ export default {
       maxLines: 50,
     },
     dataRights: { deadlineHours: 72 },
+    giftCards: {
+      enabled: true,
+      validityMonths: 12,
+      maxCardsPerOrder: 10,
+      refundUnused: false,
+      failedAttempts: { captchaAfter: 3, blockAfter: 20, windowMinutes: 10 },
+      physicalBatches: { enabled: true, maxBatchQuantity: 5000, maxDenominationAmount: 10_000_000 },
+    },
     testing: { builtins: false },
     productTypes: {},
     providers: { payment: {}, fulfillment: {}, scheduling: {}, voucher: {}, captcha: {} },

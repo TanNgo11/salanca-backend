@@ -26,7 +26,16 @@ export type SlotSelection = {
 export type ReceiveMethod =
   | { kind: 'pickup'; locationRef: string }
   | { kind: 'delivery'; address: AddressSnapshot; providerCode?: string }
-  | { kind: 'appointment'; locationRef: string; slot: SlotSelection };
+  | { kind: 'appointment'; locationRef: string; slot: SlotSelection }
+  // O9: a gift-card order delivers codes by email, not food. `physicalCodes` (counter sale
+  // of preprinted stock) names the inactive batch cards to activate — one per card unit.
+  | {
+      kind: 'digital';
+      recipientEmail: string;
+      recipientName?: string;
+      message?: string;
+      physicalCodes?: string[];
+    };
 
 export type ValidationResult =
   | { valid: true }

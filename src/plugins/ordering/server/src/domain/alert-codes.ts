@@ -15,6 +15,7 @@ export const ALERT_CODES = [
   'audit-tampered',
   'notification-template-broken',
   'low-rating',
+  'gift-card-probing',
 ] as const;
 
 export type AlertCode = (typeof ALERT_CODES)[number];
@@ -44,6 +45,7 @@ const labels: Record<AlertCode, { vi: string; en: string }> = {
     en: 'Custom email template failed, the default was used',
   },
   'low-rating': { vi: 'Khách đánh giá thấp', en: 'Low customer rating' },
+  'gift-card-probing': { vi: 'Dò mã thẻ quà tặng', en: 'Gift-card code probing' },
 };
 
 export const alertLabel = (code: string, locale: string | null | undefined): string =>

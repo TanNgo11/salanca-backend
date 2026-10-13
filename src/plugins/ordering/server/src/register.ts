@@ -112,6 +112,9 @@ const adminActions = [
   { uid: 'promotion.manage', displayName: 'Quản lý khuyến mãi' },
   { uid: 'price.manage', displayName: 'Quản lý bảng giá và nhóm khách' },
   { uid: 'rating.manage', displayName: 'Quản lý đánh giá' },
+  // O9: gift cards — balance adjust is a separate, tighter action than manage.
+  { uid: 'gift-card.manage', displayName: 'Quản lý thẻ quà tặng' },
+  { uid: 'gift-card.adjust', displayName: 'Điều chỉnh số dư thẻ quà tặng' },
 ];
 
 const register = ({ strapi }: { strapi: Core.Strapi }) => {

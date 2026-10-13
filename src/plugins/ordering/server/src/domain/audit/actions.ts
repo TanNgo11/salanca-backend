@@ -102,6 +102,24 @@ export const AUDIT_ACTIONS: Record<string, ActionDef> = {
     category: 'order',
     label: ['Xác nhận đơn hộ khách', 'Confirm phone order'],
   },
+  // O9: gift cards — value-bearing, so they live with the other money actions.
+  'gift-card.issue': { category: 'money', label: ['Phát hành thẻ quà tặng', 'Issue gift card'] },
+  'gift-card.block': { category: 'money', label: ['Khóa thẻ quà tặng', 'Block gift card'] },
+  'gift-card.unblock': { category: 'money', label: ['Mở khóa thẻ quà tặng', 'Unblock gift card'] },
+  'gift-card.extend': { category: 'money', label: ['Gia hạn thẻ quà tặng', 'Extend gift card'] },
+  'gift-card.adjust': {
+    category: 'money',
+    label: ['Điều chỉnh số dư thẻ quà tặng', 'Adjust gift-card balance'],
+  },
+  'gift-card.resend': { category: 'money', label: ['Gửi lại thẻ quà tặng', 'Resend gift card'] },
+  'gift-card-batch.import': {
+    category: 'money',
+    label: ['Nhập lô thẻ quà tặng', 'Import gift-card batch'],
+  },
+  'gift-card-batch.activate': {
+    category: 'money',
+    label: ['Kích hoạt thẻ in sẵn', 'Activate preprinted gift cards'],
+  },
   // Delivery
   'delivery.dispatch': { category: 'delivery', label: ['Bắt đầu giao', 'Start delivery'] },
   'delivery.fail': { category: 'delivery', label: ['Giao thất bại', 'Delivery failed'] },

@@ -200,6 +200,26 @@ export const PUBLIC_EVENTS: readonly PublicEventSpec[] = [
     },
   },
   {
+    // O9: a gift card was issued after payment capture. `last4` only — the code itself
+    // is never in the payload, and the recipient email stays internal.
+    type: 'gift-card.issued',
+    group: 'gift-card',
+    description: {
+      vi: 'Thẻ quà tặng đã phát hành sau khi thu tiền',
+      en: 'A gift card was issued after payment capture',
+    },
+    fields: ['orderId', 'cardId', 'last4', 'amount', 'currency', 'expiresAt'],
+    orderScoped: true,
+    sample: {
+      orderId: 1001,
+      cardId: 77,
+      last4: 'AB7K',
+      amount: 500000,
+      currency: 'VND',
+      expiresAt: '2027-10-12T00:00:00.000Z',
+    },
+  },
+  {
     // O11 step 6: Decree 13 erasure notice. `customerHash` is the irreversible HMAC the
     // profile kept — enough for receivers to forget their own copy of that identity.
     type: 'customer.erased',

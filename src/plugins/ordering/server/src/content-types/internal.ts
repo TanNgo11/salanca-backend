@@ -8,6 +8,7 @@ const plurals: Record<string, string> = {
   hold: 'holds',
   outbox: 'outboxes',
   'catalog-category': 'catalog-categories',
+  'gift-card-batch': 'gift-card-batches',
 };
 
 export const collection = (

@@ -8,6 +8,7 @@ import { o11CustomersMigration } from './0007-o11-customers';
 import { o7OpsExtrasMigration } from './0005-o7-ops-extras';
 import { o8PromotionsRatingMigration } from './0008-o8-promotions-rating';
 import { o14PriceListsMigration } from './0009-o14-price-lists';
+import { o9GiftCardsMigration } from './0010-o9-gift-cards';
 import type { OrderingMigration } from './runner';
 
 /** Production migrations, in order. */
@@ -22,4 +23,5 @@ export const orderingMigrations: OrderingMigration[] = [
   o7OpsExtrasMigration,
   o8PromotionsRatingMigration,
   o14PriceListsMigration,
+  o9GiftCardsMigration,
 ];
