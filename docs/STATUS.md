@@ -25,6 +25,24 @@ Gate: lint, typecheck, test 166 file / 1222, `strapi build` (server + admin), **
 plan. **Open:** manual UAT browser (checklist trong plan); merge về `feat/ordering` theo quyết định
 chủ dự án.
 
+2026-10-13: **Ordering O7 (giờ đặc biệt, giới hạn phần mỗi ngày, sửa đơn, trang người giao) — automated gate** trên
+`feat/ordering-o7`, đã merge vào `feat/ordering` (`f7e8da4`). Review fix `faefa33`: trang người giao lọc ngày/trạng thái
+bằng SQL (tối đa 200), bỏ nút "Bắt đầu giao" (giao do quản lý trên bảng giao). Merge thêm mã audit `order.edit`,
+`catalog.daily-limit` và mẫu email `customer.order-updated` vào danh mục mẫu O10. Gate sau merge: lint, typecheck,
+vitest 569 test plugin, `build:ordering`, `strapi build` bật plugin, 11 script O7/O15/O10 PASS. Commit tính năng `30caf1d`, `04699b3`, `2393d42`, `28faa8e`, `2a96316`,
+`57090f2`, `d0541bf`; tài liệu và seed UAT ở commit chứa dòng này. Giờ đặc biệt theo từng cách nhận, thay giờ
+thường và ngày nghỉ của đúng ngày đó, có trên `GET /config` (cả khối `branch.delivery` khi bật giao). Giới hạn
+phần theo chi nhánh và ngày kinh doanh; catalog trả `dailyLimit` và `sold-out-today`; quote/create trả
+`ITEM_SOLD_OUT`. Sửa đơn khi đang chờ nhận hoặc đang chuẩn bị (đơn giao thêm lúc sẵn sàng): tính lại tổng, hoàn
+phần dư hoặc gửi link phần chênh, không đổi trạng thái group. Trang **Giao của tôi** chỉ đơn được gán trong
+ngày; không có `order.read` thì thu tiền hoặc chuyển bước đơn người khác là 404. UAT server worktree này: cổng
+1352, DB `salanca_ordering_o7_uat` (không đụng `salanca_ordering_uat`). Gate trên `salanca_ordering_o7`: lint, typecheck, vitest 162 file / 1131 test, `check:ordering` lượt 1 **51/51**. Lượt 2 bị dừng. Chưa chạy `check:phase3`, các smoke CMS/đặt bàn/SePay/giao, và `strapi build` bật/tắt plugin. **Open:** chưa bấm Admin trên trình duyệt, kể cả điện thoại 360px
+(chrome-devtools không bắt tay). Nếu khung Admin không dùng được trên điện thoại, hướng sau O7 là trang nhẹ
+ngoài chrome, không magic link. Plan:
+[`plans/ordering-o7-ops-extras.md`](plans/ordering-o7-ops-extras.md); API:
+[`ordering-api-contract.md`](ordering-api-contract.md); nhân viên:
+[`ordering-staff-guide.md`](ordering-staff-guide.md).
+
 2026-10-13: **Ordering O10 (nền mở rộng: webhook ra ngoài, OpenAPI, CSV catalog, mẫu email) — implemented + automated verification passed, chờ manual UAT** trên
 `feat/ordering-o10` (tách từ `feat/ordering`; chưa merge/push). Bốn khối theo
 [`phases/phase-ordering-10-extensibility.md`](phases/phase-ordering-10-extensibility.md):

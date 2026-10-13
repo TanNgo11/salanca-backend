@@ -311,7 +311,8 @@ const customer = ({ strapi }: { strapi: Core.Strapi }) => {
 
     /**
      * Order ↔ customer resolution for `createOrder` (plan step 3: "phiên hoặc theo SĐT" — the
-     * session wins, the contact phone is the fallback). Erased profiles never match: a guest
+     * session wins, the contact phone is the fallback; new phones get unverified profiles).
+     * Erased profiles never match: a guest
      * order placed after erasure simply stays unlinked.
      */
     async linkForOrder(input: {
@@ -326,11 +327,22 @@ const customer = ({ strapi }: { strapi: Core.Strapi }) => {
         })) as { id: number } | null;
         if (row) return row.id;
       }
-      const byPhone = (await customers().findOne({
-        where: { phoneHash: hashing().phoneHash(input.phoneE164), status: { $ne: 'erased' } },
-        select: ['id'],
-      })) as { id: number } | null;
-      return byPhone?.id ?? null;
+      const phoneHash = hashing().phoneHash(input.phoneE164);
+      return strapi.db.transaction(async ({ trx }) => {
+        // Also works inside createOrder's transaction: the lock survives until the order
+        // commits, so two first-time guest orders cannot create duplicate profiles.
+        await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [`ordering-customer:${phoneHash}`]);
+        const existing = (await customers().findOne({
+          where: { phoneHash },
+          select: ['id', 'status'],
+        })) as { id: number; status: string } | null;
+        // Preserve erasure tombstones; an unauthenticated checkout must not resurrect them.
+        if (existing) return existing.status === 'erased' ? null : existing.id;
+        const created = (await customers().create({
+          data: { phone: input.phoneE164, phoneHash, status: 'unverified' },
+        })) as { id: number };
+        return created.id;
+      });
     },
 
     /**

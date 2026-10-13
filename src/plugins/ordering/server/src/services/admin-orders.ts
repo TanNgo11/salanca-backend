@@ -9,6 +9,7 @@ import { OrderingError } from '../domain/errors';
 import { amountFromDb } from '../domain/money';
 import { parseCartRequest, parseOrderRequest } from '../domain/storefront/parse';
 import { paidAmounts, type SelectedOptionSnapshot } from '../domain/storefront/serialize';
+import { editability } from '../domain/order-edit';
 import { isTerminal } from '../domain/workflow/transition';
 import type { TransactionClient } from '../migrations/runner';
 import orderRepository from '../repositories/order';
@@ -16,6 +17,7 @@ import type { OrderAggregate } from '../repositories/types';
 import type branchFactory from './branch';
 import type { ServiceContext } from './context';
 import { actorRefOf, nowOf } from './context';
+import type courierFactory from './courier';
 import type deliveryAssignmentFactory from './delivery-assignment';
 import { isDeliveryGroup } from './delivery-assignment';
 import type lineCancelFactory from './line-cancel';
@@ -143,6 +145,7 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
     matching: () => plugin().service('payment-matching') as ReturnType<typeof paymentMatchingFactory>,
     timeline: () => plugin().service('timeline') as ReturnType<typeof timelineFactory>,
     delivery: () => plugin().service('delivery-assignment') as ReturnType<typeof deliveryAssignmentFactory>,
+    courier: () => plugin().service('courier') as ReturnType<typeof courierFactory>,
     scope: () => plugin().service('scope') as ReturnType<typeof scopeFactory>,
     branch: () => plugin().service('branch') as ReturnType<typeof branchFactory>,
     settings: () => plugin().service('ordering-settings') as ReturnType<typeof orderingSettingsFactory>,
@@ -512,6 +515,12 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
             where: { group: deliveryGroup.id },
           })) as FulfillmentLeg | null)
         : null;
+      const openStatuses = aggregate.groups
+        .filter((group) => isTerminal(workflowOf(group), group.status) === null)
+        .map((group) => group.status);
+      const receiveKind =
+        (aggregate.order.receiveMethod as { kind?: string } | null)?.kind ?? 'pickup';
+      const editState = editability(receiveKind, aggregate.order.status, openStatuses);
       const actorIds = [
         ...new Set(
           [...events.map((event) => event.actorRef), leg?.assigneeRef]
@@ -574,6 +583,7 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
           customerNote: aggregate.order.customerNote,
           placedLocale: aggregate.order.placedLocale,
           receiveMethod: aggregate.order.receiveMethod,
+          editRevision: aggregate.order.editRevision ?? 0,
         },
         group: group
           ? {
@@ -586,6 +596,7 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
           : null,
         lines: aggregate.lines.map((line) => ({
           id: line.id,
+          addedInRevision: line.addedInRevision ?? null,
           title: line.titleSnapshot,
           sku: line.sku,
           options: ((line.selectedOptionsSnapshot as SelectedOptionSnapshot[] | null) ?? []).map((option) => ({
@@ -668,6 +679,9 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
         nextTransitions: nextTransitions(aggregate),
         paymentLink: await s.paymentLink().summary(aggregate.order.id),
         settings: { delayMinutes: (await s.settings().get()).delayMinutes },
+        editRevision: aggregate.order.editRevision ?? 0,
+        editable: editState.editable,
+        editableReason: editState.reason,
       };
     },
 
@@ -701,6 +715,7 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
       }
       return strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
         const aggregate = await loadScoped(orderId, ctx);
+        await s.courier().assertOwnOrder(orderId, ctx);
         const group = liveGroup(aggregate);
         if (!group) throw new OrderingError('INVALID_TRANSITION', 'order has no active group');
         const definition = workflowOf(group);
@@ -830,6 +845,7 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
       }
       return strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
         const aggregate = await loadScoped(orderId, ctx);
+        await s.courier().assertOwnOrder(orderId, ctx);
         const group = liveGroup(aggregate);
         if (!group) throw new OrderingError('INVALID_TRANSITION', 'order has no active group');
         const delivery = isDeliveryGroup(group);

@@ -7,12 +7,13 @@ import { o3Messages } from './o3';
 import { o4Messages } from './o4';
 import { o5Messages } from './o5';
 import { o6Messages } from './o6';
+import { o7Messages } from './o7';
 import { o15Messages } from './o15';
 import { o10Messages } from './o10';
 import { o11Messages } from './o11';
 
 const ROOT = join(__dirname, '..');
-const O3_DIRS = ['inbox', 'components/orders', 'pages/Orders', 'pages/Deliveries', 'pages/Branches', 'pages/Staff', 'pages/Settings', 'pages/PaymentReview', 'pages/Ops', 'pages/Alerts', 'pages/CashClosing', 'pages/Reports', 'pages/AuditLog', 'pages/Webhooks', 'pages/CatalogImport', 'pages/ApiDocs', 'pages/Customers', 'pages/DataRequests', 'lib'];
+const O3_DIRS = ['inbox', 'components/orders', 'pages/Orders', 'pages/Deliveries', 'pages/Courier', 'pages/Branches', 'pages/Staff', 'pages/Settings', 'pages/PaymentReview', 'pages/Ops', 'pages/Alerts', 'pages/CashClosing', 'pages/Reports', 'pages/AuditLog', 'pages/Webhooks', 'pages/CatalogImport', 'pages/ApiDocs', 'pages/Customers', 'pages/DataRequests', 'lib'];
 const EXTRA_FILES = ['pages/App.tsx', 'components/OrderExportModal.tsx'];
 
 const files = (dir: string): string[] =>
@@ -69,6 +70,7 @@ describe('O3 admin translations', () => {
           o4Messages[key] ||
           o5Messages[key] ||
           o6Messages[key] ||
+          o7Messages[key] ||
           o15Messages[key] ||
           o10Messages[key] ||
           o11Messages[key],
@@ -80,6 +82,7 @@ describe('O3 admin translations', () => {
       ...o4Messages,
       ...o5Messages,
       ...o6Messages,
+      ...o7Messages,
       ...o15Messages,
       ...o10Messages,
       ...o11Messages,

@@ -24,6 +24,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { fieldErrors, useErrorToast } from '../../lib/api';
 import { useT } from '../../lib/i18n';
 import { DeliveryTab, emptyDelivery, type Delivery } from './DeliveryTab';
+import { SpecialHoursEditor, type SpecialHourRow } from './SpecialHoursEditor';
 
 type Range = { start: string; end: string };
 const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
@@ -43,7 +44,7 @@ type Pickup = {
     capacity: number;
     maxAdvanceDays: number;
     bufferMinutes: number;
-    businessDayPolicy: { cutoffLocalTime: string; holidayDates: string[] };
+    businessDayPolicy: { cutoffLocalTime: string; holidayDates: string[]; specialHours?: SpecialHourRow[] };
     openingHours: { mode: '24_7' | 'daily' | 'weekly'; daily: Range[]; weekly: Record<(typeof DAYS)[number], Range[]> };
   };
 };
@@ -89,7 +90,7 @@ const emptyBranch = (): Branch => ({
         capacity: 8,
         maxAdvanceDays: 7,
         bufferMinutes: 0,
-        businessDayPolicy: { cutoffLocalTime: '04:00', holidayDates: [] },
+        businessDayPolicy: { cutoffLocalTime: '04:00', holidayDates: [], specialHours: [] },
         openingHours: {
           mode: 'daily',
           daily: [{ start: '07:00', end: '22:00' }],
@@ -426,6 +427,36 @@ export const BranchEditor = () => {
                     </Button>
                   ))}
                 </Flex>
+                <SpecialHoursEditor
+                  rows={schedule.businessDayPolicy.specialHours ?? []}
+                  timezone={branch.timezone}
+                  errorPrefix="fulfillment.pickup.schedule.businessDayPolicy.specialHours"
+                  errors={errors}
+                  copyLabel={t('branch.special.copyToDelivery')}
+                  onChange={(specialHours) =>
+                    setSchedule({ businessDayPolicy: { ...schedule.businessDayPolicy, specialHours } })
+                  }
+                  onCopy={() => {
+                    const delivery = branch.fulfillment.delivery ?? emptyDelivery();
+                    const specialHours = (schedule.businessDayPolicy.specialHours ?? []).map((row) => ({
+                      ...row,
+                      ranges: row.ranges.map((range) => ({ ...range })),
+                    }));
+                    setBranch({
+                      ...branch,
+                      fulfillment: {
+                        ...branch.fulfillment,
+                        delivery: {
+                          ...delivery,
+                          schedule: {
+                            ...delivery.schedule,
+                            businessDayPolicy: { ...delivery.schedule.businessDayPolicy, specialHours },
+                          },
+                        },
+                      },
+                    });
+                  }}
+                />
               </Flex>
             </Tabs.Content>
 
@@ -527,11 +558,18 @@ export const BranchEditor = () => {
               <DeliveryTab
                 branchCode={creating ? undefined : code}
                 delivery={branch.fulfillment.delivery ?? emptyDelivery()}
+                timezone={branch.timezone}
                 providers={providers}
                 cashRounding={branch.cashRounding}
                 errors={errors}
                 onChange={(next) => setBranch({ ...branch, fulfillment: { ...branch.fulfillment, delivery: next } })}
                 onRounding={(next) => setBranch({ ...branch, cashRounding: next })}
+                onCopySpecialToPickup={() => {
+                  const specialHours = (branch.fulfillment.delivery?.schedule?.businessDayPolicy?.specialHours ?? []).map(
+                    (row) => ({ ...row, ranges: row.ranges.map((range) => ({ ...range })) }),
+                  );
+                  setSchedule({ businessDayPolicy: { ...schedule.businessDayPolicy, specialHours } });
+                }}
                 numberField={numberField}
               />
             </Tabs.Content>

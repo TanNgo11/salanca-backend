@@ -17,6 +17,54 @@ const timeRange = z
   .object({ start: localTime, end: localTime })
   .refine((range) => range.start !== range.end, 'start and end must differ');
 
+const DAY_MINUTES = 24 * 60;
+
+/** Absolute minutes from the opening date's midnight. An overnight range ends after 24:00. */
+const absoluteRange = (range: { start: string; end: string }): { from: number; to: number } => {
+  const [startHour, startMinute] = range.start.split(':').map(Number);
+  const [endHour, endMinute] = range.end.split(':').map(Number);
+  const from = startHour * 60 + startMinute;
+  const end = endHour * 60 + endMinute;
+  return { from, to: end <= from ? end + DAY_MINUTES : end };
+};
+
+const rangesOverlap = (ranges: Array<{ start: string; end: string }>): boolean => {
+  const sorted = ranges.map(absoluteRange).sort((left, right) => left.from - right.from);
+  return sorted.some((range, index) => index > 0 && range.from < sorted[index - 1].to);
+};
+
+/**
+ * One calendar day that replaces the regular hours. `closed` is exactly "no ranges":
+ * a closed day sells nothing, an open day needs 1–6 ranges that do not overlap.
+ */
+export const specialHourSchema = z
+  .object({
+    date: localDate,
+    closed: z.boolean().default(false),
+    ranges: z.array(timeRange).max(6).default([]),
+    note: z.string().max(100).optional(),
+  })
+  .refine((row) => row.closed === (row.ranges.length === 0), 'closed is true exactly when ranges are empty')
+  .refine((row) => !rangesOverlap(row.ranges), 'ranges overlap');
+
+export const specialHoursSchema = z
+  .array(specialHourSchema)
+  .max(366)
+  .default([])
+  .superRefine((rows, ctx) => {
+    const seen = new Map<string, number>();
+    rows.forEach((row, index) => {
+      const first = seen.get(row.date);
+      if (first !== undefined) {
+        ctx.addIssue({ code: 'custom', message: 'duplicate special date', path: [index, 'date'] });
+      } else {
+        seen.set(row.date, index);
+      }
+    });
+  });
+
+export type SpecialHour = z.infer<typeof specialHourSchema>;
+
 export const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 export type Weekday = (typeof WEEKDAYS)[number];
 
@@ -46,6 +94,7 @@ export const scheduleSchema = z
       .object({
         cutoffLocalTime: localTime.default('04:00'),
         holidayDates: z.array(localDate).max(366).default([]),
+        specialHours: specialHoursSchema,
       })
       .prefault({}),
     openingHours,

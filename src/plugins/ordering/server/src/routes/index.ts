@@ -191,6 +191,10 @@ export default {
           policies: ['admin::isAuthenticatedAdmin', 'plugin::ordering.has-catalog-access'],
         },
       },
+      // Daily portion limit. The permission is specifically `catalog.toggle-availability`
+      // (a catalog manager without that action cannot change the number). Out of scope
+      // is 404 from the service.
+      adminRoute('PUT', '/availability/daily-limit', 'availability.dailyLimit', 'catalog.toggle-availability'),
       // "Chi nhánh" (screens S7). Scope is enforced in the branch service.
       adminRoute('GET', '/admin-units', 'admin-units.list', 'settings.manage'),
       adminRoute('GET', '/branches', 'admin-branches.list', 'settings.manage'),
@@ -202,6 +206,8 @@ export default {
       adminRoute('POST', '/branches/:code/delivery-quote', 'admin-branches.deliveryQuote', 'settings.manage'),
       adminRoute('GET', '/staff-scopes', 'admin-branches.staffList', 'scope.manage'),
       adminRoute('PUT', '/staff-scopes/:adminUserId', 'admin-branches.staffPut', 'scope.manage'),
+      // Phone page for the assigned courier (screens E4). Scope is the assignee, not the branch.
+      adminRoute('GET', '/courier/deliveries', 'courier.deliveries', 'order.process'),
       // Order inbox and actions (screens S1–S5).
       adminRoute('GET', '/orders', 'admin-orders.list', 'order.read'),
       adminRoute('GET', '/orders/summary', 'admin-orders.summary', 'order.read'),
@@ -224,6 +230,8 @@ export default {
         'order.edit-lines',
       ),
       adminRoute('POST', '/orders/:id/lines/:lineId/cancel', 'admin-orders.cancelLine', 'order.edit-lines'),
+      adminRoute('POST', '/orders/:id/edit/preview', 'admin-orders.editPreview', 'order.edit'),
+      adminRoute('POST', '/orders/:id/edit', 'admin-orders.edit', 'order.edit'),
       adminRoute('POST', '/orders/:id/refunds', 'admin-orders.refund', 'refund.manage'),
       adminRoute('POST', '/refunds/:id/settle', 'admin-orders.settleRefund', 'refund.manage'),
       adminRoute('POST', '/orders/:id/manual-payments', 'admin-orders.recordManual', 'payment.review'),

@@ -12,6 +12,9 @@ const EXPECTED_TABLES = [
   'plugins_ordering_cash_closing',
   'plugins_ordering_catalog_availability_window',
   'plugins_ordering_catalog_category',
+  'plugins_ordering_catalog_daily_limit',
+  'plugins_ordering_catalog_daily_reservation',
+  'plugins_ordering_catalog_daily_usage',
   'plugins_ordering_catalog_import',
   'plugins_ordering_catalog_location_state',
   'plugins_ordering_catalog_modifier',
@@ -66,6 +69,8 @@ const EXPECTED_INDEXES = [
   'plugins_ordering_catalog_slug_locale_uq',
   'plugins_ordering_catalog_slug_entity_idx',
   'plugins_ordering_catalog_location_state_uq',
+  'plugins_ordering_catalog_daily_limit_uq',
+  'plugins_ordering_catalog_daily_usage_uq',
   'plugins_ordering_catalog_variant_sku_uq',
   'plugins_ordering_catalog_product_online_idx',
   'plugins_ordering_notification_delivery_uq',
@@ -105,6 +110,9 @@ const CM_VISIBLE_UIDS = [
 const CM_HIDDEN_CATALOG_UIDS = [
   'plugin::ordering.catalog-slug',
   'plugin::ordering.catalog-location-state',
+  'plugin::ordering.catalog-daily-limit',
+  'plugin::ordering.catalog-daily-usage',
+  'plugin::ordering.catalog-daily-reservation',
 ];
 
 // Every manyToOne owner side produces one link table (28 pre-O11 + 7 customer-era relations:
@@ -163,6 +171,7 @@ await withApp(async (app) => {
     '0002-o2-catalog',
     '0003-o3-pickup',
     '0004-o6-ops',
+    '0005-o7-ops-extras',
     '0005-o15-audit-log',
     '0006-o10-extensibility',
     '0007-o11-customers',

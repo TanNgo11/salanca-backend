@@ -6,6 +6,7 @@ import scope from './scope';
 import idempotency from './idempotency';
 import order from './order';
 import deliveryAssignment from './delivery-assignment';
+import courier from './courier';
 import transition from './transition';
 import payment from './payment';
 import refund from './refund';
@@ -17,12 +18,14 @@ import cashClosing from './cash-closing';
 import orderExport from './order-export';
 import reports from './reports';
 import catalogAvailability from './catalog-availability';
+import dailyStock from './daily-stock';
 import catalogCategory from './catalog-category';
 import catalogCsv from './catalog-csv';
 import catalogSlug from './catalog-slug';
 import changeLog from './change-log';
 import jobLock from './job-lock';
 import lineCancel from './line-cancel';
+import orderEdit from './order-edit';
 import pickupScheduling from './pickup-scheduling';
 import storefront from './storefront';
 import adminOrders from './admin-orders';
@@ -63,16 +66,19 @@ export default {
   outbox,
   branch,
   'catalog-availability': catalogAvailability,
+  'daily-stock': dailyStock,
   'catalog-category': catalogCategory,
   'catalog-csv': catalogCsv,
   'catalog-slug': catalogSlug,
   'change-log': changeLog,
   'job-lock': jobLock,
   'line-cancel': lineCancel,
+  'order-edit': orderEdit,
   'pickup-scheduling': pickupScheduling,
   storefront,
   'admin-orders': adminOrders,
   'delivery-assignment': deliveryAssignment,
+  courier,
   'ordering-settings': orderingSettings,
   notification,
   'notification-template': notificationTemplate,

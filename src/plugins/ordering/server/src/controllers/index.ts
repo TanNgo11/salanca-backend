@@ -6,6 +6,7 @@ import adminStream from './admin-stream';
 import auditLog from './audit-log';
 import availability from './availability';
 import cashClosing from './cash-closing';
+import courier from './courier';
 import catalog from './catalog';
 import catalogImport from './catalog-import';
 import categories from './categories';
@@ -38,6 +39,7 @@ export default {
   openapi,
   ops,
   'cash-closing': cashClosing,
+  courier,
   reports,
   'audit-log': auditLog,
   'notification-templates': notificationTemplates,

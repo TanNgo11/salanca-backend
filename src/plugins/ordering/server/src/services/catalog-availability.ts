@@ -1,14 +1,18 @@
 import type { Core } from '@strapi/strapi';
 
 import { nextBusinessDayCutoff, nextLocalTime } from '../domain/catalog/availability';
+import { businessDate } from '../domain/business-date';
+import { dailyStockKey } from '../domain/daily-stock-lines';
 import { resolveLocalizedText } from '../domain/catalog/localized-text';
 import { OrderingError } from '../domain/errors';
+import type dailyStockFactory from './daily-stock';
 import { scopeIncludes } from '../domain/scope';
 import { actorRefOf, nowOf, type ServiceContext } from './context';
 import type changeLogFactory from './change-log';
 import type scopeFactory from './scope';
 
 const STATE = 'plugin::ordering.catalog-location-state';
+const LIMIT = 'plugin::ordering.catalog-daily-limit';
 const BRANCH = 'plugin::ordering.branch';
 const PRODUCT = 'plugin::ordering.catalog-product';
 const VARIANT = 'plugin::ordering.catalog-variant';
@@ -64,6 +68,9 @@ const catalogAvailability = ({ strapi }: { strapi: Core.Strapi }) => {
   const changeLog = () =>
     strapi.plugin('ordering').service('change-log') as ReturnType<typeof changeLogFactory>;
   const states = () => strapi.db.query(STATE);
+  const limits = () => strapi.db.query(LIMIT);
+  const dailyStock = () =>
+    strapi.plugin('ordering').service('daily-stock') as ReturnType<typeof dailyStockFactory>;
 
   const config = () =>
     strapi.config.get('plugin::ordering') as { businessDay?: { cutoffLocalTime?: string } };
@@ -81,7 +88,13 @@ const catalogAvailability = ({ strapi }: { strapi: Core.Strapi }) => {
   const findBranch = async (code: string) => {
     const branch = (await strapi.db.query(BRANCH).findOne({
       where: { code },
-    })) as { documentId: string; code: string; name?: Record<string, string>; timezone?: string } | null;
+    })) as {
+      documentId: string;
+      code: string;
+      name?: Record<string, string>;
+      timezone?: string;
+      fulfillment?: unknown;
+    } | null;
     if (!branch) {
       throw new OrderingError('BRANCH_NOT_FOUND', 'branch not found', {
         details: { locationRef: code },
@@ -146,20 +159,143 @@ const catalogAvailability = ({ strapi }: { strapi: Core.Strapi }) => {
           toggledAt: state?.toggledAt ?? null,
         };
       };
-      return {
-        items: [
-          ...products.map((row) => item('product', row.documentId, pickName(row.name, 'vi'))),
-          ...variants
-            .filter((row) => row.product?.status !== 'archived')
-            .map((row) =>
-              item(
-                'variant',
-                row.documentId,
-                `${pickName(row.product?.name, 'vi')} · ${pickName(row.name, 'vi')}`,
-              ),
+      const items = [
+        ...products.map((row) => item('product', row.documentId, pickName(row.name, 'vi'))),
+        ...variants
+          .filter((row) => row.product?.status !== 'archived')
+          .map((row) =>
+            item(
+              'variant',
+              row.documentId,
+              `${pickName(row.product?.name, 'vi')} · ${pickName(row.name, 'vi')}`,
             ),
-          ...modifiers.map((row) => item('modifier', row.documentId, pickName(row.name, 'vi'))),
-        ],
+          ),
+        ...modifiers.map((row) => item('modifier', row.documentId, pickName(row.name, 'vi'))),
+      ];
+      const branch = await findBranch(locationRef);
+      const timezone = branch.timezone ?? 'Asia/Ho_Chi_Minh';
+      const fulfillment = branch.fulfillment as
+        | {
+            pickup?: { schedule?: { businessDayPolicy?: { cutoffLocalTime?: string } } };
+            delivery?: { schedule?: { businessDayPolicy?: { cutoffLocalTime?: string } } };
+          }
+        | null
+        | undefined;
+      const cutoff =
+        fulfillment?.pickup?.schedule?.businessDayPolicy?.cutoffLocalTime ??
+        fulfillment?.delivery?.schedule?.businessDayPolicy?.cutoffLocalTime ??
+        config().businessDay?.cutoffLocalTime ??
+        '04:00';
+      const today = businessDate(nowOf(ctx), timezone, cutoff);
+      const stock = await dailyStock().remaining(
+        locationRef,
+        today,
+        items.map((row) => ({ entityType: row.entityType, entityDocumentId: row.entityDocumentId })),
+      );
+      return {
+        businessDate: today,
+        items: items.map((row) => {
+          const portion = stock.get(dailyStockKey(row.entityType, row.entityDocumentId));
+          return {
+            ...row,
+            dailyLimit: portion ? portion.dailyLimit : null,
+            reservedToday: portion ? portion.reserved : null,
+            remainingToday: portion ? portion.remaining : null,
+          };
+        }),
+      };
+    },
+
+    /**
+     * Sets or clears the per-branch daily portion limit. `dailyLimit: null` deletes the row.
+     * Out of scope is `BRANCH_NOT_FOUND` so the page can say the branch is missing.
+     * The list route keeps `SCOPE_REQUIRED`.
+     */
+    async setDailyLimit(
+      input: {
+        locationRef?: string;
+        entityType?: string;
+        entityDocumentId?: string;
+        dailyLimit?: number | null;
+      },
+      ctx: ServiceContext,
+    ) {
+      const entityType = input.entityType;
+      const entityCt = entityType ? ENTITY_CT[entityType] : undefined;
+      if (!entityCt || typeof input.entityDocumentId !== 'string' || input.entityDocumentId === '') {
+        throw new OrderingError('VALIDATION_ERROR', 'entityType/entityDocumentId invalid');
+      }
+      if (typeof input.locationRef !== 'string' || input.locationRef === '') {
+        throw new OrderingError('VALIDATION_ERROR', 'locationRef invalid');
+      }
+      if (
+        input.dailyLimit !== null &&
+        (typeof input.dailyLimit !== 'number' || !Number.isSafeInteger(input.dailyLimit) || input.dailyLimit < 0)
+      ) {
+        throw new OrderingError('VALIDATION_ERROR', 'dailyLimit must be a non-negative integer or null', {
+          details: { field: 'dailyLimit' },
+        });
+      }
+      const resolved = await scope().loadScope(ctx);
+      if (resolved === null || !scopeIncludes(resolved, input.locationRef)) {
+        throw new OrderingError('BRANCH_NOT_FOUND', 'branch not found', {
+          details: { locationRef: input.locationRef },
+        });
+      }
+      await findBranch(input.locationRef);
+      const entity = (await strapi.db
+        .query(entityCt)
+        .findOne({ where: { documentId: input.entityDocumentId } })) as NamedRow | null;
+      if (!entity) {
+        throw new OrderingError('SELLABLE_NOT_FOUND', 'catalog entity not found', {
+          details: { entityType, entityDocumentId: input.entityDocumentId },
+        });
+      }
+      const before = (await limits().findOne({
+        where: {
+          entityType,
+          entityDocumentId: input.entityDocumentId,
+          locationRef: input.locationRef,
+        },
+      })) as { id: number; dailyLimit: number; updatedByRef?: string | null } | null;
+      const actor = actorRefOf(ctx);
+      if (input.dailyLimit === null) {
+        if (before) await limits().delete({ where: { id: before.id } });
+      } else if (before) {
+        await limits().update({
+          where: { id: before.id },
+          data: { dailyLimit: input.dailyLimit, updatedByRef: actor },
+        });
+      } else {
+        await limits().create({
+          data: {
+            entityType,
+            entityDocumentId: input.entityDocumentId,
+            locationRef: input.locationRef,
+            dailyLimit: input.dailyLimit,
+            updatedByRef: actor,
+          },
+        });
+      }
+      await changeLog().record(
+        {
+          action: 'catalog.daily-limit',
+          entityType: 'catalog-daily-limit',
+          entityId: `${entityType}:${input.entityDocumentId}`,
+          locationRef: input.locationRef,
+          before: before ? { dailyLimit: before.dailyLimit } : null,
+          after: { dailyLimit: input.dailyLimit },
+        },
+        ctx,
+      );
+      return {
+        item: {
+          entityType,
+          entityDocumentId: input.entityDocumentId,
+          locationRef: input.locationRef,
+          dailyLimit: input.dailyLimit,
+          updatedByRef: actor,
+        },
       };
     },
 

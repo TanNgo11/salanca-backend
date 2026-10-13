@@ -65,6 +65,8 @@ export default collection(
     origin: { type: 'json', required: true },
     cartHash: { type: 'string' },
     draftConfirmedAt: { type: 'datetime' },
+    /** Incremented on every staff edit. The client sends the revision it displayed. */
+    editRevision: { type: 'integer', required: true, default: 0 },
     lines: oneToMany('order-line', 'order'),
     fulfillmentGroups: oneToMany('fulfillment-group', 'order'),
     fulfillments: oneToMany('fulfillment', 'order'),
@@ -73,6 +75,7 @@ export default collection(
     refunds: oneToMany('refund', 'order'),
     timeline: oneToMany('order-event', 'order'),
     holds: oneToMany('hold', 'order'),
+    dailyReservations: oneToMany('catalog-daily-reservation', 'order'),
   },
   { displayName: 'Đơn hàng' },
 );

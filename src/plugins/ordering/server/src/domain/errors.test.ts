@@ -10,6 +10,10 @@ describe('OrderingError', () => {
     expect(new OrderingError('CONSENT_REQUIRED', 'no consent').status).toBe(400);
     expect(new OrderingError('SCOPE_REQUIRED', 'no scope').status).toBe(403);
     expect(new OrderingError('PRICE_CHANGED', 'stale quote').status).toBe(409);
+    expect(new OrderingError('ITEM_SOLD_OUT', 'none left').status).toBe(409);
+    expect(new OrderingError('ORDER_NOT_EDITABLE', 'closed').status).toBe(409);
+    expect(new OrderingError('ORDER_CHANGED', 'stale').status).toBe(409);
+    expect(new OrderingError('EDIT_EMPTY', 'same').status).toBe(400);
     expect(new OrderingError('INVALID_TRANSITION', 'bad step').status).toBe(409);
     expect(new OrderingError('IDEMPOTENCY_IN_PROGRESS', 'retry later').status).toBe(409);
     expect(new OrderingError('TOTALS_MISMATCH', 'broken math').status).toBe(500);

@@ -266,5 +266,44 @@ withApp(async (app) => {
   assert.equal(missing.status, 404, 'unknown documentId 404s');
   console.log('[ordering-test] C3 create-by-customerId: hash stored, kind validated, 404s clean');
 
+  // Both identifiers and every request operation enforce the same location scope.
+  const requestsBefore = await requests().count({});
+  for (const identity of [{ phone: '0914445555' }, { customerId: customerB.documentId }, { phone: '0900000099' }]) {
+    const denied = await staff.as.q1('POST', '/data-requests', { ...identity, kind: 'erase' });
+    assert.equal(denied.status, 404, 'foreign or unknown customer is invisible to scoped staff');
+  }
+  assert.equal(await requests().count({}), requestsBefore, 'denied erasures must not create requests');
+  const foreign = await requests().create({ data: {
+    customer: customerB.id, phoneHash: hashing.phoneHash('+84914445555'),
+    kind: 'erase', source: 'staff', status: 'received', requestedAt: new Date(),
+  } });
+  const queue = await staff.as.q1('GET', '/data-requests?pageSize=100');
+  assert.equal(queue.status, 200, JSON.stringify(queue.body));
+  assert.ok(queue.body.items.some((item) => item.id === requestRow.documentId), 'own request is visible');
+  assert.ok(!queue.body.items.some((item) => item.id === foreign.documentId), 'foreign request excluded');
+  assert.equal(queue.body.total, queue.body.items.length, 'count uses the same scope as items');
+  for (const action of ['process', 'reject']) {
+    const denied = await staff.as.q1('POST', `/data-requests/${foreign.documentId}/${action}`, { reason: 'test' });
+    assert.equal(denied.status, 404, 'foreign request cannot be processed or rejected');
+  }
+  assert.equal((await requests().findOne({ where: { id: foreign.id } })).status, 'received');
+  const managerQueue = await staff.as.quanly('GET', '/data-requests?pageSize=100');
+  assert.ok(managerQueue.body.items.some((item) => item.id === foreign.documentId), 'all-location manager sees foreign request');
+  assert.equal((await staff.as.quanly('POST', `/data-requests/${foreign.documentId}/reject`, { reason: 'test complete' })).status, 200);
+  const ownByPhone = await staff.as.q1('POST', '/data-requests', { phone: '0912223333', kind: 'export' });
+  assert.equal(ownByPhone.status, 201, 'in-scope phone path still works');
+  assert.equal((await staff.as.q1('POST', `/data-requests/${requestRow.documentId}/process`, {})).status, 200,
+    'scoped staff can process their own request');
+  const unscopedCtx = { actor: { kind: 'staff', adminUserId: 2147483647, isSuperAdmin: false, actorRef: 'review-no-scope' } };
+  const rights = plugin.service('data-rights');
+  await assert.rejects(() => rights.listRequests({}, unscopedCtx), (error) => error.code === 'SCOPE_REQUIRED');
+  await assert.rejects(() => rights.processByStaff(requestRow.documentId, unscopedCtx), (error) => error.code === 'SCOPE_REQUIRED');
+  await assert.rejects(() => rights.rejectRequest(requestRow.documentId, { reason: 'test' }, unscopedCtx), (error) => error.code === 'SCOPE_REQUIRED');
+  await assert.rejects(() => rights.createStaffRequest({ phone: '0912223333', kind: 'erase' }, unscopedCtx),
+    (error) => error.code === 'CUSTOMER_NOT_FOUND');
+  assert.equal((await staff.as.q1('POST', `/data-requests/${requestRow.documentId}/reject`, { reason: 'test complete' })).status, 200,
+    'scoped staff can reject their own waiting request');
+  console.log('[ordering-test] data requests: phone/id creation, list/count, process/reject enforce scope');
+
   console.log('[ordering-test] done');
 });

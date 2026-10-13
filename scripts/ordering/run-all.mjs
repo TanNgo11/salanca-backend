@@ -29,6 +29,9 @@ const scripts = [
   'catalog-extension.mjs',
   'review-additions.mjs',
   'branches.mjs',
+  'special-hours.mjs',
+  'daily-stock.mjs',
+  'order-edit.mjs',
   'pickup-slots.mjs',
   'storefront.mjs',
   'admin-orders.mjs',
@@ -61,6 +64,7 @@ const scripts = [
   'openapi.mjs',
   'catalog-csv.mjs',
   'email-templates.mjs',
+  'courier.mjs',
   // O11: customer profiles backfill (step 1). Later O11 scripts append below.
   'customers.mjs',
   // O11 step 2: OTP sign-in + sessions (email channel until O13).

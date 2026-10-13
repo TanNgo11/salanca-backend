@@ -214,4 +214,35 @@ await withApp(async (app) => {
   assert.match(rendered.subject, /654321/);
   assert.match(rendered.html, /654321/);
   console.log('[ordering-test] customer.otp editable template: describe + renderFor work');
+  // Concurrent verification must serialize on the challenge, including failed attempts.
+  const concurrent = await requestOtp('concurrent-auth@example.com');
+  const concurrentCode = codeOf();
+  const start = Promise.withResolvers();
+  const contenders = Array.from({ length: 8 }, async () => {
+    await start.promise;
+    return customerAuth().verifyOtp({ challengeId: concurrent.body.challengeId, code: concurrentCode }, sysCtx);
+  });
+  start.resolve();
+  const outcomes = await Promise.allSettled(contenders);
+  assert.equal(outcomes.filter((result) => result.status === 'fulfilled').length, 1, 'one OTP issues exactly one session');
+  for (const result of outcomes.filter((result) => result.status === 'rejected')) {
+    assert.equal(result.reason.code, 'OTP_INVALID');
+  }
+  const concurrentCustomer = await customers().findOne({ where: { email: 'concurrent-auth@example.com' } });
+  assert.equal(await sessions().count({ where: { customer: concurrentCustomer.id } }), 1);
+  const guessing = await requestOtp('concurrent-guess@example.com');
+  const correctCode = codeOf();
+  const wrongCode = correctCode === '000000' ? '000001' : '000000';
+  const guesses = await Promise.allSettled(Array.from({ length: 8 }, () =>
+    customerAuth().verifyOtp({ challengeId: guessing.body.challengeId, code: wrongCode }, sysCtx),
+  ));
+  assert.ok(guesses.every((result) => result.status === 'rejected' && result.reason.code === 'OTP_INVALID'));
+  const guessed = await otps().findOne({ where: { challengeId: guessing.body.challengeId } });
+  assert.equal(guessed.attempts, 5, 'parallel guesses consume five attempts without lost updates');
+  await assert.rejects(
+    () => customerAuth().verifyOtp({ challengeId: guessing.body.challengeId, code: correctCode }, sysCtx),
+    (error) => error.code === 'OTP_INVALID',
+  );
+  console.log('[ordering-test] concurrent OTP: single use and exact attempt limit');
+
 });

@@ -41,6 +41,10 @@ const catalogActions = Object.fromEntries(
 export const AUDIT_ACTIONS: Record<string, ActionDef> = {
   ...catalogActions,
   'catalog-category.move': { category: 'catalog', label: ['Đổi vị trí danh mục', 'Move category'] },
+  'catalog.daily-limit': {
+    category: 'catalog',
+    label: ['Sửa giới hạn phần mỗi ngày', 'Update daily portion limit'],
+  },
   'catalog-availability.toggle': {
     category: 'catalog',
     label: ['Bật/tắt tạm hết', 'Toggle out of stock'],
@@ -74,6 +78,7 @@ export const AUDIT_ACTIONS: Record<string, ActionDef> = {
   'order.cancel': { category: 'order', label: ['Hủy đơn', 'Cancel order'] },
   'order.complete': { category: 'order', label: ['Hoàn tất đơn', 'Complete order'] },
   'order.line-cancel': { category: 'order', label: ['Hủy bớt món', 'Cancel line items'] },
+  'order.edit': { category: 'order', label: ['Sửa đơn', 'Edit order'] },
   'order.confirm-draft': {
     category: 'order',
     label: ['Xác nhận đơn hộ khách', 'Confirm phone order'],

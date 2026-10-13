@@ -7,6 +7,7 @@ export const PERMISSIONS = {
   cancel: action('order.cancel'),
   create: action('order.create'),
   editLines: action('order.edit-lines'),
+  edit: action('order.edit'),
   recordCash: action('payment.record-cash'),
   refund: action('refund.manage'),
   settings: action('settings.manage'),
@@ -34,6 +35,7 @@ export const ORDER_RBAC = {
   cancel: PERMISSIONS.cancel,
   create: PERMISSIONS.create,
   editLines: PERMISSIONS.editLines,
+  edit: PERMISSIONS.edit,
   recordCash: PERMISSIONS.recordCash,
   refund: PERMISSIONS.refund,
   review: PERMISSIONS.review,
@@ -67,6 +69,8 @@ export const RBAC_ALERTS = [
 /** Anyone holding one of these sees the "Bán hàng" menu entry. */
 export const RBAC_ANY_ORDERING = [
   ...RBAC_ORDERS_READ,
+  ...PERMISSIONS.process,
+  ...PERMISSIONS.recordCash,
   ...RBAC_CATALOG_ACCESS,
   ...RBAC_SETTINGS,
   ...RBAC_SCOPE,

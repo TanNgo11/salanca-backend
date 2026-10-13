@@ -170,6 +170,8 @@ nhạy nhất — chỉ cấp cho vai trò quản lý/kế toán.
   giống nhau dù địa chỉ có tồn tại hay không — route không bao giờ xác nhận tài khoản tồn tại. Mã OTP
   lưu dạng băm; đích gửi (email/SĐT) lưu **sealed** AES-256-GCM (`ORDERING_ENCRYPTION_KEY`), không lưu
   thô. Captcha bắt buộc như các route storefront khác.
+  Xác minh khóa dòng OTP trong transaction PostgreSQL: mã chỉ dùng một lần, các lần thử sai
+  đồng thời vẫn được cộng đủ và commit; tạo phiên thành công cùng transaction.
 - **Phiên khách** (`X-Customer-Token`): token ngẫu nhiên, lưu SHA-256; mặc định 30 ngày
   (`customers.sessionDays`), tối đa 10 phiên/khách (`maxSessions` — phiên cũ nhất bị thu hồi khi vượt).
   `/me/erase` thu hồi toàn bộ phiên ngay lập tức.
@@ -180,7 +182,9 @@ nhạy nhất — chỉ cấp cho vai trò quản lý/kế toán.
   Cách duy nhất xem số đầy đủ là `POST /customers/:id/reveal-phone` — trả số một lần và ghi
   `customer.reveal-phone` vào change-log append-only. Sửa hồ sơ ghi `customer.update` với trước/sau
   đã mask. Nhân viên theo chi nhánh chỉ thấy khách có đơn tại chi nhánh đó — ngoài phạm vi trả 404,
-  không xác nhận tồn tại (áp dụng cả cho `POST /data-requests {customerId}`).
+  không xác nhận tồn tại (áp dụng cả cho `POST /data-requests` bằng `customerId` hoặc SĐT).
+  Danh sách, tổng số, xử lý và từ chối yêu cầu dữ liệu đều lọc cùng scope. Yêu cầu không còn
+  khách có đơn trong scope (kể cả sau ẩn danh) chỉ quản lý `allLocations` xem/xử lý được.
 - **Xuất/xóa (Nghị định 13)**: `/me/data-export` chỉ dữ liệu của chính phiên đó, ref nhân viên bị gỡ.
   Xóa: ẩn danh tên/SĐT/email/địa chỉ/ghi chú trên **đơn đã đóng** (giữ tiền, mã bưu chính, báo cáo O6
   không đổi), xóa hồ sơ/địa chỉ/giỏ/phiên/OTP; đơn đang mở → request `waiting`, job

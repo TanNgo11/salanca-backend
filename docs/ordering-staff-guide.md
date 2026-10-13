@@ -1,7 +1,8 @@
 # Hướng dẫn xử lý đơn (nhân viên chi nhánh)
 
 Dành cho nhân viên và quản lý chi nhánh dùng Admin để nhận đơn online và đơn gọi điện (phase O3: khách tự
-đến lấy; O5: quán tự giao tận nơi). Hướng dẫn nhập món: `docs/ordering-catalog-guide.md`.
+đến lấy; O5: quán tự giao tận nơi; O7: giờ đặc biệt, giới hạn phần mỗi ngày, sửa đơn, trang người giao).
+Hướng dẫn nhập món: `docs/ordering-catalog-guide.md`.
 
 ## Trước khi bắt đầu
 
@@ -41,6 +42,19 @@ Dành cho nhân viên và quản lý chi nhánh dùng Admin để nhận đơn o
   còn giữ), Sao chép mã đơn.
 - **Lịch sử**: chấm "Khách thấy" là bước khách thấy trên trang đơn; ghi chú nội bộ khách không thấy.
 
+## Sửa đơn
+
+- Nút **Sửa đơn** ở chi tiết đơn khi vai trò có quyền **Sửa đơn** (`order.edit`) và đơn còn sửa được:
+  đang chờ nhận hoặc đang chuẩn bị. Đơn giao thêm lúc sẵn sàng, khi chưa có người đi giao.
+- Không sửa được đơn nháp, đơn đã đóng, đơn đang chờ khách thanh toán, đơn đang giao, và đơn tự lấy đã
+  sẵn sàng. Nút hiện lý do.
+- Trong trang sửa: giảm số lượng món đã có (không tăng dòng cũ), thêm món mới theo giá hiện tại, đổi giờ
+  nhận, đổi địa chỉ nếu là đơn giao. **Lý do** bắt buộc. Mặc định gửi email cho khách.
+- Cột phải hiện trước khi lưu: hoàn tiền mặt, phiếu hoàn chuyển khoản chờ trả, hoặc số khách cần trả thêm.
+  Đơn đã trả trước thì phần tăng gửi link thanh toán. Đơn trả khi nhận thì chỉ tăng số cần thu.
+- Hai người sửa cùng lúc: người sau thấy "Đơn vừa được người khác sửa" và bấm tải lại. Món hết phần trong
+  ngày thì không thêm được.
+
 ## Đơn gọi điện (Tạo đơn hộ)
 
 1. Chọn chi nhánh, tìm món, chọn tùy chọn và số lượng.
@@ -67,6 +81,19 @@ Dành cho nhân viên và quản lý chi nhánh dùng Admin để nhận đơn o
   trả trước chỉ cần xác nhận xong. Khách nhận email đã giao.
 - Cột **Người giao** lọc theo: Chưa gán · Của tôi · Người khác · một nhân viên cụ thể.
 
+## Giao của tôi (điện thoại)
+
+- Mục **Vận hành → Giao của tôi**. Hiện khi vai trò có cả **Xử lý đơn** và **Thu tiền mặt**, hoặc khi có
+  **Xử lý đơn** và đang có đơn được gán hôm nay.
+- Trang một cột: tab **Đang làm** và **Đã xong**, nút làm mới, tự làm mới mỗi 30 giây. Chỉ đơn được gán
+  cho bạn, trong ngày kinh doanh hôm nay của chi nhánh.
+- Mỗi thẻ có mã, trạng thái, giờ hẹn, địa chỉ, món và số tiền mặt cần thu. **Gọi** mở số của khách.
+  **Bản đồ** mở Google Maps với địa chỉ đó.
+- Sẵn sàng → **Bắt đầu giao**. Đang giao và còn tiền → **Thu tiền và giao**; đã trả đủ → **Đã giao**.
+  **Giao thất bại**: chọn lý do (Không liên lạc được / Sai địa chỉ / Khách từ chối / Khác — Khác cần ghi chú).
+- Tài khoản chỉ đi giao, không có quyền xem mọi đơn, không thu tiền và không chuyển bước đơn của người
+  khác. Tài khoản đó không có dòng đơn mới theo thời gian thực; trang tự làm mới mỗi 30 giây.
+
 ## Khách tự hủy, tra cứu
 
 - Khách tự hủy được khi đơn còn chờ quán nhận và trước mốc "Khách tự hủy trước giờ lấy" của chi nhánh. Sau
@@ -78,6 +105,12 @@ Dành cho nhân viên và quản lý chi nhánh dùng Admin để nhận đơn o
 - **Chi nhánh**: giờ mở (cho phép qua nửa đêm), ngày nghỉ, thời gian chuẩn bị tối thiểu (180 = 3 giờ),
   khoảng slot, sức chứa mỗi slot, đặt trước tối đa, đơn tối thiểu, hạn khách tự hủy, cách trả, báo chậm.
   Đổi cài đặt chỉ áp dụng cho đơn mới.
+- **Ngày đặc biệt** (tab Giờ mở của tự lấy và của giao): một ngày có thể đóng cửa, hoặc mở theo các khoảng
+  giờ riêng (tối đa 6, khoảng có thể qua nửa đêm). Ghi chú ngắn, ví dụ "Mùng 2 Tết". Ngày đó thay giờ mở
+  cửa thường và ngày nghỉ. Ngày đã qua được gom lại, không tự xóa. Có nút chép danh sách sang tab kia.
+- **Tạm hết món → Giới hạn/ngày**: số phần tối đa của món, biến thể hoặc tùy chọn tại đúng chi nhánh trong
+  một ngày kinh doanh. Hết phần thì khách thấy hết hôm nay, đến ngày kinh doanh mai mới bán lại. Công tắc
+  **Đang bán** không đổi. Để trống ô là bỏ giới hạn.
 - **Cài đặt → Bán hàng**: bật hộp thoại đơn mới, âm báo mặc định, danh sách lý do từ chối, số phút lùi.
 - **Tab Giao hàng của chi nhánh**: bật giao tận nơi, thời gian chuẩn bị + đi giao tối thiểu, cách trả và
   các **vùng giao** — mỗi vùng chọn xã/phường theo mã hành chính, phí giao theo nấc tạm tính, đơn tối
@@ -222,3 +255,13 @@ pháp lý xác nhận) — yêu cầu đỏ khi quá hạn.
 - Giao tận nơi là quán **tự giao** (O5): hãng xe chỉ là thông tin kèm theo, chưa có tích hợp GHN/Ahamove/
   Grab (dự kiến O6). Danh mục đơn vị hành chính hiện là **dữ liệu mẫu (XT…)** — cần nguồn chính thức trước
   khi bật cho chi nhánh thật.
+- Trang **Giao của tôi** nằm trong Admin, bố cục cho màn hẹp. Chưa kiểm khung đăng nhập và menu Admin trên
+  điện thoại 360px.
+
+### Phạm vi yêu cầu dữ liệu sau review O11
+
+Nhân viên theo chi nhánh chỉ tạo, xem, xử lý hoặc từ chối yêu cầu của khách có đơn tại chi nhánh
+được phân công, kể cả khi nhập số điện thoại trực tiếp. Khách ngoài phạm vi hoặc số chưa có hồ sơ
+trả về không tìm thấy. Quản lý có quyền toàn bộ chi nhánh vẫn xem được yêu cầu không có hồ sơ và
+lịch sử đã xóa; sau ẩn danh, liên kết đơn với khách bị gỡ nên nhân viên chi nhánh không còn thấy
+những yêu cầu đó trong hàng đợi.

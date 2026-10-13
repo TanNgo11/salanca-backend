@@ -434,6 +434,15 @@ const dataRights = ({ strapi }: { strapi: Core.Strapi }) => {
     }
   };
 
+  // A request without a currently visible customer is available only to all-location
+  // staff. This also fails closed after erasure has detached the customer's orders.
+  const requestScopeWhere = async (ctx: ServiceContext): Promise<Record<string, unknown>> => {
+    const staffScope = await scope().loadScope(ctx);
+    if (!staffScope) throw new OrderingError('SCOPE_REQUIRED', 'staff member has no location scope');
+    if (staffScope.allLocations) return {};
+    return { customer: { orders: { locationRef: { $in: staffScope.locationRefs } } } };
+  };
+
   return {
     /** GET /me/data-export — the session's own profile + addresses + orders, staff refs out. */
     async exportForSelf(customerId: number) {
@@ -497,9 +506,9 @@ const dataRights = ({ strapi }: { strapi: Core.Strapi }) => {
     /** GET /data-requests — the staff work queue, filterable by status. */
     async listRequests(
       input: { status?: string; page?: number; pageSize?: number },
-      _ctx: ServiceContext,
+      ctx: ServiceContext,
     ) {
-      const where: Record<string, unknown> = {};
+      const where = await requestScopeWhere(ctx);
       if (input.status && ['received', 'waiting', 'done', 'rejected'].includes(input.status)) {
         where.status = input.status;
       }
@@ -566,6 +575,14 @@ const dataRights = ({ strapi }: { strapi: Core.Strapi }) => {
           where: { phoneHash, status: { $ne: 'erased' } },
           select: ['id'],
         })) as { id: number } | null;
+        if (customer) {
+          await assertCustomerInScope(customer as CustomerRow, ctx);
+        } else {
+          const staffScope = await scope().loadScope(ctx);
+          if (!staffScope?.allLocations) {
+            throw new OrderingError('CUSTOMER_NOT_FOUND', 'customer not found');
+          }
+        }
       }
       const request = (await requests().create({
         data: {
@@ -599,7 +616,7 @@ const dataRights = ({ strapi }: { strapi: Core.Strapi }) => {
     /** POST /data-requests/:id/process — manual trigger; the job covers it anyway. */
     async processByStaff(documentId: string, ctx: ServiceContext) {
       const target = (await requests().findOne({
-        where: { documentId },
+        where: { documentId, ...(await requestScopeWhere(ctx)) },
         select: ['id'],
       })) as { id: number } | null;
       if (!target) throw new OrderingError('DATA_REQUEST_NOT_FOUND', 'data request not found');
@@ -625,7 +642,7 @@ const dataRights = ({ strapi }: { strapi: Core.Strapi }) => {
     /** POST /data-requests/:id/reject {reason} — e.g. a statutory retention duty. */
     async rejectRequest(documentId: string, input: { reason?: unknown }, ctx: ServiceContext) {
       const request = (await requests().findOne({
-        where: { documentId },
+        where: { documentId, ...(await requestScopeWhere(ctx)) },
         populate: { customer: { select: ['id', 'documentId', 'phone'] } },
       })) as DataRequestRow | null;
       if (!request) throw new OrderingError('DATA_REQUEST_NOT_FOUND', 'data request not found');

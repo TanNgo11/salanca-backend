@@ -9,6 +9,9 @@ import branch from './branch';
 import cashClosing from './cash-closing';
 import catalogAvailabilityWindow from './catalog-availability-window';
 import catalogCategory from './catalog-category';
+import catalogDailyLimit from './catalog-daily-limit';
+import catalogDailyReservation from './catalog-daily-reservation';
+import catalogDailyUsage from './catalog-daily-usage';
 import catalogImport from './catalog-import';
 import catalogLocationState from './catalog-location-state';
 import catalogModifier from './catalog-modifier';
@@ -52,6 +55,9 @@ export default {
   'cash-closing': cashClosing,
   'catalog-availability-window': catalogAvailabilityWindow,
   'catalog-category': catalogCategory,
+  'catalog-daily-limit': catalogDailyLimit,
+  'catalog-daily-reservation': catalogDailyReservation,
+  'catalog-daily-usage': catalogDailyUsage,
   'catalog-import': catalogImport,
   'catalog-location-state': catalogLocationState,
   'catalog-modifier': catalogModifier,

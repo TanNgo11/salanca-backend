@@ -90,6 +90,7 @@ const adminActions = [
   { uid: 'order.cancel', displayName: 'Hủy đơn hàng' },
   { uid: 'order.create', displayName: 'Tạo đơn hộ khách' },
   { uid: 'order.edit-lines', displayName: 'Hủy một phần món' },
+  { uid: 'order.edit', displayName: 'Sửa đơn' },
   { uid: 'payment.record-cash', displayName: 'Ghi nhận tiền mặt' },
   { uid: 'payment.review', displayName: 'Duyệt chuyển khoản' },
   { uid: 'payment.raw-read', displayName: 'Xem payload cổng thanh toán' },
@@ -151,6 +152,7 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
   type NotificationService = {
     onOrderPlaced: (event: never) => Promise<void>;
     onOrderTransitioned: (event: never) => Promise<void>;
+    onOrderEdited: (event: never) => Promise<void>;
     onGroupTransitioned: (event: never) => Promise<void>;
     onOpsAlert: (event: never) => Promise<void>;
   };
@@ -167,6 +169,7 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
   registry.registerOutboxConsumer('order.transitioned', (event) =>
     customers().onOrderTransitioned(event),
   );
+  registry.registerOutboxConsumer('order.edited', (event) => notifications().onOrderEdited(event as never));
   registry.registerOutboxConsumer('fulfillment-group.transitioned', (event) =>
     notifications().onGroupTransitioned(event as never),
   );

@@ -6,6 +6,7 @@ import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { OrderingInboxProvider, useOrderingInbox } from '../inbox/OrderingInboxProvider';
 import { useT } from '../lib/i18n';
 import {
+  PERMISSIONS,
   RBAC_ALERTS,
   RBAC_AUDIT,
   RBAC_CATALOG_ACCESS,
@@ -25,6 +26,7 @@ const OrdersPage = lazy(() => import('./Orders'));
 const CustomersPage = lazy(() => import('./Customers'));
 const DataRequestsPage = lazy(() => import('./DataRequests'));
 const DeliveriesPage = lazy(() => import('./Deliveries'));
+const CourierPage = lazy(() => import('./Courier'));
 const PaymentReviewPage = lazy(() => import('./PaymentReview'));
 const BranchesPage = lazy(() => import('./Branches'));
 const StaffPage = lazy(() => import('./Staff'));
@@ -44,6 +46,7 @@ type Section =
   | 'customers'
   | 'data-requests'
   | 'deliveries'
+  | 'courier'
   | 'payment-review'
   | 'alerts'
   | 'ops'
@@ -118,6 +121,7 @@ const SideNav = ({
         {visible.orders ||
         visible.customers ||
         visible.deliveries ||
+        visible.courier ||
         visible['payment-review'] ||
         visible.alerts ||
         visible.ops ? (
@@ -125,6 +129,7 @@ const SideNav = ({
             {visible.orders ? link('orders', t('nav.orders'), inbox?.awaiting) : null}
             {visible.customers ? link('customers', t('nav.customers')) : null}
             {visible.deliveries ? link('deliveries', t('nav.deliveries')) : null}
+            {visible.courier ? link('courier', t('nav.courier')) : null}
             {visible['payment-review'] ? link('payment-review', t('nav.paymentReview'), openReviews) : null}
             {visible.alerts ? link('alerts', t('nav.alerts'), openAlerts) : null}
             {visible.ops ? link('ops', t('nav.ops')) : null}
@@ -165,6 +170,8 @@ const SideNav = ({
 
 const OrderingApp = () => {
   const orders = useRBAC(RBAC_ORDERS_READ);
+  const process = useRBAC(PERMISSIONS.process);
+  const recordCash = useRBAC(PERMISSIONS.recordCash);
   const reviews = useRBAC(RBAC_PAYMENT_REVIEW);
   const alerts = useRBAC(RBAC_ALERTS);
   const ops = useRBAC(RBAC_OPS);
@@ -173,11 +180,28 @@ const OrderingApp = () => {
   const catalogAccess = useRBAC(RBAC_CATALOG_ACCESS);
   const settings = useRBAC(RBAC_SETTINGS);
   const scope = useRBAC(RBAC_SCOPE);
+  const { get } = useFetchClient();
+  const canProcess = !process.isLoading && process.allowedActions.canProcess === true;
+  const canRecordCash = !recordCash.isLoading && recordCash.allowedActions.canRecordCash === true;
+  const [hasAssigned, setHasAssigned] = useState(false);
+  useEffect(() => {
+    if (!canProcess || canRecordCash) return undefined;
+    let live = true;
+    void get('/ordering/courier/deliveries?view=active')
+      .then(({ data }) => {
+        const count = (data as { counts?: { active?: number } }).counts?.active ?? 0;
+        if (live) setHasAssigned(count > 0);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [canProcess, canRecordCash, get]);
   const audit = useRBAC(RBAC_AUDIT);
   const webhook = useRBAC(RBAC_WEBHOOK);
   const customers = useRBAC(RBAC_CUSTOMERS);
   const dataRequests = useRBAC(RBAC_DATA_REQUESTS);
-  const loading = [orders, reviews, alerts, ops, report, catalogManage, catalogAccess, settings, scope, audit, webhook, customers, dataRequests].some(
+  const loading = [orders, process, recordCash, reviews, alerts, ops, report, catalogManage, catalogAccess, settings, scope, audit, webhook, customers, dataRequests].some(
     (item) => item.isLoading,
   );
   if (loading) {
@@ -193,6 +217,7 @@ const OrderingApp = () => {
     customers: any(customers.allowedActions),
     'data-requests': any(dataRequests.allowedActions),
     deliveries: any(orders.allowedActions),
+    courier: (canProcess && canRecordCash) || hasAssigned,
     'payment-review': any(reviews.allowedActions),
     alerts: any(alerts.allowedActions),
     ops: any(ops.allowedActions),
@@ -213,6 +238,7 @@ const OrderingApp = () => {
       'orders',
       'customers',
       'deliveries',
+      'courier',
       'payment-review',
       'alerts',
       'ops',
@@ -248,6 +274,7 @@ const OrderingApp = () => {
             <Route path="customers/*" element={<CustomersPage />} />
             <Route path="data-requests/*" element={<DataRequestsPage />} />
             <Route path="deliveries/*" element={<DeliveriesPage />} />
+            <Route path="courier/*" element={<CourierPage />} />
             <Route path="payment-review/*" element={<PaymentReviewPage />} />
             <Route path="alerts/*" element={<AlertsPage />} />
             <Route path="ops/*" element={<OpsPage />} />

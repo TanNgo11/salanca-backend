@@ -225,73 +225,83 @@ const customerAuth = ({ strapi }: { strapi: Core.Strapi }) => {
       ctx: ServiceContext,
     ): Promise<{ token: string; customer: CustomerView }> {
       const challengeId = typeof input.challengeId === 'string' ? input.challengeId : '';
-      const row = (await otps().findOne({
-        where: { challengeId },
-        populate: { customer: true },
-      })) as OtpRow | null;
-      const invalid = (attemptsLeft?: number) =>
-        new OrderingError('OTP_INVALID', 'the code is not valid', {
-          details: attemptsLeft === undefined ? {} : { attemptsLeft },
-        });
-      if (!row) throw invalid();
-      const now = nowOf(ctx);
-      const codeOk =
-        isOtpCodeShape(input.code) &&
-        otpCodeMatches(hashing(), input.code, challengeId, row.codeHash);
-      const verdict = verdictFor(
-        {
-          attempts: row.attempts,
-          expiresAt: new Date(row.expiresAt),
-          consumedAt: row.consumedAt ? new Date(row.consumedAt) : null,
-        },
-        codeOk,
-        { now, maxAttempts: config().customers.otp.maxAttempts },
-      );
-      if (!verdict.ok) {
-        if (verdict.reason === 'expired') {
-          throw new OrderingError('OTP_EXPIRED', 'the code has expired');
+      // Lock before reading the challenge. Returning validation failures commits the attempt
+      // counter; throwing inside the transaction would roll it back.
+      const outcome = await strapi.db.transaction(async ({ trx }) => {
+        await trx('plugins_ordering_customer_otp')
+          .where({ challenge_id: challengeId })
+          .forUpdate()
+          .first('id');
+        const row = (await otps().findOne({
+          where: { challengeId },
+          populate: { customer: true },
+        })) as OtpRow | null;
+        const invalid = (attemptsLeft?: number) =>
+          new OrderingError('OTP_INVALID', 'the code is not valid', {
+            details: attemptsLeft === undefined ? {} : { attemptsLeft },
+          });
+        if (!row) return { error: invalid() };
+        const now = nowOf(ctx);
+        const codeOk =
+          isOtpCodeShape(input.code) &&
+          otpCodeMatches(hashing(), input.code, challengeId, row.codeHash);
+        const verdict = verdictFor(
+          {
+            attempts: row.attempts,
+            expiresAt: new Date(row.expiresAt),
+            consumedAt: row.consumedAt ? new Date(row.consumedAt) : null,
+          },
+          codeOk,
+          { now, maxAttempts: config().customers.otp.maxAttempts },
+        );
+        if (!verdict.ok) {
+          if (verdict.reason === 'expired') {
+            return { error: new OrderingError('OTP_EXPIRED', 'the code has expired') };
+          }
+          if (verdict.reason === 'mismatch') {
+            await otps().update({ where: { id: row.id }, data: { attempts: row.attempts + 1 } });
+            return { error: invalid(verdict.attemptsLeft) };
+          }
+          return { error: invalid() };
         }
-        if (verdict.reason === 'mismatch') {
-          await otps().update({ where: { id: row.id }, data: { attempts: row.attempts + 1 } });
-          throw invalid(verdict.attemptsLeft);
-        }
-        throw invalid();
-      }
-      await otps().update({ where: { id: row.id }, data: { consumedAt: now } });
+        await otps().update({ where: { id: row.id }, data: { consumedAt: now } });
 
-      // Resolve the profile: a challenge bound at request time wins; else bind/create by the
-      // sealed email. `erased` profiles can never sign back in.
-      const linked = row.customer;
-      let customer: CustomerRow | null =
-        linked && typeof linked === 'object'
-          ? ((await customers().findOne({ where: { id: linked.id } })) as CustomerRow | null)
-          : linked
-            ? ((await customers().findOne({ where: { id: linked } })) as CustomerRow | null)
-            : null;
-      if (!customer) {
-        const email = openTarget(row.targetSealed);
-        if (email && row.channel === 'email') {
-          customer = await findByEmail(email);
-          if (!customer) {
-            customer = (await customers().create({
-              data: { email, emailVerifiedAt: now, status: 'active' },
-            })) as CustomerRow;
-            await otps().update({ where: { id: row.id }, data: { customer: customer.id } });
+        // Resolve the profile: a challenge bound at request time wins; else bind/create by the
+        // sealed email. `erased` profiles can never sign back in.
+        const linked = row.customer;
+        let customer: CustomerRow | null =
+          linked && typeof linked === 'object'
+            ? ((await customers().findOne({ where: { id: linked.id } })) as CustomerRow | null)
+            : linked
+              ? ((await customers().findOne({ where: { id: linked } })) as CustomerRow | null)
+              : null;
+        if (!customer) {
+          const email = openTarget(row.targetSealed);
+          if (email && row.channel === 'email') {
+            customer = await findByEmail(email);
+            if (!customer) {
+              customer = (await customers().create({
+                data: { email, emailVerifiedAt: now, status: 'active' },
+              })) as CustomerRow;
+              await otps().update({ where: { id: row.id }, data: { customer: customer.id } });
+            }
           }
         }
-      }
-      if (!customer || customer.status === 'erased') throw invalid();
-      if (row.channel === 'email' && !customer.emailVerifiedAt) {
-        await customers().update({ where: { id: customer.id }, data: { emailVerifiedAt: now } });
-        customer = { ...customer, emailVerifiedAt: now.toISOString() };
-      }
-      if (customer.status === 'unverified') {
-        await customers().update({ where: { id: customer.id }, data: { status: 'active' } });
-        customer = { ...customer, status: 'active' };
-      }
+        if (!customer || customer.status === 'erased') return { error: invalid() };
+        if (row.channel === 'email' && !customer.emailVerifiedAt) {
+          await customers().update({ where: { id: customer.id }, data: { emailVerifiedAt: now } });
+          customer = { ...customer, emailVerifiedAt: now.toISOString() };
+        }
+        if (customer.status === 'unverified') {
+          await customers().update({ where: { id: customer.id }, data: { status: 'active' } });
+          customer = { ...customer, status: 'active' };
+        }
 
-      const token = await service.issueSession(customer, ctx, input.userAgent);
-      return { token, customer: viewOf(customer) };
+        const token = await service.issueSession(customer, ctx, input.userAgent);
+        return { value: { token, customer: viewOf(customer) } };
+      });
+      if (outcome.error) throw outcome.error;
+      return outcome.value;
     },
 
     /** Creates a session row for `customer`, revoking the oldest past `maxSessions`. */

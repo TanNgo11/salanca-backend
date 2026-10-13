@@ -80,6 +80,8 @@ await withApp(async (app) => {
   const phoneA = '+84900000001';
   const phoneB = '+84901234567';
 
+  const customerConfig = app.config.get('plugin::ordering').customers;
+  customerConfig.enabled = false; // Simulate historical orders from before O11.
   const a1 = await order.createOrder(
     basicOrderInput({ contact: { name: 'Kh A', phone: '0900000001' } }),
     systemCtx,
@@ -92,7 +94,8 @@ await withApp(async (app) => {
     basicOrderInput({ contact: { name: 'Kh B', phone: phoneB } }),
     systemCtx,
   );
-  // Guest orders created post-boot have no customer link yet.
+  customerConfig.enabled = true;
+  // Historical orders have no customer link yet.
   for (const created of [a1, a2, b1]) {
     const row = await app.db
       .query('plugin::ordering.order')
@@ -303,7 +306,7 @@ await withApp(async (app) => {
   );
   console.log('[ordering-test] /me/addresses: defaults, validation, 10-cap, foreign 404');
 
-  // Order linking: session wins over phone; phone attaches guests; unknown phone → unlinked.
+  // Order linking: session wins; an unknown guest phone creates an unverified profile.
   const aInternal = await idOf(sessionA.customer.id);
   const bInternal = await idOf(sessionB.customer.id);
   const link = async (orderId) =>
@@ -328,7 +331,24 @@ await withApp(async (app) => {
     basicOrderInput({ contact: { name: 'Khách', phone: '+84905555555' } }),
     systemCtx,
   );
-  assert.equal(await link(unknown.order.order.id), null, 'unknown phone stays unlinked');
+  const guestId = await link(unknown.order.order.id);
+  assert.ok(guestId, 'first guest checkout creates and links a profile');
+  const guest = await app.db.query('plugin::ordering.customer').findOne({ where: { id: guestId } });
+  assert.equal(guest.status, 'unverified');
+  assert.equal(guest.phone, '+84905555555');
+  assert.ok(guest.documentId, 'new guest profile is addressable in Admin');
+  assert.equal(guest.emailVerifiedAt, null, 'checkout cannot verify an identity');
+  const firstTimeOrders = await Promise.all(Array.from({ length: 4 }, () => order.createOrder(
+    basicOrderInput({ contact: { name: 'Concurrent guest', phone: '0905555556' } }), systemCtx,
+  )));
+  const linkedGuests = await Promise.all(firstTimeOrders.map((result) => link(result.order.order.id)));
+  assert.ok(linkedGuests.every((id) => id === linkedGuests[0] && id !== null), 'concurrent first orders share one profile');
+  assert.equal(await app.db.query('plugin::ordering.customer').count({ where: { phone: '+84905555556' } }), 1);
+  await app.db.query('plugin::ordering.customer').update({
+    where: { id: guestId }, data: { status: 'erased', phone: null },
+  });
+  assert.equal(await plugin.service('customer').linkForOrder({ phoneE164: '+84905555555' }), null,
+    'guest checkout never resurrects an erased profile');
   const toB = await order.createOrder(
     basicOrderInput({ customerId: bInternal, contact: { name: 'Minh', phone: '+84906666666' } }),
     systemCtx,

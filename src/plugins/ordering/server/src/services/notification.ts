@@ -299,6 +299,46 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
         data: { ...data, ...(reason ? { reason } : {}) },
       });
     },
+
+    /** `order.edited`: the updated items and total. A balance link replaces the order link. */
+    async onOrderEdited(event: OutboxEvent): Promise<void> {
+      if (event.payload.notifyCustomer === false) return;
+      const orderId = Number(event.payload.orderId);
+      const aggregate = await repo.loadOrderAggregate(orderId);
+      if (!aggregate) return;
+      const email = customerEmail(aggregate);
+      if (!email) return;
+      const { locale, data } = await baseData(aggregate);
+      const paymentLink = event.payload.paymentLink === true;
+      let link = data.link;
+      if (paymentLink) {
+        const url = await (
+          plugin().service('payment-link') as {
+            currentUrl(id: number, now: Date): Promise<string | null>;
+          }
+        ).currentUrl(orderId, new Date());
+        if (url) link = url;
+      }
+      const reason = paymentLink
+        ? locale === 'en'
+          ? 'Pay the difference with the link below.'
+          : 'Phần chênh thanh toán qua liên kết bên dưới.'
+        : undefined;
+      await deliver({
+        event,
+        template: 'customer.order-updated',
+        email,
+        role: 'customer',
+        orderId,
+        locale,
+        data: {
+          ...data,
+          items: data.items.filter((item) => item.quantity > 0),
+          ...(link ? { link } : {}),
+          ...(reason ? { reason } : {}),
+        },
+      });
+    },
   };
   return service;
 };

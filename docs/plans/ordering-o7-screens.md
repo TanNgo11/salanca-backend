@@ -8,6 +8,27 @@ kế hoạch [`ordering-o7-ops-extras.md`](ordering-o7-ops-extras.md), mockup
 `175.000đ`, giờ theo timezone chi nhánh, chuỗi trong `translations/o7.ts` dạng `[vi, en]`, không dùng
 dropdown/`SimpleMenu` trong `Modal`).
 
+## Đã đổi khi code O7 (2026-10-13)
+
+- E1: khối "Ngày đặc biệt" nằm trong tab **Giờ mở** của tự lấy và của giao, trên màn Chi nhánh. Công tắc
+  đóng cửa là `Switch`. Giờ mở/đóng là `TextInput` `HH:mm`, không phải `TimePicker`.
+- E2: cột Hôm nay là thanh `Box` (`@strapi/design-system` không có `ProgressBar`). Bộ lọc "Chỉ món có giới
+  hạn" dùng `Toggle` có sẵn. `GET /ordering/availability` nhận `branch` hoặc `locationRef` (`locationRef`
+  thắng khi không rỗng). `PUT /ordering/availability/daily-limit` gửi `locationRef`.
+- E3: `editableReason` là mã (`draft`, `closed`, `awaiting-payment`, `out-for-delivery`, `ready`); Admin dịch
+  `edit.reason.*`. Ô tìm món dùng Combobox của catalog. Chọn tùy chọn bằng nút. Địa chỉ gọi public
+  `GET /api/v1/ordering/admin-units` (route admin đòi `settings.manage`). Xác nhận dùng `Frame`/`Modal`.
+  Tiêu đề giờ là "Giờ nhận". Không tách modal món ra khỏi trang Tạo đơn. Hành động cũ `order.edit-lines`
+  ("Hủy một phần món") giữ nguyên tên.
+- E4: mục menu hiện khi có cả `order.process` và `payment.record-cash`, hoặc khi có `order.process` và danh
+  sách đang làm có đơn. `order.read` không bắt buộc để thấy trang. SSE `orders/stream` vẫn đòi `order.read`,
+  nên tài khoản chỉ giao thì chỉ làm mới mỗi 30 giây. Lý do giao thất bại là các nút trong thẻ; "Khác" cần
+  ghi chú ít nhất 3 ký tự. Đơn sẵn sàng chỉ vào danh sách khi đã có `assigneeRef`.
+- Điện thoại 360px: trang là cột tối đa 480px, chữ 16px, nút cao 48px. Khung đăng nhập và menu Admin chưa
+  được bấm trên 360px (chrome-devtools không bắt tay được). Nếu khung Admin không dùng được trên điện thoại,
+  hướng sau O7 là một trang nhẹ ngoài chrome Admin. Không làm magic link trong O7.
+- `GET /config`: `branch.delivery` có khi chi nhánh bật giao, cùng dạng với `pickup`. Cả hai có `specialHours`.
+
 ## E1. Ngày đặc biệt (trong màn Chi nhánh, tab Tự lấy và tab Giao tận nơi)
 
 - Vị trí: `admin/src/pages/Branches/` — khối mới "Ngày đặc biệt" ngay dưới khối "Giờ mở cửa" của mỗi tab.
@@ -73,12 +94,13 @@ dropdown/`SimpleMenu` trong `Modal`).
 - Bố cục một cột, rộng tối đa 480px, chữ ≥ 16px, nút cao ≥ 48px, không bảng. Đầu trang: tên người giao, ngày,
   2 tab `Đang làm (n)` / `Đã xong (n)`, nút làm mới; tự làm mới mỗi 30 giây.
 - Mỗi đơn là một thẻ:
-  - dòng 1: mã đơn, `Badge` trạng thái (Sẵn sàng / Đang giao / Giao thất bại), giờ hẹn;
+  - dòng 1: mã đơn, `Badge` trạng thái (Đang giao / Giao thất bại), giờ hẹn;
   - địa chỉ đầy đủ (chữ to), tên khách; nút **Gọi** (`tel:`), **Bản đồ** (mở
     `https://www.google.com/maps/search/?api=1&query=<địa chỉ>` tab mới);
   - ghi chú khách; danh sách món rút gọn (`2× Cơm gà`);
   - số tiền: "Thu 235.000đ tiền mặt" (đỏ đậm) hoặc "Đã thanh toán" (xanh);
-  - nút theo trạng thái: Sẵn sàng → **Bắt đầu giao** (`transition out-for-delivery` với `assigneeRef` = mình);
+  - nút theo trạng thái (sửa sau review 2026-10-13: bỏ "Bắt đầu giao" — người giao chỉ được gán lúc quản lý bấm bắt đầu giao
+    trên board Đơn giao, nên đơn Sẵn sàng chưa thuộc ai; trang chỉ liệt kê đơn đang giao/thất bại/đã giao hôm nay);
     Đang giao → **Đã giao** (khi đã trả) hoặc **Thu tiền và giao** (`cash-handover`, `Dialog` xác nhận số tiền),
     và **Giao thất bại** (panel chọn lý do bằng nút: Không liên lạc được / Sai địa chỉ / Khách từ chối / Khác +
     ghi chú); Giao thất bại → chỉ xem (quản lý quyết định giao lại/hủy).

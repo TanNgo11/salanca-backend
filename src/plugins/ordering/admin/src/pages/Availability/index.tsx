@@ -8,6 +8,7 @@ import {
   Field,
   Flex,
   Loader,
+  NumberInput,
   SingleSelect,
   SingleSelectOption,
   Table,
@@ -38,6 +39,9 @@ type Row = {
   untilKind: string | null;
   toggledBy: string | null;
   toggledAt: string | null;
+  dailyLimit: number | null;
+  reservedToday: number | null;
+  remainingToday: number | null;
 };
 
 type OffDialog = { row: Row } | null;
@@ -46,6 +50,31 @@ type OffDialog = { row: Row } | null;
 const isBlockedNow = (row: Row): boolean =>
   row.selling === false &&
   (row.outOfStockUntil === null || Date.parse(row.outOfStockUntil) > Date.now());
+
+const rowKey = (row: Row): string => `${row.entityType}:${row.entityDocumentId}`;
+
+/** Design system has no ProgressBar in this Strapi build, so the ratio is a thin bar. */
+const PortionBar = ({
+  reserved,
+  limit,
+  soldOut,
+  low,
+}: {
+  reserved: number;
+  limit: number;
+  soldOut: boolean;
+  low: boolean;
+}) => {
+  const pct = limit <= 0 ? 100 : Math.max(0, Math.min(100, Math.round((reserved / limit) * 100)));
+  return (
+    <Box background="neutral200" hasRadius style={{ width: 96, height: 6, overflow: 'hidden' }}>
+      <Box
+        background={soldOut ? 'danger600' : low ? 'warning600' : 'primary600'}
+        style={{ width: `${pct}%`, height: 6 }}
+      />
+    </Box>
+  );
+};
 
 const fmtUntil = (row: Row, t: (k: string, f: string, v?: Record<string, unknown>) => string): string => {
   if (row.outOfStockUntil === null) return '—';
@@ -61,7 +90,7 @@ const fmtUntil = (row: Row, t: (k: string, f: string, v?: Record<string, unknown
  */
 const AvailabilityPage = () => {
   const { formatMessage } = useIntl();
-  const { get, post } = useFetchClient();
+  const { get, post, put } = useFetchClient();
   const { toggleNotification } = useNotification();
 
   const [branches, setBranches] = useState<BranchOption[]>([]);
@@ -76,6 +105,10 @@ const AvailabilityPage = () => {
   );
   const [untilTime, setUntilTime] = useState('14:00');
   const [busy, setBusy] = useState(false);
+  const [onlyLimited, setOnlyLimited] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [draftLimit, setDraftLimit] = useState<number | undefined>(undefined);
+  const [missingBranch, setMissingBranch] = useState(false);
 
   const t = useCallback(
     (key: string, fallback: string, values?: Record<string, unknown>) =>
@@ -100,8 +133,20 @@ const AvailabilityPage = () => {
 
   const loadRows = useCallback(
     async (code: string) => {
-      const { data } = await get(`/${PLUGIN_ID}/availability?locationRef=${encodeURIComponent(code)}`);
-      setRows(Array.isArray(data?.items) ? data.items : []);
+      try {
+        const { data } = await get(`/${PLUGIN_ID}/availability?locationRef=${encodeURIComponent(code)}`);
+        setRows(Array.isArray(data?.items) ? data.items : []);
+        setMissingBranch(false);
+      } catch (error) {
+        const api = (error as { response?: { data?: { error?: { code?: string } } } })?.response?.data
+          ?.error;
+        if (api?.code === 'BRANCH_NOT_FOUND') {
+          setRows([]);
+          setMissingBranch(true);
+          return;
+        }
+        throw error;
+      }
     },
     [get],
   );
@@ -160,6 +205,33 @@ const AvailabilityPage = () => {
     }
   };
 
+  const beginEdit = (row: Row) => {
+    setEditing(rowKey(row));
+    setDraftLimit(row.dailyLimit === null ? undefined : row.dailyLimit);
+  };
+
+  const saveLimit = async (row: Row) => {
+    setBusy(true);
+    try {
+      await put(`/${PLUGIN_ID}/availability/daily-limit`, {
+        entityType: row.entityType,
+        entityDocumentId: row.entityDocumentId,
+        locationRef,
+        dailyLimit: draftLimit === undefined ? null : draftLimit,
+      });
+      toggleNotification({ type: 'success', message: t('saved', 'Đã lưu giới hạn') });
+      setEditing(null);
+      await loadRows(locationRef);
+    } catch (error) {
+      const api = (error as { response?: { data?: { error?: { code?: string } } } })?.response?.data
+        ?.error;
+      if (api?.code === 'BRANCH_NOT_FOUND') setMissingBranch(true);
+      else notifyError(error);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const onToggle = (row: Row, checked: boolean) => {
     if (checked) {
       void toggle(row, { selling: true });
@@ -173,8 +245,9 @@ const AvailabilityPage = () => {
     const q = query.trim().toLowerCase();
     return rows
       .filter((row) => (tab === 'off' ? isBlockedNow(row) : true))
+      .filter((row) => (onlyLimited ? row.dailyLimit !== null : true))
       .filter((row) => q === '' || row.label.toLowerCase().includes(q));
-  }, [rows, query, tab]);
+  }, [rows, query, tab, onlyLimited]);
 
   const offCount = useMemo(() => rows.filter(isBlockedNow).length, [rows]);
   const kindLabel = (type: EntityType) =>
@@ -225,15 +298,25 @@ const AvailabilityPage = () => {
             {t('tab.off', 'Đang tạm hết ({n})', { n: offCount })}
           </Button>
         </Flex>
+        <Toggle
+          checked={onlyLimited}
+          onLabel={t('onlyLimited', 'Chỉ món có giới hạn')}
+          offLabel={t('onlyLimited', 'Chỉ món có giới hạn')}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => setOnlyLimited(event.target.checked)}
+        />
       </Flex>
 
       <Box paddingTop={4} background="neutral0" hasRadius borderColor="neutral200">
-        {loading ? (
+        {missingBranch ? (
+          <Box padding={8}>
+            <Typography>{t('missingBranch', 'Không thấy chi nhánh')}</Typography>
+          </Box>
+        ) : loading ? (
           <Flex justifyContent="center" padding={8}>
             <Loader />
           </Flex>
         ) : (
-          <Table colCount={5} rowCount={filtered.length}>
+          <Table colCount={7} rowCount={filtered.length}>
             <Thead>
               <Tr>
                 <Th>
@@ -241,6 +324,12 @@ const AvailabilityPage = () => {
                 </Th>
                 <Th>
                   <Typography variant="sigma">{t('col.kind', 'Loại')}</Typography>
+                </Th>
+                <Th>
+                  <Typography variant="sigma">{t('col.limit', 'Giới hạn/ngày')}</Typography>
+                </Th>
+                <Th>
+                  <Typography variant="sigma">{t('col.today', 'Hôm nay')}</Typography>
                 </Th>
                 <Th>
                   <Typography variant="sigma">{t('col.state', 'Trạng thái')}</Typography>
@@ -263,6 +352,66 @@ const AvailabilityPage = () => {
                     </Td>
                     <Td>
                       <Badge>{kindLabel(row.entityType)}</Badge>
+                    </Td>
+                    <Td>
+                      {editing === rowKey(row) ? (
+                        <Flex gap={2} alignItems="center">
+                          <NumberInput
+                            aria-label={t('editLimit', 'Sửa giới hạn mỗi ngày')}
+                            value={draftLimit}
+                            min={0}
+                            onValueChange={(value?: number) =>
+                              setDraftLimit(
+                                typeof value === 'number' && Number.isFinite(value)
+                                  ? Math.max(0, Math.trunc(value))
+                                  : undefined,
+                              )
+                            }
+                          />
+                          <Button size="S" loading={busy} onClick={() => void saveLimit(row)}>
+                            {t('saveLimit', 'Lưu')}
+                          </Button>
+                          <Button
+                            size="S"
+                            variant="tertiary"
+                            disabled={busy}
+                            onClick={() => setEditing(null)}
+                          >
+                            {t('cancelLimit', 'Hủy')}
+                          </Button>
+                        </Flex>
+                      ) : (
+                        <Button variant="tertiary" size="S" onClick={() => beginEdit(row)} disabled={busy}>
+                          {row.dailyLimit === null ? t('unlimited', '—') : String(row.dailyLimit)}
+                        </Button>
+                      )}
+                    </Td>
+                    <Td>
+                      {row.dailyLimit === null ||
+                      row.reservedToday === null ||
+                      row.remainingToday === null ? (
+                        <Typography textColor="neutral600">{t('unlimited', '—')}</Typography>
+                      ) : (
+                        <Flex direction="column" alignItems="flex-start" gap={1}>
+                          <Flex gap={2} alignItems="center">
+                            <Typography>{`${row.reservedToday} / ${row.dailyLimit}`}</Typography>
+                            {row.remainingToday <= 0 ? (
+                              <Badge>{t('soldOutBadge', 'Hết hôm nay')}</Badge>
+                            ) : null}
+                          </Flex>
+                          <PortionBar
+                            reserved={row.reservedToday}
+                            limit={row.dailyLimit}
+                            soldOut={row.remainingToday <= 0}
+                            low={row.dailyLimit === 0 || row.remainingToday / row.dailyLimit <= 0.2}
+                          />
+                          {row.remainingToday <= 0 ? (
+                            <Typography variant="pi" textColor="neutral600">
+                              {t('soldOutHint', 'Tự bán lại từ ngày kinh doanh mai')}
+                            </Typography>
+                          ) : null}
+                        </Flex>
+                      )}
                     </Td>
                     <Td>
                       <Flex gap={2} alignItems="center">

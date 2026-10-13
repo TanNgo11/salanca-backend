@@ -1,4 +1,7 @@
-# Ordering storefront API (O3), SePay webhook (O4) and self-delivery (O5)
+# Ordering storefront API (O3), SePay webhook (O4), self-delivery (O5) and ops extras (O7)
+
+O7 adds `specialHours` on `GET /config` (pickup, and delivery when that method is on), `dailyLimit` /
+`sold-out-today` on the public catalog, and `ITEM_SOLD_OUT` from quote and create.
 
 Public routes of the `ordering` plugin for the web app (phase OW). Base path with Salanca's REST prefix:
 `/api/v1/ordering`. All routes are `auth: false`; each one rate-limits by the visitor IP, caps JSON bodies
@@ -39,6 +42,7 @@ fails on an undocumented route.
 | `ASAP_UNAVAILABLE` | 400 | closed now or not ready before closing; pick a slot |
 | `MIN_ORDER_NOT_MET` | 400 | `details.minOrderAmount`, `details.subtotal` |
 | `SELLABLE_NOT_FOUND` / `SELLABLE_UNAVAILABLE` / `LINE_INVALID` | 404 / 400 / 400 | `details.lineIndex` |
+| `ITEM_SOLD_OUT` | 409 | the business day's portion limit is short. `details`: `entityType`, `entityDocumentId`, `locationRef`, `remaining`, `businessDate`, `sellableUid`, and when present `variantUid` / `modifierUid` |
 | `PRICE_CHANGED` | 409 | `expectedCartHash` no longer matches; show the new quote |
 | `IDEMPOTENCY_PAYLOAD_MISMATCH` / `IDEMPOTENCY_IN_PROGRESS` | 409 | key reused with another body / still running |
 | `ORDER_TOKEN_INVALID` | 401 | missing, malformed or unknown token |
@@ -56,17 +60,36 @@ Active branches that sell online. `items[]`: `code`, `name { vi, en }`, `address
 
 ### `GET /config?branch=<code>`
 
-`{ currency, consentPolicyVersion, captcha: { provider } | null, branch }`. `branch.pickup` (null when
-pickup is off): `orderTiming`, `leadTimeMinutes`, `slotLengthMinutes`, `maxAdvanceDays`, `bookableFrom`,
-`bookableTo` (local dates), `minOrderAmount`, `paymentTiming`, `paymentMethods`, `customerCancelBeforeMinutes`,
-`openNow`, `asapReadyAt`. No `branch.delivery` block yet — the delivery checkout UI belongs to OW; quote
-and create already accept `kind: 'delivery'` against the branch's delivery settings.
+`{ currency, consentPolicyVersion, captcha: { provider } | null, branch }`. Without `?branch=`, `branch` is
+null. With a branch that sells online: `code`, `timezone`, `pickup` (null when pickup is off), and
+`delivery` when delivery is enabled. Both blocks share one shape: `orderTiming`, `leadTimeMinutes`,
+`slotLengthMinutes`, `maxAdvanceDays`, `bookableFrom`, `bookableTo` (local dates), `minOrderAmount`,
+`paymentTiming`, `paymentMethods`, `customerCancelBeforeMinutes`, `openNow`, `asapReadyAt`, `specialHours`.
+`specialHours` is today through the next 13 local days (`date`, `closed`, `ranges: [{ start, end }]`,
+optional `note`), sorted by date. A row replaces that date's regular hours and holidays. A range may cross
+midnight (`22:00`–`02:00`). Quote and create already accept `kind: 'delivery'` against the branch's delivery
+settings.
 
 ### `GET /slots?branch=<code>&date=YYYY-MM-DD`
 
 `items[]`: `startsAt`, `endsAt`, `localStart` (`HH:mm` branch time), `available`, `reason`
-(`too-early` | `full`). Pickup only for now — it always uses the branch pickup lead time; quote/create
-re-check delivery slots against the delivery schedule themselves.
+(`too-early` | `full`). Pickup only for now — it uses the branch pickup schedule, including a `specialHours`
+row for that date (a closed special day has no bookable slots). Quote and create re-check delivery slots
+against the delivery schedule themselves.
+
+### `GET /catalog/products`
+
+Public list (`?locale=&category=&location=&cursor=&limit=`) and `GET /catalog/products/:slug`. `branch` is
+accepted as an alias of `location`. Optional `date=YYYY-MM-DD` is the business date the portion count uses;
+omitted, the count is the branch's business date today. When that branch has a daily portion limit, the
+product, variant, or option includes `dailyLimit: { remaining, date }`. `remaining: 0` sets the product's
+`available` to false and `unavailableReason` to `sold-out-today` (a sold-out variant or option is
+`available: false`). No branch in the query means no portion overlay. Pausing a product with the "Đang bán"
+switch is separate and still uses `reasons` / `resumesAt`.
+
+`POST /quote` and `POST /orders` answer `409 ITEM_SOLD_OUT` when the requested quantity is above `remaining`
+for the receive business date (ASAP uses the order's business date; a slot uses the business date of
+`slot.startsAt`).
 
 ### `POST /quote`
 
@@ -283,3 +306,15 @@ re-quotes: `quote.totals.grandTotal` is current money, `cartHash` tracks content
 `carts.maxLines` (50) lines (`CART_LIMIT` over). The `cart-reminder` job emails marketing opt-in
 customers once a cart idles past `carts.reminderIdleHours` (default 2h), on branches with
 `cartReminderEnabled`.
+
+### O11 review corrections (2026-10-13)
+
+- OTP verification serializes on the challenge row in PostgreSQL: concurrent successful
+  submissions issue one session; concurrent wrong codes consume the configured attempt limit.
+- A first guest order creates an unverified customer by normalized phone when no profile exists.
+  Concurrent orders share that profile; checkout never verifies an identity or resurrects an
+  erased profile. An existing authenticated customer still takes precedence.
+- Staff data requests use the same customer scope for phone and customerId creation, list/count,
+  process and reject. Out-of-scope identifiers return 404. A staff member without a location
+  scope cannot list or mutate the queue. Requests without a currently visible customer, including
+  erased customers whose orders were detached, remain accessible to all-location managers only.

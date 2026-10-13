@@ -31,19 +31,41 @@ export type SlotInput = {
 
 const DAY_MINUTES = 24 * 60;
 
-/** Opening ranges of a local date as absolute minutes from that date's midnight. */
+export type DayKind = 'special' | 'holiday' | 'regular';
+
+/**
+ * Why a date has the hours it has. A special-hours row wins even when that row is closed,
+ * then a holiday, then the regular opening hours.
+ */
+export function dayKind(settings: PickupSettings, date: string): DayKind {
+  const policy = settings.schedule.businessDayPolicy;
+  if (policy.specialHours.some((row) => row.date === date)) return 'special';
+  if (policy.holidayDates.includes(date)) return 'holiday';
+  return 'regular';
+}
+
+const toAbsolute = (ranges: TimeRange[]): Array<{ from: number; to: number }> =>
+  ranges.map((range) => {
+    const from = minutesOf(range.start);
+    const end = minutesOf(range.end);
+    return { from, to: end <= from ? end + DAY_MINUTES : end };
+  });
+
+/**
+ * Opening ranges of a local date as absolute minutes from that date's midnight.
+ * Priority for the date: `specialHours` (including a closed day), then `holidayDates`,
+ * then `openingHours`.
+ */
 export function rangesForDate(settings: PickupSettings, date: string): Array<{ from: number; to: number }> {
   const schedule = settings.schedule;
+  const special = schedule.businessDayPolicy.specialHours.find((row) => row.date === date);
+  if (special) return special.closed ? [] : toAbsolute(special.ranges);
   if (schedule.businessDayPolicy.holidayDates.includes(date)) return [];
   const hours = schedule.openingHours;
   if (hours.mode === '24_7') return [{ from: 0, to: DAY_MINUTES }];
   const ranges: TimeRange[] =
     hours.mode === 'weekly' ? hours.weekly[WEEKDAYS[weekdayOf(date)]] ?? [] : hours.daily;
-  return ranges.map((range) => {
-    const from = minutesOf(range.start);
-    const end = minutesOf(range.end);
-    return { from, to: end <= from ? end + DAY_MINUTES : end };
-  });
+  return toAbsolute(ranges);
 }
 
 /** Earliest allowed slot start: now + lead time. */

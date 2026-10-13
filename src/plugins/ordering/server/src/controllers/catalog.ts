@@ -3,7 +3,10 @@ import type { Core } from '@strapi/strapi';
 import type { AdapterContext, Sellable } from '../contracts';
 import type { OrderingConfig } from '../config';
 import type { AvailabilityInput } from '../domain/catalog/availability';
-import { serializeCategoryTree, serializeProduct } from '../domain/catalog/serialize';
+import { serializeCategoryTree, serializeProduct, type DailyStockView } from '../domain/catalog/serialize';
+import { businessDate } from '../domain/business-date';
+import { catalogDailyRefs, dailyStockKey } from '../domain/daily-stock-lines';
+import type dailyStockFactory from '../services/daily-stock';
 import { resolveClientIp } from '../domain/client-ip';
 import { getCatalogRateLimit } from '../domain/rate-limit';
 import type { OrderingRegistry } from '../services/registry';
@@ -42,11 +45,56 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       config().catalog.adapter,
     );
 
+  const locationOf = (ctx: PublicCtx): string | undefined =>
+    text(ctx.query.branch) ?? text(ctx.query.location);
+
   const adapterContext = (ctx: PublicCtx): AdapterContext => ({
     now: new Date().toISOString(),
-    locationRef: text(ctx.query.location),
+    locationRef: locationOf(ctx),
     channel: 'web-checkout',
   });
+
+  const cutoffOf = (fulfillment: unknown): string => {
+    const root = fulfillment && typeof fulfillment === 'object' ? (fulfillment as Record<string, unknown>) : {};
+    for (const kind of ['pickup', 'delivery'] as const) {
+      const method = root[kind] as { schedule?: { businessDayPolicy?: { cutoffLocalTime?: string } } } | undefined;
+      const cutoff = method?.schedule?.businessDayPolicy?.cutoffLocalTime;
+      if (typeof cutoff === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(cutoff)) return cutoff;
+    }
+    return config().businessDay?.cutoffLocalTime ?? '04:00';
+  };
+
+  /** Portion overlay for `?branch=` or `?location=`. No branch → the catalog stays unlimited. */
+  const dailyView = async (ctx: PublicCtx, sellables: Sellable[]): Promise<DailyStockView | undefined> => {
+    const locationRef = locationOf(ctx);
+    if (!locationRef || sellables.length === 0) return undefined;
+    const branch = (await strapi.db.query('plugin::ordering.branch').findOne({
+      where: { code: locationRef },
+    })) as { timezone?: string; fulfillment?: unknown } | null;
+    if (!branch) return undefined;
+    const requested = text(ctx.query.date);
+    const date =
+      requested && /^\d{4}-\d{2}-\d{2}$/.test(requested)
+        ? requested
+        : businessDate(new Date(), branch.timezone ?? 'Asia/Ho_Chi_Minh', cutoffOf(branch.fulfillment));
+    const seen = new Set<string>();
+    const refs: Array<{ entityType: 'product' | 'variant' | 'modifier'; entityDocumentId: string }> = [];
+    for (const sellable of sellables) {
+      for (const ref of catalogDailyRefs(sellable)) {
+        const key = dailyStockKey(ref.entityType, ref.entityDocumentId);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        refs.push(ref);
+      }
+    }
+    if (refs.length === 0) return undefined;
+    const stock = await (
+      strapi.plugin('ordering').service('daily-stock') as ReturnType<typeof dailyStockFactory>
+    ).remaining(locationRef, date, refs);
+    const remainingByKey = new Map<string, number>();
+    for (const [key, row] of stock) remainingByKey.set(key, row.remaining);
+    return { date, remainingByKey };
+  };
 
   /** Fixed-window per-IP limit — read traffic is cheap but unauthenticated. */
   const rateLimited = (ctx: PublicCtx): boolean => {
@@ -87,8 +135,9 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
         cursor: text(ctx.query.cursor),
         limit,
       });
+      const daily = await dailyView(ctx, items);
       ctx.body = {
-        items: items.map(serializeProduct),
+        items: items.map((item) => serializeProduct(item, daily)),
         ...(nextCursor ? { nextCursor } : {}),
       };
     },
@@ -108,7 +157,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
         errorBody(ctx, 404, 'NOT_FOUND', 'Product not found.');
         return;
       }
-      ctx.body = { item: serializeProduct(sellable) };
+      ctx.body = { item: serializeProduct(sellable, await dailyView(ctx, [sellable])) };
     },
   };
 };

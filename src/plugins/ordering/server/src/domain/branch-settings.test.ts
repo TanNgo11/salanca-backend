@@ -19,7 +19,7 @@ describe('resolvePickupSettings', () => {
         slotLengthMinutes: 15,
         capacity: 8,
         maxAdvanceDays: 7,
-        businessDayPolicy: { cutoffLocalTime: '04:00', holidayDates: [] },
+        businessDayPolicy: { cutoffLocalTime: '04:00', holidayDates: [], specialHours: [] },
         openingHours: { mode: 'daily', daily: [{ start: '07:00', end: '22:00' }] },
       },
     });
@@ -132,6 +132,78 @@ describe('validateBranchInput', () => {
       expect(missing.issues.map((issue) => issue.path)).toContain('fulfillment.delivery.zones');
     }
     expect(resolveDeliverySettings(undefined).zones).toEqual([]);
+  });
+
+  it('rejects a duplicated special date, overlapping ranges, and a closed day that still has ranges', () => {
+    const duplicated = validateBranchInput(
+      {
+        fulfillment: {
+          pickup: {
+            schedule: {
+              businessDayPolicy: {
+                specialHours: [
+                  { date: '2026-02-17', closed: false, ranges: [{ start: '10:00', end: '14:00' }] },
+                  { date: '2026-02-17', closed: true, ranges: [] },
+                ],
+              },
+            },
+          },
+        },
+      },
+      options,
+    );
+    expect(duplicated.valid).toBe(false);
+    if (!duplicated.valid) {
+      expect(duplicated.issues).toContainEqual({
+        path: 'fulfillment.pickup.schedule.businessDayPolicy.specialHours.1.date',
+        message: 'duplicate special date',
+      });
+    }
+
+    const overlapping = validateBranchInput(
+      {
+        fulfillment: {
+          pickup: {
+            schedule: {
+              businessDayPolicy: {
+                specialHours: [
+                  {
+                    date: '2026-02-17',
+                    ranges: [
+                      { start: '10:00', end: '14:00' },
+                      { start: '13:00', end: '16:00' },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+      options,
+    );
+    expect(overlapping.valid).toBe(false);
+    if (!overlapping.valid) {
+      expect(overlapping.issues.some((issue) => issue.message === 'ranges overlap')).toBe(true);
+    }
+
+    const closedWithRanges = validateBranchInput(
+      {
+        fulfillment: {
+          pickup: {
+            schedule: {
+              businessDayPolicy: {
+                specialHours: [
+                  { date: '2026-02-17', closed: true, ranges: [{ start: '10:00', end: '14:00' }] },
+                ],
+              },
+            },
+          },
+        },
+      },
+      options,
+    );
+    expect(closedWithRanges.valid).toBe(false);
   });
 
   it('requires code and name on create and a real timezone', () => {

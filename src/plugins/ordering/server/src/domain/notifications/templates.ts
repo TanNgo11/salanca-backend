@@ -14,6 +14,7 @@ export type TemplateCode =
   | 'customer.order-delivered'
   | 'customer.order-rejected'
   | 'customer.order-canceled'
+  | 'customer.order-updated'
   | 'customer.delivery-out'
   | 'customer.delivery-delivered'
   | 'customer.delivery-failed'
@@ -108,6 +109,10 @@ const copy: Record<TemplateCode, Record<Locale, { subject: string; lead: string 
   'customer.order-canceled': {
     vi: { subject: 'Đơn {code} đã hủy', lead: 'Đơn của bạn tại {branch} đã được hủy.' },
     en: { subject: 'Order {code} canceled', lead: 'Your order at {branch} has been canceled.' },
+  },
+  'customer.order-updated': {
+    vi: { subject: 'Đơn {code} đã được cập nhật', lead: '{branch} đã cập nhật đơn của bạn.' },
+    en: { subject: 'Order {code} was updated', lead: '{branch} updated your order.' },
   },
   'customer.delivery-out': {
     vi: { subject: 'Đơn {code} đang được giao', lead: '{branch} đang giao đơn của bạn — người giao sẽ tới sớm.' },
