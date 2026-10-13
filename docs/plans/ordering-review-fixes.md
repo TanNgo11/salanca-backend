@@ -58,9 +58,30 @@ three concurrent adds). PASS together with `schema`, `cart`, `cart-checkout`, `a
 
 ## Third review round
 
-Status: In progress; authorized by owner, handoff a190039.
-Plan: preserve the first two rounds; add PostgreSQL regression tests and record red results before editing services.
-Use a shared advisory customer key then customer row lock for checkout linking and erasure finalization; recheck open orders under the lock.
-Make webhook insert/payload activation atomic and repair incomplete existing rows on retry. Lock both carts in id order and re-read the source before merging.
-Serialize OTP count/create by target hash and defer mail to the outermost transaction commit.
-No schema/dependency changes or new migrations are planned. Test only on salanca_ordering_review_fixes; run the handoff's compact gates, then fetch/merge origin/feat/ordering and repeat them before pushing both feature branches. Each fix gets a separate co-authored commit. Browser UAT remains outside this backend fix.
+Status: Automated verification passed before integration merge; push pending.
+Owner authorization: handoff a190039, 2026-10-13. No schema changes, migrations or dependencies were added.
+
+| Issue | Regression before fix | Result after fix | Commit |
+| --- | --- | --- | --- |
+| Customer erasure / order linking | Barrier after the real initial count: request becomes done while a new order is linked; test expected waiting | Shared identity advisory lock then customer row lock; recount in final transaction. Both signed-in email-only and guest-phone orders force waiting. Newly closed orders are scrubbed under the lock before done. | e8ba8d1 |
+| Webhook fanout interruption | Inject customer read failure after the old placeholder INSERT; retry delivered 0 instead of 1 | INSERT, payload and activation commit together. Retry also repairs legacy placeholders. Three concurrent retries keep one row and deliver once; completed delivery never reactivates. | 320fb2a |
+| Concurrent guest cart merge | Three concurrent merges turn quantity 1 into 3 | Lock both carts by ascending id, reload source and skip an already consumed source. Concurrent claim also preserves one cart. | 52be7b4 |
+| Concurrent OTP requests | Eight concurrent requests persisted 8 challenges instead of sendMax=3 | Advisory lock by target around count/insert: 3 real challenges and mails, 5 phantom replies. Mail waits for outermost commit; rollback sends none. | cc5484f |
+
+PostgreSQL regression files: `review-erasure-race.mjs`, `review-webhook-fanout.mjs`, `review-cart-merge.mjs`,
+`review-otp-race.mjs`. Each can run directly. `review-round3.mjs` runs all four in one Strapi boot and is registered
+in run-all for future gates. Synchronization uses barriers or actual parallel calls; no sleep-based ordering.
+The erasure closed-order race also failed before the additional final scrub and passed afterwards.
+
+### Verification before integration merge
+
+All integration commands used `ORDERING_TEST_DATABASE=salanca_ordering_review_fixes` on loopback PostgreSQL.
+- `pnpm install --frozen-lockfile`: EXIT=0; lock/config unchanged.
+- `pnpm run lint`, `pnpm run typecheck`, `pnpm run build:ordering`: EXIT=0.
+- `pnpm exec vitest run src/plugins/ordering`: EXIT=0; 62 files / 660 tests.
+- `node scripts/ordering/<name>.mjs`: EXIT=0 for `review-round3`, `review-extra`, `data-rights`, `webhooks-out`, `cart`, `customer-auth`, `create-order`.
+- `pnpm audit --registry=https://registry.npmjs.org --json`: EXIT=1; existing baseline 2 critical / 3 high / 27 moderate / 2 low. No dependency changes or audit fix applied.
+- Existing pg concurrent-query deprecation warning was observed and excluded from these fixes per the handoff.
+- No check:ordering, check:phase3, smoke, Admin build, production access or manual UAT. Other workers' worktrees remain untouched; no stash or reserved migration numbers used.
+
+Next: fetch and merge origin/feat/ordering, repeat the compact gates, then push both authorized feature branches without force.
