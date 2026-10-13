@@ -112,6 +112,11 @@ export const AUDIT_ACTIONS: Record<string, ActionDef> = {
   // O12: pause/resume and busy mode toggles on the orders screen (N3).
   'branch.pause': { category: 'config', label: ['Tạm dừng/mở nhận đơn', 'Pause/resume ordering'] },
   'branch.busy': { category: 'config', label: ['Bật/tắt quán đông', 'Toggle busy mode'] },
+  // O12: dining tables (N6) and the dine-in session close that collects money (N7).
+  'dining-table.create': { category: 'config', label: ['Tạo bàn', 'Create table'] },
+  'dining-table.update': { category: 'config', label: ['Sửa bàn', 'Update table'] },
+  'dining-table.rotate-qr': { category: 'config', label: ['Đổi mã QR bàn', 'Rotate table QR'] },
+  'table-session.close': { category: 'money', label: ['Thu tiền & đóng bàn', 'Collect & close table'] },
   'settings.update': { category: 'config', label: ['Sửa cài đặt bán hàng', 'Update sales settings'] },
   'alert-rules.update': { category: 'config', label: ['Sửa ngưỡng cảnh báo', 'Update alert rules'] },
   // O10: outbound webhook endpoints and editable email templates.

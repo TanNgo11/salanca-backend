@@ -65,6 +65,8 @@ export const configSchema = z.object({
     cartReminderCron: z.string().min(1),
     dataRequestWaitingCron: z.string().min(1),
     customerGroupRefreshCron: z.string().min(1),
+    /** O12: open sessions past business-day end get a `table-session-open` alert. */
+    tableSessionAutocloseCron: z.string().min(1),
     /** Expected run period in minutes per job for `job-heartbeat-missed` (ops-check). */
     heartbeatMinutes: z.record(z.string(), z.number().int().positive()),
   }),
@@ -126,6 +128,11 @@ export const configSchema = z.object({
     email: z.object({ enabled: z.boolean() }),
     /** Customer order link; `{token}` is replaced (put it after `#`, contracts §11). */
     orderLinkTemplate: z.string(),
+  }),
+  /** O12: table QR links. `{token}` is replaced by the table's raw secret. */
+  tables: z.object({
+    /** Storefront menu URL for a scanned table QR (`{token}` placeholder required). */
+    menuUrlTemplate: z.string(),
   }),
   storefront: z.object({
     /** Registered CaptchaProvider code; empty string disables captcha (dev/test only). */
@@ -235,6 +242,7 @@ export default {
       cartReminderCron: '0 */15 * * * *',
       dataRequestWaitingCron: '0 */30 * * * *',
       customerGroupRefreshCron: '0 15 3 * * *',
+      tableSessionAutocloseCron: '0 */15 * * * *',
       heartbeatMinutes: {
         outbox: 2,
         'hold-expiry': 2,
@@ -251,6 +259,7 @@ export default {
         'cart-reminder': 20,
         'data-request-waiting': 35,
         'customer-group-refresh': 1500,
+        'table-session-autoclose': 20,
       },
     },
     audit: {
@@ -288,6 +297,7 @@ export default {
     },
     clientIp: { secretHeader: 'x-ordering-client-secret', ipHeader: 'x-ordering-client-ip' },
     notifications: { email: { enabled: false }, orderLinkTemplate: '' },
+    tables: { menuUrlTemplate: '' },
     storefront: {
       captchaProvider: '',
       rateLimits: {

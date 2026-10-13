@@ -25,6 +25,7 @@ import customerGroups from './customer-groups';
 import ratings from './ratings';
 import reports from './reports';
 import storefront from './storefront';
+import table from './table';
 import webhook from './webhook';
 import webhooks from './webhooks';
 
@@ -58,4 +59,5 @@ export default {
   'customer-auth': customerAuth,
   customer,
   cart,
+  table,
 };

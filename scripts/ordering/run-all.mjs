@@ -98,6 +98,8 @@ const scripts = [
   'print.mjs',
   // O12 step 6: kitchen display board — stations, prepared toggles, complete.
   'kds.mjs',
+  // O12 step 7: QR dine-in — tables, sessions, close-and-collect, autoclose alert.
+  'dine-in.mjs',
 ];
 
 const results = [];

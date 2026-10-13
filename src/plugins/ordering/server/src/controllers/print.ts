@@ -40,4 +40,27 @@ export default ({ strapi }: { strapi: Core.Strapi }) => ({
       throw error;
     }
   },
+
+  /** "In hóa đơn bàn" (screen N7): one provisional receipt covering the whole session. */
+  async session(ctx: AdminCtx) {
+    try {
+      const service = strapi.plugin('ordering').service('print') as ReturnType<typeof printFactory>;
+      const scope = strapi.plugin('ordering').service('scope') as ReturnType<typeof scopeFactory>;
+      const actor = await scope.actorFromAdminUser(ctx.state.user ?? {});
+      const sessionId = Number(ctx.params.id);
+      if (!Number.isInteger(sessionId) || sessionId <= 0) {
+        ctx.status = 404;
+        ctx.body = { error: { code: 'TABLE_SESSION_NOT_FOUND', message: 'table session not found' } };
+        return;
+      }
+      ctx.body = { item: await service.forSession(sessionId, { actor }) };
+    } catch (error) {
+      if (isOrderingError(error)) {
+        ctx.status = error.status;
+        ctx.body = { error: { code: error.code, message: error.message, details: error.details } };
+        return;
+      }
+      throw error;
+    }
+  },
 });

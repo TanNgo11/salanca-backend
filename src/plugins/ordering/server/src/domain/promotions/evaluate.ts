@@ -31,7 +31,7 @@ export type PromotionSnapshot = {
   minSubtotal: number;
   /** `null` or empty means every branch. */
   locationRefs: string[] | null;
-  receiveKinds: Array<'pickup' | 'delivery'>;
+  receiveKinds: Array<'pickup' | 'delivery' | 'dine-in'>;
   startsAt: string;
   endsAt: string | null;
   /** Empty means every day. */
@@ -48,7 +48,9 @@ export type EvaluateInput = {
   now: Date;
   timezone: string;
   locationRef: string;
-  receiveKind: 'pickup' | 'delivery';
+  // 'dine-in' is a valid order kind; no promotion declares it yet, so dine-in carts
+  // match nothing until the promotion vocabulary is extended (O12 keeps that honest).
+  receiveKind: 'pickup' | 'delivery' | 'dine-in';
   lines: PromotionLine[];
   fulfillmentAmount: number;
   subtotal: number;

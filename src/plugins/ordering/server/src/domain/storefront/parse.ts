@@ -27,7 +27,8 @@ export type CartRequest = {
   }>;
   receiveMethod:
     | { kind: 'pickup'; locationRef: string }
-    | { kind: 'delivery'; address: AddressSnapshot; providerCode: 'self-delivery' };
+    | { kind: 'delivery'; address: AddressSnapshot; providerCode: 'self-delivery' }
+    | { kind: 'dine-in'; locationRef: string; tableToken: string };
   pickup: { asap?: boolean; slot?: { startsAt: string } };
   payment?: { providerCode: string };
   promotionCode?: string;
@@ -124,6 +125,14 @@ export function parseCartRequest(body: unknown): CartRequest {
         wardCode: communeCode.toUpperCase(),
         ...(str(address.note, 'receiveMethod.address.note', 200) ? { note: str(address.note, 'receiveMethod.address.note', 200) } : {}),
       },
+    };
+  } else if (receive.kind === 'dine-in') {
+    // O12: the table QR secret. Server resolves it to the table row — the stored order keeps
+    // tableId/tableCode, never the token.
+    receiveMethod = {
+      kind: 'dine-in',
+      locationRef,
+      tableToken: str(receive.tableToken, 'receiveMethod.tableToken', 200, true) as string,
     };
   } else {
     throw new OrderingError('FULFILLMENT_UNAVAILABLE', 'this receive method is not available', {

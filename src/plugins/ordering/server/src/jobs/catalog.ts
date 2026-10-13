@@ -16,6 +16,7 @@ import { runPaymentExpiry } from './payment-expiry';
 import { runSepayReconciliation } from './reconciliation';
 import { runRetention } from './retention';
 import { runSlaCheck } from './sla-check';
+import { runTableSessionAutoclose } from './table-session-autoclose';
 import { runWebhookDispatcher } from './webhook-dispatcher';
 
 export type JobRun = (
@@ -88,6 +89,14 @@ export const ORDERING_JOBS: OrderingJob[] = [
     name: 'customer-group-refresh',
     cronKey: 'customerGroupRefreshCron',
     run: runCustomerGroupRefresh,
+    runnable: true,
+  },
+  // O12 (plan step 7): flags dine-in table sessions still open after the business day rolled
+  // over — alerts only, never collects payment or closes the session.
+  {
+    name: 'table-session-autoclose',
+    cronKey: 'tableSessionAutocloseCron',
+    run: runTableSessionAutoclose,
     runnable: true,
   },
 ];

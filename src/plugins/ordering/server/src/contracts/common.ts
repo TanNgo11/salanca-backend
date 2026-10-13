@@ -26,6 +26,14 @@ export type SlotSelection = {
 export type ReceiveMethod =
   | { kind: 'pickup'; locationRef: string }
   | { kind: 'delivery'; address: AddressSnapshot; providerCode?: string }
+  | {
+      kind: 'dine-in';
+      locationRef: string;
+      /** Customer-supplied QR secret at intake; the stored snapshot carries tableId/tableCode. */
+      tableToken?: string;
+      tableId?: number;
+      tableCode?: string;
+    }
   | { kind: 'appointment'; locationRef: string; slot: SlotSelection };
 
 export type ValidationResult =

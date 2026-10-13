@@ -123,6 +123,14 @@ export const ALERT_RULE_DEFAULTS: AlertRules = {
     aggregationMinutes: 1440,
     recipients: ['report.read'],
   },
+  // O12: a table session still open after the business day rolled over (plan step 7).
+  // Warning — someone has to close it by hand; the job never collects money by itself.
+  'table-session-open': {
+    enabled: true,
+    threshold: 1,
+    aggregationMinutes: 720,
+    recipients: ['ops.read'],
+  },
 };
 
 /** Unknown codes (custom callers) behave as a minimal warning rule rather than being dropped. */

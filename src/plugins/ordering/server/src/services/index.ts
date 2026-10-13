@@ -58,6 +58,7 @@ import rating from './rating';
 import promotionAdmin from './promotion-admin';
 import priceList from './price-list';
 import print from './print';
+import table from './table';
 import customerGroup from './customer-group';
 
 export default {
@@ -121,6 +122,8 @@ export default {
   print,
   // O12 (plan step 6): kitchen display board + line prepared state.
   kitchen,
+  // O12 (plan step 7): dining tables, QR rotation, table sessions and close/collect.
+  table,
   migrations: ({ strapi }: { strapi: Core.Strapi }) => ({
     run: (migrations: OrderingMigration[]) => runOrderingMigrations(strapi, migrations),
   }),

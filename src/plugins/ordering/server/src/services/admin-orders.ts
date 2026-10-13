@@ -761,9 +761,10 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
         let estimatedReadyAt: string | undefined;
         if (isAcceptance(definition, group.status, input.to)) {
           const branch = await s.branch().findByCode(aggregate.order.locationRef);
+          const orderKind = (aggregate.order.receiveMethod as { kind?: string } | null)?.kind;
           const settings = isDeliveryGroup(group)
             ? s.branch().deliverySettings(branch ?? { fulfillment: null })
-            : s.branch().pickupSettings(branch ?? { fulfillment: null });
+            : s.branch().receiveSettings(branch ?? { fulfillment: null }, orderKind ?? 'pickup');
           const receive = aggregate.order.receiveMethod as {
             timing?: { slot?: { startsAt?: string } };
           };

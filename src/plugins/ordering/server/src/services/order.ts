@@ -31,7 +31,12 @@ import { formatOrderCode } from '../domain/order-code';
 import { projectPaymentStatus } from '../domain/payment-status';
 import { appliesCashRounding, type CashRoundingPolicy } from '../domain/pricing/cash-rounding';
 import { normalizeVietnamesePhone } from '../../../shared/contact/phone';
-import type { DeliverySettings, PickupSettings } from '../domain/branch-settings';
+import type {
+  DeliverySettings,
+  DineInSettings,
+  PickupSettings,
+} from '../domain/branch-settings';
+import { receiveKindKey } from '../domain/branch-settings';
 import { snapshotDeliveryAddress, type DeliveryAddressInput } from '../domain/contact/address';
 import { quoteDelivery } from '../domain/delivery/zones';
 import { describeSelectedOptions } from '../domain/storefront/serialize';
@@ -61,6 +66,7 @@ import type branchFactory from './branch';
 import type customerFactory from './customer';
 import type dailyStockFactory from './daily-stock';
 import type holdFactory from './hold';
+import type tableFactory from './table';
 import type pickupSchedulingFactory from './pickup-scheduling';
 import type { PickupTiming, PickupTimingInput } from './pickup-scheduling';
 import type idempotencyFactory from './idempotency';
@@ -139,6 +145,9 @@ export type PreparedOrder = {
   branch: BranchRow;
   pickupSettings: PickupSettings | null;
   deliverySettings: DeliverySettings | null;
+  dineInSettings: DineInSettings | null;
+  /** O12: the resolved QR table for dine-in orders; null otherwise. */
+  diningTable: import('./table').TableRow | null;
   delivery: DeliveryQuote | null;
   /** Catalog names at quote time. Create stores this object and does not read the client names again. */
   deliveryAddress: AddressSnapshot | null;
@@ -228,7 +237,8 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
   };
   const cutoffFromFulfillment = (fulfillment: unknown, kind: string): string => {
     const root = fulfillment && typeof fulfillment === 'object' ? (fulfillment as JsonObject) : {};
-    const method = root[kind] as JsonObject | undefined;
+    // `receiveMethod.kind` is 'dine-in' while the stored JSON key is `dineIn`.
+    const method = root[receiveKindKey(kind) ?? kind] as JsonObject | undefined;
     const policy = (method?.schedule as JsonObject | undefined)?.businessDayPolicy as
       | JsonObject
       | undefined;
@@ -343,7 +353,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
       kind?: string;
       timing?: { mode?: string; slot?: { startsAt?: string } };
     };
-    const kind = receive.kind === 'delivery' ? 'delivery' : 'pickup';
+    const kind = receiveKindKey(receive.kind ?? '') ?? 'pickup';
     const cutoff = cutoffFromFulfillment(branch?.fulfillment, kind);
     const slotStartsAt = receive.timing?.mode === 'scheduled' ? receive.timing.slot?.startsAt ?? null : null;
     const date = slotStartsAt
@@ -529,15 +539,40 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         kind === 'pickup' ? branchService.pickupSettings(branch) : null;
       const deliverySettings: DeliverySettings | null =
         kind === 'delivery' ? branchService.deliverySettings(branch) : null;
-      const receiveSettings = pickupSettings ?? deliverySettings;
-      // Pickup callers pass `pickup`. A delivery cart always carries an address, so its rules apply.
-      const enforce = (kind === 'pickup' && input.pickup !== undefined) || kind === 'delivery';
+      const dineInSettings: DineInSettings | null =
+        kind === 'dine-in' ? branchService.dineInSettings(branch) : null;
+      const receiveSettings = pickupSettings ?? deliverySettings ?? dineInSettings;
+      // Pickup callers pass `pickup`. A delivery cart always carries an address and a dine-in
+      // cart always carries a table token, so both their rules always apply.
+      const enforce =
+        (kind === 'pickup' && input.pickup !== undefined) ||
+        kind === 'delivery' ||
+        kind === 'dine-in';
       if (enforce && !receiveSettings?.enabled) {
         throw new OrderingError(
           kind === 'delivery' ? 'DELIVERY_UNAVAILABLE' : 'FULFILLMENT_UNAVAILABLE',
-          kind === 'delivery' ? 'this branch does not offer delivery' : 'this branch does not offer pickup',
+          kind === 'delivery'
+            ? 'this branch does not offer delivery'
+            : kind === 'dine-in'
+              ? 'this branch does not offer dine-in ordering'
+              : 'this branch does not offer pickup',
           { details: kind === 'delivery' ? { reason: 'disabled' } : { kind } },
         );
+      }
+
+      // O12: the QR secret resolves to an active table of THIS branch — a valid token of
+      // another branch, a rotated secret or a disabled table all answer 404 (TABLE_NOT_FOUND),
+      // so a guest cannot order onto a table they did not scan.
+      let diningTable: import('./table').TableRow | null = null;
+      if (kind === 'dine-in' && input.receiveMethod.kind === 'dine-in') {
+        diningTable = await (
+          strapi.plugin('ordering').service('table') as ReturnType<typeof tableFactory>
+        ).resolveByToken(input.receiveMethod.tableToken ?? '', branch.code);
+        if (!diningTable) {
+          throw new OrderingError('TABLE_NOT_FOUND', 'table not found', {
+            details: { locationRef: branch.code },
+          });
+        }
       }
 
       const placedAt = input.placedAt ? new Date(input.placedAt) : nowOf(ctx);
@@ -563,7 +598,9 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         timezone: branch.timezone,
       };
       const catalog = registry.catalogAdapter(cfg.catalog.adapter);
-      const branchMethod = branch.fulfillment?.[kind] as JsonObject | undefined;
+      const branchMethod = branch.fulfillment?.[receiveKindKey(kind) ?? kind] as
+        | JsonObject
+        | undefined;
       const paymentTiming =
         (receiveSettings?.paymentTiming as string | undefined) ??
         (branchMethod?.paymentTiming as string | undefined);
@@ -681,7 +718,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         now: placedAt,
         timezone: branch.timezone,
         locationRef: branch.code,
-        receiveKind: kind === 'delivery' ? 'delivery' : 'pickup',
+        receiveKind: kind === 'delivery' || kind === 'dine-in' ? kind : 'pickup',
         lines: priced.map((line, index) => ({
           index,
           sellableUid: line.sellable.ref.uid,
@@ -759,7 +796,9 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
       }
 
       let timing: PickupTiming | null = null;
-      if (enforce && receiveSettings && input.pickup) {
+      // O12: dine-in has no pickup timing — a guest already seated must never hit
+      // ASAP/slot gates; the parse default `asap: true` stays a no-op here.
+      if (enforce && receiveSettings && input.pickup && kind !== 'dine-in') {
         timing = await scheduling.resolveTiming({
           branch,
           settings: receiveSettings,
@@ -780,6 +819,8 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         branch,
         pickupSettings,
         deliverySettings,
+        dineInSettings,
+        diningTable,
         delivery,
         deliveryAddress,
         priced,
@@ -900,19 +941,42 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
           const publicToken = randomBytes(32).toString('base64url');
           const now = nowOf(ctx);
           const kind = input.receiveMethod.kind;
-          const branchMethod = branch.fulfillment?.[kind] as JsonObject | undefined;
+          const branchMethod = branch.fulfillment?.[receiveKindKey(kind) ?? kind] as
+            | JsonObject
+            | undefined;
           const businessDayPolicy = (branchMethod?.schedule as JsonObject | undefined)
             ?.businessDayPolicy as JsonObject | undefined;
           const cutoffLocalTime =
             (businessDayPolicy?.cutoffLocalTime as string | undefined) ??
             cfg.businessDay.cutoffLocalTime;
+          const orderBusinessDate = businessDate(placedAt, branch.timezone, cutoffLocalTime);
+          // O12: the first dine-in order on a table opens its session under the table-row
+          // lock — a concurrent first order attaches to the same one. The stored receiveMethod
+          // keeps tableId/tableCode and never the QR secret (rotation must not expose it).
+          let tableSessionId: number | null = null;
+          if (kind === 'dine-in' && prepared.diningTable) {
+            const session = await (
+              strapi.plugin('ordering').service('table') as ReturnType<typeof tableFactory>
+            ).openSessionFor(
+              trx as TransactionClient,
+              prepared.diningTable,
+              orderBusinessDate,
+              ctx,
+            );
+            tableSessionId = session.id;
+          }
           const deliveryAddress = prepared.deliveryAddress;
+          const { tableToken: _tableSecret, ...receiveBase } = input.receiveMethod as
+            Record<string, unknown>;
           const receiveMethod = {
-            ...input.receiveMethod,
-            ...(kind === 'pickup' ? { locationRef: branch.code } : {}),
+            ...receiveBase,
+            ...(kind === 'pickup' || kind === 'dine-in' ? { locationRef: branch.code } : {}),
+            ...(prepared.diningTable
+              ? { tableId: prepared.diningTable.id, tableCode: prepared.diningTable.code }
+              : {}),
             ...(deliveryAddress ? { address: deliveryAddress } : {}),
             ...(timing ? { timing: timingSnapshot(timing) } : {}),
-          };
+          } as Record<string, unknown> & { kind: string; address?: AddressSnapshot };
 
           const customerId = await customer.linkForOrder({
             sessionCustomerId: input.customerId ?? null,
@@ -950,7 +1014,8 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
               branch: branch.id,
               locationRef: branch.code,
               branchSnapshot: { code: branch.code, name: branch.name },
-              businessDate: businessDate(placedAt, branch.timezone, cutoffLocalTime),
+              businessDate: orderBusinessDate,
+              ...(tableSessionId !== null ? { tableSession: tableSessionId } : {}),
               placedAt,
               receiveMethod,
               origin: input.origin,
@@ -1065,7 +1130,10 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
             await provider.create({
               order: { locationRef: branch.code, subtotalAmount: pricing.totals.subtotal } as Order,
               group: { id: String(groupId) } as FulfillmentGroup,
-              option: { communeCode: receiveMethod.address.wardCode ?? '', subtotal: pricing.totals.subtotal },
+              option: {
+                communeCode: receiveMethod.address?.wardCode ?? '',
+                subtotal: pricing.totals.subtotal,
+              },
             });
             await strapi.db.query('plugin::ordering.fulfillment').create({
               data: {

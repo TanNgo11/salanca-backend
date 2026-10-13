@@ -22,12 +22,16 @@ import {
   RBAC_REPORT,
   RBAC_SCOPE,
   RBAC_SETTINGS,
+  RBAC_TABLES,
   RBAC_WEBHOOK,
 } from '../lib/permissions';
 
 const OrdersPage = lazy(() => import('./Orders'));
 const PrintPage = lazy(() => import('./Print'));
+const SessionPrintPage = lazy(() => import('./Print/Session'));
 const KitchenPage = lazy(() => import('./Kitchen'));
+const TablesPage = lazy(() => import('./Tables'));
+const TableSessionsPage = lazy(() => import('./TableSessions'));
 const CustomersPage = lazy(() => import('./Customers'));
 const DataRequestsPage = lazy(() => import('./DataRequests'));
 const DeliveriesPage = lazy(() => import('./Deliveries'));
@@ -53,6 +57,7 @@ const RatingsPage = lazy(() => import('./Ratings'));
 type Section =
   | 'orders'
   | 'kitchen'
+  | 'table-sessions'
   | 'customers'
   | 'data-requests'
   | 'deliveries'
@@ -70,6 +75,7 @@ type Section =
   | 'catalog-import'
   | 'availability'
   | 'branches'
+  | 'tables'
   | 'staff'
   | 'audit-log'
   | 'webhooks'
@@ -134,6 +140,7 @@ const SideNav = ({
       <SubNavSections>
         {visible.orders ||
         visible.kitchen ||
+        visible['table-sessions'] ||
         visible.customers ||
         visible['customer-groups'] ||
         visible.deliveries ||
@@ -145,6 +152,7 @@ const SideNav = ({
           <SubNavSection label={t('nav.operations')}>
             {visible.orders ? link('orders', t('nav.orders'), inbox?.awaiting) : null}
             {visible.kitchen ? link('kitchen', t('nav.kitchen')) : null}
+            {visible['table-sessions'] ? link('table-sessions', t('nav.tableSessions')) : null}
             {visible.customers ? link('customers', t('nav.customers')) : null}
             {visible['customer-groups'] ? link('customer-groups', t('nav.customerGroups')) : null}
             {visible.deliveries ? link('deliveries', t('nav.deliveries')) : null}
@@ -172,9 +180,10 @@ const SideNav = ({
             {visible.availability ? link('availability', t('nav.availability')) : null}
           </SubNavSection>
         ) : null}
-        {visible.branches || visible.staff || visible.settings || visible['audit-log'] || visible.webhooks || visible['api-docs'] || visible['data-requests'] ? (
+        {visible.branches || visible.tables || visible.staff || visible.settings || visible['audit-log'] || visible.webhooks || visible['api-docs'] || visible['data-requests'] ? (
           <SubNavSection label={t('nav.setup')}>
             {visible.branches ? link('branches', t('nav.branches')) : null}
+            {visible.tables ? link('tables', t('nav.tables')) : null}
             {visible.staff ? link('staff', t('nav.staff')) : null}
             {visible['data-requests'] ? link('data-requests', t('nav.dataRequests')) : null}
             {visible.webhooks ? link('webhooks', t('nav.webhooks')) : null}
@@ -195,6 +204,7 @@ const SideNav = ({
 const OrderingApp = () => {
   const orders = useRBAC(RBAC_ORDERS_READ);
   const kitchen = useRBAC(RBAC_KITCHEN);
+  const tables = useRBAC(RBAC_TABLES);
   const process = useRBAC(PERMISSIONS.process);
   const recordCash = useRBAC(PERMISSIONS.recordCash);
   const reviews = useRBAC(RBAC_PAYMENT_REVIEW);
@@ -229,7 +239,7 @@ const OrderingApp = () => {
   const price = useRBAC(RBAC_PRICE);
   const customers = useRBAC(RBAC_CUSTOMERS);
   const dataRequests = useRBAC(RBAC_DATA_REQUESTS);
-  const loading = [orders, kitchen, process, recordCash, reviews, alerts, ops, report, catalogManage, catalogAccess, settings, scope, audit, webhook, customers, dataRequests, promotion, price].some(
+  const loading = [orders, kitchen, tables, process, recordCash, reviews, alerts, ops, report, catalogManage, catalogAccess, settings, scope, audit, webhook, customers, dataRequests, promotion, price].some(
     (item) => item.isLoading,
   );
   if (loading) {
@@ -243,6 +253,8 @@ const OrderingApp = () => {
   const visible = {
     orders: any(orders.allowedActions),
     kitchen: any(kitchen.allowedActions),
+    'table-sessions': any(tables.allowedActions),
+    tables: any(tables.allowedActions),
     customers: any(customers.allowedActions),
     'customer-groups': any(price.allowedActions),
     'data-requests': any(dataRequests.allowedActions),
@@ -270,6 +282,7 @@ const OrderingApp = () => {
     [
       'orders',
       'kitchen',
+      'table-sessions',
       'customers',
       'customer-groups',
       'deliveries',
@@ -286,6 +299,7 @@ const OrderingApp = () => {
       'catalog-import',
       'availability',
       'branches',
+      'tables',
       'staff',
       'data-requests',
       'audit-log',
@@ -307,6 +321,7 @@ const OrderingApp = () => {
       >
         <Routes>
           <Route path="print/:orderId" element={<PrintPage />} />
+          <Route path="print/session/:sessionId" element={<SessionPrintPage />} />
         </Routes>
       </Suspense>
     );
@@ -328,6 +343,8 @@ const OrderingApp = () => {
             <Route index element={first ? <Navigate to={first} replace /> : null} />
             <Route path="orders/*" element={<OrdersPage />} />
             <Route path="kitchen/*" element={<KitchenPage />} />
+            <Route path="table-sessions/*" element={<TableSessionsPage />} />
+            <Route path="tables/*" element={<TablesPage />} />
             <Route path="customers/*" element={<CustomersPage />} />
             <Route path="customer-groups/*" element={<CustomerGroupsPage />} />
             <Route path="data-requests/*" element={<DataRequestsPage />} />

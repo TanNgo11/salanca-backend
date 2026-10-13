@@ -190,6 +190,20 @@ const branch = ({ strapi }: { strapi: Core.Strapi }) => {
       return resolveDineInSettings(row.fulfillment?.dineIn);
     },
 
+    /**
+     * Resolved settings for a `receiveMethod.kind` ('pickup' | 'delivery' | 'dine-in');
+     * unknown kinds fall back to pickup — callers that validated the kind never see that.
+     */
+    receiveSettings(
+      row: Pick<BranchRow, 'fulfillment'>,
+      kind: string,
+    ): PickupSettings | DeliverySettings | DineInSettings {
+      const key = receiveKindKey(kind);
+      if (key === 'delivery') return resolveDeliverySettings(row.fulfillment?.delivery);
+      if (key === 'dineIn') return resolveDineInSettings(row.fulfillment?.dineIn);
+      return resolvePickupSettings(row.fulfillment?.pickup);
+    },
+
     /** Resolved pause map `{ pickup?, delivery?, dineIn? }` (entries may be expired). */
     pauseState(row: { orderingPause?: unknown }): OrderingPause {
       return resolveOrderingPause(row.orderingPause);
