@@ -55,3 +55,12 @@ Four issues Codex reproduced on an isolated DB, all confirmed and fixed:
 Regression: `scripts/ordering/review-extra.mjs` (scope on profile + export, paid self-cancel refund, documentId backfill,
 three concurrent adds). PASS together with `schema`, `cart`, `cart-checkout`, `admin-customers`, `data-rights`,
 `storefront`, `transition`; lint, typecheck, vitest 632.
+
+## Third review round
+
+Status: In progress; authorized by owner, handoff a190039.
+Plan: preserve the first two rounds; add PostgreSQL regression tests and record red results before editing services.
+Use a shared advisory customer key then customer row lock for checkout linking and erasure finalization; recheck open orders under the lock.
+Make webhook insert/payload activation atomic and repair incomplete existing rows on retry. Lock both carts in id order and re-read the source before merging.
+Serialize OTP count/create by target hash and defer mail to the outermost transaction commit.
+No schema/dependency changes or new migrations are planned. Test only on salanca_ordering_review_fixes; run the handoff's compact gates, then fetch/merge origin/feat/ordering and repeat them before pushing both feature branches. Each fix gets a separate co-authored commit. Browser UAT remains outside this backend fix.

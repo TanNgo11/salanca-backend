@@ -20,6 +20,7 @@ import type { CreateOrderResult } from './order';
 import type { OrderingRegistry } from './registry';
 import type { ServiceContext } from './context';
 import { nowOf } from './context';
+import { lockCustomer } from './customer-lock';
 
 type CartLine = {
   id: string;
@@ -581,6 +582,15 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
       ctx: ServiceContext,
     ): Promise<CreateOrderResult> {
       return strapi.db.transaction(async ({ trx }) => {
+        // Erasure locks the customer before deleting their carts. Use that same order,
+        // rather than holding a cart while waiting for the customer's advisory lock.
+        const customerId = input.customerId ?? row.customer?.id;
+        if (customerId) {
+          const identity = (await strapi.db.query('plugin::ordering.customer').findOne({
+            where: { id: customerId }, select: ['id', 'phoneHash'],
+          })) as { id: number; phoneHash: string | null } | null;
+          if (identity) await lockCustomer(trx, identity);
+        }
         // Serialize checkout by cart, then read its committed status and live contents.
         const locked = await trx('plugins_ordering_cart').where({ id: row.id }).forUpdate().first('id');
         if (!locked) throw new OrderingError('CART_NOT_FOUND', 'cart not found');

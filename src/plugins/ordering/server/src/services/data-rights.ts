@@ -12,6 +12,7 @@ import type outboxFactory from './outbox';
 import type scopeFactory from './scope';
 import type { ServiceContext } from './context';
 import { actorRefOf, nowOf } from './context';
+import { lockCustomer } from './customer-lock';
 
 /** Orders that still move — erasure waits for them (the `data-request-waiting` job retries). */
 const OPEN_STATUSES = ['open', 'draft'] as const;
@@ -281,7 +282,57 @@ const dataRights = ({ strapi }: { strapi: Core.Strapi }) => {
     }
 
     // Finalize: delete everything keyed to the profile, then the profile itself goes tombstone.
-    const result = await strapi.db.transaction(async () => {
+    const result = await strapi.db.transaction(async ({ trx }) => {
+      await lockCustomer(trx, customer);
+      // Linking an order takes the same lock until order creation commits. The earlier
+      // count is only a fast path; this locked count decides whether erasure can finish.
+      const current = (await customers().findOne({ where: { id: customer.id } })) as CustomerRow | null;
+      const pending = await orders().count({
+        where: { customer: customer.id, status: { $in: [...OPEN_STATUSES] } },
+      });
+      if (pending > 0) {
+        const done = (await requests().update({ where: { id: request.id }, data: {
+          status: 'waiting', handledBy,
+          result: { ordersWaiting: pending, ordersAnonymized: anonymized },
+        } })) as DataRequestRow;
+        return { done };
+      }
+      if (!current || current.status === 'erased') {
+        const done = (await requests().update({ where: { id: request.id }, data: {
+          status: 'done', doneAt: now, handledBy,
+          result: { ordersAnonymized: anonymized, alreadyErased: true },
+        } })) as DataRequestRow;
+        return { done };
+      }
+      // Other cart mutations can already hold a cart row. Do not wait while holding
+      // the customer lock: a mutation may be about to link an order to this customer.
+      const ownedCarts = (await carts().findMany({
+        where: { customer: customer.id }, select: ['id'],
+      })) as Array<{ id: number }>;
+      if (ownedCarts.length > 0) {
+        const lockedCarts = await trx('plugins_ordering_cart')
+          .whereIn('id', ownedCarts.map((row) => row.id)).forUpdate().skipLocked().select('id');
+        if (lockedCarts.length !== ownedCarts.length) {
+          const done = (await requests().update({ where: { id: request.id }, data: {
+            status: 'waiting', handledBy,
+            result: { ordersWaiting: 0, cartsWaiting: ownedCarts.length - lockedCarts.length, ordersAnonymized: anonymized },
+          } })) as DataRequestRow;
+          return { done };
+        }
+      }
+      // A new order can also close between the progressive pass and this lock.
+      // No new link can commit now, so scrub the remaining closed rows before done.
+      for (;;) {
+        const remaining = (await orders().findMany({
+          where: { customer: customer.id, status: { $in: [...CLOSED_STATUSES] } },
+          orderBy: { id: 'asc' }, limit: 200,
+        })) as OrderHead[];
+        if (remaining.length === 0) break;
+        for (const order of remaining) {
+          await anonymizeOrder(order, current.phoneHash);
+          anonymized += 1;
+        }
+      }
       const deleted = {
         sessions: (await sessions().deleteMany({ where: { customer: customer.id } })).count ?? 0,
         otps: (await otps().deleteMany({ where: { customer: customer.id } })).count ?? 0,
@@ -328,6 +379,7 @@ const dataRights = ({ strapi }: { strapi: Core.Strapi }) => {
       })) as DataRequestRow;
       return { done, deleted };
     });
+    if (result.done.status === 'waiting') return result.done;
     if (ctx.actor.kind === 'staff') {
       await changeLog().record(
         {
