@@ -403,9 +403,7 @@ const OpsPage = () => {
       </Page.Main>
       <Dialog.Root open={running !== null} onOpenChange={(open: boolean) => !open && setRunning(null)}>
         <Dialog.Content>
-          <Dialog.Header>
-            <Dialog.Title>{t('ops.job.run.title')}</Dialog.Title>
-          </Dialog.Header>
+          <Dialog.Header>{t('ops.job.run.title')}</Dialog.Header>
           <Dialog.Body>
             <Typography>{t('ops.job.run.confirm', { name: running?.name ?? '' })}</Typography>
           </Dialog.Body>

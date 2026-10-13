@@ -554,9 +554,7 @@ export const WebhookEditor = () => {
       </Layouts.Content>
       <Dialog.Root open={piiAsk} onOpenChange={(open: boolean) => !open && setPiiAsk(false)}>
         <Dialog.Content>
-          <Dialog.Header>
-            <Dialog.Title>{t('webhook.pii.title')}</Dialog.Title>
-          </Dialog.Header>
+          <Dialog.Header>{t('webhook.pii.title')}</Dialog.Header>
           <Dialog.Body>{t('webhook.pii.body')}</Dialog.Body>
           <Dialog.Footer>
             <Dialog.Cancel>
@@ -578,9 +576,7 @@ export const WebhookEditor = () => {
       </Dialog.Root>
       <Dialog.Root open={rotateAsk} onOpenChange={(open: boolean) => !open && setRotateAsk(false)}>
         <Dialog.Content>
-          <Dialog.Header>
-            <Dialog.Title>{t('webhook.rotate')}</Dialog.Title>
-          </Dialog.Header>
+          <Dialog.Header>{t('webhook.rotate')}</Dialog.Header>
           <Dialog.Body>{t('webhook.rotate.confirm')}</Dialog.Body>
           <Dialog.Footer>
             <Dialog.Cancel>
