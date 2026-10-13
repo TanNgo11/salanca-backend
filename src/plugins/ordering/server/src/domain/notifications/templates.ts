@@ -319,8 +319,8 @@ export function renderCartReminder(
 
 /** O9 gift-card mail data: the issued codes are the mail's whole point (plan step 3). */
 export type GiftCardMailData = {
-  /** The order code, for context — not a card code. */
-  orderCode: string;
+  /** The order code, for context — not a card code. Complimentary issue has no order. */
+  orderCode?: string;
   branch: string;
   cards: Array<{ code: string; amount: number }>;
   /** `12/10/2027` formatted in the branch timezone. */
@@ -380,7 +380,7 @@ export function renderGiftCardIssued(
   }
   lines.push('');
   if (data.expiresAt) lines.push(`${words.expiry}: ${data.expiresAt}`);
-  lines.push(`${words.orderLabel}: ${data.orderCode}`);
+  if (data.orderCode) lines.push(`${words.orderLabel}: ${data.orderCode}`);
   if (data.message) {
     lines.push('', `${words.messageLabel}: ${data.message}`);
   }
@@ -400,7 +400,11 @@ export function renderGiftCardIssued(
           `<li><code>${escapeHtml(card.code)}</code> — <strong>${escapeHtml(formatVnd(card.amount))}</strong></li>`,
       )
       .join('')}</ul>`,
-    `<table><tr><td>${escapeHtml(words.orderLabel)}</td><td><strong>${escapeHtml(data.orderCode)}</strong></td></tr>${
+    `<table>${
+      data.orderCode
+        ? `<tr><td>${escapeHtml(words.orderLabel)}</td><td><strong>${escapeHtml(data.orderCode)}</strong></td></tr>`
+        : ''
+    }${
       data.expiresAt
         ? `<tr><td>${escapeHtml(words.expiry)}</td><td><strong>${escapeHtml(data.expiresAt)}</strong></td></tr>`
         : ''

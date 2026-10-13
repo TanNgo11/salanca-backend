@@ -25,6 +25,9 @@ export const PERMISSIONS = {
   promotion: action('promotion.manage'),
   rating: action('rating.manage'),
   price: action('price.manage'),
+  // O9 (screens G1–G3): adjust is the tighter action beyond day-to-day card management.
+  giftCardManage: action('gift-card.manage'),
+  giftCardAdjust: action('gift-card.adjust'),
 } as const;
 
 /** Stable arrays for `useRBAC` (a new array each render makes it re-check every time). */
@@ -65,6 +68,9 @@ export const RBAC_DATA_REQUESTS = [...PERMISSIONS.dataRequest];
 export const RBAC_PROMOTION = [...PERMISSIONS.promotion];
 export const RBAC_RATING = [...PERMISSIONS.rating];
 export const RBAC_PRICE = [...PERMISSIONS.price];
+/** O9: the cards tab + batch tools need manage; the ± balance correction checks adjust too. */
+export const RBAC_GIFT_CARD = [...PERMISSIONS.giftCardManage];
+export const RBAC_GIFT_CARD_FULL = [...PERMISSIONS.giftCardManage, ...PERMISSIONS.giftCardAdjust];
 /** O6 alert list: anyone a rule could notify (ops, reports, payment review or branch staff). */
 export const RBAC_ALERTS = [
   ...PERMISSIONS.ops,
@@ -90,4 +96,5 @@ export const RBAC_ANY_ORDERING = [
   ...RBAC_PROMOTION,
   ...RBAC_RATING,
   ...RBAC_PRICE,
+  ...RBAC_GIFT_CARD_FULL,
 ];

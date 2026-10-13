@@ -460,11 +460,23 @@ export const OrderDetailPage = () => {
               ) : (
                 <>
                   {detail.payments.map((payment) => (
-                    <Row
-                      key={`p${payment.id}`}
-                      label={`${t(`method.${payment.providerCode}`)} · ${payment.actorName ?? '—'} · ${formatDateTime(payment.capturedAt, timezone)}`}
-                      value={formatMoney(payment.capturedAmount)}
-                    />
+                    <Flex key={`p${payment.id}`} justifyContent="space-between" paddingBottom={1} gap={2}>
+                      <Typography textColor="neutral600">
+                        {payment.giftCard ? (
+                          <>
+                            {t('method.gift-card')}
+                            {' · '}
+                            <Link to={`/plugins/ordering/gift-cards/${payment.giftCard.id}`}>
+                              {`•••• ${payment.giftCard.last4}`}
+                            </Link>
+                          </>
+                        ) : (
+                          t(`method.${payment.providerCode}`)
+                        )}
+                        {` · ${payment.actorName ?? '—'} · ${formatDateTime(payment.capturedAt, timezone)}`}
+                      </Typography>
+                      <Typography>{formatMoney(payment.capturedAmount)}</Typography>
+                    </Flex>
                   ))}
                   {detail.paymentEvents.map((event) => (
                     <Flex key={`e${event.id}`} justifyContent="space-between" alignItems="center" paddingBottom={1} gap={2}>
@@ -484,7 +496,10 @@ export const OrderDetailPage = () => {
                   {detail.refunds.map((refund) => (
                     <Flex key={`r${refund.id}`} justifyContent="space-between" alignItems="center" paddingBottom={1} gap={2}>
                       <Typography textColor="neutral600">
-                        {t('detail.refundRow')} · {refund.reason} · {refund.actorName ?? '—'}
+                        {refund.giftCard
+                          ? `${t('detail.refundToCard')} ${refund.giftCard.last4}`
+                          : t('detail.refundRow')}
+                        {' · '}{refund.reason} · {refund.actorName ?? '—'}
                         {refund.referenceMasked ? ` · ${refund.referenceMasked}` : ''}
                       </Typography>
                       <Flex gap={2} alignItems="center">
@@ -501,6 +516,27 @@ export const OrderDetailPage = () => {
                 </>
               )}
             </Section>
+            {detail.giftCards && detail.giftCards.cards.length > 0 ? (
+              <Section title={t('detail.issuedCards')}>
+                {detail.giftCards.recipientMasked ? (
+                  <Typography variant="pi" textColor="neutral600" tag="p" paddingBottom={2}>
+                    {t('detail.cardRecipient', {
+                      email: detail.giftCards.recipientMasked,
+                      status: detail.giftCards.emailStatus ? t(`card.mail.${detail.giftCards.emailStatus}`) : t('card.mail.none'),
+                    })}
+                  </Typography>
+                ) : null}
+                {detail.giftCards.cards.map((card) => (
+                  <Flex key={`c${card.id}`} justifyContent="space-between" alignItems="center" paddingBottom={1} gap={2}>
+                    <Typography textColor="neutral600">
+                      <Link to={`/plugins/ordering/gift-cards/${card.id}`}>{card.masked}</Link>
+                      {` · ${formatMoney(card.initialAmount)} · ${t(`card.status.${card.status}`)}`}
+                    </Typography>
+                    <Typography>{formatMoney(card.balance)}</Typography>
+                  </Flex>
+                ))}
+              </Section>
+            ) : null}
             {order.customerNote ? (
               <Alert variant="default" closeLabel={t('common.close')} title={t('detail.customerNote')}>
                 {order.customerNote}

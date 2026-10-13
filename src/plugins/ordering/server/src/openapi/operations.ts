@@ -861,6 +861,98 @@ export const OPERATIONS: Operation[] = [
     parameters: [pathParam('id')],
     requestBody: obj({ active: bool }, ['active']),
   }),
+  // O9 step 5: gift-card staff surfaces (G1–G3 + physical batches). Responses never carry a
+  // plaintext code or hash — `masked`/`last4` at most. The only plaintext surfaces are the
+  // one-time issue response when no mail went out, the one-time batch-generate response and
+  // the batch CSV export while the seal survives.
+  adm('get', '/gift-cards', 'Gift cards', 'List with status tabs, source filter, search and summary cards', ['gift-card.manage'], {
+    parameters: [
+      { name: 'tab', in: 'query', schema: { ...str, enum: ['active', 'blocked', 'expired', 'zero', 'all'] } },
+      { name: 'source', in: 'query', schema: { ...str, enum: ['sold', 'manual'] } },
+      { name: 'q', in: 'query', schema: str, description: 'Last-4 or order code — a full code belongs in POST /search' },
+      { name: 'page', in: 'query', schema: int },
+    ],
+    response: obj({
+      items: arr(generic),
+      total: int,
+      page: int,
+      pageSize: int,
+      summary: obj({ circulating: money, soldThisMonth: money, redeemedThisMonth: money }),
+    }),
+  }),
+  adm('post', '/gift-cards/search', 'Gift cards', 'Resolve a FULL code from the request body — never the URL', ['gift-card.manage'], {
+    requestBody: obj({ code: str }, ['code']),
+    response: generic,
+  }),
+  adm('post', '/gift-cards', 'Gift cards', 'Issue a complimentary card — `code` only when no recipient mail went out', ['gift-card.manage'], {
+    requestBody: obj(
+      {
+        amount: money,
+        reason: str,
+        recipientEmail: str,
+        recipientName: str,
+        message: str,
+        expiresAt: isoDate,
+        locationRef: str,
+      },
+      ['amount', 'reason'],
+    ),
+    response: obj({
+      card: generic,
+      code: { ...str, nullable: true },
+      emailSent: bool,
+      recipientMasked: { ...str, nullable: true },
+    }),
+  }),
+  adm('get', '/gift-cards/:id', 'Gift cards', 'One card with its append-only ledger, newest first', ['gift-card.manage'], {
+    parameters: [pathParam('id'), { name: 'page', in: 'query', schema: int }],
+    response: generic,
+  }),
+  adm('post', '/gift-cards/:id/block', 'Gift cards', 'Block a card — reason is mandatory', ['gift-card.manage'], {
+    parameters: [pathParam('id')],
+    requestBody: obj({ reason: str }, ['reason']),
+  }),
+  adm('post', '/gift-cards/:id/unblock', 'Gift cards', 'Unblock a card', ['gift-card.manage'], {
+    parameters: [pathParam('id')],
+    requestBody: obj({ reason: str }),
+  }),
+  adm('post', '/gift-cards/:id/extend', 'Gift cards', 'Move the expiry forward — never backward', ['gift-card.manage'], {
+    parameters: [pathParam('id')],
+    requestBody: obj({ expiresAt: isoDate, reason: str }, ['expiresAt', 'reason']),
+  }),
+  adm('post', '/gift-cards/:id/adjust', 'Gift cards', 'Signed balance correction — never below zero', ['gift-card.manage', 'gift-card.adjust'], {
+    parameters: [pathParam('id')],
+    requestBody: obj({ amount: int, reason: str }, ['amount', 'reason']),
+  }),
+  adm('post', '/gift-cards/:id/resend', 'Gift cards', 'Resend the code mail to the sealed recipient', ['gift-card.manage'], {
+    parameters: [pathParam('id')],
+    response: obj({ emailSent: bool, recipientMasked: { ...str, nullable: true } }),
+  }),
+  adm('get', '/gift-card-batches', 'Gift cards', 'Physical preprinted batches with sold/remaining counts', ['gift-card.manage'], {
+    parameters: [{ name: 'page', in: 'query', schema: int }],
+    response: obj({ items: arr(generic), total: int, page: int, pageSize: int }),
+  }),
+  adm('post', '/gift-card-batches/import', 'Gift cards', 'Import preprinted codes — all-or-nothing, plaintext body', ['gift-card.manage'], {
+    requestBody: obj(
+      { denomination: money, codes: arr(str), note: str, locationRef: str },
+      ['denomination', 'codes'],
+    ),
+    response: obj({ batch: generic, imported: int }),
+  }),
+  adm('post', '/gift-card-batches', 'Gift cards', 'Generate codes for printing — the plaintext list returns once', ['gift-card.manage'], {
+    requestBody: obj(
+      { denomination: money, count: int, note: str, locationRef: str },
+      ['denomination', 'count'],
+    ),
+    response: obj({ batch: generic, codes: arr(str) }),
+  }),
+  adm('get', '/gift-card-batches/:id', 'Gift cards', 'Batch detail with a page of masked cards', ['gift-card.manage'], {
+    parameters: [pathParam('id'), { name: 'page', in: 'query', schema: int }],
+    response: obj({ batch: generic, items: arr(generic), total: int, page: int, pageSize: int }),
+  }),
+  adm('get', '/gift-card-batches/:id/export', 'Gift cards', 'Batch codes as CSV — the sealed plaintext hand-off', ['gift-card.manage', 'export'], {
+    parameters: [pathParam('id')],
+  }),
   adm('get', '/ratings', 'Ratings', 'Ratings in scope with summary', ['order.read'], {
     parameters: ['branch', 'stars', 'from', 'to', 'hasComment', 'status', 'page'].map((name) => ({
       name,

@@ -39,6 +39,9 @@ export default collection(
       inversedBy: 'cards',
     },
     recipientEmailHash: { type: 'string' },
+    // AES-256-GCM sealed recipient address — the "resend to original recipient" target and the
+    // source of the masked email on G2. Never exposed through the admin API.
+    sealedRecipient: { type: 'text' },
     issuedBy: { type: 'string' },
     note: { type: 'text' },
     sealedCode: { type: 'text' },

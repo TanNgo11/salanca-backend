@@ -116,6 +116,14 @@ export const AUDIT_ACTIONS: Record<string, ActionDef> = {
     category: 'money',
     label: ['Nhập lô thẻ quà tặng', 'Import gift-card batch'],
   },
+  'gift-card-batch.create': {
+    category: 'money',
+    label: ['Tạo lô thẻ in', 'Create print batch'],
+  },
+  'gift-card-batch.export': {
+    category: 'money',
+    label: ['Xuất mã lô thẻ', 'Export batch codes'],
+  },
   'gift-card-batch.activate': {
     category: 'money',
     label: ['Kích hoạt thẻ in sẵn', 'Activate preprinted gift cards'],

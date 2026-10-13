@@ -92,6 +92,8 @@ const scripts = [
   'gift-card-sale.mjs',
   // O9 step 4: card as a co-payment — debit, refunds, expiry, concurrency, probing.
   'gift-card-payment.mjs',
+  // O9 step 5: staff admin — masked list/detail, issue/resend, lifecycle, physical batches.
+  'gift-card-admin.mjs',
 ];
 
 const results = [];

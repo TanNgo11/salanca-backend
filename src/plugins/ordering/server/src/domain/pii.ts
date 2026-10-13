@@ -25,6 +25,14 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' &&
   (value.constructor === Object || Object.getPrototypeOf(value) === null);
 
+/** `n•••@gmail.com` — the only email rendering Admin screens ever get (O9 screens G2). */
+export const maskEmail = (email: string | null | undefined): string | null => {
+  const trimmed = (email ?? '').trim();
+  const at = trimmed.indexOf('@');
+  if (at <= 0) return null;
+  return `${trimmed[0]}•••@${trimmed.slice(at + 1)}`;
+};
+
 export function maskPayload(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(maskPayload);
   if (isPlainObject(value)) {

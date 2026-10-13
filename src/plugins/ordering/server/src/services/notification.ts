@@ -373,6 +373,47 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
       });
     },
 
+    /**
+     * Orderless gift-card mail (O9 step 5): complimentary issue and staff resend ride the same
+     * `customer.gift-card-issued` template but carry no order — no order line, no order link.
+     * `dedupeKey` is a staff-action id (`issue:<cardId>`, `resend:<cardId>:<n>`) so a retried
+     * mutation can't double-send while each deliberate resend gets its own delivery row.
+     */
+    async sendGiftCardManual(
+      input: {
+        dedupeKey: string;
+        email: string;
+        recipientName?: string;
+        message?: string;
+        cards: Array<{ code: string; amount: number }>;
+        expiresAt?: string;
+        /** Staff's branch context — sender label + timezone for the formatted expiry. */
+        locationRef?: string | null;
+        locale?: string;
+      },
+    ): Promise<void> {
+      const branch = input.locationRef ? await branches().findByCode(input.locationRef) : null;
+      const timezone = branch?.timezone ?? 'Asia/Ho_Chi_Minh';
+      const locale = input.locale === 'en' ? 'en' : 'vi';
+      const name = (branch?.name ?? {}) as Record<string, string>;
+      const mail: GiftCardMailData = {
+        branch: name[locale] ?? name.vi ?? input.locationRef ?? '—',
+        cards: input.cards,
+        ...(input.expiresAt ? { expiresAt: formatLocalDate(input.expiresAt, timezone) } : {}),
+        ...(input.recipientName ? { recipientName: input.recipientName } : {}),
+        ...(input.message ? { message: input.message } : {}),
+      };
+      await deliver({
+        event: { id: input.dedupeKey, payload: {} } as OutboxEvent,
+        template: 'customer.gift-card-issued',
+        email: input.email,
+        role: 'customer',
+        orderId: null,
+        locale,
+        data: mail,
+      });
+    },
+
     /** `order.edited`: the updated items and total. A balance link replaces the order link. */
     async onOrderEdited(event: OutboxEvent): Promise<void> {
       if (event.payload.notifyCustomer === false) return;

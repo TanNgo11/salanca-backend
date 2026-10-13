@@ -124,6 +124,8 @@ export type OrderDetail = {
     refundedAmount: number;
     actorName: string | null;
     capturedAt: string | null;
+    /** O9: the card behind a `gift-card` payment — masked `•••• AB7K` (links to G2). */
+    giftCard?: { id: number; last4: string } | null;
   }>;
   paymentEvents: Array<{
     id: number;
@@ -144,7 +146,23 @@ export type OrderDetail = {
     actorName: string | null;
     settledAt: string | null;
     referenceMasked: string | null;
+    /** O9: value returned to a card shows "Hoàn về thẻ •••• AB7K". */
+    giftCard?: { id: number; last4: string } | null;
   }>;
+  /** O9: cards this order issued — the gift-card order's block on S4 (masked only). */
+  giftCards?: {
+    cards: Array<{
+      id: number;
+      masked: string;
+      last4: string;
+      initialAmount: number;
+      balance: number;
+      status: string;
+      source: string;
+    }>;
+    emailStatus: string | null;
+    recipientMasked: string | null;
+  } | null;
   timeline: Array<{
     id: number;
     type: string;

@@ -142,7 +142,7 @@ await withApp(async (app) => {
         break;
       }
       case 'unblock': {
-        const code = await expectError(() => svc.unblock(id, ctx), ['VALIDATION_ERROR']);
+        const code = await expectError(() => svc.unblock(id, 'random-walk', ctx), ['VALIDATION_ERROR']);
         if (code === null) {
           assert.equal(m.status, 'blocked', `${label}: unblocked a ${m.status} card`);
           m.status = m.expires > new Date() ? 'active' : 'expired';

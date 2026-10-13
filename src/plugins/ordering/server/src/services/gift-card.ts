@@ -148,12 +148,26 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
       .update(`gift-card-recipient:${email.trim().toLowerCase()}`)
       .digest('hex');
 
-  /** Sealed copy for the one-time staff display; absent when no encryption key is configured. */
-  const seal = (normalized: string): string | null => {
+  /** AES-GCM seal of any short secret (code, recipient email); null without a valid key. */
+  const sealText = (text: string): string | null => {
     const parsed = parseEncryptionKey(config().encryptionKey ?? '');
     if (!parsed.valid) return null;
-    return encryptSecret(formatGiftCardCode(normalized), parsed.key);
+    return encryptSecret(text, parsed.key);
   };
+
+  const unseal = (sealed: string | null | undefined): string | null => {
+    if (!sealed) return null;
+    const parsed = parseEncryptionKey(config().encryptionKey ?? '');
+    if (!parsed.valid) return null;
+    try {
+      return decryptSecret(sealed, parsed.key);
+    } catch {
+      return null;
+    }
+  };
+
+  /** Sealed copy for the one-time staff display; absent when no encryption key is configured. */
+  const seal = (normalized: string): string | null => sealText(formatGiftCardCode(normalized));
 
   const appendLedger = async (input: {
     cardId: number;
@@ -221,6 +235,9 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
     recipientHash,
     codeHashOf,
 
+    /** Public card shape (masked surfaces) — admin reads share the mapper; secrets stay out. */
+    mapCard: (row: GiftCardRow) => toCard(row),
+
     /**
      * HMAC lookup. Timing is made uniform by always hashing (a dummy for malformed input) and
      * always running the same unique-index query — the caller answers GIFT_CARD_INVALID either
@@ -268,7 +285,7 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
         issuedAt?: Date;
       },
       ctx: ServiceContext,
-    ): Promise<{ id: number; code: string | null; last4: string }> {
+    ): Promise<{ id: number; code: string | null; last4: string; expiresAt: Date }> {
       const now = input.issuedAt ?? nowOf(ctx);
       const expiresAt = input.expiresAt ?? addMonths(now, config().giftCards.validityMonths);
       const inactive = input.source === 'batch';
@@ -309,6 +326,11 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
             ...(input.orderLineId ? { orderLine: input.orderLineId } : {}),
             ...(input.batchId ? { batch: input.batchId } : {}),
             recipientEmailHash: input.recipientEmail ? recipientHash(input.recipientEmail) : null,
+            // Sealed original recipient for resend/masked display — the row's only PII, still
+            // encrypted at rest; `sealedCode` has a retention job, this stays for the card's life.
+            sealedRecipient: input.recipientEmail
+              ? sealText(input.recipientEmail.trim().toLowerCase())
+              : null,
             issuedBy: actorRef,
             note: input.note ?? null,
             sealedCode: input.sealCode === false ? null : seal(normalized),
@@ -330,6 +352,7 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
           id: row.id,
           code: input.code ? null : formatGiftCardCode(normalized),
           last4: row.last4,
+          expiresAt,
         };
       }
       throw new OrderingError('INTERNAL', 'could not allocate a unique gift-card code');
@@ -457,6 +480,8 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
         orderId?: number | null;
         paymentId?: number | null;
         reason?: string | null;
+        /** Counter-sale recipient mailbox — sealed for resend/masked display like a fresh issue. */
+        recipientEmail?: string | null;
       },
       ctx: ServiceContext,
     ): Promise<{ activatedAmount: number; balanceAfter: number }> {
@@ -474,6 +499,15 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
         throw new OrderingError('GIFT_CARD_INVALID', 'gift card is not awaiting activation');
       }
       const balanceAfter = asInt(rows[0].balance);
+      if (input.recipientEmail) {
+        const email = input.recipientEmail.trim().toLowerCase();
+        await trx(CARD_TABLE)
+          .where({ id: input.cardId })
+          .update({
+            recipient_email_hash: recipientHash(email),
+            sealed_recipient: sealText(email),
+          });
+      }
       await appendLedger({
         cardId: input.cardId,
         kind: 'activate',
@@ -506,7 +540,7 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
       });
     },
 
-    async unblock(id: number, ctx: ServiceContext): Promise<void> {
+    async unblock(id: number, reason: string | null, ctx: ServiceContext): Promise<void> {
       await strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
         const row = await lockCard(trx, id);
         if (row.status !== 'blocked') {
@@ -519,7 +553,7 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
         await trx(CARD_TABLE).where({ id }).update({ status: next, updated_at: nowOf(ctx) });
         await appendLedger({
           cardId: id, kind: 'unblock', amount: 0, balanceAfter: asInt(row.balance),
-          actorRef: actorRefOf(ctx), at: nowOf(ctx),
+          actorRef: actorRefOf(ctx), reason, at: nowOf(ctx),
         });
       });
     },
@@ -715,7 +749,12 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
               }
               await service.activateInTransaction(
                 trx,
-                { cardId: stock.id, orderId, reason: `order:${aggregate.order.code}` },
+                {
+                  cardId: stock.id,
+                  orderId,
+                  reason: `order:${aggregate.order.code}`,
+                  recipientEmail: recipientEmail || null,
+                },
                 ctx,
               );
               await cards().update({
@@ -865,14 +904,16 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
         where: { id },
         select: ['sealedCode'],
       })) as { sealedCode: string | null } | null;
-      if (!row?.sealedCode) return null;
-      const parsed = parseEncryptionKey(config().encryptionKey ?? '');
-      if (!parsed.valid) return null;
-      try {
-        return decryptSecret(row.sealedCode, parsed.key);
-      } catch {
-        return null;
-      }
+      return unseal(row?.sealedCode);
+    },
+
+    /** Plaintext recipient — for the resend mailer only; never leaves the service otherwise. */
+    async revealRecipient(id: number): Promise<string | null> {
+      const row = (await cards().findOne({
+        where: { id },
+        select: ['sealedRecipient'],
+      })) as { sealedRecipient: string | null } | null;
+      return unseal(row?.sealedRecipient);
     },
   };
 

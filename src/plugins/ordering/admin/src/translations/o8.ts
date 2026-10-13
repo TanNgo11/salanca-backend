@@ -3,7 +3,7 @@
  * the staff order form, `[vi, en]`, merged in `registerTrads` like o3–o15.
  */
 export const o8Messages: Record<string, [string, string]> = {
-  'nav.promotionsGroup': ['Khuyến mãi', 'Promotions'],
+  'nav.promotionsGroup': ['Khuyến mãi & thẻ', 'Promotions & cards'],
   'nav.promotions': ['Khuyến mãi', 'Promotions'],
   'nav.ratings': ['Đánh giá', 'Ratings'],
 

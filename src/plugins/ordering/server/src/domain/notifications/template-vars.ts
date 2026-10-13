@@ -295,7 +295,7 @@ export const buildVars = (
     const d = data as GiftCardMailData;
     const w = giftCardWords(locale);
     return {
-      orderCode: d.orderCode,
+      orderCode: d.orderCode ?? '',
       branch: d.branch,
       cards: d.cards
         .map((card) => `- ${card.code} — ${formatVnd(card.amount)}`)

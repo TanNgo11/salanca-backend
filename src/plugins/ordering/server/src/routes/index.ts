@@ -315,6 +315,24 @@ export default {
       adminRoute('POST', '/promotions/:id/codes', 'promotions.addCodes', 'promotion.manage'),
       adminRoute('GET', '/promotions/:id/redemptions', 'promotions.redemptions', 'promotion.manage'),
       adminRoute('POST', '/promotion-codes/:id/active', 'promotions.codeActive', 'promotion.manage'),
+      // O9 "Thẻ quà tặng" (screens G1–G3): `gift-card.manage` for reads and lifecycle ops;
+      // `gift-card.adjust` for the signed balance correction; batch export also needs `export`
+      // because the CSV carries plaintext codes (the printing hand-off). `/search` and
+      // `/gift-card-batches/import` precede their `/:id` siblings so they are not parsed as ids.
+      adminRoute('GET', '/gift-cards', 'gift-cards.list', 'gift-card.manage'),
+      adminRoute('POST', '/gift-cards/search', 'gift-cards.search', 'gift-card.manage'),
+      adminRoute('POST', '/gift-cards', 'gift-cards.create', 'gift-card.manage'),
+      adminRoute('GET', '/gift-cards/:id', 'gift-cards.get', 'gift-card.manage'),
+      adminRoute('POST', '/gift-cards/:id/block', 'gift-cards.block', 'gift-card.manage'),
+      adminRoute('POST', '/gift-cards/:id/unblock', 'gift-cards.unblock', 'gift-card.manage'),
+      adminRoute('POST', '/gift-cards/:id/extend', 'gift-cards.extend', 'gift-card.manage'),
+      adminRoute('POST', '/gift-cards/:id/adjust', 'gift-cards.adjust', 'gift-card.adjust'),
+      adminRoute('POST', '/gift-cards/:id/resend', 'gift-cards.resend', 'gift-card.manage'),
+      adminRoute('GET', '/gift-card-batches', 'gift-cards.listBatches', 'gift-card.manage'),
+      adminRoute('POST', '/gift-card-batches/import', 'gift-cards.importBatch', 'gift-card.manage'),
+      adminRoute('POST', '/gift-card-batches', 'gift-cards.createBatch', 'gift-card.manage'),
+      adminRoute('GET', '/gift-card-batches/:id', 'gift-cards.getBatch', 'gift-card.manage'),
+      adminRoute('GET', '/gift-card-batches/:id/export', 'gift-cards.exportBatch', 'gift-card.manage', 'export'),
       // O8 "Đánh giá" (screens R1–R2): reading follows order scope, changes need `rating.manage`.
       adminRoute('GET', '/ratings', 'ratings.list', 'order.read'),
       adminRoute('GET', '/ratings/:id', 'ratings.detail', 'order.read'),

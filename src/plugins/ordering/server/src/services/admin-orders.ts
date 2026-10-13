@@ -7,6 +7,7 @@ import type { WorkflowDefinition } from '../contracts/workflow';
 import { businessDate as businessDateOf } from '../domain/business-date';
 import { OrderingError } from '../domain/errors';
 import { amountFromDb } from '../domain/money';
+import { maskEmail } from '../domain/pii';
 import { parseCartRequest, parseOrderRequest } from '../domain/storefront/parse';
 import { paidAmounts, type SelectedOptionSnapshot } from '../domain/storefront/serialize';
 import { editability } from '../domain/order-edit';
@@ -555,6 +556,68 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
           customer?: { documentId: string; name: string | null; phone: string | null; status: string } | null;
         } | null
       )?.customer;
+      // O9: gift-card payments render "Thẻ quà tặng •••• AB7K" — resolve the card behind each
+      // gift-card payment through its redeem ledger entry (payment_lnk → card_lnk).
+      const giftCardByPayment = new Map<number, { id: number; last4: string }>();
+      {
+        const cardPaymentIds = aggregate.payments
+          .filter((payment) => payment.providerCode === 'gift-card')
+          .map((payment) => payment.id);
+        if (cardPaymentIds.length > 0) {
+          const links = (await strapi.db.connection
+            .from('plugins_ordering_gift_card_ledger_payment_lnk as lp')
+            .join(
+              'plugins_ordering_gift_card_ledger_card_lnk as lc',
+              'lc.gift_card_ledger_id',
+              'lp.gift_card_ledger_id',
+            )
+            .join('plugins_ordering_gift_card_ledger as l', 'l.id', 'lp.gift_card_ledger_id')
+            .join('plugins_ordering_gift_card as c', 'c.id', 'lc.gift_card_id')
+            .whereIn('lp.payment_id', cardPaymentIds)
+            .where('l.kind', 'redeem')
+            .select('lp.payment_id', 'c.id as card_id', 'c.last_4')) as Array<{
+            payment_id: number;
+            card_id: number;
+            last_4: string;
+          }>;
+          for (const link of links) {
+            if (!giftCardByPayment.has(link.payment_id)) {
+              giftCardByPayment.set(link.payment_id, { id: link.card_id, last4: link.last_4 });
+            }
+          }
+        }
+      }
+      // O9: a gift-card order's issued cards (masked only) plus the recipient mail status.
+      const issuedCards = (await strapi.db.query('plugin::ordering.gift-card').findMany({
+        where: { order: aggregate.order.id },
+        select: ['id', 'last4', 'initialAmount', 'balance', 'status', 'source'],
+        orderBy: [{ id: 'asc' }],
+      })) as Array<{
+        id: number;
+        last4: string;
+        initialAmount: number | string;
+        balance: number | string;
+        status: string;
+        source: string;
+      }>;
+      const cardMail = issuedCards.length
+        ? ((await strapi.db.query('plugin::ordering.notification-delivery').findMany({
+            where: {
+              orderId: aggregate.order.id,
+              template: 'customer.gift-card-issued',
+            },
+            select: ['status'],
+            orderBy: [{ id: 'desc' }],
+            limit: 1,
+          })) as Array<{ status: string }>)[0]?.status ?? null
+        : null;
+      const cardRecipientMasked = issuedCards.length
+        ? maskEmail(
+            await (strapi.plugin('ordering').service('gift-card') as {
+              revealRecipient(id: number): Promise<string | null>;
+            }).revealRecipient(issuedCards[0].id),
+          )
+        : null;
       return {
         order: {
           id: aggregate.order.id,
@@ -648,11 +711,32 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
           actorRef: payment.actorRef,
           actorName: nameOf.get(payment.actorRef ?? '') ?? null,
           capturedAt: payment.capturedAt,
+          // O9: the card behind a `gift-card` payment — masked for the "•••• AB7K" label.
+          giftCard: giftCardByPayment.get(payment.id) ?? null,
         })),
+        // O9: cards this order issued — the gift-card order's detail block on S4.
+        giftCards:
+          issuedCards.length === 0
+            ? null
+            : {
+                cards: issuedCards.map((card) => ({
+                  id: card.id,
+                  masked: `•••• ${card.last4}`,
+                  last4: card.last4,
+                  initialAmount: Number(card.initialAmount),
+                  balance: Number(card.balance),
+                  status: card.status,
+                  source: card.source,
+                })),
+                emailStatus: cardMail,
+                recipientMasked: cardRecipientMasked,
+              },
         paymentEvents,
         refunds: aggregate.refunds.map((refund) => ({
           id: refund.id,
           paymentId: relationId(refund.payment),
+          // O9: refunds to a card show "Hoàn về thẻ •••• AB7K" instead of a money channel.
+          giftCard: giftCardByPayment.get(relationId(refund.payment) ?? 0) ?? null,
           amount: refund.amount,
           reason: refund.reason,
           status: refund.status,

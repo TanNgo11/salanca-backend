@@ -11,11 +11,12 @@ import { o7Messages } from './o7';
 import { o15Messages } from './o15';
 import { o10Messages } from './o10';
 import { o8Messages } from './o8';
+import { o9Messages } from './o9';
 import { o11Messages } from './o11';
 import { o14Messages } from './o14';
 
 const ROOT = join(__dirname, '..');
-const O3_DIRS = ['inbox', 'components/orders', 'pages/Orders', 'pages/Deliveries', 'pages/Courier', 'pages/Branches', 'pages/Staff', 'pages/Settings', 'pages/PaymentReview', 'pages/Ops', 'pages/Alerts', 'pages/CashClosing', 'pages/Reports', 'pages/AuditLog', 'pages/Webhooks', 'pages/CatalogImport', 'pages/ApiDocs', 'pages/Customers', 'pages/DataRequests', 'pages/Promotions', 'pages/Ratings', 'pages/PriceLists', 'pages/CustomerGroups', 'lib'];
+const O3_DIRS = ['inbox', 'components/orders', 'pages/Orders', 'pages/Deliveries', 'pages/Courier', 'pages/Branches', 'pages/Staff', 'pages/Settings', 'pages/PaymentReview', 'pages/Ops', 'pages/Alerts', 'pages/CashClosing', 'pages/Reports', 'pages/AuditLog', 'pages/Webhooks', 'pages/CatalogImport', 'pages/ApiDocs', 'pages/Customers', 'pages/DataRequests', 'pages/Promotions', 'pages/Ratings', 'pages/PriceLists', 'pages/CustomerGroups', 'pages/GiftCards', 'lib'];
 const EXTRA_FILES = ['pages/App.tsx', 'components/OrderExportModal.tsx'];
 
 const files = (dir: string): string[] =>
@@ -36,7 +37,7 @@ const DYNAMIC: Record<string, string[]> = {
   'branch.paymentTiming': ['prepay', 'accept-then-pay', 'pay-on-pickup'],
   day: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
   consent: ['web-checkout', 'phone-staff'],
-  method: ['cash', 'sepay'],
+  method: ['cash', 'sepay', 'gift-card'],
   'delivery.when': ['any', 'subtotal-gte', 'subtotal-lt'],
   'deliveries.tab': ['ready', 'out', 'failed'],
   'deliveries.empty': ['ready', 'out', 'failed', 'filtered'],
@@ -68,6 +69,17 @@ const DYNAMIC: Record<string, string[]> = {
   'price.adjust': ['percent', 'amount'],
   'price.target': ['all', 'categories', 'products'],
   'group.source': ['manual', 'auto'],
+  'card.tab': ['active', 'blocked', 'expired', 'zero', 'all'],
+  'card.filter': ['sold', 'manual'],
+  'card.source': ['sale', 'manual', 'batch'],
+  'card.status': ['inactive', 'active', 'blocked', 'expired'],
+  'card.mail': ['sent', 'pending', 'failed', 'skipped', 'none'],
+  'card.summary': ['outstanding', 'sold', 'redeemed'],
+  'card.col': ['card', 'denomination', 'balance', 'expiry', 'source', 'status', 'issuedAt'],
+  'ledger.col': ['at', 'kind', 'amount', 'balanceAfter', 'order', 'actor', 'reason'],
+  'ledger.kind': ['issue', 'activate', 'redeem', 'refund', 'adjust', 'expire', 'block', 'unblock', 'extend'],
+  'batch.col': ['code', 'source', 'denomination', 'quantity', 'sold', 'remaining', 'created'],
+  'batch.source': ['generated', 'imported'],
 };
 
 describe('O3 admin translations', () => {
@@ -97,6 +109,7 @@ describe('O3 admin translations', () => {
           o10Messages[key] ||
           o11Messages[key] ||
           o8Messages[key] ||
+          o9Messages[key] ||
           o14Messages[key],
       );
     const missing = [...used].filter((key) => !known(key));
@@ -111,6 +124,7 @@ describe('O3 admin translations', () => {
       ...o10Messages,
       ...o11Messages,
       ...o8Messages,
+      ...o9Messages,
       ...o14Messages,
     })) {
       expect(vi.trim(), key).not.toBe('');

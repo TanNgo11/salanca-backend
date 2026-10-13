@@ -20,6 +20,7 @@ import paymentReview from './payment-review';
 import promotions from './promotions';
 import priceLists from './price-lists';
 import customerGroups from './customer-groups';
+import giftCards from './gift-cards';
 import ratings from './ratings';
 import reports from './reports';
 import storefront from './storefront';
@@ -49,6 +50,7 @@ export default {
   promotions,
   'price-lists': priceLists,
   'customer-groups': customerGroups,
+  'gift-cards': giftCards,
   'audit-log': auditLog,
   'notification-templates': notificationTemplates,
   'customer-auth': customerAuth,

@@ -18,7 +18,8 @@ export default collection(
     currency: { type: 'string', required: true, default: 'VND' },
     quantity: { type: 'integer', required: true },
     note: { type: 'text' },
-    createdBy: { type: 'string' },
+    /** Actor ref (`admin:<id>`/`system`) — `createdBy` is reserved for Strapi's admin link. */
+    createdByRef: { type: 'string' },
     cards: {
       type: 'relation',
       relation: 'oneToMany',
