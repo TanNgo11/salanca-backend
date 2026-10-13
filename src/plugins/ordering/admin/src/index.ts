@@ -33,6 +33,19 @@ export default {
       intlDescription: { id: `${PLUGIN_ID}.bundle-slots.description`, defaultMessage: 'Choice groups inside this combo (JSON)' },
       components: { Input: () => import('./custom-fields/bundle-slots/Input') },
     });
+    // O12 N5: allergen codes + dietary tags on catalog-product.
+    app.customFields.register({
+      name: 'allergens', pluginId: PLUGIN_ID, type: 'json',
+      intlLabel: { id: `${PLUGIN_ID}.catalog.allergens`, defaultMessage: 'Allergens' },
+      intlDescription: { id: `${PLUGIN_ID}.catalog.allergens.description`, defaultMessage: 'EU FIC groups plus free-form entries' },
+      components: { Input: () => import('./custom-fields/allergens/Input') },
+    });
+    app.customFields.register({
+      name: 'dietary-tags', pluginId: PLUGIN_ID, type: 'json',
+      intlLabel: { id: `${PLUGIN_ID}.catalog.dietary`, defaultMessage: 'Dietary labels' },
+      intlDescription: { id: `${PLUGIN_ID}.catalog.dietary.description`, defaultMessage: 'Vegetarian, vegan, halal…' },
+      components: { Input: () => import('./custom-fields/dietary-tags/Input') },
+    });
     // One main-menu entry; every ordering screen sits under it with its own sub-navigation.
     app.addMenuLink({
       to: `/plugins/${PLUGIN_ID}`,

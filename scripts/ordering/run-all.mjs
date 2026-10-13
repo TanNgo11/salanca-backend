@@ -90,6 +90,10 @@ const scripts = [
   'pause.mjs',
   // O12 step 2: auto-reject stuck awaiting-acceptance groups.
   'auto-reject.mjs',
+  // O12 step 3: branch service/packaging fees via the pricing pipeline.
+  'fees.mjs',
+  // O12 step 4: allergen/dietary codes, filters, kitchenStation inheritance.
+  'allergens.mjs',
 ];
 
 const results = [];

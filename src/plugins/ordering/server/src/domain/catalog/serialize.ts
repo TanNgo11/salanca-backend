@@ -6,6 +6,7 @@
 
 import type { JsonObject, Sellable } from '../../contracts';
 import { dailyStockKey, modifierDocumentId } from '../daily-stock-lines';
+import { allergenLabel, dietaryLabel } from './allergens';
 
 /** Remaining portions for the catalog date. Absent keys are unlimited. */
 export type DailyStockView = {
@@ -125,12 +126,24 @@ const serializeOptionGroups = (sellable: Sellable, daily?: DailyStockView): Json
  * One product shape serves the list and the detail — the mockup already shows the full block
  * inside the list item. `availability` extras appear only when the product can't be bought.
  */
-export const serializeProduct = (sellable: Sellable, daily?: DailyStockView): JsonObject => {
+export const serializeProduct = (
+  sellable: Sellable,
+  daily?: DailyStockView,
+  locale = 'vi',
+): JsonObject => {
   const catalog = obj(sellable.metadata?.catalog);
   const availability = obj(catalog.availability) as AvailabilityExtra;
   const portion = dailyOf(daily, 'product', sellable.ref.sourceDocumentId || sellable.ref.uid);
   const soldOut = portion?.remaining === 0;
   const purchasable = sellable.purchasable === true;
+  // O12: allergens/dietary emit {code,label} so the storefront can filter on the code and
+  // still render a localized name; `custom:` labels are the stored name verbatim.
+  const allergens = arr(catalog.allergens)
+    .filter((code): code is string => typeof code === 'string')
+    .map((code) => ({ code, label: allergenLabel(code, locale) }));
+  const dietaryTags = arr(catalog.dietaryTags)
+    .filter((code): code is string => typeof code === 'string')
+    .map((code) => ({ code, label: dietaryLabel(code, locale) }));
   return {
     id: sellable.ref.uid,
     slug: catalog.slug ?? null,
@@ -156,5 +169,7 @@ export const serializeProduct = (sellable: Sellable, daily?: DailyStockView): Js
         }),
     ...(sellable.minQuantity !== undefined ? { minQuantity: sellable.minQuantity } : {}),
     fulfillment: sellable.fulfillmentKinds,
+    allergens,
+    dietaryTags,
   };
 };

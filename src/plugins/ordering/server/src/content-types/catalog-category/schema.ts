@@ -30,6 +30,8 @@ export default catalogCollection(
     rank: { type: 'integer', default: 0 },
     isActive: { type: 'boolean', default: true },
     isInternal: { type: 'boolean', default: false },
+    // O12 (plan step 6): KDS station; a product inherits the nearest ancestor's station.
+    kitchenStation: { type: 'string' },
     products: {
       type: 'relation',
       relation: 'manyToMany',

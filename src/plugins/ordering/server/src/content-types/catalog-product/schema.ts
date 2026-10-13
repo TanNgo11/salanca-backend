@@ -41,6 +41,15 @@ export default catalogCollection(
       type: 'customField',
       customField: 'plugin::ordering.bundle-slots',
     },
+    // O12 (plan step 4): allergen codes (EU FIC 14 + `custom:`) and dietary tags.
+    allergens: {
+      type: 'customField',
+      customField: 'plugin::ordering.allergens',
+    },
+    dietaryTags: {
+      type: 'customField',
+      customField: 'plugin::ordering.dietary-tags',
+    },
     rank: { type: 'integer', default: 0 },
     metadata: { type: 'json' },
     variants: {

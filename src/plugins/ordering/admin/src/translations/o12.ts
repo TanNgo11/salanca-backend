@@ -115,7 +115,10 @@ export const o12Messages: Record<string, [string, string]> = {
   'dietary.vegan': ['Thuần chay', 'Vegan'],
   'dietary.halal': ['Halal', 'Halal'],
   'dietary.gluten-free': ['Không gluten', 'Gluten-free'],
+  'dietary.sugar-free': ['Không đường', 'Sugar-free'],
   'dietary.spicy': ['Cay', 'Spicy'],
+  'catalog.allergen.custom': ['Khác — nhập tên', 'Other — type a name'],
+  'catalog.allergen.add': ['Thêm', 'Add'],
 
   // ── N7 tables & sessions ───────────────────────────────────────────────────
   'tables.title': ['Bàn & QR', 'Tables & QR'],

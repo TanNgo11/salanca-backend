@@ -66,6 +66,9 @@ withApp(async (app) => {
   const bunBo = await mkProduct({
     name: { vi: 'Bún bò Huế', en: 'Hue beef noodle' },
     categories: [monChinh.documentId, monHue.documentId],
+    // O12: allergen/dietary codes round-trip through the public product payload.
+    allergens: ['fish', 'custom:Sate'],
+    dietaryTags: ['spicy'],
   });
   const bbStd = await mkVariant(bunBo, { sku: 'BB-STD', name: { vi: 'Tô thường' }, isDefault: true });
   const bbDb = await mkVariant(bunBo, { sku: 'BB-DB', name: { vi: 'Tô đặc biệt' }, rank: 1 });
@@ -156,6 +159,18 @@ withApp(async (app) => {
   );
   const gioChoice = item.options[0].choices.find((c) => c.name === 'Giò heo');
   assert.equal(gioChoice.price, 25000, 'per-product override must reach the public API');
+  // O12: codes + localized labels; `custom:` labels are the stored name.
+  assert.deepEqual(item.allergens, [
+    { code: 'fish', label: 'Cá' },
+    { code: 'custom:Sate', label: 'Sate' },
+  ]);
+  assert.deepEqual(item.dietaryTags, [{ code: 'spicy', label: 'Cay' }]);
+
+  // O12: excludeAllergens drops matching products; dietary keeps only tagged ones.
+  const noFish = await (await get('/catalog/products?excludeAllergens=fish')).json();
+  assert.ok(!noFish.items.some((i) => i.id === bunBo.documentId));
+  const onlySpicy = await (await get('/catalog/products?dietary=spicy')).json();
+  assert.deepEqual(onlySpicy.items.map((i) => i.id), [bunBo.documentId]);
 
   // Slug resolution honours the requested locale; drafts are invisible.
   const enDetail = await (await get(`/catalog/products/${bunBo.documentId}?locale=en`)).json();

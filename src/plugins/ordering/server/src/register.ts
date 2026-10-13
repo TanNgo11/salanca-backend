@@ -15,6 +15,11 @@ import {
   validateModifierGroupRefs,
   validateModifierGroups,
 } from './domain/catalog/modifier-groups';
+import {
+  normalizeAllergens,
+  normalizeDietaryTags,
+  normalizeKitchenStation,
+} from './domain/catalog/allergens';
 import { OrderingError } from './domain/errors';
 import { PUBLIC_EVENT_TYPES } from './domain/webhooks/events';
 import { foodProductType } from './domain/product-types/food';
@@ -240,6 +245,9 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
   strapi.customFields.register({ name: 'localized-text', plugin: 'ordering', type: 'json' });
   strapi.customFields.register({ name: 'modifier-groups', plugin: 'ordering', type: 'json' });
   strapi.customFields.register({ name: 'bundle-slots', plugin: 'ordering', type: 'json' });
+  // O12: allergen codes + dietary tags on catalog-product (plan step 4).
+  strapi.customFields.register({ name: 'allergens', plugin: 'ordering', type: 'json' });
+  strapi.customFields.register({ name: 'dietary-tags', plugin: 'ordering', type: 'json' });
 
   // Branch codes are immutable — orders pin them via locationRef. This middleware covers the
   // Document Service path (Admin/API); the `branch` service enforces the same rule for
@@ -382,6 +390,28 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
               });
             }
           }
+        }
+        // O12 (plan step 4): allergen codes come from the fixed EU table or `custom:`;
+        // dietary tags are a closed list. Normalized codes write back into the payload.
+        for (const field of ['allergens', 'dietaryTags'] as const) {
+          if (!(field in params.data)) continue;
+          const result =
+            field === 'allergens'
+              ? normalizeAllergens(params.data[field])
+              : normalizeDietaryTags(params.data[field]);
+          if (!result.valid) {
+            throw new OrderingError('VALIDATION_ERROR', result.message, {
+              details: result.details,
+            });
+          }
+          params.data[field] = result.value;
+        }
+      }
+      // O12 (plan step 6): kitchenStation is a free string — trim and bound it; empty
+      // means "inherit the parent station".
+      if (context.uid === 'plugin::ordering.catalog-category' && params?.data) {
+        if ('kitchenStation' in params.data) {
+          params.data.kitchenStation = normalizeKitchenStation(params.data.kitchenStation);
         }
       }
       if (!entityType) return next();
