@@ -100,9 +100,16 @@ const postOnce = (
         response.on('error', finish);
       },
     );
+    // `setTimeout` only fires on an idle socket; a receiver dripping one byte at a time would
+    // never trip it and could outlive the claim lease (another worker would then resend). A hard
+    // deadline caps the whole attempt — connect, upload and response.
     request.setTimeout(options.timeoutMs, () => {
       request.destroy(Object.assign(new Error('request timed out'), { code: 'ETIME' }));
     });
+    const deadline = setTimeout(() => {
+      request.destroy(Object.assign(new Error('request deadline exceeded'), { code: 'ETIME' }));
+    }, options.timeoutMs);
+    request.on('close', () => clearTimeout(deadline));
     request.on('error', (error: NodeJS.ErrnoException) => {
       const code = typeof error.code === 'string' ? error.code : 'error';
       resolve({ error: code, durationMs: Date.now() - startedAt });

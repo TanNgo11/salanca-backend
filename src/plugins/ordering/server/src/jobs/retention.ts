@@ -9,6 +9,7 @@ type RetentionResult = {
   redacted: number;
   outboxDeleted: number;
   alertsDeleted: number;
+  webhookDeliveriesDeleted: number;
   batches: number;
 };
 
@@ -37,6 +38,7 @@ export const runRetention = async (
       let redacted = 0;
       let outboxDeleted = 0;
       let alertsDeleted = 0;
+      let webhookDeliveriesDeleted = 0;
       let batches = 0;
 
       // ── Payment-event payloads: keep the reconciliation allowlist only ─────────
@@ -82,6 +84,30 @@ export const runRetention = async (
       outboxDeleted += await deleteOutbox('delivered_at', config.outboxDeliveredDays);
       outboxDeleted += await deleteOutbox('failed_at', config.outboxFailedDays);
 
+      // ── Webhook deliveries (O10): the stored payload may carry the customer block of an
+      // includeCustomer endpoint, so delivery rows follow the outbox windows instead of staying
+      // forever. Pending rows are never touched.
+      const deleteDeliveries = async (status: 'succeeded' | 'failed', column: string, days: number) => {
+        let removed = 0;
+        const cutoff = daysAgo(now, days);
+        for (let batch = 0; batch < config.maxBatchesPerRun; batch += 1) {
+          const ids = (await knex('plugins_ordering_webhook_delivery')
+            .where('status', status)
+            .where(column, '<', cutoff)
+            .orderBy('id')
+            .limit(config.batchSize)
+            .select('id')) as Array<{ id: number }>;
+          if (ids.length === 0) break;
+          batches += 1;
+          removed += await knex('plugins_ordering_webhook_delivery')
+            .whereIn('id', ids.map((row) => row.id))
+            .delete();
+        }
+        return removed;
+      };
+      webhookDeliveriesDeleted += await deleteDeliveries('succeeded', 'succeeded_at', config.outboxDeliveredDays);
+      webhookDeliveriesDeleted += await deleteDeliveries('failed', 'updated_at', config.outboxFailedDays);
+
       // ── Validated-but-never-applied CSV imports: the staged payload expires at 24h ──
       await knex('plugins_ordering_catalog_import')
         .where('status', 'validated')
@@ -106,13 +132,13 @@ export const runRetention = async (
       }
 
       strapi.log.info(
-        `[ordering] retention redacted=${redacted} outboxDeleted=${outboxDeleted} alertsDeleted=${alertsDeleted} batches=${batches}`,
+        `[ordering] retention redacted=${redacted} outboxDeleted=${outboxDeleted} alertsDeleted=${alertsDeleted} webhookDeliveriesDeleted=${webhookDeliveriesDeleted} batches=${batches}`,
       );
-      return { redacted, outboxDeleted, alertsDeleted, batches };
+      return { redacted, outboxDeleted, alertsDeleted, webhookDeliveriesDeleted, batches };
     },
   );
 
   return outcome.ran
     ? { ran: true, ...(outcome.result as Omit<RetentionResult, 'ran'>) }
-    : { ran: false, redacted: 0, outboxDeleted: 0, alertsDeleted: 0, batches: 0 };
+    : { ran: false, redacted: 0, outboxDeleted: 0, alertsDeleted: 0, webhookDeliveriesDeleted: 0, batches: 0 };
 };
