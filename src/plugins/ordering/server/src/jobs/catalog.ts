@@ -2,6 +2,7 @@ import type { Core } from '@strapi/strapi';
 
 import type { OrderingConfig } from '../config';
 import { runAuditChain } from './audit-chain';
+import { runAutoReject } from './auto-reject';
 import { runCartExpiry } from './cart-expiry';
 import { runCustomerGroupRefresh } from './customer-group-refresh';
 import { runCartReminder } from './cart-reminder';
@@ -50,6 +51,8 @@ export const ORDERING_JOBS: OrderingJob[] = [
     runnable: true,
   },
   { name: 'sla-check', cronKey: 'slaCheckCron', run: runSlaCheck, runnable: true },
+  // O12: rejects groups stuck in `awaiting-acceptance` past the branch's per-kind timeout.
+  { name: 'auto-reject', cronKey: 'autoRejectCron', run: runAutoReject, runnable: true },
   {
     name: 'sepay-reconciliation',
     cronKey: 'reconciliationCron',

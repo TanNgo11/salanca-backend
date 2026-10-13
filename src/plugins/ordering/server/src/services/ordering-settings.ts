@@ -31,6 +31,8 @@ export const settingsSchema = z.object({
       { code: 'overloaded', label: { vi: 'Quá tải', en: 'Too busy' } },
       { code: 'closed', label: { vi: 'Ngoài giờ', en: 'Outside opening hours' } },
       { code: 'unreachable', label: { vi: 'Không liên lạc được khách', en: 'Customer unreachable' } },
+      // O12 auto-reject: the branch never accepted the order before its timeout.
+      { code: 'no-response', label: { vi: 'Không phản hồi kịp lúc', en: 'No timely response' } },
     ]),
   delayMinutes: z.array(z.number().int().min(1).max(240)).max(6).default([10, 20, 30]),
   ratingInviteEnabled: z.boolean().default(true),

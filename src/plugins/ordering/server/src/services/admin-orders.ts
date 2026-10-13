@@ -74,15 +74,8 @@ const eventConfirmed = (kind: string | null, reviewStatus: string, rawPayload: u
 const SUCCESS_REQUIRES_PAYMENT = 'cash';
 
 /** Pending refunds already count against a payment's refundable room (same rule as refundBank). */
-const pendingRefundSum = async (strapi: Core.Strapi, paymentId: number): Promise<number> => {
-  const rows = (await strapi.db
-    .connection('plugins_ordering_refund as refund')
-    .join('plugins_ordering_refund_payment_lnk as link', 'link.refund_id', 'refund.id')
-    .where('link.payment_id', paymentId)
-    .where('refund.status', 'pending')
-    .select('refund.amount')) as Array<{ amount: string | number }>;
-  return rows.reduce((sum, row) => sum + amountFromDb(row.amount), 0);
-};
+const pendingRefundSum = async (strapi: Core.Strapi, paymentId: number): Promise<number> =>
+  strapi.plugin('ordering').service('refund').pendingRefundSum(paymentId);
 
 export type NextTransition = {
   to: string;
@@ -164,31 +157,10 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
    * Cash is refunded now; a captured transfer becomes a refund row the bank provider leaves
    * `pending` until staff settle it. Call it after the close took the group locks: payments are
    * re-read here, so a transfer captured just before the close is not missed.
+   * O12: shared with the auto-reject job — lives on the refund service.
    */
-  const refundHeld = async (trx: TransactionClient, orderId: number, reason: string, ctx: ServiceContext) => {
-    const payments = (await repo.loadOrderAggregate(orderId))?.payments ?? [];
-    let refunded = 0;
-    let refundPending = 0;
-    for (const payment of payments) {
-      const held = payment.capturedAmount - payment.refundedAmount;
-      if (held <= 0) continue;
-      if (payment.providerCode === 'cash') {
-        const { amount } = await s
-          .refund()
-          .createRefundInTransaction(trx, { paymentId: payment.id, amount: held, reason }, ctx);
-        refunded += amount;
-      } else {
-        const room = held - (await pendingRefundSum(strapi, payment.id));
-        if (room <= 0) continue;
-        const { amount, status } = await s
-          .refund()
-          .createRefundInTransaction(trx, { paymentId: payment.id, amount: room, reason }, ctx);
-        if (status === 'settled') refunded += amount;
-        else refundPending += amount;
-      }
-    }
-    return { refunded, refundPending };
-  };
+  const refundHeld = async (trx: TransactionClient, orderId: number, reason: string, ctx: ServiceContext) =>
+    s.refund().refundHeldForOrder(trx, orderId, reason, ctx);
 
   const nextTransitions = (aggregate: OrderAggregate): NextTransition[] => {
     const group = liveGroup(aggregate);

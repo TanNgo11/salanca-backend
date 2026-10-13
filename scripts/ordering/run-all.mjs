@@ -86,6 +86,10 @@ const scripts = [
   'admin-customers.mjs',
   // O14: channel, group and time-window prices.
   'price-lists.mjs',
+  // O12 step 1: per-kind pause + busy mode.
+  'pause.mjs',
+  // O12 step 2: auto-reject stuck awaiting-acceptance groups.
+  'auto-reject.mjs',
 ];
 
 const results = [];
