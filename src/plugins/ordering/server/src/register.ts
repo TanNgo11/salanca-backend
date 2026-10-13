@@ -110,6 +110,7 @@ const adminActions = [
   { uid: 'customer.manage', displayName: 'Quản lý khách hàng' },
   { uid: 'customer.erase', displayName: 'Xử lý yêu cầu dữ liệu cá nhân' },
   { uid: 'promotion.manage', displayName: 'Quản lý khuyến mãi' },
+  { uid: 'price.manage', displayName: 'Quản lý bảng giá và nhóm khách' },
   { uid: 'rating.manage', displayName: 'Quản lý đánh giá' },
 ];
 

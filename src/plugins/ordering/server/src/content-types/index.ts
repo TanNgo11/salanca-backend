@@ -17,6 +17,9 @@ import catalogLocationState from './catalog-location-state';
 import catalogModifier from './catalog-modifier';
 import catalogModifierGroup from './catalog-modifier-group';
 import catalogPrice from './catalog-price';
+import customerGroup from './customer-group';
+import customerGroupMember from './customer-group-member';
+import priceList from './price-list';
 import catalogProduct from './catalog-product';
 import catalogSlug from './catalog-slug';
 import catalogVariant from './catalog-variant';
@@ -67,6 +70,9 @@ export default {
   'catalog-modifier': catalogModifier,
   'catalog-modifier-group': catalogModifierGroup,
   'catalog-price': catalogPrice,
+  'customer-group': customerGroup,
+  'customer-group-member': customerGroupMember,
+  'price-list': priceList,
   'catalog-product': catalogProduct,
   'catalog-slug': catalogSlug,
   'catalog-variant': catalogVariant,

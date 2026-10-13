@@ -83,6 +83,14 @@ export const AUDIT_ACTIONS: Record<string, ActionDef> = {
   'rating.hide': { category: 'order', label: ['Ẩn/hiện đánh giá', 'Hide or show rating'] },
   'rating.note': { category: 'order', label: ['Ghi chú đánh giá', 'Rating note'] },
   // O8: own category — campaigns change prices for every new order, apart from config.
+  'price-list.create': { category: 'catalog', label: ['Tạo bảng giá', 'Create price list'] },
+  'price-list.update': { category: 'catalog', label: ['Sửa bảng giá', 'Update price list'] },
+  'price-list.active': { category: 'catalog', label: ['Bật/tắt bảng giá', 'Switch price list'] },
+  // Groups decide who pays a price. They sit with promotions (a commercial condition),
+  // not with staff access.
+  'customer-group.create': { category: 'promotion', label: ['Tạo nhóm khách', 'Create customer group'] },
+  'customer-group.update': { category: 'promotion', label: ['Sửa nhóm khách', 'Update customer group'] },
+  'customer-group.members': { category: 'promotion', label: ['Sửa thành viên nhóm khách', 'Change customer group members'] },
   'promotion.create': { category: 'promotion', label: ['Tạo khuyến mãi', 'Create promotion'] },
   'promotion.update': { category: 'promotion', label: ['Sửa khuyến mãi', 'Update promotion'] },
   'promotion.active': { category: 'promotion', label: ['Bật/tắt khuyến mãi', 'Switch promotion'] },

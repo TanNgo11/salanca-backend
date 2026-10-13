@@ -22,6 +22,12 @@ export default catalogCollection(
     priority: { type: 'integer', default: 0 },
     validFrom: { type: 'datetime' },
     validTo: { type: 'datetime' },
+    /** Set when an override price list owns this row. Null is the ordinary menu price. */
+    priceList: {
+      type: 'relation',
+      relation: 'manyToOne',
+      target: 'plugin::ordering.price-list',
+    },
   },
   { displayName: 'Giá' },
 );

@@ -63,6 +63,7 @@ export const configSchema = z.object({
     cartExpiryCron: z.string().min(1),
     cartReminderCron: z.string().min(1),
     dataRequestWaitingCron: z.string().min(1),
+    customerGroupRefreshCron: z.string().min(1),
     /** Expected run period in minutes per job for `job-heartbeat-missed` (ops-check). */
     heartbeatMinutes: z.record(z.string(), z.number().int().positive()),
   }),
@@ -231,6 +232,7 @@ export default {
       cartExpiryCron: '0 */10 * * * *',
       cartReminderCron: '0 */15 * * * *',
       dataRequestWaitingCron: '0 */30 * * * *',
+      customerGroupRefreshCron: '0 15 3 * * *',
       heartbeatMinutes: {
         outbox: 2,
         'hold-expiry': 2,
@@ -245,6 +247,7 @@ export default {
         'cart-expiry': 15,
         'cart-reminder': 20,
         'data-request-waiting': 35,
+        'customer-group-refresh': 1500,
       },
     },
     audit: {

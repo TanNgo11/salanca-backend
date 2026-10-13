@@ -150,6 +150,8 @@ export const OPERATIONS: Operation[] = [
     parameters: [
       { name: 'location', in: 'query', schema: str, description: 'Branch code (filters the tree)' },
       { name: 'locale', in: 'query', schema: str, description: 'vi | en' },
+      { name: 'receiveKind', in: 'query', schema: str, description: 'pickup | delivery | dine-in. Omitted: no price channel.' },
+      { name: 'at', in: 'query', schema: isoDate, description: 'Catalog clock. A customer session answers private, no-store.' },
     ],
   }),
   pub('get', '/catalog/products', 'Catalog', 'Product page within a category', {
@@ -158,10 +160,17 @@ export const OPERATIONS: Operation[] = [
       { name: 'cursor', in: 'query', schema: str },
       { name: 'limit', in: 'query', schema: int },
       { name: 'locale', in: 'query', schema: str },
+      { name: 'receiveKind', in: 'query', schema: str, description: 'pickup | delivery | dine-in' },
+      { name: 'at', in: 'query', schema: isoDate },
     ],
   }),
   pub('get', '/catalog/products/:slug', 'Catalog', 'One product with variants and option groups', {
-    parameters: [pathParam('slug', 'VI slug'), { name: 'locale', in: 'query', schema: str }],
+    parameters: [
+      pathParam('slug', 'VI slug'),
+      { name: 'locale', in: 'query', schema: str },
+      { name: 'receiveKind', in: 'query', schema: str, description: 'pickup | delivery | dine-in' },
+      { name: 'at', in: 'query', schema: isoDate },
+    ],
   }),
   pub('get', '/branches', 'Storefront', 'Active branches that sell online'),
   pub('get', '/admin-units', 'Storefront', 'Provinces/communes for the delivery-address picker'),
@@ -735,6 +744,39 @@ export const OPERATIONS: Operation[] = [
     requestBody: generic,
   }),
   // O8 promotions (screens K1–K4) and ratings (R1–R2).
+  adm('get', '/price-lists', 'Price lists', 'Named override and adjust lists', ['price.manage']),
+  adm('post', '/price-lists', 'Price lists', 'Create a price list', ['price.manage'], { requestBody: generic }),
+  adm('get', '/price-lists/options', 'Price lists', 'Branches, variants, categories and groups for the editor', ['price.manage'], {
+    parameters: [{ name: 'locale', in: 'query', schema: str }],
+  }),
+  adm('get', '/price-lists/:id', 'Price lists', 'One price list', ['price.manage'], { parameters: [pathParam('id')] }),
+  adm('put', '/price-lists/:id', 'Price lists', 'Replace a price list', ['price.manage'], {
+    parameters: [pathParam('id')],
+    requestBody: generic,
+  }),
+  adm('post', '/price-lists/:id/active', 'Price lists', 'Switch a price list on or off', ['price.manage'], {
+    parameters: [pathParam('id')],
+    requestBody: obj({ active: bool }, ['active']),
+  }),
+  adm('post', '/price-preview', 'Price lists', 'Explain which list wins for a variant and context', ['price.manage'], {
+    requestBody: obj({ variantId: str, channel: str, locationRef: str, customerGroup: str, at: isoDate }, ['variantId']),
+  }),
+  adm('get', '/customer-groups', 'Customer groups', 'Groups that can select a price', ['price.manage']),
+  adm('post', '/customer-groups', 'Customer groups', 'Create a customer group', ['price.manage'], { requestBody: generic }),
+  adm('get', '/customer-groups/search', 'Customer groups', 'Masked customer search for the member picker', ['price.manage'], {
+    parameters: [{ name: 'q', in: 'query', schema: str }],
+  }),
+  adm('get', '/customer-groups/:id', 'Customer groups', 'One group and its members', ['price.manage'], {
+    parameters: [pathParam('id')],
+  }),
+  adm('put', '/customer-groups/:id', 'Customer groups', 'Update a group (code is immutable)', ['price.manage'], {
+    parameters: [pathParam('id')],
+    requestBody: generic,
+  }),
+  adm('post', '/customer-groups/:id/members', 'Customer groups', 'Add or remove members; the log stores counts only', ['price.manage'], {
+    parameters: [pathParam('id')],
+    requestBody: obj({ add: arr(str), remove: arr(str) }),
+  }),
   adm('get', '/promotions', 'Promotions', 'List with running/scheduled/off/expired tabs and search', ['promotion.manage'], {
     parameters: [
       { name: 'status', in: 'query', schema: str },

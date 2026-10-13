@@ -1099,10 +1099,12 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
      */
     async quoteDraft(body: unknown, ctx: ServiceContext) {
       const cart = parseCartRequest(body);
+      const raw = (body ?? {}) as { contact?: { phone?: unknown } };
+      const phone = typeof raw.contact?.phone === 'string' ? raw.contact.phone : '';
       return s.order().quote(
         {
           ...cart,
-          contact: { phone: '' },
+          contact: { phone },
           consent: { policyVersion: '', channel: 'phone-staff' },
           origin: { kind: 'staff-draft', actorRef: ctx.actor.actorRef },
         },

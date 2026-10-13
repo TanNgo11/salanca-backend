@@ -287,6 +287,10 @@ const dataRights = ({ strapi }: { strapi: Core.Strapi }) => {
         otps: (await otps().deleteMany({ where: { customer: customer.id } })).count ?? 0,
         addresses: (await addresses().deleteMany({ where: { customer: customer.id } })).count ?? 0,
         carts: (await carts().deleteMany({ where: { customer: customer.id } })).count ?? 0,
+        groupMembers:
+          (await strapi.db.query('plugin::ordering.customer-group-member').deleteMany({
+            where: { customerId: customer.id },
+          })).count ?? 0,
       };
       await customers().update({
         where: { id: customer.id },

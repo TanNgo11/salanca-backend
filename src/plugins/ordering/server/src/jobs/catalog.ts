@@ -3,6 +3,7 @@ import type { Core } from '@strapi/strapi';
 import type { OrderingConfig } from '../config';
 import { runAuditChain } from './audit-chain';
 import { runCartExpiry } from './cart-expiry';
+import { runCustomerGroupRefresh } from './customer-group-refresh';
 import { runCartReminder } from './cart-reminder';
 import { runDataRequestWaiting } from './data-request-waiting';
 import { runHoldExpiry } from './hold-expiry';
@@ -78,6 +79,12 @@ export const ORDERING_JOBS: OrderingJob[] = [
     name: 'data-request-waiting',
     cronKey: 'dataRequestWaitingCron',
     run: runDataRequestWaiting,
+    runnable: true,
+  },
+  {
+    name: 'customer-group-refresh',
+    cronKey: 'customerGroupRefreshCron',
+    run: runCustomerGroupRefresh,
     runnable: true,
   },
 ];

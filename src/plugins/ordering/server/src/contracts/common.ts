@@ -34,7 +34,16 @@ export type ValidationResult =
 
 export type SelectedOptionInput = { groupUid: string; optionUid: string; quantity: number };
 
-export type AdapterContext = { now: string; locationRef?: string; channel?: string };
+export type AdapterContext = {
+  now: string;
+  locationRef?: string;
+  /** Price channel: `pickup` | `delivery` | `dine-in` | `staff`. Not the consent channel. */
+  channel?: string;
+  /** Group codes of a signed-in customer, or of the profile on a staff draft. Empty for a guest. */
+  customerGroups?: string[];
+  /** Branch IANA zone. Weekday and time-range prices do not match without it. */
+  timezone?: string;
+};
 
 export type AvailabilityResult = {
   available: boolean;

@@ -24,6 +24,13 @@ export type CatalogPriceRules = {
   locationRef?: string | null;
   channel?: string | null;
   customerGroup?: string | null;
+  /**
+   * List-level OR constraints. Empty or omitted means "no constraint". A catalog-price row keeps
+   * using the singular keys; an adjust list may name several channels, branches or groups.
+   */
+  channels?: string[] | null;
+  locationRefs?: string[] | null;
+  customerGroups?: string[] | null;
   /** Empty or omitted = every day. Values are `mon`…`sun`. */
   weekdays?: string[] | null;
   /** Empty or omitted = all day. `end` <= `start` wraps past midnight; `end` is exclusive. */
@@ -190,6 +197,33 @@ const matchScore = (
   return { score: matched.length, matched };
 };
 
+/**
+ * Whether an adjust list's rules hold. Singular keys and the list-level arrays are OR within
+ * one dimension and AND across dimensions. Weekdays and time ranges delegate to the row matcher.
+ */
+export const priceRulesMatch = (
+  rules: CatalogPriceRules | null | undefined,
+  ctx: PriceContext,
+): boolean => {
+  const source = rules ?? {};
+  const channels = [...(source.channels ?? [])];
+  if (source.channel) {
+    const canonical = canonicalChannel(source.channel);
+    if (canonical) channels.push(canonical);
+  }
+  if (channels.length > 0 && (!ctx.channel || !channels.includes(ctx.channel))) return false;
+
+  const locations = [...(source.locationRefs ?? [])];
+  if (source.locationRef) locations.push(source.locationRef);
+  if (locations.length > 0 && (!ctx.locationRef || !locations.includes(ctx.locationRef))) return false;
+
+  const groups = [...(source.customerGroups ?? [])];
+  if (source.customerGroup) groups.push(source.customerGroup);
+  if (groups.length > 0 && !groups.some((group) => contextGroups(ctx).has(group))) return false;
+
+  return matchScore({ weekdays: source.weekdays, timeRanges: source.timeRanges }, ctx) !== null;
+};
+
 const targetMatches = (target: AdjustTarget, variant: VariantPriceContext): boolean => {
   if (target.kind === 'all') return true;
   const refs = new Set(target.refs ?? []);
@@ -292,7 +326,7 @@ export function applyAdjustLists(
   for (const list of lists) {
     if (list.active === false) continue;
     if (!windowCovers(list.validFrom, list.validTo, now)) continue;
-    if (!matchScore(list.rules, ctx)) continue;
+    if (!priceRulesMatch(list.rules, ctx)) continue;
     if (!targetMatches(list.adjust.target, variant)) continue;
     const amount = Math.max(0, base.amount - discountOf(base.amount, list.adjust));
     const beat = () => {
@@ -373,7 +407,7 @@ export function explainPrice(
       candidates.push({ kind: 'list', id: list.id, ...(list.name ? { name: list.name } : {}), matched: false, reason: 'window' });
       continue;
     }
-    if (!matchScore(list.rules, ctx)) {
+    if (!priceRulesMatch(list.rules, ctx)) {
       candidates.push({ kind: 'list', id: list.id, ...(list.name ? { name: list.name } : {}), matched: false, reason: 'rules' });
       continue;
     }
