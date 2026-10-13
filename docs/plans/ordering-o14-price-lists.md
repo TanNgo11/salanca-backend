@@ -172,6 +172,12 @@ Quy ước chung như [`ordering-o3-screens.md`](ordering-o3-screens.md); chuỗ
 
 ## Completion record
 
+Review fix (2026-10-13): nhóm tự động chỉ có `sinceDays` trước đây nhận mọi khách (kể cả chưa từng đặt) — giờ nghĩa là
+≥ 1 đơn hoàn tất trong N ngày (`price-lists.mjs` có ca). Giá dòng lại đi qua `productType.quoteLine`: giá biến thể đã
+chọn theo ngữ cảnh đưa vào `sellable.listPrice` (`sellableForLine`), `unitAmount` lấy từ quote — product type riêng
+không bị ghi đè. Gate: lint, typecheck, vitest 660, `build:ordering`, `price-lists`, `create-order`, `promotions`,
+`order-edit` PASS.
+
 - Bước 1: `f21652f` `feat(ordering): select prices by channel, group and time`. Không amend.
 - Bước 2–4: `1e272cb` `feat(ordering): price orders from lists, groups and the branch clock`.
   Bước 5: `727d962` `feat(ordering): add price-list and customer-group admin screens`.

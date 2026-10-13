@@ -578,6 +578,18 @@ export const unitAmountOf = (sellable: Sellable, variantUid?: string | null): nu
   return typeof chosen?.price === 'number' ? chosen.price : sellable.listPrice.amount;
 };
 
+/**
+ * The sellable a product type prices for one line: its list price is the context-selected price
+ * of the chosen variant (price lists, groups, time), so `quoteLine` stays the only place that
+ * decides `unitAmount` — a custom product type keeps its own pricing on top of it.
+ */
+export const sellableForLine = (sellable: Sellable, variantUid?: string | null): Sellable => {
+  const amount = unitAmountOf(sellable, variantUid);
+  return amount === sellable.listPrice.amount
+    ? sellable
+    : { ...sellable, listPrice: { ...sellable.listPrice, amount } };
+};
+
 const cursorOf = (offset: number): string =>
   Buffer.from(JSON.stringify({ o: offset })).toString('base64url');
 const parseCursor = (cursor?: string): number => {

@@ -48,7 +48,7 @@ import orderRepository from '../repositories/order';
 import type { OrderAggregate } from '../repositories/types';
 import type { ServiceContext } from './context';
 import { priceChannelOf } from '../domain/catalog/price-selection';
-import { unitAmountOf } from '../providers/ordering-catalog/adapter';
+import { sellableForLine } from '../providers/ordering-catalog/adapter';
 import { actorRefOf, nowOf } from './context';
 import type adminUnitsFactory from './admin-units';
 import type branchFactory from './branch';
@@ -572,7 +572,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         }
         const productType = registry.productType(sellable.productType);
         const configuration = {
-          sellable,
+          sellable: sellableForLine(sellable, line.variantUid),
           selected: line.selected ?? [],
           quantity: line.quantity,
           context: { locale, locationRef: input.locationRef, at: placedAt.toISOString() },
@@ -601,7 +601,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
           sellable,
           key: String(index),
           quantity: line.quantity,
-          unitAmount: unitAmountOf(sellable, line.variantUid),
+          unitAmount: quote.unitAmount,
           optionAmount: quote.optionAmount,
           taxGroupRef: quote.taxGroupRef ?? sellable.taxGroupRef,
           workflow,

@@ -49,7 +49,7 @@ import type adminUnitsFactory from './admin-units';
 import type branchFactory from './branch';
 import type changeLogFactory from './change-log';
 import { priceChannelOf } from '../domain/catalog/price-selection';
-import { unitAmountOf } from '../providers/ordering-catalog/adapter';
+import { sellableForLine } from '../providers/ordering-catalog/adapter';
 import type { ServiceContext } from './context';
 import { nowOf } from './context';
 import type dailyStockFactory from './daily-stock';
@@ -958,7 +958,7 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
       }
       const productType = input.registry.productType(sellable.productType);
       const configuration = {
-        sellable,
+        sellable: sellableForLine(sellable, line.variantUid),
         selected,
         quantity: line.quantity,
         context: { locale: input.locale, locationRef: input.locationRef, at: input.now.toISOString() },
@@ -995,7 +995,7 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
         quantity: line.quantity,
         note: line.note?.trim() ? line.note.trim() : null,
         variantUid: line.variantUid ?? sellable.variant?.uid ?? null,
-        unitAmount: unitAmountOf(sellable, line.variantUid),
+        unitAmount: quote.unitAmount,
         optionAmount: quote.optionAmount,
         ...(quote.taxGroupRef || sellable.taxGroupRef
           ? { taxGroupRef: quote.taxGroupRef ?? sellable.taxGroupRef }

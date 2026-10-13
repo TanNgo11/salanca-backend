@@ -295,6 +295,27 @@ withApp(async (app) => {
     'the daily job does not put an erased customer back',
   );
 
+  // A rule with only sinceDays means "ordered within N days" — never every customer.
+  const recent = await groups.create(
+    { code: 'gan-day', name: { vi: 'Đặt gần đây' }, active: true, auto: { sinceDays: 30 } },
+    systemCtx,
+  );
+  const recentGroup = await app.db.query('plugin::ordering.customer-group').findOne({ where: { id: recent.item.id } });
+  const linkedOrder = await app.db.query('plugin::ordering.order').findOne({ where: { customer: customerId } });
+  assert.ok(linkedOrder, 'the grouped customer has a linked order');
+  await app.db.query('plugin::ordering.order').update({
+    where: { id: linkedOrder.id },
+    data: { status: 'completed', completedAt: new Date(new Date(HAPPY).getTime() - 86_400_000) },
+  });
+  await groups.refreshAuto(new Date(HAPPY));
+  const recentMembers = (
+    await app.db.query('plugin::ordering.customer-group-member').findMany({
+      where: { groupDocumentId: recentGroup.documentId },
+    })
+  ).map((row) => row.customerId);
+  assert.ok(recentMembers.includes(customerId), 'a customer with a completed order in the window joins');
+  assert.ok(!recentMembers.includes(quietId), 'a customer without orders in the window does not');
+
   await app.listen();
   const base = `http://127.0.0.1:${process.env.PORT}`;
   const catalog = (path, headers) =>

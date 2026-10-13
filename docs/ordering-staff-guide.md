@@ -287,6 +287,7 @@ Sửa đơn (O7) giữ khuyến mãi đã áp và tính lại số giảm trên 
 2. **Thêm tự động:** tổng chi, số đơn hoàn tất, hoặc trong số ngày gần đây. Ít nhất một điều kiện. Job chạy
    03:15 mỗi ngày. Thành viên thêm tay giữ nguyên; thành viên tự động hết điều kiện thì bị gỡ. Nếu bạn gỡ một
    khách tự động mà khách vẫn đủ điều kiện, job hôm sau thêm lại.
+   Điều kiện chỉ có "trong N ngày" nghĩa là có ít nhất 1 đơn hoàn tất trong N ngày đó.
 3. Tìm khách theo tên hoặc số để thêm/bớt. Màn hình chỉ hiện số đã che. Nhật ký chỉ ghi số người thêm và bớt,
    không ghi tên hay số điện thoại.
 4. Khách phải đăng nhập mới được giá nhóm trên web. Đơn hộ dùng nhóm của hồ sơ trùng số điện thoại. Khách

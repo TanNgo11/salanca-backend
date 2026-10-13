@@ -359,8 +359,12 @@ const customerGroup = ({ strapi }: { strapi: Core.Strapi }) => {
             const window = stats.get(person.id) ?? { count: 0, spent: 0 };
             const count = rule.sinceDays ? window.count : Number(person.orderCount ?? 0);
             const spent = rule.sinceDays ? window.spent : Number(person.totalSpent ?? 0);
+            // A rule with only `sinceDays` means "ordered within N days": at least one order, never
+            // everyone (an empty threshold would otherwise admit customers who never ordered).
+            const minCount =
+              rule.minOrderCount ?? (rule.minTotalSpent === undefined ? 1 : undefined);
             const qualifies =
-              (rule.minOrderCount === undefined || count >= rule.minOrderCount) &&
+              (minCount === undefined || count >= minCount) &&
               (rule.minTotalSpent === undefined || spent >= rule.minTotalSpent);
             const member = byCustomer.get(person.id);
             if (qualifies && !member) {
