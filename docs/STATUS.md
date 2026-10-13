@@ -9,7 +9,7 @@ trả lượt khi hủy, sửa đơn giữ khuyến mãi. Quote **không nhận 
 `pendingPromotions`, quyết ở create). Đánh giá 1–5 sao theo token đơn, email mời 60 phút sau hoàn tất, alert
 `low-rating` (≤ 2★), xóa ghi chú sau 365 ngày. Màn K1–K4, R1–R2, thêm vào chi tiết đơn, báo cáo, cài đặt, tạo đơn
 hộ. Sửa luôn `Dialog.Title` không tồn tại ở 3 dialog cũ và 4 route O7 thiếu trong OpenAPI. Gate: lint, typecheck,
-vitest 620, `build:ordering`, `strapi build`, 16 script PASS. Chưa UAT giao diện. Plan + Completion record:
+vitest 620, `build:ordering`, `strapi build`, 5 script mới + 29 script bị ảnh hưởng PASS (danh sách trong Completion record). Chưa UAT giao diện. Plan + Completion record:
 [`plans/ordering-o8-promotions-rating.md`](plans/ordering-o8-promotions-rating.md).
 
 2026-10-13: **Ordering O7 (giờ đặc biệt, giới hạn phần mỗi ngày, sửa đơn, trang người giao) — automated gate** trên

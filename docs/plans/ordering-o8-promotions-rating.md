@@ -273,9 +273,16 @@ Gate (có chọn lọc, `ORDERING_TEST_DATABASE=salanca_ordering_o8`, 2026-10-13
 
 - `pnpm run lint` sạch; `pnpm run typecheck` sạch; `pnpm exec vitest run src/plugins/ordering` 620/620.
 - `pnpm run build:ordering` sạch; `ORDERING_ENABLED=true pnpm exec strapi build` OK.
-- Script mới PASS: `promotions`, `promotion-race`, `promotions-admin`, `rating`.
-- Script bị ảnh hưởng PASS: `schema`, `create-order`, `storefront`, `reports`, `order-export`, `cash-closing`,
-  `retention`, `email-templates`, `notifications`, `alerts-engine`, `audit-coverage`, `openapi --write`.
+- Script mới PASS: `promotions`, `promotion-race`, `promotion-money` (sửa đơn giữ và tính lại khuyến mãi,
+  hủy món có giảm theo dòng hoàn đúng phần ròng, miễn phí giao rồi hủy món), `promotions-admin`, `rating`.
+- Script bị ảnh hưởng PASS, chạy lại sau bước cuối (hook hoàn tất đơn): `order-edit`, `daily-stock`,
+  `payment-refund`, `lookup-drafts`, `idempotency`, `courier`, `cash-closing`, `transition`, `admin-orders`,
+  `delivery-assignment`, `sepay-manual`, `sepay-refund`, `sepay-expiry`, `sepay-match`, `special-hours`,
+  `webhooks-out`, `check-admin-imports`, `check-dist-imports`. Chạy trong lúc làm (sau bước liên quan):
+  `schema`, `create-order`, `storefront`, `reports`, `order-export`, `retention`, `email-templates`,
+  `notifications`, `alerts-engine`, `audit-coverage`, `openapi --write`.
+- Ghi chú: đánh giá ẩn vẫn tính vào điểm trung bình (R1, báo cáo). Đơn hoàn tất trước O8 không có
+  `completedAt` nên không đánh giá được (chưa go-live, không cần bù).
 - `tsc` riêng cho admin (scratch config): file O8 không có lỗi; 35 lỗi kiểu cũ ở các trang trước O8 còn nguyên.
 - Chưa chạy: `check:ordering` ×2, `check:phase3`, smoke, Chrome UAT (chủ dự án tự UAT). UAT: `node
   scripts/ordering/uat-server.mjs` (cổng 1355, DB `salanca_ordering_o8_uat`) — có GIAM10, 20 mã TET, miễn phí
