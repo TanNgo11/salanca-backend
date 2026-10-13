@@ -48,6 +48,7 @@ import customerAuth from './customer-auth';
 import customer from './customer';
 import cart from './cart';
 import dataRights from './data-rights';
+import adminCustomers from './admin-customers';
 
 export default {
   registry,
@@ -97,6 +98,7 @@ export default {
   customer,
   cart,
   'data-rights': dataRights,
+  'admin-customers': adminCustomers,
   migrations: ({ strapi }: { strapi: Core.Strapi }) => ({
     run: (migrations: OrderingMigration[]) => runOrderingMigrations(strapi, migrations),
   }),

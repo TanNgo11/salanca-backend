@@ -61,6 +61,8 @@ export type OrderDetail = {
     businessDate: string;
     locationRef: string;
     branch: { code: string; name: unknown; timezone: string };
+    /** O11: the linked customer profile (masked), when the order belongs to one — links S4→C2. */
+    customer: { id: string; name: string | null; phoneMasked: string | null; status: string } | null;
     origin: { kind: string; actorRef?: string };
     contact: { name?: string; phone?: string; email?: string };
     consent: { policyVersion?: string; acceptedAt?: string; channel?: string; actorRef?: string; marketingOptIn?: boolean };

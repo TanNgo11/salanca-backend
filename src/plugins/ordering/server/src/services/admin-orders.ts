@@ -532,6 +532,16 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
       const nameOf = new Map(
         admins.map((admin) => [`admin:${admin.id}`, [admin.firstname, admin.lastname].filter(Boolean).join(' ')]),
       );
+      // O11: the order↔customer relation lives off the aggregate — load it for the S4→C2 link.
+      const linkedCustomer = (
+        (await strapi.db.query('plugin::ordering.order').findOne({
+          where: { id: aggregate.order.id },
+          select: ['id'],
+          populate: { customer: { select: ['documentId', 'name', 'phone', 'status'] } },
+        })) as {
+          customer?: { documentId: string; name: string | null; phone: string | null; status: string } | null;
+        } | null
+      )?.customer;
       return {
         order: {
           id: aggregate.order.id,
@@ -542,6 +552,17 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
           placedAt: aggregate.order.placedAt,
           businessDate: aggregate.order.businessDate,
           locationRef: aggregate.order.locationRef,
+          customer: linkedCustomer
+            ? {
+                id: linkedCustomer.documentId,
+                name: linkedCustomer.name,
+                phoneMasked: (() => {
+                  const national = normalizeVietnamesePhone(linkedCustomer.phone ?? '');
+                  return national.valid ? maskPhone(national.national) : null;
+                })(),
+                status: linkedCustomer.status,
+              }
+            : null,
           branch: {
             code: aggregate.order.locationRef,
             name: (aggregate.order.branchSnapshot as { name?: unknown } | null)?.name ?? null,

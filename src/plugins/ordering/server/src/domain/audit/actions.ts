@@ -123,6 +123,14 @@ export const AUDIT_ACTIONS: Record<string, ActionDef> = {
   // Access
   'scope.update': { category: 'access', label: ['Gán chi nhánh cho nhân viên', 'Update staff scope'] },
   // O11: personal-data requests (Decree 13). entityLabel stays null — no customer data.
+  'customer.update': {
+    category: 'access',
+    label: ['Sửa hồ sơ khách', 'Update customer profile'],
+  },
+  'customer.reveal-phone': {
+    category: 'access',
+    label: ['Xem SĐT đầy đủ', 'Reveal full phone number'],
+  },
   'customer.export': {
     category: 'access',
     label: ['Xuất dữ liệu khách', 'Export customer data'],

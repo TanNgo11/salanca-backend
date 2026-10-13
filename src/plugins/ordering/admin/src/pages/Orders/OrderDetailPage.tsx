@@ -469,6 +469,15 @@ export const OrderDetailPage = () => {
                   version: order.consent.policyVersion ?? '—',
                 })}
               </Typography>
+              {order.customer ? (
+                <Box paddingTop={2}>
+                  <Link to={`/plugins/ordering/customers/${order.customer.id}`}>
+                    <Typography variant="pi" fontWeight="semiBold" textColor="primary600">
+                      {order.customer.name ?? order.customer.phoneMasked ?? t('customers.noName')} →
+                    </Typography>
+                  </Link>
+                </Box>
+              ) : null}
             </Section>
             <Section title={t('detail.receive')}>
               <Row label={t('detail.receiveKind')} value={t(`receive.${order.receiveMethod.kind ?? 'pickup'}`)} />

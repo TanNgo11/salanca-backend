@@ -489,6 +489,31 @@ export const OPERATIONS: Operation[] = [
   }),
 
   // ── Admin: customers & Decree 13 data rights ─────────────────────────────────
+  adm('get', '/customers', 'Customers', 'Directory (phone → HMAC, name/email ilike; scoped)', ['customer.read'], {
+    parameters: [
+      { name: 'q', in: 'query', schema: str },
+      { name: 'status', in: 'query', schema: str, description: 'verified | unverified' },
+      { name: 'marketing', in: 'query', schema: str, description: 'yes = marketing consent' },
+      { name: 'page', in: 'query', schema: int },
+      { name: 'pageSize', in: 'query', schema: int },
+    ],
+    response: obj({ items: arr(generic), page: int, pageSize: int, total: int }, ['items']),
+  }),
+  adm('get', '/customers/:id', 'Customers', 'Masked profile + orders + addresses + requests', ['customer.read'], {
+    parameters: [pathParam('id', 'Customer documentId')],
+    response: obj(
+      { customer: generic, orders: arr(generic), addresses: arr(generic), requests: arr(generic) },
+      ['customer'],
+    ),
+  }),
+  adm('put', '/customers/:id', 'Customers', 'Edit name + staff note (masked diff logged)', ['customer.manage'], {
+    parameters: [pathParam('id', 'Customer documentId')],
+    requestBody: obj({ name: str, staffNote: str }),
+  }),
+  adm('post', '/customers/:id/reveal-phone', 'Customers', 'Show full phone once (change-logged)', ['customer.manage'], {
+    parameters: [pathParam('id', 'Customer documentId')],
+    response: obj({ phone: { anyOf: [str, { type: 'null' }] } as unknown as JsonSchema }),
+  }),
   adm('get', '/customers/:id/export', 'Customers', 'Decree 13 export (branch-scoped)', ['customer.manage'], {
     parameters: [pathParam('id', 'Customer documentId')],
     response: obj(

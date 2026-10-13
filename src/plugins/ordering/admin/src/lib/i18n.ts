@@ -8,6 +8,7 @@ import { o5Messages } from '../translations/o5';
 import { o6Messages } from '../translations/o6';
 import { o15Messages } from '../translations/o15';
 import { o10Messages } from '../translations/o10';
+import { o11Messages } from '../translations/o11';
 
 const messagesOf = (key: string): [string, string] | undefined =>
   o3Messages[key] ??
@@ -15,7 +16,8 @@ const messagesOf = (key: string): [string, string] | undefined =>
   o5Messages[key] ??
   o6Messages[key] ??
   o15Messages[key] ??
-  o10Messages[key];
+  o10Messages[key] ??
+  o11Messages[key];
 
 export type Translate = (
   key: string,
@@ -56,6 +58,8 @@ export const o6Translations = (locale: string): Record<string, string> => pack(o
 export const o15Translations = (locale: string): Record<string, string> => pack(o15Messages, locale);
 
 export const o10Translations = (locale: string): Record<string, string> => pack(o10Messages, locale);
+
+export const o11Translations = (locale: string): Record<string, string> => pack(o11Messages, locale);
 
 /** Admin interface language ('vi' | 'en'), for picking `{ vi, en }` catalog/branch names. */
 export const useLocale = (): string => {

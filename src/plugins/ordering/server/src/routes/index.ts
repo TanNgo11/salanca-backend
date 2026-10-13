@@ -282,8 +282,12 @@ export default {
       adminRoute('GET', '/audit-log/actors', 'audit-log.actors', 'audit.read'),
       adminRoute('GET', '/audit-log/export', 'audit-log.exportCsv', 'audit.read', 'export'),
       adminRoute('GET', '/audit-log/:id', 'audit-log.detail', 'audit.read'),
-      // O11: customers (screen C2 export) and Decree 13 data requests (screen C3). Staff see a
+      // O11: customers (screens C1–C2) and Decree 13 data requests (screen C3). Staff see a
       // customer only through an in-scope order — hidden customers 404.
+      adminRoute('GET', '/customers', 'admin-customers.list', 'customer.read'),
+      adminRoute('GET', '/customers/:id', 'admin-customers.detail', 'customer.read'),
+      adminRoute('PUT', '/customers/:id', 'admin-customers.update', 'customer.manage'),
+      adminRoute('POST', '/customers/:id/reveal-phone', 'admin-customers.revealPhone', 'customer.manage'),
       adminRoute('GET', '/customers/:id/export', 'admin-customers.exportCustomer', 'customer.manage'),
       adminRoute('GET', '/data-requests', 'admin-customers.listRequests', 'customer.erase'),
       adminRoute('POST', '/data-requests', 'admin-customers.createRequest', 'customer.erase'),

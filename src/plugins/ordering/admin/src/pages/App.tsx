@@ -10,6 +10,8 @@ import {
   RBAC_AUDIT,
   RBAC_CATALOG_ACCESS,
   RBAC_CATALOG_MANAGE,
+  RBAC_CUSTOMERS,
+  RBAC_DATA_REQUESTS,
   RBAC_OPS,
   RBAC_ORDERS_READ,
   RBAC_PAYMENT_REVIEW,
@@ -20,6 +22,8 @@ import {
 } from '../lib/permissions';
 
 const OrdersPage = lazy(() => import('./Orders'));
+const CustomersPage = lazy(() => import('./Customers'));
+const DataRequestsPage = lazy(() => import('./DataRequests'));
 const DeliveriesPage = lazy(() => import('./Deliveries'));
 const PaymentReviewPage = lazy(() => import('./PaymentReview'));
 const BranchesPage = lazy(() => import('./Branches'));
@@ -37,6 +41,8 @@ const ApiDocsPage = lazy(() => import('./ApiDocs'));
 
 type Section =
   | 'orders'
+  | 'customers'
+  | 'data-requests'
   | 'deliveries'
   | 'payment-review'
   | 'alerts'
@@ -109,9 +115,15 @@ const SideNav = ({
     <SubNav aria-label={t('nav.title')}>
       <SubNavHeader label={t('nav.title')} />
       <SubNavSections>
-        {visible.orders || visible.deliveries || visible['payment-review'] || visible.alerts || visible.ops ? (
+        {visible.orders ||
+        visible.customers ||
+        visible.deliveries ||
+        visible['payment-review'] ||
+        visible.alerts ||
+        visible.ops ? (
           <SubNavSection label={t('nav.operations')}>
             {visible.orders ? link('orders', t('nav.orders'), inbox?.awaiting) : null}
+            {visible.customers ? link('customers', t('nav.customers')) : null}
             {visible.deliveries ? link('deliveries', t('nav.deliveries')) : null}
             {visible['payment-review'] ? link('payment-review', t('nav.paymentReview'), openReviews) : null}
             {visible.alerts ? link('alerts', t('nav.alerts'), openAlerts) : null}
@@ -131,10 +143,11 @@ const SideNav = ({
             {visible.availability ? link('availability', t('nav.availability')) : null}
           </SubNavSection>
         ) : null}
-        {visible.branches || visible.staff || visible.settings || visible['audit-log'] || visible.webhooks || visible['api-docs'] ? (
+        {visible.branches || visible.staff || visible.settings || visible['audit-log'] || visible.webhooks || visible['api-docs'] || visible['data-requests'] ? (
           <SubNavSection label={t('nav.setup')}>
             {visible.branches ? link('branches', t('nav.branches')) : null}
             {visible.staff ? link('staff', t('nav.staff')) : null}
+            {visible['data-requests'] ? link('data-requests', t('nav.dataRequests')) : null}
             {visible.webhooks ? link('webhooks', t('nav.webhooks')) : null}
             {visible['api-docs'] ? link('api-docs', t('nav.apiDocs')) : null}
             {visible['audit-log'] ? link('audit-log', t('nav.auditLog')) : null}
@@ -162,7 +175,9 @@ const OrderingApp = () => {
   const scope = useRBAC(RBAC_SCOPE);
   const audit = useRBAC(RBAC_AUDIT);
   const webhook = useRBAC(RBAC_WEBHOOK);
-  const loading = [orders, reviews, alerts, ops, report, catalogManage, catalogAccess, settings, scope, audit, webhook].some(
+  const customers = useRBAC(RBAC_CUSTOMERS);
+  const dataRequests = useRBAC(RBAC_DATA_REQUESTS);
+  const loading = [orders, reviews, alerts, ops, report, catalogManage, catalogAccess, settings, scope, audit, webhook, customers, dataRequests].some(
     (item) => item.isLoading,
   );
   if (loading) {
@@ -175,6 +190,8 @@ const OrderingApp = () => {
   const any = (actions: Record<string, boolean>) => Object.values(actions).some(Boolean);
   const visible = {
     orders: any(orders.allowedActions),
+    customers: any(customers.allowedActions),
+    'data-requests': any(dataRequests.allowedActions),
     deliveries: any(orders.allowedActions),
     'payment-review': any(reviews.allowedActions),
     alerts: any(alerts.allowedActions),
@@ -194,6 +211,7 @@ const OrderingApp = () => {
   const first = (
     [
       'orders',
+      'customers',
       'deliveries',
       'payment-review',
       'alerts',
@@ -205,6 +223,7 @@ const OrderingApp = () => {
       'availability',
       'branches',
       'staff',
+      'data-requests',
       'audit-log',
       'webhooks',
       'api-docs',
@@ -226,6 +245,8 @@ const OrderingApp = () => {
           <Routes>
             <Route index element={first ? <Navigate to={first} replace /> : null} />
             <Route path="orders/*" element={<OrdersPage />} />
+            <Route path="customers/*" element={<CustomersPage />} />
+            <Route path="data-requests/*" element={<DataRequestsPage />} />
             <Route path="deliveries/*" element={<DeliveriesPage />} />
             <Route path="payment-review/*" element={<PaymentReviewPage />} />
             <Route path="alerts/*" element={<AlertsPage />} />

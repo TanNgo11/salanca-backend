@@ -1,21 +1,58 @@
 import type { Core } from '@strapi/strapi';
 
+import type adminCustomersFactory from '../services/admin-customers';
 import type dataRightsFactory from '../services/data-rights';
 import { adminAction, positiveInt, text } from './http';
 
 type DataRights = ReturnType<typeof dataRightsFactory>;
+type AdminCustomers = ReturnType<typeof adminCustomersFactory>;
 
 /**
- * Staff endpoints for customers and Decree 13 data requests (O11 step 6): the export payload
- * is the same one the customer sees over `/me/data-export`, scoped to branches the staff
- * member can reach. Request processing is idempotent — the `data-request-waiting` job covers
- * requests the staff triggers here manually.
+ * Staff endpoints for customers and Decree 13 data requests (O11 steps 6–7): the export
+ * payload is the same one the customer sees over `/me/data-export`, scoped to branches the
+ * staff member can reach. Request processing is idempotent — the `data-request-waiting` job
+ * covers requests the staff triggers here manually.
  */
 export default ({ strapi }: { strapi: Core.Strapi }) => {
   const dataRights = () =>
     strapi.plugin('ordering').service('data-rights') as unknown as DataRights;
+  const adminCustomers = () =>
+    strapi.plugin('ordering').service('admin-customers') as unknown as AdminCustomers;
 
   return {
+    /** GET /customers?q=&status=&marketing=&page= — the C1 directory. */
+    list: adminAction(strapi, async (ctx, serviceCtx) =>
+      adminCustomers().list(
+        {
+          q: text(ctx.query.q),
+          status: text(ctx.query.status),
+          marketing: text(ctx.query.marketing),
+          page: positiveInt(ctx.query.page),
+          pageSize: positiveInt(ctx.query.pageSize),
+        },
+        serviceCtx,
+      ),
+    ),
+
+    /** GET /customers/:id — the C2 profile (masked; reveal is a separate logged call). */
+    detail: adminAction(strapi, async (ctx, serviceCtx) =>
+      adminCustomers().detail(String(ctx.params.id ?? ''), serviceCtx),
+    ),
+
+    /** PUT /customers/:id {name?, staffNote?} — staff edit; masked before/after logged. */
+    update: adminAction(strapi, async (ctx, serviceCtx) =>
+      adminCustomers().update(
+        String(ctx.params.id ?? ''),
+        (ctx.request.body ?? {}) as { name?: unknown; staffNote?: unknown },
+        serviceCtx,
+      ),
+    ),
+
+    /** POST /customers/:id/reveal-phone — returns the full number once; logged. */
+    revealPhone: adminAction(strapi, async (ctx, serviceCtx) =>
+      adminCustomers().revealPhone(String(ctx.params.id ?? ''), serviceCtx),
+    ),
+
     /** GET /customers/:id/export — JSON dump; logs `customer.export`. */
     exportCustomer: adminAction(strapi, async (ctx, serviceCtx) =>
       dataRights().exportForStaff(String(ctx.params.id ?? ''), serviceCtx),

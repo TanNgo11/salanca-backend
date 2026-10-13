@@ -72,6 +72,8 @@ const scripts = [
   'cart-reminder.mjs',
   // O11 step 6: Decree 13 export/erasure + staff data-request queue.
   'data-rights.mjs',
+  // O11 step 7: the staff customer book — masked directory/detail, scope 404s, logged reveal.
+  'admin-customers.mjs',
 ];
 
 const results = [];

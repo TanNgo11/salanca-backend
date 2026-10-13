@@ -413,6 +413,27 @@ const dataRights = ({ strapi }: { strapi: Core.Strapi }) => {
     return customer;
   };
 
+  /**
+   * Scoped visibility shared by staff customer lookups: a customer is visible only through
+   * an order at a scoped branch — hidden customers answer 404, never confirming they exist.
+   */
+  const assertCustomerInScope = async (customer: CustomerRow, ctx: ServiceContext) => {
+    const staffScope = await scope().loadScope(ctx);
+    if (staffScope && !staffScope.allLocations) {
+      const inScope = (await orders().findOne({
+        where: {
+          customer: customer.id,
+          locationRef: { $in: staffScope.locationRefs },
+        },
+        select: ['id'],
+      })) as { id: number } | null;
+      if (!inScope) throw new OrderingError('CUSTOMER_NOT_FOUND', 'customer not found');
+    }
+    if (staffScope === null && ctx.actor.kind === 'staff') {
+      throw new OrderingError('CUSTOMER_NOT_FOUND', 'customer not found');
+    }
+  };
+
   return {
     /** GET /me/data-export — the session's own profile + addresses + orders, staff refs out. */
     async exportForSelf(customerId: number) {
@@ -453,28 +474,14 @@ const dataRights = ({ strapi }: { strapi: Core.Strapi }) => {
 
     /**
      * GET /customers/:id/export (staff, `customer.manage`): the same payload the customer
-     * sees. Scoped: a customer is visible only through an order at a scoped branch — hidden
-     * customers answer 404 so the endpoint never confirms they exist.
+     * sees. Scoped — `assertCustomerInScope` below.
      */
     async exportForStaff(documentId: string, ctx: ServiceContext) {
       const customer = (await customers().findOne({
         where: { documentId },
       })) as CustomerRow | null;
       if (!customer) throw new OrderingError('CUSTOMER_NOT_FOUND', 'customer not found');
-      const staffScope = await scope().loadScope(ctx);
-      if (staffScope && !staffScope.allLocations) {
-        const inScope = (await orders().findOne({
-          where: {
-            customer: customer.id,
-            locationRef: { $in: staffScope.locationRefs },
-          },
-          select: ['id'],
-        })) as { id: number } | null;
-        if (!inScope) throw new OrderingError('CUSTOMER_NOT_FOUND', 'customer not found');
-      }
-      if (staffScope === null && ctx.actor.kind === 'staff') {
-        throw new OrderingError('CUSTOMER_NOT_FOUND', 'customer not found');
-      }
+      await assertCustomerInScope(customer, ctx);
       const data = await exportForCustomer(customer);
       await changeLog().record(
         {
@@ -512,32 +519,48 @@ const dataRights = ({ strapi }: { strapi: Core.Strapi }) => {
     },
 
     /**
-     * POST /data-requests {phone, kind, note} — staff creates a request on the customer's
-     * behalf. The phone never persists; `phoneHash` links the ledger row to the profile.
+     * POST /data-requests {phone | customerId, kind, note} — staff creates a request on the
+     * customer's behalf. `customerId` serves C2's button where the phone stays masked; the
+     * phone never persists either way — `phoneHash` links the ledger row to the profile.
      */
     async createStaffRequest(
-      input: { phone?: unknown; kind?: unknown; note?: unknown },
+      input: { phone?: unknown; customerId?: unknown; kind?: unknown; note?: unknown },
       ctx: ServiceContext,
     ) {
-      const normalized = normalizeVietnamesePhone(
-        typeof input.phone === 'string' ? input.phone : '',
-      );
-      if (!normalized.valid) {
-        throw new OrderingError('VALIDATION_ERROR', 'a Vietnamese phone number is required', {
-          details: { field: 'phone' },
-        });
-      }
       if (input.kind !== 'export' && input.kind !== 'erase') {
         throw new OrderingError('VALIDATION_ERROR', 'kind must be export or erase', {
           details: { field: 'kind' },
         });
       }
       const kind = input.kind;
-      const phoneHash = hashing().phoneHash(normalized.e164);
-      const customer = (await customers().findOne({
-        where: { phoneHash, status: { $ne: 'erased' } },
-        select: ['id'],
-      })) as { id: number } | null;
+      const byCustomer = typeof input.customerId === 'string' && input.customerId.trim() !== '';
+      let phoneHash: string;
+      let customer: { id: number } | null = null;
+      if (byCustomer) {
+        const row = (await customers().findOne({
+          where: { documentId: String(input.customerId).trim(), status: { $ne: 'erased' } },
+          select: ['id', 'phoneHash'],
+        })) as { id: number; phoneHash: string | null } | null;
+        if (!row) throw new OrderingError('CUSTOMER_NOT_FOUND', 'customer not found');
+        await assertCustomerInScope(row as CustomerRow, ctx);
+        customer = row;
+        // Email-only profiles carry no phoneHash — same id-derived stand-in as /me/erase.
+        phoneHash = row.phoneHash ?? hashing().phoneHash(`id:${row.id}`);
+      } else {
+        const normalized = normalizeVietnamesePhone(
+          typeof input.phone === 'string' ? input.phone : '',
+        );
+        if (!normalized.valid) {
+          throw new OrderingError('VALIDATION_ERROR', 'a Vietnamese phone number is required', {
+            details: { field: 'phone' },
+          });
+        }
+        phoneHash = hashing().phoneHash(normalized.e164);
+        customer = (await customers().findOne({
+          where: { phoneHash, status: { $ne: 'erased' } },
+          select: ['id'],
+        })) as { id: number } | null;
+      }
       const request = (await requests().create({
         data: {
           ...(customer ? { customer: customer.id } : {}),
