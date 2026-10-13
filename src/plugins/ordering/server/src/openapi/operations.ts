@@ -446,6 +446,19 @@ export const OPERATIONS: Operation[] = [
   adm('post', '/branches/:code/delivery-quote', 'Branches', 'Delivery quote for a branch', ['settings.manage'], {
     parameters: [pathParam('code')],
   }),
+  // O12: inbox staff pause/resume ordering and toggle busy mode (screens N3).
+  adm('post', '/branches/:code/pause', 'Branches', 'Pause ordering (minutes|until|endOfDay, kinds)', ['order.process'], {
+    parameters: [pathParam('code')],
+  }),
+  adm('post', '/branches/:code/resume', 'Branches', 'Resume ordering (optional kinds)', ['order.process'], {
+    parameters: [pathParam('code')],
+  }),
+  adm('post', '/branches/:code/busy', 'Branches', 'Set busy mode (extraMinutes + minutes)', ['order.process'], {
+    parameters: [pathParam('code')],
+  }),
+  adm('post', '/branches/:code/busy/clear', 'Branches', 'Clear busy mode', ['order.process'], {
+    parameters: [pathParam('code')],
+  }),
   adm('get', '/staff-scopes', 'Branches', 'Staff location scopes', ['scope.manage']),
   adm('put', '/staff-scopes/:adminUserId', 'Branches', 'Set a staff member scope', ['scope.manage'], {
     parameters: [pathParam('adminUserId')],

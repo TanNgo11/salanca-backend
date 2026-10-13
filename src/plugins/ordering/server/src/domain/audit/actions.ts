@@ -109,6 +109,9 @@ export const AUDIT_ACTIONS: Record<string, ActionDef> = {
   // Configuration
   'branch.create': { category: 'config', label: ['Tạo chi nhánh', 'Create branch'] },
   'branch.update': { category: 'config', label: ['Sửa chi nhánh', 'Update branch'] },
+  // O12: pause/resume and busy mode toggles on the orders screen (N3).
+  'branch.pause': { category: 'config', label: ['Tạm dừng/mở nhận đơn', 'Pause/resume ordering'] },
+  'branch.busy': { category: 'config', label: ['Bật/tắt quán đông', 'Toggle busy mode'] },
   'settings.update': { category: 'config', label: ['Sửa cài đặt bán hàng', 'Update sales settings'] },
   'alert-rules.update': { category: 'config', label: ['Sửa ngưỡng cảnh báo', 'Update alert rules'] },
   // O10: outbound webhook endpoints and editable email templates.

@@ -1158,6 +1158,7 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
       const staffScope = await s.scope().loadScope(ctx);
       if (staffScope === null) throw new OrderingError('SCOPE_REQUIRED', 'staff member has no location scope');
       const rows = await s.branch().list();
+      const now = new Date();
       return rows
         .filter((row) => row.isActive && (staffScope.allLocations || staffScope.locationRefs.includes(row.code)))
         .map((row) => {
@@ -1167,7 +1168,10 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
             name: row.name ?? {},
             timezone: row.timezone,
             onlineOrdering: row.onlineOrdering,
-            businessDate: businessDateOf(new Date(), row.timezone, settings.schedule.businessDayPolicy.cutoffLocalTime),
+            // O12: the orders screen paints the pause/busy bar from this state.
+            pause: s.branch().pauseState(row),
+            busy: s.branch().busyState(row),
+            businessDate: businessDateOf(now, row.timezone, settings.schedule.businessDayPolicy.cutoffLocalTime),
           };
         });
     },

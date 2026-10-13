@@ -112,6 +112,9 @@ const adminActions = [
   { uid: 'promotion.manage', displayName: 'Quản lý khuyến mãi' },
   { uid: 'price.manage', displayName: 'Quản lý bảng giá và nhóm khách' },
   { uid: 'rating.manage', displayName: 'Quản lý đánh giá' },
+  // O12 (screens N2 kitchen display, N7 table board).
+  { uid: 'kitchen.read', displayName: 'Màn hình bếp' },
+  { uid: 'table.manage', displayName: 'Quản lý bàn và QR' },
 ];
 
 const register = ({ strapi }: { strapi: Core.Strapi }) => {

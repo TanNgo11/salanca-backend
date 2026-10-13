@@ -206,6 +206,11 @@ export default {
       // The Admin fetch client has no PATCH; PUT carries the same partial update.
       adminRoute('PUT', '/branches/:code', 'admin-branches.update', 'settings.manage'),
       adminRoute('POST', '/branches/:code/delivery-quote', 'admin-branches.deliveryQuote', 'settings.manage'),
+      // O12 pause/busy (screens N3): inbox staff toggle them, so `order.process` not `settings.manage`.
+      adminRoute('POST', '/branches/:code/pause', 'admin-branches.pause', 'order.process'),
+      adminRoute('POST', '/branches/:code/resume', 'admin-branches.resume', 'order.process'),
+      adminRoute('POST', '/branches/:code/busy', 'admin-branches.busy', 'order.process'),
+      adminRoute('POST', '/branches/:code/busy/clear', 'admin-branches.clearBusy', 'order.process'),
       adminRoute('GET', '/staff-scopes', 'admin-branches.staffList', 'scope.manage'),
       adminRoute('PUT', '/staff-scopes/:adminUserId', 'admin-branches.staffPut', 'scope.manage'),
       // Phone page for the assigned courier (screens E4). Scope is the assignee, not the branch.

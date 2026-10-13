@@ -25,6 +25,9 @@ export const PERMISSIONS = {
   promotion: action('promotion.manage'),
   rating: action('rating.manage'),
   price: action('price.manage'),
+  // O12 (screens N2, N7).
+  kitchenRead: action('kitchen.read'),
+  tableManage: action('table.manage'),
 } as const;
 
 /** Stable arrays for `useRBAC` (a new array each render makes it re-check every time). */
@@ -65,6 +68,9 @@ export const RBAC_DATA_REQUESTS = [...PERMISSIONS.dataRequest];
 export const RBAC_PROMOTION = [...PERMISSIONS.promotion];
 export const RBAC_RATING = [...PERMISSIONS.rating];
 export const RBAC_PRICE = [...PERMISSIONS.price];
+/** O12: kitchen display is read+process (prepared/done buttons share order.process). */
+export const RBAC_KITCHEN = [...PERMISSIONS.kitchenRead, ...PERMISSIONS.process];
+export const RBAC_TABLES = [...PERMISSIONS.tableManage];
 /** O6 alert list: anyone a rule could notify (ops, reports, payment review or branch staff). */
 export const RBAC_ALERTS = [
   ...PERMISSIONS.ops,
@@ -90,4 +96,6 @@ export const RBAC_ANY_ORDERING = [
   ...RBAC_PROMOTION,
   ...RBAC_RATING,
   ...RBAC_PRICE,
+  ...RBAC_KITCHEN,
+  ...RBAC_TABLES,
 ];

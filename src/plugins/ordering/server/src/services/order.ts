@@ -197,6 +197,9 @@ type BranchRow = {
   fulfillment: JsonObject | null;
   tax: Partial<OrderingConfig['tax']> | null;
   cashRounding: CashRoundingPolicy | null;
+  orderingPause: unknown;
+  busyMode: unknown;
+  fees: unknown;
 };
 
 const MAX_CUSTOMER_NOTE = 500;
@@ -511,6 +514,9 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
           details: { locationRef: branch.code },
         });
       }
+      // O12: a paused branch rejects quotes AND creates for that receive kind — the same check
+      // runs on both paths so a quote→create race cannot sneak an order through.
+      branchService.assertOrderingOpen(branch, input.receiveMethod.kind, nowOf(ctx));
 
       const kind = input.receiveMethod.kind;
       const pickupSettings: PickupSettings | null =
@@ -735,7 +741,10 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
             scheduling.leadTimeFor(
               receiveSettings,
               priced.map((line) => line.leadTimeMinutes),
-            ) + (delivery?.extraLeadTimeMinutes ?? 0),
+            ) +
+            (delivery?.extraLeadTimeMinutes ?? 0) +
+            // O12 busy mode pushes every new ASAP/slot lead time out until the deadline.
+            branchService.busyExtra(branch, nowOf(ctx)),
           now: nowOf(ctx),
         });
       }

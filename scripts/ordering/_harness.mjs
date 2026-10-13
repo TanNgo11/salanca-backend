@@ -383,6 +383,7 @@ export const ORDERING_ACTIONS = [
   'catalog.toggle-availability', 'audit.read', 'webhook.manage',
   'customer.read', 'customer.manage', 'customer.erase',
   'promotion.manage', 'rating.manage', 'price.manage',
+  'kitchen.read', 'table.manage',
 ];
 
 /**

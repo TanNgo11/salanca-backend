@@ -7,7 +7,7 @@ import { normalizeVietnamesePhone } from '../../../shared/contact/phone';
 import { OrderingError, isOrderingError } from '../domain/errors';
 import { paymentWindowStart } from '../domain/payments/deadline';
 import { sha256Hex } from '../domain/hashing';
-import type { PickupSettings } from '../domain/branch-settings';
+import { activePause, type PickupSettings } from '../domain/branch-settings';
 import { asapReadyAt, bookingWindow, isOpenAt } from '../domain/scheduling/slots';
 import { addDays, toLocalParts } from '../domain/scheduling/zoned-time';
 import {
@@ -49,11 +49,13 @@ const upcomingSpecialHours = (settings: PickupSettings, timezone: string, now: D
     }));
 };
 
-const receiveConfig = (settings: PickupSettings, timezone: string, now: Date) => {
+const receiveConfig = (settings: PickupSettings, timezone: string, now: Date, busyExtra = 0) => {
   const window = bookingWindow(settings, timezone, now);
+  const leadTime = settings.schedule.leadTimeMinutes + busyExtra;
   return {
     orderTiming: settings.orderTiming,
-    leadTimeMinutes: settings.schedule.leadTimeMinutes,
+    leadTimeMinutes: leadTime,
+    busyExtraMinutes: busyExtra,
     slotLengthMinutes: settings.schedule.slotLengthMinutes,
     maxAdvanceDays: settings.schedule.maxAdvanceDays,
     bookableFrom: window.today,
@@ -63,8 +65,7 @@ const receiveConfig = (settings: PickupSettings, timezone: string, now: Date) =>
     paymentMethods: settings.paymentProviders,
     customerCancelBeforeMinutes: settings.customerCancelBeforeMinutes,
     openNow: isOpenAt(settings, timezone, now),
-    asapReadyAt:
-      asapReadyAt(settings, timezone, now, settings.schedule.leadTimeMinutes)?.toISOString() ?? null,
+    asapReadyAt: asapReadyAt(settings, timezone, now, leadTime)?.toISOString() ?? null,
     specialHours: upcomingSpecialHours(settings, timezone, now),
   };
 };
@@ -275,14 +276,31 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
       }
       const pickup = branches().pickupSettings(branch);
       const delivery = branches().deliverySettings(branch);
+      const dineIn = branches().dineInSettings(branch);
       const now = nowOf(ctx);
+      // O12: pause/busy state — the client dims paused methods and shows the resume time;
+      // busy mode is already baked into each method's lead time/asapReadyAt.
+      const pause = branches().pauseState(branch);
+      const busy = branches().busyState(branch);
+      const busyExtra = branches().busyExtra(branch, now);
       return {
         ...base,
         branch: {
           code: branch.code,
           timezone: branch.timezone,
-          pickup: pickup.enabled ? receiveConfig(pickup, branch.timezone, now) : null,
-          ...(delivery.enabled ? { delivery: receiveConfig(delivery, branch.timezone, now) } : {}),
+          pause: {
+            pickup: activePause(pause, 'pickup', now),
+            delivery: activePause(pause, 'delivery', now),
+            dineIn: activePause(pause, 'dineIn', now),
+          },
+          busy: busyExtra > 0 ? { extraMinutes: busyExtra, until: busy?.until ?? null } : null,
+          pickup: pickup.enabled ? receiveConfig(pickup, branch.timezone, now, busyExtra) : null,
+          ...(delivery.enabled
+            ? { delivery: receiveConfig(delivery, branch.timezone, now, busyExtra) }
+            : {}),
+          ...(dineIn.enabled
+            ? { dineIn: { sessionPayment: dineIn.sessionPayment, paymentMethods: dineIn.paymentProviders } }
+            : {}),
         },
       };
     },
@@ -302,12 +320,13 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
       }
       const pickup = branches().pickupSettings(branch);
       if (!pickup.enabled || pickup.orderTiming === 'asap') return { items: [] };
+      const now = nowOf(ctx);
       const slots = await scheduling().listSlots({
         branch,
         settings: pickup,
         date,
-        leadTimeMinutes: pickup.schedule.leadTimeMinutes,
-        now: nowOf(ctx),
+        leadTimeMinutes: pickup.schedule.leadTimeMinutes + branches().busyExtra(branch, now),
+        now,
       });
       return {
         items: slots.map((slot) => ({
