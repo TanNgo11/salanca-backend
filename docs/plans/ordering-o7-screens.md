@@ -8,6 +8,27 @@ kế hoạch [`ordering-o7-ops-extras.md`](ordering-o7-ops-extras.md), mockup
 `175.000đ`, giờ theo timezone chi nhánh, chuỗi trong `translations/o7.ts` dạng `[vi, en]`, không dùng
 dropdown/`SimpleMenu` trong `Modal`).
 
+## Đã đổi khi code O7 (2026-10-13)
+
+- E1: khối "Ngày đặc biệt" nằm trong tab **Giờ mở** của tự lấy và của giao, trên màn Chi nhánh. Công tắc
+  đóng cửa là `Switch`. Giờ mở/đóng là `TextInput` `HH:mm`, không phải `TimePicker`.
+- E2: cột Hôm nay là thanh `Box` (`@strapi/design-system` không có `ProgressBar`). Bộ lọc "Chỉ món có giới
+  hạn" dùng `Toggle` có sẵn. `GET /ordering/availability` nhận `branch` hoặc `locationRef` (`locationRef`
+  thắng khi không rỗng). `PUT /ordering/availability/daily-limit` gửi `locationRef`.
+- E3: `editableReason` là mã (`draft`, `closed`, `awaiting-payment`, `out-for-delivery`, `ready`); Admin dịch
+  `edit.reason.*`. Ô tìm món dùng Combobox của catalog. Chọn tùy chọn bằng nút. Địa chỉ gọi public
+  `GET /api/v1/ordering/admin-units` (route admin đòi `settings.manage`). Xác nhận dùng `Frame`/`Modal`.
+  Tiêu đề giờ là "Giờ nhận". Không tách modal món ra khỏi trang Tạo đơn. Hành động cũ `order.edit-lines`
+  ("Hủy một phần món") giữ nguyên tên.
+- E4: mục menu hiện khi có cả `order.process` và `payment.record-cash`, hoặc khi có `order.process` và danh
+  sách đang làm có đơn. `order.read` không bắt buộc để thấy trang. SSE `orders/stream` vẫn đòi `order.read`,
+  nên tài khoản chỉ giao thì chỉ làm mới mỗi 30 giây. Lý do giao thất bại là các nút trong thẻ; "Khác" cần
+  ghi chú ít nhất 3 ký tự. Đơn sẵn sàng chỉ vào danh sách khi đã có `assigneeRef`.
+- Điện thoại 360px: trang là cột tối đa 480px, chữ 16px, nút cao 48px. Khung đăng nhập và menu Admin chưa
+  được bấm trên 360px (chrome-devtools không bắt tay được). Nếu khung Admin không dùng được trên điện thoại,
+  hướng sau O7 là một trang nhẹ ngoài chrome Admin. Không làm magic link trong O7.
+- `GET /config`: `branch.delivery` có khi chi nhánh bật giao, cùng dạng với `pickup`. Cả hai có `specialHours`.
+
 ## E1. Ngày đặc biệt (trong màn Chi nhánh, tab Tự lấy và tab Giao tận nơi)
 
 - Vị trí: `admin/src/pages/Branches/` — khối mới "Ngày đặc biệt" ngay dưới khối "Giờ mở cửa" của mỗi tab.

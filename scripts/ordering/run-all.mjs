@@ -57,6 +57,7 @@ const scripts = [
   'admin-units.mjs',
   'delivery-quote.mjs',
   'delivery-assignment.mjs',
+  'courier.mjs',
 ];
 
 const results = [];

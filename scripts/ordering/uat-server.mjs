@@ -1,27 +1,28 @@
-// Manual UAT server on its own loopback database (salanca_ordering_uat): resets the plugin
-// tables, seeds two branches (24/7 pickup, short lead time), a small real catalog and two staff
-// users (Q1 staff, chain manager), then keeps Strapi running until Ctrl+C. Q1 stays cash
-// pay-on-pickup and also delivers inside the test commune catalog (XT01001–XT01003) for the
-// "Đơn giao" board UAT. Q3 is pickup prepay with the test SePay provider so the payment link and
-// review screens can open. Emails are captured in memory (test builtins), captcha accepts the
-// token "pass". Never run against the dev or production database. Real SePay transfers are not
-// seeded. The dedicated database exists so a long UAT session is never truncated by
-// scripts/ordering/run-all.mjs, which resets the shared salanca_ordering_test database.
+// Manual UAT server for this O7 worktree. Defaults: port 1352, database
+// salanca_ordering_o7_uat. Never salanca_ordering_uat (O6), salanca_ordering_test,
+// salanca_cms, or production. Resets the plugin tables, seeds two branches (24/7 pickup,
+// short lead time), a small real catalog and staff, then keeps Strapi running until Ctrl+C.
+// Q1 stays cash pay-on-pickup and also delivers inside the test commune catalog
+// (XT01001–XT01003). Q3 is pickup prepay with the test SePay provider. Emails are captured
+// in memory (test builtins), captcha accepts the token "pass". Real SePay transfers are not
+// seeded. run-all truncates ORDERING_TEST_DATABASE (this worktree's gate uses
+// salanca_ordering_o7), so this server stays on its own database.
 //
 // O6 extras seed the ops screens: today's cash collections across two collectors plus a
 // partial cash refund (Chốt tiền), two 01:30 orders landing on yesterday's business date
-// (Báo cáo), an unpaid sepay order and a test-provider paid order at Q3 (Báo cáo theo cách
-// trả, Duyệt chuyển khoản), a failed outbox row, a 200-day-old sepay event for the retention
-// job's "Chạy ngay", and open alerts via ops-check + payment-unmatched. Extra staff:
-// giao-q1 (courier), quanly-q1 (every action except ops.read), ketoan (reports + export).
-// Test accounts print to the console at boot; the shared password only lands in
-// UAT_CRED_FILE when that env var points somewhere outside the repo.
+// (Báo cáo), an unpaid sepay order and a test-provider paid order at Q3, a failed outbox
+// row, a 200-day-old sepay event, and open alerts. Extra staff: giao-q1 (courier with
+// order.read), quanly-q1 (every action except ops.read), ketoan (reports + export).
+// O7 extras: a special day on Q1 pickup and delivery, a daily portion cap on bún bò at Q1,
+// one order left in preparing (Sửa đơn), and giao-phone (order.process + payment.record-cash
+// only) with one delivery assigned today. Test accounts print at boot; the shared password
+// only lands in UAT_CRED_FILE when that env var points somewhere outside the repo.
 import { randomUUID } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { hostname } from 'node:os';
 
-process.env.PORT = process.env.UAT_PORT ?? '1350';
-process.env.ORDERING_TEST_DATABASE ??= 'salanca_ordering_uat';
+process.env.PORT = process.env.UAT_PORT ?? '1352';
+process.env.ORDERING_TEST_DATABASE ??= 'salanca_ordering_o7_uat';
 const { bootOrderingTestApp, resetOrderingTables, seedBranches, systemCtx, TEST_DATABASE, ORDERING_ACTIONS } =
   await import('./_harness.mjs');
 const app = await bootOrderingTestApp();
@@ -29,6 +30,20 @@ await resetOrderingTables(app);
 await seedBranches(app);
 app.config.set('plugin::ordering.catalog.adapter', 'ordering-catalog');
 
+const uatSpecialHours = [
+  {
+    date: '2026-10-14',
+    closed: false,
+    ranges: [{ start: '10:00', end: '14:00' }],
+    note: 'Giờ đặc biệt UAT',
+  },
+  { date: '2026-10-15', closed: true, ranges: [] },
+];
+const uatBusinessDay = {
+  cutoffLocalTime: '04:00',
+  holidayDates: [],
+  specialHours: uatSpecialHours,
+};
 const branches = app.db.query('plugin::ordering.branch');
 for (const code of ['Q1', 'Q3']) {
   const row = await branches.findOne({ where: { code } });
@@ -45,7 +60,13 @@ for (const code of ['Q1', 'Q3']) {
           paymentProviders: prepay ? ['sepay', 'test'] : ['cash'],
           ...(prepay ? { paymentTimeoutMinutes: 15 } : {}),
           slaMinutes: 10,
-          schedule: { leadTimeMinutes: 30, slotLengthMinutes: 30, capacity: 4, openingHours: { mode: '24_7' } },
+          schedule: {
+            leadTimeMinutes: 30,
+            slotLengthMinutes: 30,
+            capacity: 4,
+            openingHours: { mode: '24_7' },
+            ...(code === 'Q1' ? { businessDayPolicy: uatBusinessDay } : {}),
+          },
         },
         // Q1 also self-delivers so the delivery board has real legs to drive.
         ...(code === 'Q1'
@@ -61,6 +82,7 @@ for (const code of ['Q1', 'Q3']) {
                   slotLengthMinutes: 30,
                   capacity: 4,
                   openingHours: { mode: '24_7' },
+                  businessDayPolicy: uatBusinessDay,
                 },
                 zones: [
                   {
@@ -110,7 +132,7 @@ await doc('catalog-product').update({
 // Staff: a non-super-admin role with every order action; Q1 staff and a chain manager.
 const role = await app.admin.services.role.create({ name: `UAT ordering ${randomUUID().slice(0, 6)}`, description: 'ordering UAT' });
 const actions = [
-  'order.read', 'order.process', 'order.cancel', 'order.create', 'order.edit-lines', 'payment.record-cash',
+  'order.read', 'order.process', 'order.cancel', 'order.create', 'order.edit-lines', 'order.edit', 'payment.record-cash',
   'payment.review', 'refund.manage', 'settings.manage', 'scope.manage', 'catalog.toggle-availability',
 ];
 await app.admin.services.role.assignPermissions(
@@ -339,6 +361,39 @@ await ordering.service('alert').noteUnmatched('sepay', {
   actor: { kind: 'system', actorRef: 'job:sepay-reconciliation' },
   now: new Date(),
 });
+
+// ── O7 UAT extras ──────────────────────────────────────────────────────────────
+// The cap is applied after the O6 fixture orders, so those orders are not reserved
+// against it. The two orders below each take 2 portions of bún bò, so the Tạm hết
+// bar opens at 4/5. A limit of 5 set before the O6 fixtures would reject them.
+await ordering.service('catalog-availability').setDailyLimit(
+  {
+    locationRef: 'Q1',
+    entityType: 'product',
+    entityDocumentId: bunBo.documentId,
+    dailyLimit: 5,
+  },
+  systemCtx,
+);
+const preparingEdit = await orders.createOrder(input({}), systemCtx);
+await advance(preparingEdit.order.order.id, preparingEdit.order.groups[0].id, ['preparing']);
+const phoneRole = await roleWith('phone-courier', ['order.process', 'payment.record-cash']);
+const phoneUser = await makeUser('giao-phone', phoneRole.id, {
+  allLocations: false,
+  locationRefs: ['Q1'],
+});
+const phoneDelivery = await orders.createOrder(
+  input({
+    receiveMethod: { kind: 'delivery', address: { ...deliveryAddress, line1: '3 Hẻm Điện Thoại' } },
+  }),
+  systemCtx,
+);
+await advance(phoneDelivery.order.order.id, phoneDelivery.order.groups[0].id, ['preparing', 'ready']);
+await adminOrders.transition(
+  phoneDelivery.order.order.id,
+  { to: 'out-for-delivery', assigneeRef: `admin:${phoneUser.id}` },
+  lanCtx,
+);
 
 // Credentials stay in a local file outside the repo; never printed.
 const credFile = process.env.UAT_CRED_FILE;

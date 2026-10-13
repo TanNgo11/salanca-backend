@@ -1,8 +1,8 @@
 # O7 — Vận hành bổ sung: kế hoạch thực hiện
 
-Status: Draft
+Status: Implemented (2026-10-13), chưa push
 Owner: tan_ngo (duyệt), AI thực hiện
-Last updated: 2026-10-12
+Last updated: 2026-10-13
 Related phase: [`phases/phase-ordering-7-ops-extras.md`](../phases/phase-ordering-7-ops-extras.md)
 
 Đặc tả màn hình: [`ordering-o7-screens.md`](ordering-o7-screens.md) (E1–E4, reference mục U7). Mockup:
@@ -276,4 +276,18 @@ Mã lỗi mới (`domain/errors.ts` + `error.<CODE>` VI/EN trong `translations/o
 
 ## Completion record
 
-- Chưa bắt đầu.
+- 2026-10-13. Nhánh `feat/ordering-o7`. Chưa push, chưa merge `main`.
+- Commit tính năng: `30caf1d` giờ đặc biệt theo ngày; `04699b3` công bố trên config và màn chi nhánh;
+  `2393d42` giữ phần nguyên tử; `28faa8e` áp giới hạn lên đơn và catalog; `2a96316` tính lại giá và hoàn
+  phần chênh; `57090f2` mở sửa đơn trên màn chi tiết; `d0541bf` trang điện thoại cho người được gán.
+  Tài liệu, seed UAT và bản ghi này nằm ở commit docs cùng ngày.
+- Gate chạy trên `salanca_ordering_o7` (plan ghi `salanca_ordering_test`; worktree này không đụng DB đó,
+  cũng không đụng `salanca_cms`). UAT server mặc định cổng 1352, DB `salanca_ordering_o7_uat`.
+- Gate 2026-10-13 trên `salanca_ordering_o7`: lint, typecheck, vitest 162 file / 1131 test, `check:ordering` lượt 1 **51/51** (gồm `special-hours.mjs` và `courier.mjs`). Lượt 2 bị dừng giữa chừng. Chưa chạy `check:phase3`, smoke reservation/pickup/sepay/delivery, và hai lượt `strapi build` — chủ dự án bảo phần đó lâu và không cần cho lần này. `special-hours.mjs` so ngày fixture với cửa sổ 14 ngày thật, vì 2026-10-26 vào cửa sổ từ 2026-10-13.
+- Lệch khi code: `updatedByRef` (Strapi đã dùng `updatedBy`); hai unique index, không ba; `editRevision` /
+  `addedInRevision` sync schema, không viết lại migration `0005`. Link phần chênh đi qua `issueForBalance`
+  (không đổi `issue()`, không ghi `paymentDeadlineStoreKey`). Preview không ghi token link vào plugin store.
+  Actor không có dòng `plugin::ordering.*` (seed `roles: []`) vẫn thao tác được như trước. `en.json` /
+  `vi.json` không sửa tay. Màn Admin sửa đơn và trang người giao chưa bấm trên trình duyệt.
+- Open: UAT 360px của khung Admin chưa làm. Hướng nếu khung không dùng được: trang nhẹ ngoài chrome Admin,
+  không magic link, ngoài O7. Chưa push.

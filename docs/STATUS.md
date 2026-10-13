@@ -2,6 +2,21 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
+2026-10-13: **Ordering O7 (giờ đặc biệt, giới hạn phần mỗi ngày, sửa đơn, trang người giao) — automated gate** trên
+`feat/ordering-o7` (chưa push/merge). Commit tính năng `30caf1d`, `04699b3`, `2393d42`, `28faa8e`, `2a96316`,
+`57090f2`, `d0541bf`; tài liệu và seed UAT ở commit chứa dòng này. Giờ đặc biệt theo từng cách nhận, thay giờ
+thường và ngày nghỉ của đúng ngày đó, có trên `GET /config` (cả khối `branch.delivery` khi bật giao). Giới hạn
+phần theo chi nhánh và ngày kinh doanh; catalog trả `dailyLimit` và `sold-out-today`; quote/create trả
+`ITEM_SOLD_OUT`. Sửa đơn khi đang chờ nhận hoặc đang chuẩn bị (đơn giao thêm lúc sẵn sàng): tính lại tổng, hoàn
+phần dư hoặc gửi link phần chênh, không đổi trạng thái group. Trang **Giao của tôi** chỉ đơn được gán trong
+ngày; không có `order.read` thì thu tiền hoặc chuyển bước đơn người khác là 404. UAT server worktree này: cổng
+1352, DB `salanca_ordering_o7_uat` (không đụng `salanca_ordering_uat`). Gate trên `salanca_ordering_o7`: lint, typecheck, vitest 162 file / 1131 test, `check:ordering` lượt 1 **51/51**. Lượt 2 bị dừng. Chưa chạy `check:phase3`, các smoke CMS/đặt bàn/SePay/giao, và `strapi build` bật/tắt plugin. **Open:** chưa bấm Admin trên trình duyệt, kể cả điện thoại 360px
+(chrome-devtools không bắt tay). Nếu khung Admin không dùng được trên điện thoại, hướng sau O7 là trang nhẹ
+ngoài chrome, không magic link. Chưa push. Plan:
+[`plans/ordering-o7-ops-extras.md`](plans/ordering-o7-ops-extras.md); API:
+[`ordering-api-contract.md`](ordering-api-contract.md); nhân viên:
+[`ordering-staff-guide.md`](ordering-staff-guide.md).
+
 2026-10-12: **Ordering O5 (giao tận nơi, quán tự giao) — automated + manual UAT passed** trên
 `feat/ordering-o5` (chưa push/merge; 8 commit `407aa65`…`c0695bb` + sửa sau review `6f68dbc`, `49d3417`, `8a1a8df`, `f9c98db`).
 Spec `phase-ordering-5-delivery.md` vẫn "chờ duyệt": duyệt spec/đóng phase là quyết định chủ dự án.

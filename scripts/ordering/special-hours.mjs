@@ -153,8 +153,11 @@ withApp(async (app) => {
       .filter((date) => date >= today && date <= last)
       .sort();
     assert.deepEqual(liveDates, expected, `window ${today}..${last}`);
-    assert.equal(liveDates.includes('2026-10-11'), false);
-    assert.equal(liveDates.includes('2026-10-26'), false);
+    // 2026-10-11 is before this window once the clock passes it. 2026-10-26 enters the
+    // window on 2026-10-13 (today + 13). Compare each fixture date to the live window.
+    for (const date of ['2026-10-11', '2026-10-26']) {
+      assert.equal(liveDates.includes(date), date >= today && date <= last, date);
+    }
     for (const row of liveBody.branch.delivery.specialHours) {
       assert.ok(row.date >= today && row.date <= last, row.date);
     }
