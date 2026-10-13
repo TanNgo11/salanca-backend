@@ -19,7 +19,7 @@ type Services = {
   branch: ReturnType<typeof branchFactory>;
 };
 
-export type ReportGroupBy = 'day' | 'category' | 'product' | 'payment' | 'receive';
+export type ReportGroupBy = 'day' | 'category' | 'product' | 'payment' | 'receive' | 'promotion';
 export type ReportRow = {
   key: string;
   label: string;
@@ -28,10 +28,12 @@ export type ReportRow = {
   gross?: number;
   revenue?: number;
   refunded?: number;
+  /** O8: positive VND taken off by this promotion (from order adjustments). */
+  discount?: number;
 };
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-const GROUPINGS = ['day', 'category', 'product', 'payment', 'receive'] as const;
+const GROUPINGS = ['day', 'category', 'product', 'payment', 'receive', 'promotion'] as const;
 const SOLD_STATUSES = ['open', 'completed'];
 const MAX_RANGE_DAYS = 366;
 const UNCATEGORIZED = { key: 'uncategorized', label: 'Không có danh mục' };
@@ -119,11 +121,15 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       quantity: number;
       gross: number;
     }>;
+    /** O8: one row per promotion adjustment on a sold order (`sourceRef` promotion:<id>). */
+    promotions: Map<string, { label: string; orders: Set<number>; discount: number; gross: number }>;
     summary: {
       orders: number;
       gross: number;
       revenue: number;
       refunded: number;
+      /** Positive VND of every `discount` adjustment on sold orders (promotions and staff). */
+      discount: number;
     };
   };
 
@@ -211,6 +217,53 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       line_total_amount: string | number;
     }>;
 
+    // O8: discounts read from the order's own adjustments — an order edit reprices them, while
+    // `promotion-redemption.discountAmount` keeps the amount at reservation time.
+    const adjustments = knex()
+      .from('plugins_ordering_order_adjustment as a')
+      .join('plugins_ordering_order_adjustment_order_lnk as link', 'link.order_adjustment_id', 'a.id')
+      .join('plugins_ordering_order as o', 'o.id', 'link.order_id')
+      .where('a.kind', 'discount')
+      .whereIn('o.status', SOLD_STATUSES)
+      .whereBetween('o.business_date', [from, to]);
+    if (locations !== null) adjustments.whereIn('o.location_ref', locations);
+    const adjustmentRows = (await adjustments.select(
+      'link.order_id',
+      'a.code',
+      'a.label',
+      'a.source_ref',
+      'a.amount',
+      'o.total_amount',
+    )) as Array<{
+      order_id: number;
+      code: string;
+      label: string;
+      source_ref: string | null;
+      amount: string | number;
+      total_amount: string | number;
+    }>;
+    const promotions = new Map<
+      string,
+      { label: string; orders: Set<number>; discount: number; gross: number }
+    >();
+    let discount = 0;
+    for (const row of adjustmentRows) {
+      const amount = -int(row.amount);
+      discount += amount;
+      if (!row.source_ref?.startsWith('promotion:')) continue;
+      const group = promotions.get(row.source_ref) ?? {
+        label: row.label || row.code,
+        orders: new Set<number>(),
+        discount: 0,
+        gross: 0,
+      };
+      const orderId = Number(row.order_id);
+      if (!group.orders.has(orderId)) group.gross += int(row.total_amount);
+      group.orders.add(orderId);
+      group.discount += amount;
+      promotions.set(row.source_ref, group);
+    }
+
     const byDate = new Map<
       string,
       { orders: number; gross: number; revenue: number; refunded: number }
@@ -290,7 +343,9 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       byProvider,
       byReceive,
       lines: normalizedLines,
+      promotions,
       summary: {
+        discount,
         orders: orderRows.length,
         gross: orderRows.reduce((sum, row) => sum + int(row.total_amount), 0),
         revenue,
@@ -319,6 +374,16 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
         return [...data.byReceive.entries()]
           .map(([key, bucket]) => ({ key, label: key, ...bucket }))
           .sort((a, b) => b.gross - a.gross);
+      case 'promotion':
+        return [...data.promotions.entries()]
+          .map(([key, bucket]) => ({
+            key,
+            label: bucket.label,
+            orders: bucket.orders.size,
+            gross: bucket.gross,
+            discount: bucket.discount,
+          }))
+          .sort((a, b) => b.discount - a.discount);
       case 'category':
       case 'product': {
         const groups = new Map<
@@ -386,7 +451,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       }
       const { locations, branch } = await scopedLocations(query.branch, ctx);
       const data = await collect(from, to, locations);
-      const { orders, gross, revenue, refunded } = data.summary;
+      const { orders, gross, revenue, refunded, discount } = data.summary;
       return {
         range: { from, to },
         branch: branch?.code ?? null,
@@ -398,6 +463,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
           gross,
           averageOrder: orders > 0 ? Math.round(gross / orders) : 0,
           net: revenue - refunded,
+          discount,
         },
         rows: rowsFor(groupBy, data),
         generatedAt: nowOf(ctx).toISOString(),

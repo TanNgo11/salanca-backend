@@ -142,6 +142,7 @@ withApp(async (app) => {
     assert.ok(csv.startsWith('﻿'), 'csv must open with a UTF-8 BOM');
     const lines = csv.replace('﻿', '').trim().split('\r\n');
     assert.match(lines[0], /^"Mã đơn","Ngày kinh doanh","Đặt lúc","Chi nhánh","Trạng thái"/);
+    assert.ok(lines[0].includes('"Giảm/phụ phí","Khuyến mãi","Phí giao"'), 'O8 promotion column after adjustments');
     assert.equal(lines.length - 1, 4, 'four Q1 orders today — the Q3 order must stay out');
     assert.ok(!csv.includes(q3Code), 'Q3 order code must not appear in a Q1 export');
     assert.ok(

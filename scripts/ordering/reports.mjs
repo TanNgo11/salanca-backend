@@ -130,6 +130,7 @@ withApp(async (app) => {
     );
     assert.equal(day.body.summary.net, day.body.summary.revenue - 20000);
     assert.equal(day.body.summary.averageOrder, Math.round(grossToday / 4));
+    assert.equal(day.body.summary.discount, 0, 'no promotion yet: no discount');
     assert.equal(day.body.rows.length, 1);
     assert.equal(day.body.rows[0].key, today);
     assert.equal(day.body.rows[0].revenue, day.body.summary.revenue);
@@ -222,6 +223,59 @@ withApp(async (app) => {
     assert.equal(noScope.status, 403, 'unscoped staff must answer 403');
     assert.equal(noScope.body.error.code, 'SCOPE_REQUIRED');
     console.log('[ordering-test] scope: nvq3 → 404, moi → 403 SCOPE_REQUIRED');
+
+    // ── 6b. O8 promotions: discount summary + groupBy=promotion (from order adjustments) ──
+    const promo = await app.db.query('plugin::ordering.promotion').create({
+      data: {
+        name: { vi: 'Giảm 20.000đ' },
+        kind: 'code',
+        discountType: 'amount',
+        value: 20000,
+        target: { kind: 'order', refs: [] },
+        minSubtotal: 0,
+        locationRefs: null,
+        receiveKinds: ['pickup', 'delivery'],
+        startsAt: '2020-01-01T00:00:00.000Z',
+        weekdays: [],
+        timeRanges: [],
+        firstOrderOnly: false,
+        stackable: false,
+        priority: 0,
+        active: true,
+        usedCount: 0,
+      },
+    });
+    await app.db.query('plugin::ordering.promotion-code').create({
+      data: { promotionId: promo.id, code: 'BAOCAO20', usedCount: 0, active: true },
+    });
+    const promoOrders = [];
+    for (const phone of ['+84900000101', '+84900000102']) {
+      const created = await order.createOrder(
+        orderInput('Q1', [{ sellableUid: 'bun-bo', quantity: 1 }], {
+          promotionCode: 'baocao20',
+          contact: { name: 'Khách test', phone },
+        }),
+        systemCtx,
+      );
+      assert.equal(created.order.order.adjustmentAmount, -20000);
+      promoOrders.push(created.order.order);
+    }
+    const withPromo = await sales(staff.as.quanly, `branch=Q1&from=${today}&to=${today}&groupBy=promotion`);
+    assert.equal(withPromo.status, 200, JSON.stringify(withPromo.body));
+    assert.equal(withPromo.body.summary.discount, 40000, 'summary.discount = Σ discount adjustments');
+    assert.equal(withPromo.body.rows.length, 1);
+    assert.equal(withPromo.body.rows[0].key, `promotion:${promo.id}`);
+    assert.equal(withPromo.body.rows[0].orders, 2);
+    assert.equal(withPromo.body.rows[0].discount, 40000);
+    assert.equal(
+      withPromo.body.rows[0].gross,
+      promoOrders.reduce((sum, row) => sum + Number(row.totalAmount), 0),
+    );
+    await transition.cancelOrder({ orderId: promoOrders[1].id, reason: 'khách đổi ý' }, systemCtx);
+    const afterCancel = await sales(staff.as.quanly, `branch=Q1&from=${today}&to=${today}&groupBy=promotion`);
+    assert.equal(afterCancel.body.summary.discount, 20000, 'a canceled order leaves the discount total');
+    assert.equal(afterCancel.body.rows[0].orders, 1);
+    console.log('[ordering-test] promotion: discount 40.000 over 2 orders, 20.000 after one is canceled');
 
     // ── 7. Validation ────────────────────────────────────────────────────────────
     const inverted = await sales(staff.as.quanly, `branch=Q1&from=${today}&to=${yesterdayDate}`);
