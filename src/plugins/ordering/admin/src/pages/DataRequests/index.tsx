@@ -41,13 +41,17 @@ type RequestRow = {
   customer: { documentId: string | null; phoneMasked: string | null } | null;
 };
 
-type ListBody = { items: RequestRow[]; page: number; pageSize: number; total: number };
+type ListBody = {
+  items: RequestRow[];
+  page: number;
+  pageSize: number;
+  total: number;
+  deadlineHours: number;
+};
 
 type Tab = 'received' | 'waiting' | 'done' | 'rejected';
 const TABS: Tab[] = ['received', 'waiting', 'done', 'rejected'];
 const OPEN_STATUSES = new Set(['received', 'waiting']);
-/** Decree 13 suggests 72h — the legal deadline is still unconfirmed, so it stays a UI hint. */
-const SLA_MS = 72 * 3_600_000;
 
 const statusTone = (status: string): Record<string, string> =>
   status === 'done'
@@ -212,7 +216,9 @@ const DataRequestsPage = () => {
                   </Thead>
                   <Tbody>
                     {rows.map((row) => {
-                      const dueAt = new Date(new Date(row.requestedAt).getTime() + SLA_MS);
+                      const dueAt = new Date(
+                        new Date(row.requestedAt).getTime() + (body?.deadlineHours ?? 72) * 3_600_000,
+                      );
                       const overdue = OPEN_STATUSES.has(row.status) && dueAt.getTime() < Date.now();
                       return (
                         <Tr key={row.id}>

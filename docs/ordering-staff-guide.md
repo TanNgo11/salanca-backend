@@ -181,6 +181,41 @@ Câu chữ các email hệ thống gửi cho khách/nhân viên sửa được m
 Nếu một mẫu đã sửa bị lỗi lúc gửi, hệ thống tự dùng lại mẫu mặc định và báo cảnh báo cho đội vận hành
 — email khách không bị mất.
 
+## Khách hàng (Bán hàng → Khách hàng)
+
+Khách được tạo **tự động** khi đặt đơn hoặc đăng nhập OTP — không cần nhập tay.
+
+- **Tìm khách:** gõ SĐT (09… hay +84… đều được — hệ thống so khớp bằng mã băm, không quét số thô),
+  tên hoặc email vào ô tìm kiếm; lọc thêm theo Đã xác thực/Chưa xác thực và Đồng ý nhận ưu đãi.
+  SĐT/email trong bảng luôn **che một phần** (vd `091•••3333`).
+- **Phạm vi:** nhân viên chỉ thấy khách đã từng đặt đơn ở chi nhánh mình phụ trách — khách của chi
+  nhánh khác hiện "không tìm thấy", giống đơn hàng.
+- **Chi tiết khách** (bấm vào dòng): thống kê đơn/chi tiêu, danh sách đơn (bấm mã đơn → chi tiết đơn),
+  sổ địa chỉ (chỉ xem), lịch sử đồng ý tiếp thị, lịch sử yêu cầu dữ liệu.
+- **"Hiện số"** (quyền `customer.manage`): hiện SĐT đầy đủ một lần — hệ thống **ghi lại ai đã xem**
+  vào lịch sử thay đổi. Chỉ bấm khi thật sự cần gọi khách.
+- **"Sửa tên/ghi chú"** (`customer.manage`): đổi tên hiển thị và ghi chú nội bộ; cũng ghi lịch sử
+  thay đổi (giá trị trước/sau được che trong sổ).
+- **"Xuất dữ liệu (JSON)"** (`customer.manage`): tải toàn bộ hồ sơ + đơn + địa chỉ của khách ra file —
+  dùng khi khách yêu cầu bản sao dữ liệu theo Nghị định 13.
+
+## Yêu cầu dữ liệu (Cấu hình → Yêu cầu dữ liệu)
+
+Nghị định 13/2023 cho khách quyền xuất và xóa dữ liệu cá nhân. Hàng đợi 4 tab: **Mới · Chờ đơn đóng ·
+Đã xử lý · Từ chối**. Cột "Hạn" là mốc gợi ý 72 giờ (theo cấu hình `dataRights.deadlineHours`, chờ
+pháp lý xác nhận) — yêu cầu đỏ khi quá hạn.
+
+- Khách tự xóa tài khoản trên web cũng tạo một yêu cầu "Khách" — nếu khách còn **đơn đang mở**, yêu cầu
+  nằm ở "Chờ đơn đóng" và hệ thống tự xử lý khi đơn đóng xong; phần đơn đã đóng được ẩn danh ngay.
+- **"Xử lý"**: chạy xóa ngay (đơn đã đóng → ẩn danh tên/SĐT/email/địa chỉ trên đơn; hồ sơ, địa chỉ, giỏ
+  bị xóa; **số tiền và sổ sách kế toán giữ nguyên** — báo cáo và chốt tiền không đổi). Không hoàn tác
+  được — đọc kỹ hộp xác nhận.
+- **"Từ chối"**: bắt buộc nhập lý do (vd nghĩa vụ lưu trữ sổ sách) — khách vẫn giữ hồ sơ.
+- **"+ Tạo yêu cầu"**: khi khách **gọi điện** yêu cầu xuất/xóa — nhập SĐT khách đọc + loại + ghi chú.
+  Hệ thống chỉ lưu mã băm của số, không lưu số thô trong sổ yêu cầu.
+- Từ trang chi tiết khách (C2) cũng có nút "Tạo yêu cầu xóa" — nút này gửi mã khách, không cần biết
+  số thật.
+
 ## Giới hạn hiện tại
 
 - Chạy một máy chủ (một instance): báo đơn realtime và giới hạn tần suất nằm trong bộ nhớ của tiến trình.

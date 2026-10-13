@@ -216,3 +216,70 @@ twice. `transferType: "out"` is stored and ignored. `content` is what matching r
 must belong to the order's branch.
 
 Do not log the raw body, the sender name, or the full account number. The secret is env-only.
+
+## Customer auth, profile and cart (O11)
+
+All routes below live under `/api/v1/ordering` and share the storefront rules above (secret header
+for server-side calls, captcha where noted, allowlist responses). Two bearer headers are new:
+
+| Header | When |
+| --- | --- |
+| `X-Customer-Token` | required on `/me*` and `/auth/logout`; optional on `/carts*` and `POST /orders` (links the cart/order to the profile). Never in a URL. |
+| `X-Cart-Token` | returned once by `POST /carts`; required on later `/carts*` calls for a guest cart. Logged-in calls may use `X-Customer-Token` instead. |
+
+New error codes: `OTP_INVALID` 400 (`details.attemptsLeft` on a wrong code), `OTP_EXPIRED` 400,
+`CUSTOMER_AUTH_REQUIRED` 401 (missing/expired `X-Customer-Token`), `CUSTOMER_NOT_FOUND` 404,
+`CART_NOT_FOUND` 404, `CART_EXPIRED` 410 (checked-out/merged/expired cart or a different-key checkout
+on a converted cart), `CART_LIMIT` 400 (over 50 lines or over the per-branch cart cap), `DATA_REQUEST_PENDING` 409.
+
+### `POST /auth/otp`
+
+`{ channel: 'email', target: '<email>', captchaToken }` → `{ challengeId, expiresAt }`. The response is
+always the same whether the address exists or not — it never confirms an account. 6-digit code,
+5-minute TTL (`customers.otp.codeMinutes`), 5 verify attempts, send limits 3 per target per 10 minutes
+and 10 per client IP per hour. SMS/Zalo channels arrive with O13.
+
+### `POST /auth/verify`
+
+`{ challengeId, code }` → `{ token, customer: { id, name, email, status } }`. A wrong code is
+`OTP_INVALID` with `attemptsLeft`; a burned challenge is `OTP_EXPIRED`. First-time targets create the
+profile. `POST /auth/logout` with `X-Customer-Token` revokes the session (204).
+
+### `GET /me` / `PUT /me`
+
+Profile view: `id, name, email, phone, status, marketingConsent, orderCount, totalSpent, lastOrderAt,
+createdAt`. `PUT /me { name?, marketingConsent? }` — email is accepted only unchanged; phone comes
+from orders, not this route.
+
+### `/me/addresses`
+
+`GET` list → `items[] { id, label, recipientName, phone, line1, communeCode, communeName, provinceCode,
+provinceName, note, isDefault }`. `POST /me/addresses` / `PUT /me/addresses/:id` (address fields,
+`isDefault: true` demotes the others) / `DELETE /me/addresses/:id`. Max 10 per customer
+(`VALIDATION_ERROR` over).
+
+### `GET /me/orders` / `GET /me/orders/:code`
+
+Own order history (`items[]` of the public order view) and one order by code — `CUSTOMER_NOT_FOUND`
+for a foreign code, never 403. `POST /me/orders/:code/reorder` → a **new** cart holding the still-sellable
+lines plus `issues[]` for what was dropped (`{ sellableUid, reason }`); delivery details carry over, timing does not.
+
+### `GET /me/data-export` / `POST /me/erase`
+
+Decree 13 self-service: export is the profile + addresses + orders JSON (staff refs stripped). Erase
+needs `{ confirm: true }` → `202 { request }`; it revokes every session, anonymizes closed orders,
+and parks in `waiting` while an order is open — the `data-request-waiting` job finishes it after close.
+
+### `/carts*`
+
+`POST /carts { locationRef, receiveMethod, contact?, marketingOptIn? }` → `{ cartToken, cart, quote,
+issues }` (the guest token comes back once here). `GET /carts/current`, `PATCH /carts/current`
+(`receiveMethod`/`contact`/`marketingOptIn`), `POST /carts/current/lines { sellableUid, quantity,
+selected?, note? }`, `PATCH`/`DELETE /carts/current/lines/:lineId`, `POST /carts/current/checkout`
+(`Idempotency-Key` required — the converted cart replays the same response on the same key). Every read
+re-quotes: `quote.totals.grandTotal` is current money, `cartHash` tracks content, `issues[]`
+(`SELLABLE_NOT_FOUND`, `PRICE_CHANGED`…) explains dropped/re-priced lines. Carts expire after
+`carts.expiryDays` (default 7 days; rows are deleted `expiredDeleteDays` later) and cap at
+`carts.maxLines` (50) lines (`CART_LIMIT` over). The `cart-reminder` job emails marketing opt-in
+customers once a cart idles past `carts.reminderIdleHours` (default 2h), on branches with
+`cartReminderEnabled`.

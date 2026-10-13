@@ -159,6 +159,38 @@ Webhook endpoints are operator-registered outbound HTTP targets — the plugin's
 - **OpenAPI.** `GET /api/v1/ordering/openapi.json` is public `auth: false` and read-only (document,
   not data); cached 1 hour.
 
+## Ordering customers, carts và quyền dữ liệu cá nhân (O11)
+
+Ba quyền mới: `customer.read` (danh bạ + chi tiết che), `customer.manage` (sửa tên/ghi chú, hiện số,
+xuất JSON) và `customer.erase` (hàng đợi yêu cầu dữ liệu). `customer.erase` và `export` là hai quyền
+nhạy nhất — chỉ cấp cho vai trò quản lý/kế toán.
+
+- **OTP đăng nhập** (`/auth/otp`, `/auth/verify`): mã 6 số, TTL 5 phút (`customers.otp.codeMinutes`),
+  tối đa 5 lần thử (`maxAttempts`), giới hạn gửi 3 mã/mục tiêu/10 phút và 10 mã/IP/giờ. Câu trả lời
+  giống nhau dù địa chỉ có tồn tại hay không — route không bao giờ xác nhận tài khoản tồn tại. Mã OTP
+  lưu dạng băm; đích gửi (email/SĐT) lưu **sealed** AES-256-GCM (`ORDERING_ENCRYPTION_KEY`), không lưu
+  thô. Captcha bắt buộc như các route storefront khác.
+- **Phiên khách** (`X-Customer-Token`): token ngẫu nhiên, lưu SHA-256; mặc định 30 ngày
+  (`customers.sessionDays`), tối đa 10 phiên/khách (`maxSessions` — phiên cũ nhất bị thu hồi khi vượt).
+  `/me/erase` thu hồi toàn bộ phiên ngay lập tức.
+- **SĐT theo HMAC**: hồ sơ lưu SĐT E.164 + `phoneHash` (HMAC-SHA256, khóa từ `ORDERING_ENCRYPTION_KEY`).
+  Tìm kiếm SĐT trong admin và khớp đơn khách vãng lai đều đi qua hash — không quét số thô; request
+  xóa do nhân viên tạo cũng chỉ lưu hash, số thô không bao giờ chạm DB.
+- **Danh bạ nhân viên che**: list/detail trả `phoneMasked`/`emailMasked` (kể cả SĐT trong sổ địa chỉ).
+  Cách duy nhất xem số đầy đủ là `POST /customers/:id/reveal-phone` — trả số một lần và ghi
+  `customer.reveal-phone` vào change-log append-only. Sửa hồ sơ ghi `customer.update` với trước/sau
+  đã mask. Nhân viên theo chi nhánh chỉ thấy khách có đơn tại chi nhánh đó — ngoài phạm vi trả 404,
+  không xác nhận tồn tại (áp dụng cả cho `POST /data-requests {customerId}`).
+- **Xuất/xóa (Nghị định 13)**: `/me/data-export` chỉ dữ liệu của chính phiên đó, ref nhân viên bị gỡ.
+  Xóa: ẩn danh tên/SĐT/email/địa chỉ/ghi chú trên **đơn đã đóng** (giữ tiền, mã bưu chính, báo cáo O6
+  không đổi), xóa hồ sơ/địa chỉ/giỏ/phiên/OTP; đơn đang mở → request `waiting`, job
+  `data-request-waiting` xử lý khi đơn đóng; idempotent; webhook `customer.erased` chỉ mang
+  `customerHash`, không PII.
+- **Giỏ server** (`X-Cart-Token`): token khách vãng lai ngẫu nhiên, lưu SHA-256 — sở hữu giỏ giống
+  order token, không lộ trong URL/log. Giá luôn re-quote phía server; `cartHash` chỉ theo dõi nội dung.
+- `X-Customer-Token` và `X-Cart-Token` nằm trong CORS allowlist của `/api/v1/ordering` — không route
+  nào chấp nhận token qua query string.
+
 ## Form intake rate limiting
 
 Contact and reservation intake are rate limited in-process per client IP (default 5 per 10 minutes).

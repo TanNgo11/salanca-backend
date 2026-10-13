@@ -111,8 +111,9 @@ export async function resetOrderingTables(app) {
 
 /**
  * Purges leftovers of previous aborted runs so each script starts hermetic: test staff users
- * (`*@example.invalid`, kept by `seedAdminHttpStaff`/`seedStaff` when a process dies before its
- * finally cleanup), their `ordering-test-*` roles with permissions, and the plugin's runtime
+ * (`*@example.invalid`/`*@example.test`, kept by `seedAdminHttpStaff`/`seedStaff` when a process
+ * dies before its finally cleanup), their `ordering-test-*`/`UAT ordering *` roles with
+ * permissions, and the plugin's runtime
  * `core_store` keys (settings, alert-rules overrides, webhook counters, sepay cursors) which
  * the plugin-table truncate does not touch. Runs after the truncate so staff-scope FK rows
  * are already gone. Never touches the three builtin roles or the super-admin permission set.
@@ -120,7 +121,10 @@ export async function resetOrderingTables(app) {
 export async function purgeStaleTestIdentities(app) {
   const knex = app.db.connection;
   const userIds = (
-    await knex('admin_users').select('id').where('email', 'like', '%@example.invalid')
+    await knex('admin_users')
+      .select('id')
+      .where('email', 'like', '%@example.invalid')
+      .orWhere('email', 'like', '%@example.test')
   ).map((row) => row.id);
   if (userIds.length > 0) {
     await knex('admin_users_roles_lnk').whereIn('user_id', userIds).del();
@@ -132,7 +136,10 @@ export async function purgeStaleTestIdentities(app) {
     await knex('admin_users').whereIn('id', userIds).del();
   }
   const roleIds = (
-    await knex('admin_roles').select('id').where('name', 'like', 'ordering-test-%')
+    await knex('admin_roles')
+      .select('id')
+      .where('name', 'like', 'ordering-test-%')
+      .orWhere('name', 'like', 'UAT ordering %')
   ).map((row) => row.id);
   if (roleIds.length > 0) {
     const permissionIds = (

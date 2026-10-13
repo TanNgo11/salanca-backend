@@ -2,6 +2,29 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
+2026-10-14: **Ordering O11 (khách hàng, giỏ server, quyền dữ liệu NĐ13) — implemented + automated verification passed, chờ manual UAT** trên
+`feat/ordering-o11` (tách từ `feat/ordering`; chưa merge/push). 7 commit `0a32a0b`…`3e7cc0c` theo
+[`phases/phase-ordering-11-customers-cart.md`](phases/phase-ordering-11-customers-cart.md) +
+[`plans/ordering-o11-customers-cart.md`](plans/ordering-o11-customers-cart.md):
+
+- **Hồ sơ khách + đăng nhập**: `customer` định danh bằng SĐT VN E.164 (so `phoneHash` HMAC); OTP email
+  6 số (TTL 5', ≤5 lần thử, ≤3 gửi/10'/đích, ≤10/giờ/IP), phiên 30 ngày ≤10 phiên qua
+  `X-Customer-Token`; `/me` hồ sơ, sổ địa chỉ ≤10, `/me/orders` + tra timeline.
+- **Giỏ server**: `/carts` cho guest (`X-Cart-Token`) và khách; quote lại server-side lúc checkout,
+  idempotent qua `order.create`; `cart-expiry` (idle 7 ngày, dọn 30 ngày); `cart-reminder` (idle 2h,
+  cron 15', cờ `cartReminderEnabled` per-branch, chỉ opt-in tiếp thị); `POST /me/orders/:id/reorder`.
+- **NĐ13**: `/me/data-export`, `/me/erase`; hàng đợi `data-request` (hạn 72h, staff tạo chỉ lưu hash,
+  waiting đến khi đơn mở đóng); xóa = ẩn danh đơn/địa chỉ/giỏ/phiên/OTP, số tiền kế toán giữ nguyên;
+  outbox `customer.erased` chỉ `customerHash`.
+- **Admin**: C1 danh bạ (tìm/lọc, mask, scope chi nhánh, phân trang), C2 chi tiết (stats, sửa tên/ghi
+  chú → `customer.update`, reveal một lần → `customer.reveal-phone`, export, tạo yêu cầu xóa), C3 hàng
+  đợi 4 tab (hạn từ `deadlineHours`, quá hạn tô đỏ); quyền `customer.read|manage|erase`; link S4→C2.
+
+Gate: lint, typecheck, test 166 file / 1222, `strapi build` (server + admin), **`check:ordering`
+61/61 hai lượt liên tiếp**, `ordering:openapi` regen (78 paths) — chi tiết Completion record trong
+plan. **Open:** manual UAT browser (checklist trong plan); merge về `feat/ordering` theo quyết định
+chủ dự án.
+
 2026-10-13: **Ordering O10 (nền mở rộng: webhook ra ngoài, OpenAPI, CSV catalog, mẫu email) — implemented + automated verification passed, chờ manual UAT** trên
 `feat/ordering-o10` (tách từ `feat/ordering`; chưa merge/push). Bốn khối theo
 [`phases/phase-ordering-10-extensibility.md`](phases/phase-ordering-10-extensibility.md):

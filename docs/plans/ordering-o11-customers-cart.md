@@ -1,8 +1,8 @@
 # O11 — Khách hàng, giỏ hàng, quyền dữ liệu: kế hoạch thực hiện
 
-Status: Draft
+Status: Implemented — chờ UAT thủ công + merge về `feat/ordering`
 Owner: tan_ngo (duyệt), AI thực hiện
-Last updated: 2026-10-12
+Last updated: 2026-10-14
 Related phase: [`phases/phase-ordering-11-customers-cart.md`](../phases/phase-ordering-11-customers-cart.md)
 
 Đặc tả màn hình: [`ordering-o11-screens.md`](ordering-o11-screens.md) (C1–C3 Admin, W1–W4 phía khách, reference U11).
@@ -177,4 +177,66 @@ Admin (`/ordering`):
 
 ## Completion record
 
-- Chưa bắt đầu.
+Triển khai trên branch `feat/ordering-o11`, 7 commit:
+
+- `0a32a0b` — Step 1: content types `customer`, `customer-address`, `customer-session`, `customer-otp`,
+  `customer-cart`, `data-request`; migration backfill `phoneHash` từ đơn cũ; cấu hình `customers`,
+  `carts`, `dataRights`; `hashing`/`normalizeVietnamesePhone` mở rộng.
+- `16ef7b6` — Step 2: OTP email 6 số (TTL 5', ≤5 lần thử, ≤3 gửi/10' theo đích, ≤10 gửi/giờ theo IP),
+  phiên khách 30 ngày (≤10 phiên), `X-Customer-Token`, mẫu `customer.otp`.
+- `b036a1b` — Step 3: `/me` hồ sơ, sổ địa chỉ (≤10), `/me/orders`, đặt đơn tự gắn khách, merge giỏ
+  khi đăng nhập.
+- `0bb6cae` — Step 4: `/carts` server-side (guest `X-Cart-Token` + customer), quote lại server-side
+  lúc checkout, idempotent qua `order.create`, `cart-expiry` job (7 ngày idle, dọn 30 ngày).
+- `a88fe3e` — Step 5: `POST /me/orders/:id/reorder` (giỏ mới, dòng lỗi kèm `issues`), nhắc giỏ bỏ dở
+  (idle 2h, cron 15', cờ `cartReminderEnabled` per-branch, chỉ khi opt-in tiếp thị), mẫu
+  `customer.cart-reminder`.
+- `e4dc10a` — Step 6: `/me/data-export`, `/me/erase`, hàng đợi `data-request` (received→waiting→done/
+  rejected, hạn 72h), staff tạo yêu cầu (chỉ lưu hash), xử lý khi đơn đóng, ẩn danh đơn + giỏ + phiên
+  + OTP + địa chỉ, outbox `customer.erased` (chỉ `customerHash`), báo cáo/kết ca giữ nguyên sau xóa.
+- `3e7cc0c` — Step 7: Admin C1 danh bạ (tìm SĐT/tên/email, lọc trạng thái + opt-in, mask, scope chi
+  nhánh, phân trang), C2 chi tiết (stats, đơn gần, địa chỉ mask, sửa tên/ghi chú → `customer.update`,
+  reveal → `customer.reveal-phone`, export, tạo yêu cầu xóa), C3 hàng đợi (4 tab, hạn từ
+  `deadlineHours`, quá hạn tô đỏ, xử lý/từ chối/tạo), nav + RBAC `customer.*`, link S4→C2.
+
+### Lệnh đã chạy — kết quả
+
+- `pnpm run build:ordering` — PASS (mỗi step).
+- `npm run typecheck` — PASS.
+- `npm run lint` — PASS.
+- `npm run test` — PASS 166 file / 1222 test (vitest).
+- `npm run build` — PASS (server TS + admin bundle).
+- `scripts/ordering/customer-auth.mjs` — PASS (OTP gửi/đúng/sai/hết lượt, phiên, rate-limit IP+đích).
+- `scripts/ordering/customers.mjs` — PASS (hồ sơ, địa chỉ, đơn của tôi, link đơn).
+- `scripts/ordering/cart.mjs` — PASS (token, dedupe, cap 50, merge, expiry).
+- `scripts/ordering/cart-checkout.mjs` — PASS (checkout idempotent, replay 200, key khác → 410).
+- `scripts/ordering/cart-reminder.mjs` — PASS (idle→gửi 1 lần, cờ branch, opt-in, retry lỗi SMTP).
+- `scripts/ordering/data-rights.mjs` — PASS (export đúng của mình; xóa waiting khi còn đơn mở, tự hoàn
+  tất khi đơn đóng; idempotent; staff request không lưu SĐT thô; reject một lần; scope export; báo cáo
+  không đổi sau xóa; `customer.erased` payload không PII).
+- `scripts/ordering/admin-customers.mjs` — PASS (list+mask+scope+phân trang; detail stats; update →
+  `customer.update`; reveal một lần → `customer.reveal-phone`; export; tạo request theo `customerId`
+  trong scope / 404 ngoài scope; queue 4 tab + process/reject; quyền 403 khi thiếu `customer.*`).
+- `scripts/ordering/schema.mjs`, `openapi.mjs`, `email-templates.mjs` (16 mẫu), `notifications.mjs` —
+  PASS.
+- `pnpm run check:ordering` — **61/61 script PASS, hai lượt liên tiếp** (mỗi lượt gồm
+  `build:ordering` + `run-all.mjs` gồm build admin + schema + toàn bộ integration gate).
+- `docs/ordering-admin-openapi.json` regen bằng `pnpm run ordering:openapi` (78 paths, gồm
+  `/ordering/customers*` + `/ordering/data-requests*`).
+
+### Sửa phát sinh trong gate cuối
+
+- `_harness.mjs` `purgeStaleTestIdentities`: mở rộng dọn user `*@example.test` + role `UAT ordering *`
+  — một super-admin `o0-uat@example.test` sót từ run UAT cũ trên `salanca_ordering_test` nhận mọi
+  alert `ops.read`/`report.read` làm `alerts-engine.mjs` và `cash-closing.mjs` fail (3 mail thay 2).
+- `o3.test.ts`: gộp pack `o11Messages` vào tập `known`, thêm `pages/Customers`, `pages/DataRequests`
+  vào O3_DIRS — coverage key i18n cho cả màn O11.
+- `data-rights.ts` `listRequests` trả `deadlineHours` (từ `dataRights.deadlineHours`, mặc định 72) để
+  UI C3 tính hạn thay vì hardcode; `DataRequests/index.tsx` dùng giá trị server.
+
+### Còn lại
+
+- UAT thủ công trên `npm start` + một tab Admin: C1 tìm/lọc/phân trang; C2 sửa, reveal, export, dialog
+  xóa; C3 4 tab + tạo/xử lý/từ chối + hàng quá hạn đỏ; link S4→C2; vai trò thiếu quyền; scope chi
+  nhánh bằng mắt.
+- Merge `origin/feat/ordering` vào `feat/ordering-o11`, rồi hợp về `feat/ordering`; push hai branch.

@@ -31,8 +31,12 @@ mã hóa bằng `ORDERING_ENCRYPTION_KEY`; list/get/response không bao giờ tr
 ### Sự kiện
 
 `GET /ordering/webhooks/events` trả danh mục công khai đầy đủ (sự kiện đơn hàng, giao hàng, thanh
-toán, hoàn tiền, cảnh báo vận hành — `ops-alert.*`, và `ordering.ping` nội bộ cho "Gửi thử"). Endpoint
-chỉ nhận các loại đã tick trong `events`.
+toán, hoàn tiền, cảnh báo vận hành — `ops-alert.*`, khách hàng — `customer.erased` (O11), và
+`ordering.ping` nội bộ cho "Gửi thử"). Endpoint chỉ nhận các loại đã tick trong `events`.
+
+`customer.erased` phát khi một yêu cầu xóa hoàn tất — `data` chỉ mang `customerId` (documentId) và
+`customerHash` (HMAC của SĐT), **không** tên/SĐT/email. `includeCustomer` không thêm gì vào sự kiện
+này — sau xóa không còn PII để gửi.
 
 ### Payload
 
@@ -138,7 +142,7 @@ Nhập **modifiers trước, products sau** — dòng món tham chiếu nhóm t�
 
 ## 4. Mẫu email trong Admin
 
-Admin → **Bán hàng → Cài đặt bán hàng → Mẫu email** (quyền `settings.manage`): 14 mẫu × VI/EN, mỗi
+Admin → **Bán hàng → Cài đặt bán hàng → Mẫu email** (quyền `settings.manage`): 16 mẫu × VI/EN, mỗi
 mẫu sửa `subject` + `body`. Bảng liệt kê badge Mặc định/Đã sửa; sửa có xem trước bằng dữ liệu mẫu,
 "Gửi thử tới tôi", "Khôi phục mặc định" (xóa override, ghi change-log `notification-template.save` /
 `.reset`).
@@ -150,7 +154,9 @@ chỉ chứa một biến rỗng tự mất (dòng "Giờ lấy" biến mất kh
 
 Biến chung cho mẫu đơn: `code`, `branch`, `total`, `items`, `customer` (chỉ mẫu nhân viên), `pickup`,
 `delivery`, `ready`, `reason`, `note`, `link`, `footer`. Mẫu `staff.ops-alert`: `label`, `severity`,
-`severityMark`, `count`, `firstSeen`, `lastSeen`, `branch`, `ref`, `action`.
+`severityMark`, `count`, `firstSeen`, `lastSeen`, `branch`, `ref`, `action`. Mẫu O11: `customer.otp`
+(`otp`, `minutes`) gửi mã đăng nhập; `customer.cart-reminder` (`branch`, `items`, `total`) nhắc giỏ
+bỏ dở — chỉ gửi khi khách opt-in tiếp thị và chi nhánh bật `cartReminderEnabled`.
 
 **Không chết mail:** override lỗi lúc render (vd mẫu cũ còn biến đã bị bỏ) → hệ thống dùng bản mặc
 định, gửi mail bình thường, đồng thời mở alert `notification-template-broken` (người nhận `ops.read`,
@@ -173,6 +179,9 @@ escalate critical ở 10 lần trong 60 phút).
 | `catalog.manage` | Nhập CSV (`/catalog/import*`) |
 | `export` (cùng `catalog.manage`) | Xuất CSV (`/catalog/export`) |
 | `settings.manage` | Mẫu email (`/notification-templates*`) |
+| `customer.read` (O11) | `GET /ordering/customers*` — danh bạ + chi tiết, đã che |
+| `customer.manage` (O11) | `PUT /customers/:id`, `POST /customers/:id/reveal-phone`, `GET /customers/:id/export` |
+| `customer.erase` (O11) | `GET|POST /ordering/data-requests`, `:id/process`, `:id/reject` |
 
 Kiểm chứng tự động: `scripts/ordering/webhooks-out.mjs` (fanout, chữ ký, PII, lịch retry, timeout,
 tự tắt, ping, resend, xoay), `webhooks-admin.mjs` (quyền/SSRF ở route), `openapi.mjs` (coverage +

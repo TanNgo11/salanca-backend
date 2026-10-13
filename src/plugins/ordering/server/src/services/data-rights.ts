@@ -515,7 +515,13 @@ const dataRights = ({ strapi }: { strapi: Core.Strapi }) => {
         }) as Promise<DataRequestRow[]>,
         requests().count({ where }),
       ]);
-      return { items: rows.map(viewOfRequest), page, pageSize, total };
+      return {
+        items: rows.map(viewOfRequest),
+        page,
+        pageSize,
+        total,
+        deadlineHours: config().dataRights.deadlineHours,
+      };
     },
 
     /**
