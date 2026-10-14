@@ -82,6 +82,12 @@ const paymentService = ({ strapi }: { strapi: Core.Strapi }) => {
         });
       }
       const aggregate = await order.getOrder(input.orderId, ctx);
+      if (
+        aggregate.groups.length > 0 &&
+        aggregate.groups.every((group) => ['canceled', 'expired', 'rejected'].includes(group.status))
+      ) {
+        throw new OrderingError('PAYMENT_NOT_DUE', 'the order is closed');
+      }
       const captured = aggregate.payments.reduce(
         (sum, payment) => sum + amountFromDb(payment.capturedAmount),
         0,
@@ -94,9 +100,22 @@ const paymentService = ({ strapi }: { strapi: Core.Strapi }) => {
       // Find-or-create the pending wallet row under an advisory lock — two parallel presses
       // serialize here, so the second one sees the row the first created.
       const found = await strapi.db.transaction(async ({ trx }) => {
-        await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [
-          `wallet-session:${input.orderId}:${input.providerCode}`,
-        ]);
+        // One lock per order (not per provider): opening a VNPay session cancels a pending
+        // MoMo one and vice versa, so a customer can never pay two wallet sessions.
+        await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [`wallet-session:${input.orderId}`]);
+        const otherWallets = (await payments().findMany({
+          where: { order: input.orderId, status: 'pending', providerCode: { $ne: input.providerCode } },
+          select: ['id', 'providerCode', 'providerReference'],
+        })) as Array<{ id: number; providerCode: string; providerReference: string | null }>;
+        for (const other of otherWallets) {
+          if (!other.providerReference) continue;
+          if (!registry.hasPaymentProvider(other.providerCode)) continue;
+          if (!registry.paymentProvider(other.providerCode).capabilities.includes('wallet')) continue;
+          await payments().update({
+            where: { id: other.id },
+            data: { status: 'cancelled', actorRef: actorRefOf(ctx) },
+          });
+        }
         const pendingRows = (await payments().findMany({
           where: { order: input.orderId, providerCode: input.providerCode, status: 'pending' },
         })) as Array<PaymentRow & { requestedAmount: string | number; session: unknown }>;

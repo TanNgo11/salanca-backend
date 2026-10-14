@@ -95,7 +95,12 @@ export const createMomoPaymentProvider = (deps: {
     kind: 'capture' | 'failed',
   ): NormalizedPaymentEvent => ({
     providerCode: 'momo',
-    providerTransactionId: payload.transId,
+    // A failed result may carry no/zero transId; keep failures per session so they never
+    // collide on the event unique index.
+    providerTransactionId:
+      kind === 'capture' && payload.transId && payload.transId !== '0'
+        ? payload.transId
+        : `momo-failed-${payload.orderId}`,
     kind,
     amount: { amount: num(payload.amount), currency: 'VND' },
     transferType: 'in',

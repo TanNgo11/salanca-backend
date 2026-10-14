@@ -5,7 +5,7 @@ import type { NormalizedPaymentEvent } from '../contracts/payment';
 import type { WorkflowDefinition } from '../contracts/workflow';
 import { OrderingError } from '../domain/errors';
 import { amountFromDb } from '../domain/money';
-import { matchTransfer, type MatchDecision } from '../domain/payments/match';
+import { CLOSED_GROUP_STATUSES, matchTransfer, type MatchDecision } from '../domain/payments/match';
 import { extractOrderCode } from '../domain/payments/memo';
 import type { TransactionClient } from '../migrations/runner';
 import { accountScope, type SepaySettings } from '../providers/sepay/config';
@@ -440,6 +440,14 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
           try {
             return await strapi.db.transaction(async ({ trx }) => {
               await repo.lockPayment(trx, parked.id);
+              // Under the payment lock, a replay is seen before any write. Catching a unique
+              // violation inside this transaction would leave it aborted and silently roll
+              // back the work (e.g. the `failed` status of a failed-result IPN).
+              const seen = await events().findOne({
+                where: { providerCode: event.providerCode, providerTransactionId: event.providerTransactionId },
+                select: ['id'],
+              });
+              if (seen) return { duplicate: true, decision: { outcome: 'ignored' } satisfies MatchDecision };
               const locked = (await payments().findOne({
                 where: { id: parked.id },
                 populate: { order: { columns: ['id'] } },
@@ -456,8 +464,11 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
                 typeof locked.order === 'object' ? locked.order.id : locked.order;
               // `services()` — not a destructure: `ingest` declares `const { order }` later,
               // which would make a bare `order` binding hit the TDZ here.
+              const first = await services().order.getOrder(orderId, ctx);
+              await lockGroups(trx, first);
+              // Re-read under the group locks: the order may have closed, been paid another way
+              // (SePay, another wallet session) or been edited since the session opened.
               const aggregate = await services().order.getOrder(orderId, ctx);
-              await lockGroups(trx, aggregate);
 
               // A terminal-failure event on a still-pending session marks the payment failed —
               // the order stays awaiting-payment until a new session or the expiry job.
@@ -484,6 +495,21 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
                   locked.id,
                 );
               }
+              // Same rules as a bank transfer (matchTransfer): money that arrives for a closed
+              // or already-paid order, or more than is still due, goes to staff review instead
+              // of being captured.
+              if (
+                aggregate.groups.length > 0 &&
+                aggregate.groups.every((group) => (CLOSED_GROUP_STATUSES as readonly string[]).includes(group.status))
+              ) {
+                return walletPark('needs-review', 'order-closed', locked.id);
+              }
+              const capturedElsewhere = aggregate.payments
+                .filter((payment) => payment.id !== locked.id)
+                .reduce((sum, payment) => sum + payment.capturedAmount - payment.refundedAmount, 0);
+              const due = aggregate.order.totalAmount - capturedElsewhere;
+              if (due <= 0) return walletPark('needs-review', 'already-paid', locked.id);
+              if (event.amount.amount > due) return walletPark('needs-review', 'overpaid', locked.id);
               // The provider's transaction id is folded into the session — refund/query APIs
               // (VNPay refund needs vnp_TransactionNo; querydr derives the transaction date
               // from session.initiatedAt, which initiate already stored).

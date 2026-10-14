@@ -471,6 +471,16 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         await strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
           if (after.status === 'completed') await promotion.markApplied(trx, orderId, now);
           if (after.status === 'canceled') await promotion.releaseForOrder(trx, orderId, 'order-canceled', now);
+          // A wallet session still open on a closed order is dead: cancel it so the status job
+          // stops polling it (a late IPN is still caught by payment-matching → review).
+          await trx('plugins_ordering_payment as p')
+            .whereIn(
+              'p.id',
+              trx('plugins_ordering_payment_order_lnk').select('payment_id').where({ order_id: orderId }),
+            )
+            .where('p.status', 'pending')
+            .whereNotNull('p.session')
+            .update({ status: 'cancelled', updated_at: now });
         });
         if (after.status === 'completed') {
           // Order-level (not group-level), so a multi-group order invites once.

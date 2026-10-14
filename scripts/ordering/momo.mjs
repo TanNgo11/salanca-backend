@@ -338,6 +338,59 @@ try {
     const unknownRef = await fetch(`${base}/api/v1/ordering/payments/return/momo?orderId=nope`);
     assert.equal(unknownRef.status, 404);
 
+
+    // --- review fixes: wallet capture follows the order, not just the session ----------
+    const openSession = async (token) => {
+      const res = await fetch(`${base}/api/v1/ordering/payments/session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Order-Token': token },
+        body: JSON.stringify({ provider: 'momo' }),
+      });
+      return { status: res.status, body: await res.json() };
+    };
+    const placeM1 = () =>
+      order.createOrder(basicOrderInput({ locationRef: 'M1', receiveMethod: { kind: 'pickup', locationRef: 'M1' } }), systemCtx);
+    const capturePayload = (ref, transId) => ({ ...ipnPayload, orderId: ref, transId, requestId: randomUUID(), amount: 195000 });
+
+    // A late IPN for a canceled order is never captured: the session was cancelled with the
+    // order, and the IPN lands in review.
+    const late = await placeM1();
+    const lateRef = (await openSession(late.publicToken)).body.reference;
+    await services(app).transition.cancelOrder({ orderId: late.order.order.id, reason: 'test' }, systemCtx);
+    const latePayment = await payments().findOne({ where: { providerReference: lateRef } });
+    assert.equal(latePayment.status, 'cancelled', 'closing the order cancels its pending wallet session');
+    assert.equal((await momoIpn(capturePayload(lateRef, 'momo-late'))).status, 204);
+    assert.equal((await payments().findOne({ where: { id: latePayment.id } })).status, 'cancelled');
+    assert.equal((await events().findOne({ where: { providerTransactionId: 'momo-late' } })).reviewStatus, 'needs-review');
+    const closedSession = await openSession(late.publicToken);
+    assert.ok(closedSession.status >= 400, 'no wallet session on a closed order');
+
+    // Paid another way first (here: the test provider), then the MoMo IPN arrives: review,
+    // no second capture.
+    const paidTwice = await placeM1();
+    const twiceRef = (await openSession(paidTwice.publicToken)).body.reference;
+    const other = await services(app).payment.createPayment({ orderId: paidTwice.order.order.id, providerCode: 'test' }, systemCtx);
+    await services(app).payment.capturePayment(
+      { paymentId: other.id, amount: other.requestedAmount, providerTransactionId: `other-${randomUUID()}` },
+      systemCtx,
+    );
+    assert.equal((await momoIpn(capturePayload(twiceRef, 'momo-twice'))).status, 204);
+    const twiceEvent = await events().findOne({ where: { providerTransactionId: 'momo-twice' } });
+    assert.equal(twiceEvent.reviewStatus, 'needs-review');
+    assert.equal(twiceEvent.reviewReason, 'already-paid');
+    assert.notEqual((await payments().findOne({ where: { providerReference: twiceRef } })).status, 'captured');
+
+    // Two failed IPNs without a transId keep the payment failed (no aborted transaction).
+    const failing = await placeM1();
+    const failRef = (await openSession(failing.publicToken)).body.reference;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const res = await momoIpn({ ...capturePayload(failRef, '0'), resultCode: 1006, message: 'Transaction rejected' });
+      assert.equal(res.status, 204);
+    }
+    assert.equal((await payments().findOne({ where: { providerReference: failRef } })).status, 'failed');
+    assert.equal((await events().findMany({ where: { providerTransactionId: `momo-failed-${failRef}` } })).length, 1);
+    console.log('[ordering-test] momo review fixes: closed order, paid elsewhere, repeated failures');
+
     console.log('[ordering-test] momo session, ipn capture/replay/mismatch/failed, refund, return');
   });
 } finally {

@@ -172,8 +172,10 @@ export const createVnpayPaymentProvider = (deps: {
       return [
         {
           providerCode: 'vnpay',
+          // VNPay may send TransactionNo 0 (or nothing) for a failed/cancelled payment; a shared
+          // id would collide on the event unique index for every later failure.
           providerTransactionId:
-            transactionNo !== '' ? transactionNo : `vnpay-failed-${txnRef}`,
+            ok && transactionNo !== '' && transactionNo !== '0' ? transactionNo : `vnpay-failed-${txnRef}`,
           kind: ok ? 'capture' : 'failed',
           amount: { amount: amount / 100, currency: 'VND' },
           transferType: 'in',
