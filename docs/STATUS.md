@@ -4,6 +4,7 @@ Last reviewed against repository documentation: 2026-09-29
 
 2026-10-14: **Ordering O13 (provider adapters: MoMo, VNPay, Ahamove, Zalo ZNS, eSMS) — implemented + automated verification passed, chờ manual UAT** trên `TanNgo11/ordering-o13` (tách từ `feat/ordering`; chưa merge/push). 8 commit bắt đầu từ `4c223f9` theo [`phases/phase-ordering-13-providers.md`](phases/phase-ordering-13-providers.md) + [`plans/ordering-o13-providers.md`](plans/ordering-o13-providers.md) (Completion record có bảng bước→commit đầy đủ):
 
+- **Review fixes (2026-10-14)**: 12 lỗi review (P0 chữ ký VNPay, P1 capture ví/job/hoàn tiền/Zalo token, P2 hạn mức, mã 9000/07, open redirect, che API key, HTTP cap, Ahamove COD/khóa/tọa độ) — bảng lỗi→commit→test trong Completion record của plan O13. Mã đối tác vẫn che 4 ký tự cuối; API key không còn hiện.
 - **Ví MoMo/VNPay**: `POST /payments/session` (redirect/QR, `payment.session`), IPN `POST|GET
   /webhooks/:providerCode` ký HMAC/`vnp_SecureHash` trên raw body, ACK theo spec (204 /
   `{RspCode,Message}`), `queryTransaction` + refund qua `payment.session`; job
