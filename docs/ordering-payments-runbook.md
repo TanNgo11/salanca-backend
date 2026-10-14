@@ -114,11 +114,32 @@ Nhân viên chuyển trả ngoài hệ thống rồi ghi mã trên đơn. Phiế
 thái chờ và **chưa** đổi `paymentStatus`. Khi ghi mã, sổ mới cộng và trạng thái thành hoàn một phần
 hoặc hoàn đủ. Cùng mã trên đúng phiếu đó không cộng lần hai.
 
+## Thẻ quà tặng làm cách trả (O9)
+
+Khi đơn có `payment.giftCardCode`: hệ thống trừ thẻ **trước** trong cùng transaction tạo đơn
+(`FOR UPDATE`, không bao giờ âm số dư), phần còn lại đi qua cách trả thường (tiền mặt / SePay).
+Payment của phần thẻ mang `provider_code = 'gift-card'` với `requestedAmount` = ý định,
+`capturedAmount` = số thực trừ (có thể thấp hơn nếu thẻ thiếu).
+
+Hoàn/hủy: phiếu hoàn hoặc hủy đơn đang giữ tiền thẻ cộng **về đúng thẻ** qua sổ `credit` — không
+cần thao tác ngoài, `paymentStatus` cập nhật như hoàn thường. Đơn bị hủy ở bất kỳ nhánh nào
+(cust/staff/expiry) đều trả giá trị thẻ đang giữ trước khi đóng.
+
+Đối soát: báo cáo tách `giftCards.sold` (tiền thu từ đơn bán thẻ), `giftCards.redeemed` (tiền thẻ
+trừ vào đơn món), `giftCards.refunded` (tiền trả về thẻ), `giftCards.circulating` (số dư đang lưu
+hành), `giftCards.expired` (số dư ghi `expire` trong kỳ). Chốt tiền mặt chỉ đếm `provider_code =
+'cash'` — thẻ không làm lệch két. `giftCard.redeemed + circulating + expired` không nhất thiết
+bằng `sold` trong cùng kỳ vì thẻ có hạn dùng và có thể được phát tặng.
+
+Bảo mật vận hành: chỉ 4 số cuối xuất hiện ở mọi nơi (đơn, sổ, CSV, mail nhân viên); mã sai/bị khóa/
+hết hạn trả cùng lỗi `GIFT_CARD_INVALID` để không tiết lộ thẻ tồn tại; dò mã bị rate-limit +
+captcha và mở cảnh báo `gift-card-probing` (ops.read) từ 20 lần sai / IP / giờ, critical từ 60.
+
 ## Cảnh báo
 
-Bốn mã liên quan thanh toán: `webhook-failing` (lỗi liên tiếp, mức critical sau ngưỡng),
+Năm mã liên quan thanh toán: `webhook-failing` (lỗi liên tiếp, mức critical sau ngưỡng),
 `payment-unmatched`, `manual-payment-unconfirmed` (ghi tay chưa xác nhận quá hạn),
-`reconciliation-mismatch`. Một dòng đang mở cho mỗi khóa; ngưỡng, mức critical, người nhận
+`reconciliation-mismatch`, `gift-card-probing` (dò mã thẻ từ một IP). Một dòng đang mở cho mỗi khóa; ngưỡng, mức critical, người nhận
 và cách xử lý từng mã — xem bảng đầy đủ ở
 [`ordering-ops-runbook.md`](ordering-ops-runbook.md#cảnh-báo). Trang **Tình trạng vận
 hành** (`ops.read`) theo dõi sức khỏe webhook và job đối soát theo thời gian thực.

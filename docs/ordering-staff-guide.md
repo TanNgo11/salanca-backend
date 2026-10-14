@@ -269,6 +269,37 @@ Khuyến mãi "đơn đầu" và "mỗi khách N lần" không hiện số giả
 điện thoại khi lưu đơn, nên tổng thật có thể thấp hơn tổng báo. Tạo đơn hộ khách có ô **Mã khuyến mãi**.
 Sửa đơn (O7) giữ khuyến mãi đã áp và tính lại số giảm trên món còn lại.
 
+## Thẻ quà tặng (Bán hàng → Thẻ quà tặng — quyền "Quản lý thẻ quà tặng")
+
+Khách mua thẻ trên web (mục **Thẻ quà tặng** trong menu, mệnh giá cố định): trả tiền online, mã được
+phát và email tới người nhận sau khi thu tiền — chưa thu thì chưa có mã. Tại quầy, nhân viên tạo đơn
+hộ chọn sản phẩm thẻ và quét mã thẻ giấy in sẵn (ô **Mã thẻ giấy**); thẻ giấy chỉ có giá trị từ lúc bán.
+
+1. **Danh sách thẻ:** tab trạng thái (đang dùng / hết hạn / bị khóa / chưa bán), lọc nguồn (bán online,
+   phát tặng, thẻ giấy), ba thẻ tổng trên đầu trang (đang lưu hành, bán tháng này, đã dùng tháng này).
+   Ô tìm kiếm nhận 4 số cuối hoặc mã đầy đủ — mã đầy đủ đi qua nội dung request, không qua URL.
+   Mọi nơi chỉ hiện `•••• 4 ký tự cuối`; không ai đọc lại mã đầy đủ sau khi phát.
+2. **Phát thẻ tặng:** nút **Phát thẻ**. Có email người nhận → hệ thống gửi mã qua mail, màn hình không
+   hiện mã. Không email → mã hiện **một lần duy nhất**, ghi lại ngay cho khách. Lý do bắt buộc.
+3. **Chi tiết thẻ:** trạng thái, số dư, hạn dùng, nguồn phát hành, người nhận (email che), đơn liên
+   quan và sổ cái — mọi biến động tiền của thẻ (phát, dùng, hoàn, hết hạn, điều chỉnh) là một dòng
+   append-only, không sửa không xóa.
+4. **Hành động trên thẻ:** **Khóa/Mở khóa** (thẻ khóa không dùng được, khách tra cứu thấy "mã không
+   đúng"), **Gia hạn** (chỉ kéo dài, không rút ngắn), **Điều chỉnh số dư** (cộng/trừ, không cho âm —
+   cần thêm quyền "Điều chỉnh số dư thẻ"), **Gửi lại mã** (gửi về đúng email người nhận đã lưu — chỉ
+   trong `sealedCodeHours`, mặc định 24 giờ sau phát; hết hạn lưu thì mã đã xóa, phát thẻ mới thay thế).
+5. **Lô thẻ giấy:** tab **Lô thẻ** — **Tạo lô** (chọn mệnh giá + số lượng → tải danh sách mã để in, một
+   lần duy nhất), **Nhập lô** (dán danh sách mã in sẵn — sai một dòng thì cả lô bị từ chối), **Xuất CSV**
+   mã thẻ của lô (cần quyền "Xuất"). Thẻ trong lô bắt đầu "chưa bán", giá trị 0đ, tự có giá trị khi bán
+   tại quầy; hạn dùng tính từ lúc kích hoạt.
+6. **Trong chi tiết đơn:** thanh toán bằng thẻ hiện `Thẻ quà tặng •••• LAST4` (bấm vào mở đúng thẻ);
+   đơn mua thẻ hiện khối **Thẻ đã phát** (mã che + trạng thái email); hoàn tiền về thẻ được đánh dấu
+   riêng. Báo cáo tách riêng **bán thẻ** (tiền bán đơn thẻ), **đã dùng thẻ**, **đang lưu hành** và **số
+   dư thẻ hết hạn** — không lẫn vào doanh thu món. Chốt tiền mặt không đổi: thẻ không phải tiền mặt.
+
+Thẻ hết hạn tự động: job `gift-card-expiry` chạy 03:45 hằng ngày, ghi sổ `expire` phần số dư còn lại
+và đưa số dư về 0. Mã sai quá nhiều từ một IP mở cảnh báo **Dò mã thẻ quà tặng** trên bảng Cảnh báo.
+
 ## Bảng giá (Món → Bảng giá — quyền "Quản lý bảng giá và nhóm khách")
 
 1. **Bảng giá mới.** Đặt tên. Chọn **Giá riêng** (một giá cho từng món) hoặc **Điều chỉnh** (giảm % hoặc số

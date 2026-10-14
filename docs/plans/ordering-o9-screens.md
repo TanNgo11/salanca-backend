@@ -65,3 +65,23 @@ kế hoạch [`ordering-o9-gift-cards.md`](ordering-o9-gift-cards.md), mockup
   `GIFT_CARD_INSUFFICIENT` "Thẻ đã hết số dư"; `GIFT_CARD_NOT_ALLOWED` (`buying-gift-card`) "Không dùng thẻ để mua thẻ".
 - Email người nhận: mệnh giá, mã, hạn, lời chúc, nút "Đặt món" và "Kiểm tra số dư"; email người mua: xác nhận đã gửi
   (không chứa mã).
+
+## Đã đổi khi code O9 (2026-10-14)
+
+- **G1** đúng spec: 5 tab (Đang dùng/Đã khóa/Hết hạn/Hết tiền/Tất cả), lọc nguồn, 3 thẻ tổng, tìm theo
+  `q` (4 số cuối hoặc mã đầy đủ — đi trong query `GET /ordering/gift-cards`, không phải URL riêng; mã
+  đầy đủ vẫn chỉ là hash lookup phía server). Thêm tab **Lô thẻ** (`Batches`) trên cùng trang —
+  spec không có màn lô; kế hoạch bước 5 bổ sung quản lý thẻ giấy (tạo/nhập/xuất CSV/kích hoạt).
+- **G2** đúng spec: panel Khóa/Mở/Gia hạn/Điều chỉnh (±, không âm, chặn khi thiếu `gift-card.adjust`)/Gửi lại;
+  sổ thẻ append-only mới nhất trên. "Gửi lại email" gửi về `sealedRecipient` và chỉ khả dụng trong
+  `sealedCodeHours` (mặc định 24h) — hết hạn nút báo mã đã xóa.
+- **G3** đúng spec: Modal + nút nhanh 100k/200k/500k, lý do bắt buộc, mã hiện một lần khi không có
+  email người nhận; có email thì mail đi ngay và mã **không** hiện.
+- **G4 chi tiết đơn** đúng spec: payment thẻ hiện "Thẻ quà tặng •••• LAST4" link sang G2, đơn thẻ có
+  khối thẻ đã phát, hoàn tiền về thẻ được đánh dấu. **Báo cáo** đủ 4 thẻ (bán/dùng/lưu hành/hết hạn).
+- **G4 tạo đơn hộ**: `CreateOrderPage` hiện chỉ có `pickup` — chưa có ô quét mã thẻ giấy hay form
+  người nhận digital trên UI. Bán thẻ giấy tại quầy đi qua API staff-draft với
+  `receiveMethod: { kind:'digital', physicalCodes: [...] }` (đã có trong server + script); màn quét
+  cho nhân viên là việc sau hoặc nằm ở web POS.
+- **Báo cáo lọc `expired`** theo `created_at` UTC của ledger (không có `business_date`) — lệch tối đa
+  ±1 ngày quanh nửa đêm UTC.

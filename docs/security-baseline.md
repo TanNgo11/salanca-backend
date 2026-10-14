@@ -222,6 +222,38 @@ nhạy nhất — chỉ cấp cho vai trò quản lý/kế toán.
   webhooks or the change log (staff notes are logged as "changed", not their text) and are cleared after
   `retention.ratingCommentDays` (365); the stars stay for reports.
 
+## Ordering gift cards (O9)
+
+- **Code storage.** Codes are 16 `crypto.randomInt` digits over an ambiguity-free alphabet; only
+  `HMAC-SHA256(ORDERING_ENCRYPTION_KEY, normalized code)` is persisted for lookup (`code_hash`,
+  unique). `last4` plus a masked display string are stored for staff/report views. Plaintext is
+  returned once at issue (or mailed) and additionally kept as `sealed_code` — AES-256-GCM under the
+  same key — only for `retention.sealedCodeHours` (24) so staff can resend/export; the retention job
+  then wipes it and resend answers "no longer available". Sealed codes and plaintext never appear in
+  logs, change-log rows, CSV or public JSON (export prints `•••• last4`).
+- **No existence oracle.** The public balance endpoint, the quote-time `giftCard` block and card
+  redemption all answer `invalid` for unknown, malformed, inactive, blocked and expired codes —
+  distinguishable only via the authenticated admin detail. Wrong codes count per IP in the
+  `rateLimits.giftCard` bucket (captcha after 3 misses, 429 at 20 / 10 min; attempts while already
+  limited still count) and feed the `gift-card-probing` ops alert (20 opens, 60 escalates, dedupe by
+  IP). The alert `aggregateRef` carries only the attempt count — never the tried codes.
+- **Issuance.** Digital cards mint only after the payment captures (outbox consumer on the
+  `gift-card` workflow's `issued` transition; idempotent on redelivery). Counter-sale codes activate
+  preprinted stock (`physicalCodes` is staff-only; wrong stock/denomination fails the order). Staff
+  resend goes only to the recipient address recorded at issue (`sealedRecipient`), while the seal
+  survives.
+- **Money safety.** Issue/redeem/credit/expire run inside the order/refund transaction with
+  `SELECT … FOR UPDATE` on the card row; ledger rows are append-only (`issue`, `redeem`, `credit`,
+  `adjust`, `expire`, `block`, `unblock`, `activate`) with `balance_after` continuity —
+  `gift-card-ledger.mjs` verifies the invariant over random operations. Balances can never go
+  negative; refunds and any cancel-terminal group transition return held value to the card first.
+- **Staff surface.** `gift-card.manage` covers list/detail/block/extend/resend/batches;
+  `gift-card.adjust` additionally gates balance adjustments and complimentary issue. Every mutation
+  writes a `change-log` row (`gift-card.*`, `gift-card-batch.*`) with masked code + last4 only.
+- **Expiry.** `gift-card-expiry` (daily 03:45, job-locked, heartbeat 1500') writes one `expire`
+  ledger row per expired card — idempotent; `giftCard.refundable` default `false` means expiry
+  writes value off rather than refunding.
+
 ## Form intake rate limiting
 
 Contact and reservation intake are rate limited in-process per client IP (default 5 per 10 minutes).

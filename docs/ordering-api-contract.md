@@ -1,4 +1,4 @@
-# Ordering storefront API (O3), SePay webhook (O4), self-delivery (O5), ops extras (O7), promotions and ratings (O8)
+# Ordering storefront API (O3), SePay webhook (O4), self-delivery (O5), ops extras (O7), promotions and ratings (O8), gift cards (O9)
 
 O7 adds `specialHours` on `GET /config` (pickup, and delivery when that method is on), `dailyLimit` /
 `sold-out-today` on the public catalog, and `ITEM_SOLD_OUT` from quote and create.
@@ -224,6 +224,41 @@ submit creates it; later submits edit it until `editableUntil` (`ratingEditHours
 `{ code, phone, captchaToken }` → `{ order }` status-only view: `code`, `status`, `paymentStatus`,
 `fulfillmentStatus`, `placedAt`, `branch { code, name }`, `receive`, `totals { currency, total }`, `steps`.
 No name, phone, email, note or actions. Limits: per IP and 5 tries per order code per 15 minutes.
+
+## Gift cards (O9)
+
+**Buying a card.** A `catalog-product` with `productType: 'gift-card'` is sold through
+`receiveMethod.kind: 'digital'` on quote/create:
+
+```json
+{
+  "receiveMethod": { "kind": "digital", "recipientEmail": "giftee@example.com", "recipientName": "Lan", "message": "…" },
+  "payment": { "providerCode": "sepay" }
+}
+```
+
+`recipientEmail` is required at create (not at quote); `contact.email` defaults to it when empty.
+Card orders run the `gift-card` workflow (`awaiting-payment` → `issued`) and require an online
+provider — cards are minted only after the payment captures; the recipient email gets the code(s),
+the purchaser gets a codeless confirmation. Staff counter sales pass `physicalCodes` (scanned
+preprinted stock) — those activate instead of minting. Promotions skip card lines unless the
+promotion's category/receive-kind targeting includes them; a card cannot pay for a card
+(`400 GIFT_CARD_NOT_ALLOWED`).
+
+**Paying with a card.** `payment.giftCardCode` (on `/quote`, `/orders` and cart checkout) applies the
+card first, the provider settles the remainder. Quote answers `giftCard { applied, balanceAfter,
+dueAfterGiftCard }` — or `{ reason: 'invalid' | 'insufficient' | 'not-allowed' }`. Invalid, blocked
+and expired codes collapse to the same `invalid` answer — no existence oracle. A wrong code at
+create fails `400 GIFT_CARD_INVALID`. The token order view gains
+`giftCards[] { last4, applied, remaining }`; refunds and cancels return the value to the card.
+
+### `POST /gift-cards/balance`
+
+`{ code, captchaToken? }` → `{ card: { last4, status, balance, currency, expiresAt } }` — no code,
+no holder data. Unknown, malformed, inactive and blocked codes all answer `400 GIFT_CARD_INVALID`.
+Wrong codes are counted per IP like promotion codes: captcha after 3 misses
+(`CAPTCHA_FAILED`), `429 RATE_LIMITED` at `rateLimits.giftCard.max` (20 / 10 min), and attempts
+while limited still count toward the `gift-card-probing` ops alert (20 opens, 60 escalates).
 
 ## Order steps (pickup, pay on pickup)
 

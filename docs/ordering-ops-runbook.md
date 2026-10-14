@@ -35,7 +35,7 @@ Hai tab phía dưới:
 
 ## Cảnh báo
 
-Chín rule (contracts §12 + O15; producer trong `jobs/` và `services/alert.ts`). Ngưỡng và người
+Mười rule (contracts §12 + O15 + O9; producer trong `jobs/` và `services/alert.ts`). Ngưỡng và người
 nhận chỉnh tại **Bán hàng → Cấu hình → Cài đặt bán hàng**, khối **Cảnh báo**
 (`GET/PUT /ordering/settings/alert-rules`,
 ghi change-log `alert-rules.update`), lưu trong plugin store key `alert-rules`.
@@ -51,6 +51,7 @@ ghi change-log `alert-rules.update`), lưu trong plugin store key `alert-rules`.
 | `manual-payment-unconfirmed` | ghi tay quá ngưỡng (giờ) mà SePay chưa xác nhận | 24 giờ | 72 giờ | `report.read` | đối chiếu sao kê; tự đóng khi đã xác nhận |
 | `cash-closing-mismatch` | chốt/điều chỉnh tiền mặt chênh ≠ 0 | 1 lần | 1 lần | `report.read` | đếm lại và tạo bản điều chỉnh có lý do; về 0 tự đóng |
 | `audit-tampered` | job `audit-chain` thấy dòng lịch sử thay đổi bị sửa/xóa thẳng trong DB (hash hoặc liên kết sai) | 1 lần | luôn critical | `ops.read` | xem `aggregateRef` (`change-log:<id>`), so với backup DB, điều tra quyền truy cập DB; không tự đóng |
+| `gift-card-probing` | mã thẻ quà tặng sai liên tiếp từ một IP (`dedupeKey` = IP; đếm cả request đang bị 429) | 20 lần / cửa sổ | 60 lần | `ops.read` | IP đã bị rate-limit + captcha — chỉ cần xác nhận, cân nhắc chặn IP ở edge nếu critical; không tự đóng |
 
 Cơ chế chung:
 
@@ -87,6 +88,7 @@ dùng khóa mà gọi `heartbeat` (upsert không-khóa) vì nó tự phối hợ
 | `ops-check` | `0 * * * * *` | — | kiểm outbox + heartbeat các job (tự nó không được giám sát) |
 | `retention` | `0 30 3 * * *` | 1500' | xóa/gỡ dữ liệu cá nhân quá hạn |
 | `audit-chain` | `0 */5 * * * *` | 15' | điền hash cho dòng lịch sử thay đổi (sau 30 giây) và kiểm 2.000 dòng mới nhất + 200 dòng ngẫu nhiên → `audit-tampered`; tắt bằng `audit.hashChain=false` |
+| `gift-card-expiry` | `0 45 3 * * *` | 1500' | thẻ quà tặng quá hạn: ghi sổ `expire` phần số dư còn lại, đưa số dư về 0; idempotent — chạy lại không ghi trùng |
 
 Tắt toàn bộ job: `plugin::ordering.jobs.enabled = false`. Đổi nhịp một job: ghi đè
 `jobs.<tên>Cron` trong cấu hình plugin (env/config `config/plugins.ts`), khởi động lại.
@@ -104,6 +106,7 @@ Cấu hình `plugin::ordering.retention` — **mặc định chờ pháp lý xá
 | `outboxDeliveredDays` | 30 | xóa outbox đã `delivered` quá hạn; cũng là hạn xóa `webhook-delivery` `succeeded` (theo `succeededAt`) |
 | `outboxFailedDays` | 90 | xóa outbox `failed` quá hạn; cũng là hạn xóa `webhook-delivery` `failed` (theo `updatedAt`) — payload có thể chứa thông tin khách của endpoint bật `includeCustomer` |
 | `alertResolvedDays` | 90 | xóa `ops-alert` `resolved` quá hạn |
+| `sealedCodeHours` | 24 | tuổi `plugins_ordering_gift_card.sealed_code` (mã thẻ đã niêm phong) — quá hạn xóa trường này, chỉ giữ `code_hash` + `last4`; sau đó "gửi lại mã" không còn khả dụng |
 | `batchSize` | 500 | số dòng mỗi lô |
 | `maxBatchesPerRun` | 20 | tối đa lô mỗi lượt (backlog dồn sang lượt sau) |
 

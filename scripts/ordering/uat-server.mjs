@@ -20,6 +20,10 @@
 // O8 extras: code promotion GIAM10 (10% up to 30.000đ, one use per phone) with 20 single-use
 // TET codes, an automatic free delivery from 200.000đ, a first-order 15.000đ off, one completed
 // order rated 2★ (opens low-rating) and one completed order with an email, not rated yet.
+// O9 extras: "Thẻ quà tặng" catalog category with 200k/500k card products (digital sale), two
+// spendable manual cards (codes in UAT_CRED_FILE), one blocked card and a 5-card paper batch;
+// staff roles carry
+// gift-card.manage + gift-card.adjust.
 import { randomUUID } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { hostname } from 'node:os';
@@ -126,6 +130,21 @@ const bunBo = await product({ vi: 'Bún bò Huế', en: 'Hue beef noodle' }, mai
 await product({ vi: 'Combo trưa 1 người', en: 'Lunch combo' }, mains, 99000);
 const traDao = await product({ vi: 'Trà đào cam sả', en: 'Peach tea' }, drinks, 45000);
 const topping = await doc('catalog-modifier-group').create({ data: { name: { vi: 'Topping', en: 'Toppings' }, selectionType: 'multiple', rank: 0 } });
+// O9 UAT: two fixed-denomination cards sell through the digital flow (card category keeps
+// promotions default-excluded — GIAM10 targets food categories only).
+const cardCategory = await doc('catalog-category').create({ data: { name: { vi: 'Thẻ quà tặng', en: 'Gift cards' }, rank: 2 } });
+const cardProduct = async (name, amount) => {
+  const created = await doc('catalog-product').create({
+    data: { productType: 'gift-card', status: 'active', sellOnline: true, fulfillmentKinds: ['digital'], name, categories: [cardCategory.documentId] },
+  });
+  const variant = await doc('catalog-variant').create({
+    data: { product: created.documentId, isDefault: true, rank: 0, name: { vi: 'Mệnh giá', en: 'Denomination' } },
+  });
+  await doc('catalog-price').create({ data: { variant: variant.documentId, amount, currency: 'VND' } });
+  return created;
+};
+await cardProduct({ vi: 'Thẻ quà tặng 200k', en: 'Gift card 200k' }, 200000);
+await cardProduct({ vi: 'Thẻ quà tặng 500k', en: 'Gift card 500k' }, 500000);
 await doc('catalog-modifier').create({ data: { name: { vi: 'Chả cua', en: 'Crab cake' }, priceDelta: 15000, group: topping.documentId, rank: 0 } });
 await doc('catalog-product').update({
   documentId: bunBo.documentId,
@@ -138,6 +157,7 @@ const actions = [
   'order.read', 'order.process', 'order.cancel', 'order.create', 'order.edit-lines', 'order.edit', 'payment.record-cash',
   'payment.review', 'refund.manage', 'settings.manage', 'scope.manage', 'catalog.toggle-availability',
   'promotion.manage', 'rating.manage', 'price.manage', 'report.read', 'export',
+  'gift-card.manage', 'gift-card.adjust',
 ];
 await app.admin.services.role.assignPermissions(
   role.id,
@@ -488,9 +508,30 @@ await ordering
 const toRate = await completeTea('+84900000202', 'rate-me@example.invalid');
 console.log(`[ordering-uat] O8: rated 2★ ${ratedLow.order.order.code}; unrated completed ${toRate.order.order.code}`);
 
+// O9: a few cards for the staff screens — two spendable (codes ride UAT_CRED_FILE with the
+// passwords, never the console) and one blocked to show the locked state.
+const giftCards = ordering.service('gift-card');
+const sampleCards = [];
+for (const amount of [200000, 500000]) {
+  const card = await app.db.transaction(async ({ trx }) =>
+    giftCards.issueInTransaction(trx, { amount, source: 'manual' }, systemCtx),
+  );
+  sampleCards.push({ code: card.code, balance: amount });
+}
+const blockedCard = await app.db.transaction(async ({ trx }) =>
+  giftCards.issueInTransaction(trx, { amount: 200000, source: 'manual' }, systemCtx),
+);
+await giftCards.block(blockedCard.id, 'UAT: thẻ bị khóa mẫu', systemCtx);
+console.log(`[ordering-uat] O9: 2 spendable cards (codes in UAT_CRED_FILE) + 1 blocked •••• ${blockedCard.last4}`);
+// One small paper batch (inactive until activated at the counter) for the batch screen.
+const paperBatch = await ordering
+  .service('gift-card-admin')
+  .createBatch({ denomination: 100000, count: 5, note: 'UAT: lô thẻ giấy mẫu' }, systemCtx);
+console.log(`[ordering-uat] O9: paper batch ${paperBatch.batch.code} (5 × 100.000đ)`);
+
 // Credentials stay in a local file outside the repo; never printed.
 const credFile = process.env.UAT_CRED_FILE;
-if (credFile) writeFileSync(credFile, JSON.stringify({ password, accounts }, null, 2));
+if (credFile) writeFileSync(credFile, JSON.stringify({ password, accounts, sampleCards }, null, 2));
 
 // ORDERING_TEST_BUILTINS turns cron off so integration scripts dispatch by hand. This server
 // still has to deliver captured emails, so it pumps the outbox itself (same service the cron uses).

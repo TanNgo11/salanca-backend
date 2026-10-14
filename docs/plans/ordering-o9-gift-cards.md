@@ -201,7 +201,7 @@ Trạng thái: **đang thực hiện — bước 1–6 implemented, targeted gat
 | 3 | `6d9f1e3` | Luồng bán digital: `receiveMethod.kind='digital'`, workflow `gift-card`, phát hành sau capture qua outbox, email người nhận, bán quầy thẻ giấy quét mã, `gift-card-sale.mjs` |
 | 4 | `43dd031` | Thẻ làm phương thức co-payment: debit ở create, refund/cancel/expiry hoàn về thẻ, race an toàn, balance endpoint + chống dò mã, `gift-card-payment.mjs` |
 | 5 | `a8d3dba` | API Admin G1–G3 + lô thẻ giấy, `gift-card-admin` service, controller/routes/quyền (`gift-card.manage`, `gift-card.adjust`, `export`), sealed code/recipient + resend, Admin pages GiftCards + order-detail hiển thị thẻ, `gift-card-admin.mjs`, OpenAPI 14 op |
-| 6 | commit chứa dòng này | Báo cáo `summary.giftCards` (sold/redeemed/refunded/circulating/expired), cột `Thẻ quà tặng` `•••• last4` trong CSV, job `gift-card-expiry` (lock + heartbeat, expire ledger idempotent), retention xoá `sealedCode` sau `sealedCodeHours`, alert `gift-card-probing` mở 1 lần/IP + escalate, `gift-card-report.mjs` |
+| 6 | `cbbf1d3` | Báo cáo `summary.giftCards` (sold/redeemed/refunded/circulating/expired), cột `Thẻ quà tặng` `•••• last4` trong CSV, job `gift-card-expiry` (lock + heartbeat, expire ledger idempotent), retention xoá `sealedCode` sau `sealedCodeHours`, alert `gift-card-probing` mở 1 lần/IP + escalate, `gift-card-report.mjs` |
 
 Lệch kế hoạch:
 
