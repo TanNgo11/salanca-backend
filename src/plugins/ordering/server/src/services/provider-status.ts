@@ -208,7 +208,8 @@ const providerStatus = ({ strapi }: { strapi: Core.Strapi }) => {
         group: 'fulfillment',
         state: ahamove.error ? 'error' : ahamove.settings ? 'configured' : 'unconfigured',
         environment: ahamove.settings?.environment === 'production' ? 'production' : ahamove.settings ? 'sandbox' : null,
-        partnerRef: mask(ahamove.settings?.mobile ?? ahamove.settings?.apiKey),
+        // Never a hint of the API key — only the (masked) account mobile, when there is one.
+        partnerRef: mask(ahamove.settings?.mobile),
         envNeeded: ['AHAMOVE_API_KEY', 'AHAMOVE_MOBILE', 'AHAMOVE_WEBHOOK_TOKEN'],
         docsPath: 'docs/providers/ahamove.md',
       }),
@@ -260,7 +261,7 @@ const providerStatus = ({ strapi }: { strapi: Core.Strapi }) => {
         group: 'notification',
         state: esms.error ? 'error' : esms.settings ? 'configured' : 'unconfigured',
         environment: null,
-        partnerRef: esms.settings?.brandname ?? mask(esms.settings?.apiKey),
+        partnerRef: esms.settings?.brandname ?? null,
         envNeeded: ['ESMS_API_KEY', 'ESMS_SECRET_KEY', 'ESMS_BRANDNAME'],
         docsPath: 'docs/providers/sms-esms.md',
       }),

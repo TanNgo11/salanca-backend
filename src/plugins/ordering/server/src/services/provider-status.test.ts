@@ -95,6 +95,26 @@ describe('ordering provider-status', () => {
     expect(momo?.webhookUrl).toBe('https://api.example.com/api/v1/ordering/webhooks/momo');
   });
 
+  it('never shows any part of an API key', async () => {
+    const cfg = structuredClone(config.default);
+    cfg.providers.fulfillment.ahamove = {
+      enabled: true,
+      apiKey: 'AHAKEY-SECRET-9876',
+      token: 'tok',
+      webhookToken: 'w'.repeat(16),
+    };
+    cfg.providers.notification.sms = { enabled: true, apiKey: 'ESMSKEY-5432', secretKey: 'sk', smsType: '8' };
+    const strapi = makeStrapi(cfg, { fulfillment: ['ahamove'], notification: ['sms'] });
+    const body = await overview(strapi);
+    expect(cardOf(body.groups, 'ahamove')?.state).toBe('configured');
+    expect(cardOf(body.groups, 'ahamove')?.partnerRef).toBeNull();
+    expect(cardOf(body.groups, 'sms')?.state).toBe('configured');
+    expect(cardOf(body.groups, 'sms')?.partnerRef).toBeNull();
+    const text = JSON.stringify(body);
+    expect(text).not.toContain('9876');
+    expect(text).not.toContain('5432');
+  });
+
   it('flags an enabled-but-malformed provider as error', async () => {
     const cfg = structuredClone(config.default);
     cfg.providers.payment.vnpay = { enabled: true };
