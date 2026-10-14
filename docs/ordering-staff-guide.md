@@ -36,6 +36,9 @@ Hướng dẫn nhập món: `docs/ordering-catalog-guide.md`.
 - Nút ở góc phải là các bước kế tiếp hợp lệ: Nhận → Sẵn sàng → **Thu tiền và giao**.
 - **Thu tiền và giao**: nhận đủ số "Cần thu" rồi bấm. Hệ thống ghi tiền mặt và chuyển đơn sang "Đã giao"
   cùng lúc; nếu lỗi thì không có gì thay đổi, bấm lại. Không giao được khi chưa thu đủ.
+- Đầu khối **Thanh toán** có bốn số: **Cần thu · Đã thu · Đã hoàn · Còn thiếu**. "Còn thiếu" đỏ khi khách
+  còn nợ; nếu có phiếu hoàn chuyển khoản chưa đối chiếu, dòng "Đang chờ hoàn …" hiện bên dưới (số này chưa
+  nằm trong "Đã hoàn").
 - **Hủy món** (biểu tượng thùng rác ở dòng món): chọn số lượng và lý do; số tiền hoàn hiện trước khi bấm,
   tính theo phần giảm giá đã chia lúc đặt. Đơn đã thu tiền thì phiếu hoàn tiền mặt ghi tên bạn.
 - **…** → Hủy đơn (bắt buộc lý do; tiền mặt đã thu hoàn cùng lúc, tiền chuyển khoản thành phiếu hoàn chờ), Hoàn tiền mặt (tối đa số
@@ -57,12 +60,27 @@ Hướng dẫn nhập món: `docs/ordering-catalog-guide.md`.
 
 ## Đơn gọi điện (Tạo đơn hộ)
 
-1. Chọn chi nhánh, tìm món, chọn tùy chọn và số lượng.
+1. Chọn **Loại đơn** (Món ăn tự lấy, hoặc Bán thẻ quà tặng — xem dưới), chi nhánh, tìm món, chọn biến thể
+   (nếu món có nhiều cỡ), tùy chọn và số lượng.
 2. Nhập tên, số điện thoại Việt Nam, email nếu khách có.
 3. Chọn ASAP hoặc giờ lấy.
-4. Tích **Khách đã đồng ý xử lý dữ liệu qua điện thoại** (bắt buộc).
+4. Tích **Khách đã đồng ý xử lý dữ liệu qua điện thoại** (bắt buộc). Hệ thống tự ghi phiên bản điều khoản
+   đang hiệu lực (Cài đặt → Bán hàng → Phiên bản điều khoản đồng ý); bạn không chọn phiên bản.
 5. **Lưu nháp** (giữ chỗ khung giờ) hoặc **Xác nhận đơn** (vào hộp đơn ngay). Giá lấy từ catalog, không sửa
    tay.
+
+### Bán thẻ quà tặng tại quầy
+
+Chọn **Loại đơn → Bán thẻ quà tặng**: danh sách chỉ còn sản phẩm thẻ, **mệnh giá là biến thể** (chọn khi
+thêm vào đơn). Không trộn món ăn và thẻ trong một đơn; đổi loại đơn sẽ làm trống giỏ. Thu **tiền mặt** tại
+quầy (không giao hàng, không hẹn giờ, không mã khuyến mãi).
+
+- **Thẻ giấy in sẵn:** quét từng thẻ vào ô **Quét mã thẻ giấy** (mỗi dòng một mã). Số thẻ quét phải bằng số
+  thẻ bán ("Đã quét n / m thẻ"), đúng mệnh giá, chưa bán và chưa nằm trong đơn khác. Mã không được lưu —
+  đơn chỉ giữ thẻ nào đã bán. Thẻ có hiệu lực khi bấm **Thu tiền** ở đơn.
+- **Thẻ điện tử:** để trống ô quét và nhập **email người nhận** (hoặc email khách); thẻ được gửi sau khi
+  thu tiền. Có thể thêm tên người nhận và lời nhắn (≤ 300 ký tự).
+- Cần ít nhất một trong hai cách giao (quét hoặc email) thì nút lưu mới bật.
 
 ## Đơn giao tận nơi (Bán hàng → Đơn giao)
 
@@ -112,6 +130,10 @@ Hướng dẫn nhập món: `docs/ordering-catalog-guide.md`.
   một ngày kinh doanh. Hết phần thì khách thấy hết hôm nay, đến ngày kinh doanh mai mới bán lại. Công tắc
   **Đang bán** không đổi. Để trống ô là bỏ giới hạn.
 - **Cài đặt → Bán hàng**: bật hộp thoại đơn mới, âm báo mặc định, danh sách lý do từ chối, số phút lùi.
+- **Phiên bản điều khoản đồng ý** (cùng trang): để trống = dùng giá trị mặc định của hệ thống. Khi quản lý
+  đổi sang phiên bản mới (sau khi cập nhật chính sách quyền riêng tư), mọi khách phải đồng ý lại — đơn gửi
+  với phiên bản cũ bị từ chối cho tới khi trang đặt món đọc lại phiên bản mới. Thay đổi được ghi vào Lịch
+  sử thay đổi.
 - **Tab Giao hàng của chi nhánh**: bật giao tận nơi, thời gian chuẩn bị + đi giao tối thiểu, cách trả và
   các **vùng giao** — mỗi vùng chọn xã/phường theo mã hành chính, phí giao theo nấc tạm tính, đơn tối
   thiểu của vùng và thời gian cộng thêm. Vùng ưu tiên cao thắng khi địa chỉ khớp nhiều vùng. Cần có danh
@@ -236,7 +258,9 @@ Khách được tạo **tự động** khi đặt đơn hoặc đăng nhập OTP
 
 Nghị định 13/2023 cho khách quyền xuất và xóa dữ liệu cá nhân. Hàng đợi 4 tab: **Mới · Chờ đơn đóng ·
 Đã xử lý · Từ chối**. Cột "Hạn" là mốc gợi ý 72 giờ (theo cấu hình `dataRights.deadlineHours`, chờ
-pháp lý xác nhận) — yêu cầu đỏ khi quá hạn.
+pháp lý xác nhận) — yêu cầu đỏ khi quá hạn. Yêu cầu quá hạn còn mở cũng bật cảnh báo **Yêu cầu dữ liệu
+cá nhân quá hạn** (Vận hành → Cảnh báo, nhóm quản lý/vận hành xem tất cả chi nhánh); cảnh báo tự đóng ở
+lần job kế tiếp (tối đa 35 phút) sau khi yêu cầu được xử lý hoặc từ chối.
 
 - Khách tự xóa tài khoản trên web cũng tạo một yêu cầu "Khách" — nếu khách còn **đơn đang mở**, yêu cầu
   nằm ở "Chờ đơn đóng" và hệ thống tự xử lý khi đơn đóng xong; phần đơn đã đóng được ẩn danh ngay.
@@ -273,7 +297,8 @@ Sửa đơn (O7) giữ khuyến mãi đã áp và tính lại số giảm trên 
 
 Khách mua thẻ trên web (mục **Thẻ quà tặng** trong menu, mệnh giá cố định): trả tiền online, mã được
 phát và email tới người nhận sau khi thu tiền — chưa thu thì chưa có mã. Tại quầy, nhân viên tạo đơn
-hộ chọn sản phẩm thẻ và quét mã thẻ giấy in sẵn (ô **Mã thẻ giấy**); thẻ giấy chỉ có giá trị từ lúc bán.
+hộ chọn **Loại đơn → Bán thẻ quà tặng**, chọn mệnh giá và quét mã thẻ giấy in sẵn (ô **Quét mã thẻ giấy**);
+thẻ giấy chỉ có giá trị từ lúc bán.
 
 1. **Danh sách thẻ:** tab trạng thái (đang dùng / hết hạn / bị khóa / chưa bán), lọc nguồn (bán online,
    phát tặng, thẻ giấy), ba thẻ tổng trên đầu trang (đang lưu hành, bán tháng này, đã dùng tháng này).

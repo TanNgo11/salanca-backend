@@ -1,6 +1,6 @@
 # Core gaps — kế hoạch thực hiện
 
-Status: Draft
+Status: Implemented — targeted verification passed, chờ review/UAT giao diện
 Owner: tan_ngo (duyệt), AI thực hiện
 Last updated: 2026-10-14
 Nhánh: `TanNgo11/ordering-core-gaps` (tách từ `feat/ordering` `f32ba2f`), merge về `feat/ordering`.
@@ -138,4 +138,46 @@ Thứ tự: 1 → 2 → 6 → 3 → 4 → 5 → 7 → 8. Mỗi bước một com
 
 ## Completion record
 
-- Chưa bắt đầu.
+Làm 2026-10-14 trên `TanNgo11/ordering-core-gaps`, DB test `salanca_ordering_gaps`. Thứ tự thực tế 1 → 2 → 6 → 3 → 4 → 5 → 7 → 8.
+
+| Bước | Commit | Lỗi → test (đỏ trên code cũ) |
+| --- | --- | --- |
+| 1. Token bàn ra khỏi path | `65d5086` | `dine-in.mjs`: `POST /tables/resolve` 200/404, token query 400, `GET /tables/<token>` 404/405 — đỏ: "Method Not Allowed" |
+| 2. Chọn biến thể | `3138558` | `parse.test.ts`, `sellable-for-line.test.ts`, `variant-order.mjs` (quote 85.000 thay vì 65.000; uid sai 400; biến thể hết `SELLABLE_UNAVAILABLE`; sku/tên dòng) — đỏ: quote trả 65.000 |
+| 6. `consentPolicyVersion` | `4bad1b2` | `consent-policy.mjs` (đổi phiên bản → `/config`, đơn phiên bản cũ `CONSENT_REQUIRED`, change-log, đơn hộ do server ghi, xóa → về config) — đỏ: PUT chấp nhận chuỗi rỗng, không lưu field |
+| 3. Dải tổng thanh toán | `3e478fc` | chỉ giao diện: `typecheck:admin`, `o3.test.ts` (khóa dịch) |
+| 4. Bán thẻ tại quầy | `9e0c5f8` | `gift-sale.test.ts` (quét/đếm/email), `gift-card-counter.mjs` (quote mệnh giá, bán thẻ giấy bằng tiền mặt, sai số lượng/mệnh giá, thẻ điện tử) |
+| 5. Webhook | `dbea267` | `events.test.ts` (allowlist, không `comment`), `webhook-new-events.mjs` — đỏ: "unknown event types" |
+| 7. Cảnh báo quá hạn | `00a6486` | `data-request-overdue.mjs` (job không trả `overdue`), `alert-codes.test.ts` (Admin liệt kê đủ mã) |
+| 8. Tài liệu + gate | (commit này) | staff guide, STATUS, ops runbook, integrations, contract |
+
+### Lệch so với plan (có chủ đích)
+
+- **Bước 6/4:** trang Tạo đơn hộ **không** đọc `/ordering/settings` (cần quyền `settings.manage`, nhân viên nhận
+  đơn điện thoại thường không có). Thay vào đó server ghi `policyVersion` hiện hành vào đơn nháp
+  (`createDraft` bỏ qua phiên bản client gửi); trang chỉ gửi `consent.accepted`.
+- **Bước 2:** `sellableForLine` trả sellable đã đổi `variant` (uid, sku, tên) + tiêu đề `Món · Biến thể` cho biến
+  thể không mặc định; adapter không công bố `metadata.catalog.variants` (test-catalog) giữ hành vi cũ vì không
+  kiểm được.
+- **Bước 3:** khối **Tiền** đã có Tổng/Đã thu/Đã hoàn/Còn thiếu; bước này thêm dải bốn số ở khối Thanh toán (đúng
+  yêu cầu plan) + ghi chú "đang chờ hoàn" — hai chỗ trùng số, bỏ một chỗ nếu thấy thừa khi UAT.
+- **Bước 7:** cảnh báo phủ cả yêu cầu `export` (không chỉ `erase`); chạy trong job `data-request-waiting`.
+- **Bước 5:** `rating.created` tạo hàng đánh giá + outbox trong một transaction (trước đây tạo không transaction).
+- Kiểm repo web (chỉ đọc): không có chỗ nào gọi `/tables/` — đổi route không phá web hiện tại.
+
+### Gate (targeted, 2026-10-14)
+
+- `pnpm run lint` · `typecheck` · `typecheck:admin` sạch; `vitest run src/plugins/ordering` 80 file / 786 test pass.
+- `pnpm run build:ordering`; `ORDERING_ENABLED=true pnpm exec strapi build` exit 0.
+- Script (DB `salanca_ordering_gaps`) pass: `dine-in`, `create-order`, `storefront`, `cart`, `cart-checkout`,
+  `catalog-api`, `catalog-adapter`, `variant-order`, `consent-policy`, `gift-card-counter`, `gift-card-sale`,
+  `webhook-new-events`, `data-request-overdue`, `audit-coverage`; trong quá trình làm còn chạy `lookup-drafts`,
+  `admin-orders`, `customers`, `webhooks-out`, `webhooks-admin`, `promotions`, `promotion-money`, `rating`,
+  `data-rights`, `alerts-engine`, `jobs`.
+- Không chạy: toàn bộ `check:ordering`, Chrome UAT (chủ dự án UAT giao diện).
+
+### Còn mở
+
+- UAT giao diện: Tạo đơn hộ (bán thẻ), Cài đặt (phiên bản điều khoản), chi tiết đơn, màn Cảnh báo.
+- Merge về `feat/ordering` chưa làm; chưa push.
+- Tip, VAT, thời hạn lưu dữ liệu, O16, OP: ngoài phạm vi, vẫn chờ chốt.

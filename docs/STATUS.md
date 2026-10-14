@@ -2,6 +2,22 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
+2026-10-14: **Ordering core gaps — implemented + targeted verification passed, chờ review/UAT** trên
+`TanNgo11/ordering-core-gaps` (tách từ `feat/ordering` `f32ba2f`), 7 commit theo
+[`plans/ordering-core-gaps.md`](plans/ordering-core-gaps.md) (Completion record có bảng bước→commit):
+
+- **Token bàn**: `GET /tables/:token` → `POST /tables/resolve { token }` (log không còn ghi token; token
+  trong query bị từ chối 400). **Cần kiểm repo web trước khi merge** — web hiện chưa gọi route này.
+- **Biến thể món**: `/quote`, `/orders`, đơn hộ nay mang `variantUid`; uid sai → 400
+  `lines.N.variantUid`, biến thể tạm hết → `SELLABLE_UNAVAILABLE`; dòng đơn lưu sku + tên biến thể đã chọn.
+- **Admin**: dải Cần thu/Đã thu/Đã hoàn/Còn thiếu ở khối Thanh toán; bán thẻ quà tặng tại quầy trên Tạo
+  đơn hộ (mệnh giá = biến thể, quét thẻ giấy hoặc email, tiền mặt); ô phiên bản điều khoản đồng ý trong
+  Cài đặt (server tự ghi phiên bản cho đơn hộ).
+- **Webhook**: `promotion.redeemed`, `rating.created` (không kèm bình luận).
+- **Cảnh báo**: `data-request-overdue` (mở theo yêu cầu quá hạn, tự đóng); Settings liệt kê đủ 16 mã cảnh báo.
+- **Open:** UAT giao diện; kiểm repo web (route bàn); tip/VAT/thời hạn lưu dữ liệu/O16/OP vẫn chờ quyết
+  định.
+
 2026-10-14: **Ordering O9 (thẻ quà tặng) — implemented + automated verification passed, chờ manual UAT**
 trên `TanNgo11/ordering-o9` (đã merge `feat/ordering` có O13 + O12). Bước 1–7 + review fixes theo
 [`plans/ordering-o9-gift-cards.md`](plans/ordering-o9-gift-cards.md) (Completion record có bảng
@@ -39,7 +55,7 @@ automated verification passed, chờ manual UAT** trên `TanNgo11/ordering-o12` 
 - **KDS**: `GET /kitchen/board` (mới/đang làm/xong 15'), start/prepared/complete theo trạm, màn
   `/kitchen` tối + SSE; cột `order-line.preparedAt`, `fulfillment-group.kitchenStartedAt`.
 - **Tại bàn**: `dining-table` (QR token chỉ lưu SHA-256, đổi mã vô hiệu tức thì) + `table-session`
-  (một phiên mở/bàn qua cột `openTableId` + unique index); `GET /tables/:token` public tối thiểu;
+  (một phiên mở/bàn qua cột `openTableId` + unique index); `POST /tables/resolve` public tối thiểu (token trong body, không trong URL);
   đơn `receiveMethod.kind: 'dine-in'` + `tableToken`; nhiều đơn cùng phiên; 3 workflow dine-in;
   `ready→served→completed`; `POST /table-sessions/:id/close` thu tiền mặt/chuyển khoản quầy,
   chặn khi còn món chưa xong, idempotent, ghi người thu; job `table-session-autoclose` chỉ cảnh báo;
