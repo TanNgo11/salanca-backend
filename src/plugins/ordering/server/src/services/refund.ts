@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 
 import type { Core } from '@strapi/strapi';
 
@@ -86,6 +86,15 @@ export type CreateRefundResult = {
  * outbound transfer later) reserves the captured remainder and leaves `paymentStatus` unchanged
  * until `settleRefund`.
  */
+/** 20 characters, A-Z0-9: fits MoMo's refund orderId/requestId and VNPay's vnp_RequestId (≤ 32). */
+const walletRefundRequestId = (): string => {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = randomBytes(18);
+  let id = 'RF';
+  for (const byte of bytes) id += alphabet[byte % alphabet.length];
+  return id;
+};
+
 const refund = ({ strapi }: { strapi: Core.Strapi }) => {
   const services = (): Services => {
     const plugin = strapi.plugin('ordering');
@@ -267,12 +276,21 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
         details: { providerCode: payment.providerCode },
       });
     }
-    const result = await provider.refund({
-      payment: payment as unknown as ContractPayment,
-      amount: toMoney(total, currency),
-      reason: input.reason,
-      idempotencyKey: input.idempotencyKey ?? `refund:${input.paymentId}:${randomUUID()}`,
-    });
+    // A wallet refund is an HTTP call to MoMo/VNPay. Calling it here (inside the transaction,
+    // before any row exists) let a timeout after the provider had refunded leave no trace, and
+    // a staff retry refund twice. Wallet refunds are written `pending` with a stable request id
+    // first; the `refund.wallet-dispatch` outbox consumer calls the provider after commit with
+    // that same id (retries reuse it, so the provider de-duplicates) and settles on success.
+    const walletRefund = provider.capabilities?.includes('wallet') === true;
+    const walletRequestId = walletRefund ? walletRefundRequestId() : null;
+    const result = walletRefund
+      ? { status: 'pending' as const, providerReference: walletRequestId }
+      : await provider.refund({
+          payment: payment as unknown as ContractPayment,
+          amount: toMoney(total, currency),
+          reason: input.reason,
+          idempotencyKey: input.idempotencyKey ?? `refund:${input.paymentId}:${randomUUID()}`,
+        });
 
     const settled = result.status === 'settled';
     const created = await refunds().create({
@@ -293,6 +311,18 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
             : null,
       },
     });
+    if (walletRefund) {
+      await outbox.enqueue(
+        {
+          type: 'refund.wallet-dispatch',
+          aggregateType: 'refund',
+          aggregateId: String(created.id),
+          payload: { refundId: created.id },
+          uniqueKey: `refund.wallet-dispatch:${created.id}`,
+        },
+        ctx,
+      );
+    }
     for (const lineRefund of lineRefunds) {
       await refundLines().create({
         data: {
@@ -498,9 +528,39 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
     });
   };
 
+  /**
+   * Outbox consumer `refund.wallet-dispatch`: sends a pending wallet refund to its provider
+   * with the request id stored on the refund (the same id on every retry). A confirmed refund
+   * settles through `settleRefund`; "accepted, not confirmed" stays pending for staff; an error
+   * throws so the outbox retries with backoff.
+   */
+  const dispatchWalletRefund = async (refundId: number): Promise<void> => {
+    const { registry } = services();
+    const row = (await refunds().findOne({
+      where: { id: refundId },
+      populate: { payment: true },
+    })) as (Omit<RefundRow, 'payment'> & { payment: PaymentRow | null }) | null;
+    if (!row || row.status !== 'pending' || !row.providerReference || !row.payment) return;
+    const provider = registry.paymentProvider(row.payment.providerCode);
+    if (!provider.refund) return;
+    const result = await provider.refund({
+      payment: row.payment as unknown as ContractPayment,
+      amount: toMoney(amountFromDb(row.amount), row.currency),
+      reason: row.reason ?? 'refund',
+      idempotencyKey: row.providerReference,
+    });
+    if (result.status !== 'settled') return;
+    await settleRefund(
+      refundId,
+      { reference: row.providerReference },
+      { actor: { kind: 'system', actorRef: `provider:${row.payment.providerCode}` } },
+    );
+  };
+
   return {
     createRefundInTransaction,
     settleRefund,
+    dispatchWalletRefund,
 
     async createRefund(
       input: {

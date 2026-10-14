@@ -5,6 +5,8 @@ import assert from 'node:assert/strict';
 import { createHmac, randomUUID } from 'node:crypto';
 import http from 'node:http';
 
+import { runOutboxDispatcher } from '../../src/plugins/ordering/dist/server/src/jobs/outbox-dispatcher.js';
+
 import {
   basicOrderInput,
   seedBranches,
@@ -87,6 +89,12 @@ const startFakeMomo = () => {
       }
       if (req.url === '/v2/gateway/api/refund') {
         calls.refund.push(payload);
+        if (calls.failNextRefund) {
+          // Simulates a timeout after MoMo accepted it: no usable answer for the plugin.
+          calls.failNextRefund = false;
+          res.writeHead(502).end('bad gateway');
+          return;
+        }
         reply({
           partnerCode: payload.partnerCode,
           orderId: payload.orderId,
@@ -320,11 +328,25 @@ try {
       },
       systemCtx,
     );
-    assert.equal(refund.status, 'settled');
+    // Written pending first; MoMo is called after commit by the outbox, with a stable id.
+    assert.equal(refund.status, 'pending');
     assert.equal(Number(refund.amount), 50000);
+    assert.match(refund.providerReference, /^RF[A-Z0-9]{18}$/);
+    assert.equal(fake.calls.refund.length, 0, 'no provider call inside the refund transaction');
+    fake.calls.failNextRefund = true;
+    await runOutboxDispatcher(app, { owner: `momo-test:${process.pid}` });
     assert.equal(fake.calls.refund.length, 1);
-    assert.equal(fake.calls.refund[0].orderId, reference);
-    assert.equal(fake.calls.refund[0].amount, 50000);
+    assert.equal((await app.db.query('plugin::ordering.refund').findOne({ where: { id: refund.id } })).status, 'pending');
+    await app.db.connection('plugins_ordering_outbox').where({ unique_key: `refund.wallet-dispatch:${refund.id}` }).update({ available_at: new Date(Date.now() - 1000) });
+    await runOutboxDispatcher(app, { owner: `momo-test:${process.pid}` });
+    assert.equal(fake.calls.refund.length, 2);
+    assert.equal(fake.calls.refund[1].orderId, refund.providerReference, 'the retry reuses the same refund id');
+    assert.equal(fake.calls.refund[0].orderId, fake.calls.refund[1].orderId);
+    assert.notEqual(fake.calls.refund[1].orderId, reference, 'a refund gets its own MoMo orderId');
+    assert.equal(fake.calls.refund[1].amount, 50000);
+    const settledRefund = await app.db.query('plugin::ordering.refund').findOne({ where: { id: refund.id } });
+    assert.equal(settledRefund.status, 'settled');
+    assert.equal(Number((await payments().findOne({ where: { id: captured.id } })).refundedAmount), 50000);
 
     // --- return URL is display-only -------------------------------------------------
     const ret = await fetch(

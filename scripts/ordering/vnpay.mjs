@@ -5,6 +5,8 @@ import assert from 'node:assert/strict';
 import { createHmac, randomUUID } from 'node:crypto';
 import http from 'node:http';
 
+import { runOutboxDispatcher } from '../../src/plugins/ordering/dist/server/src/jobs/outbox-dispatcher.js';
+
 import {
   basicOrderInput,
   seedBranches,
@@ -271,8 +273,12 @@ try {
       },
       systemCtx,
     );
-    assert.equal(refund.status, 'settled');
+    assert.equal(refund.status, 'pending', 'wallet refunds settle after commit, via the outbox');
+    await runOutboxDispatcher(app, { owner: `vnpay-test:${process.pid}` });
+    assert.equal((await app.db.query('plugin::ordering.refund').findOne({ where: { id: refund.id } })).status, 'settled');
     const refundCall = fake.calls.api.find((call) => call.vnp_Command === 'refund');
+    assert.equal(refundCall.vnp_RequestId, refund.providerReference);
+    assert.ok(refundCall.vnp_RequestId.length <= 32);
     assert.equal(refundCall.vnp_TxnRef, reference);
     assert.equal(refundCall.vnp_TransactionNo, txnNo);
     assert.equal(refundCall.vnp_TransactionType, '03');

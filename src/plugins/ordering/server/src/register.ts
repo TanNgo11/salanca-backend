@@ -256,6 +256,11 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
     customers().onOrderTransitioned(event),
   );
   registry.registerOutboxConsumer('order.edited', (event) => notifications().onOrderEdited(event as never));
+  // O13 review: wallet refunds call MoMo/VNPay after the refund row commits (stable request id).
+  registry.registerOutboxConsumer('refund.wallet-dispatch', (event) =>
+    (strapi.plugin('ordering').service('refund') as { dispatchWalletRefund(id: number): Promise<void> })
+      .dispatchWalletRefund(Number(event.payload.refundId)),
+  );
   registry.registerOutboxConsumer('rating.invite', (event) => notifications().onRatingInvite(event as never));
   registry.registerOutboxConsumer('fulfillment-group.transitioned', (event) =>
     notifications().onGroupTransitioned(event as never),

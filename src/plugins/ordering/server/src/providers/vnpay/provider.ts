@@ -288,9 +288,13 @@ export const createVnpayPaymentProvider = (deps: {
       });
       const body = jsonObject(response);
       const responseCode = str(body?.vnp_ResponseCode);
-      // 94 = same request already received inside 5 minutes — the refund exists at VNPay.
-      if (response.status === 200 && (responseCode === '00' || responseCode === '94')) {
+      if (response.status === 200 && responseCode === '00') {
         return { status: 'settled', providerReference: str(body?.vnp_TransactionNo) || transactionNo };
+      }
+      // 94 = the same request id was already received recently. It does not say the first one
+      // succeeded, so the refund stays pending for staff to confirm (never settled blindly).
+      if (response.status === 200 && responseCode === '94') {
+        return { status: 'pending', providerReference: input.idempotencyKey };
       }
       throw providerError('refund', `response:${responseCode || response.status}`);
     },

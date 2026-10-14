@@ -271,13 +271,17 @@ export const createMomoPaymentProvider = (deps: {
       const queried = await queryRaw(settings, reference);
       const transId = str(queried.transId);
       if (transId === '') throw providerError('refund', 'no-trans-id');
+      // MoMo refunds need their own unique orderId (the original payment's orderId is only used
+      // to look up transId). The stable refund request id serves as both orderId and
+      // requestId, so a retried dispatch is the same refund to MoMo.
       const requestId = input.idempotencyKey;
+      const refundOrderId = input.idempotencyKey;
       const description = input.reason.slice(0, 200);
       const fields = {
         accessKey: settings.accessKey,
         amount: input.amount.amount,
         description,
-        orderId: reference,
+        orderId: refundOrderId,
         partnerCode: settings.partnerCode,
         requestId,
         transId,
@@ -286,7 +290,7 @@ export const createMomoPaymentProvider = (deps: {
         partnerCode: settings.partnerCode,
         accessKey: settings.accessKey,
         requestId,
-        orderId: reference,
+        orderId: refundOrderId,
         transId,
         amount: input.amount.amount,
         description,
