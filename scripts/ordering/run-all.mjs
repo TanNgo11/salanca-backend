@@ -29,6 +29,7 @@ const scripts = [
   'catalog-json.mjs',
   'catalog-adapter.mjs',
   'catalog-api.mjs',
+  'variant-order.mjs',
   'catalog-categories.mjs',
   'catalog-availability.mjs',
   'catalog-extension.mjs',

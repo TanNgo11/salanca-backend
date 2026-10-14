@@ -118,11 +118,17 @@ for the receive business date (ASAP uses the order's business date; a slot uses 
 {
   "branch": "Q1",
   "locale": "vi",
-  "lines": [{ "sellableUid": "<product id>", "quantity": 2, "selected": [{ "groupUid": "g", "optionUid": "o" }], "note": "ít hành" }],
+  "lines": [{ "sellableUid": "<product id>", "variantUid": "<optional variant id>", "quantity": 2, "selected": [{ "groupUid": "g", "optionUid": "o" }], "note": "ít hành" }],
   "receiveMethod": { "kind": "pickup", "slot": { "startsAt": "2026-10-12T05:00:00.000Z" } },
   "payment": { "providerCode": "cash" }
 }
 ```
+
+`variantUid` picks a non-default variant of the item (size, card denomination…); the server prices that variant and
+the order line snapshots its `sku`, `variantUid` and title (`Món · Biến thể`). Omit it for the default variant.
+A `variantUid` that is not a variant of `sellableUid` fails `400 VALIDATION_ERROR` (`details.field` =
+`lines.N.variantUid`); a tạm hết variant fails `SELLABLE_UNAVAILABLE` (`details.lineIndex`, `reason: variant-unavailable`) —
+the server never falls back to the default price.
 
 For delivery send `receiveMethod.kind: 'delivery'`, `providerCode: 'self-delivery'` and an `address`:
 `{ "communeCode": "XT01002", "line1": "12 Đường Bí Mật", "recipientName": "…", "phone": "0901…" }`

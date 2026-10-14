@@ -16,6 +16,7 @@ import {
   type SellingWindow,
 } from '../../domain/catalog/availability';
 import type { BundleSlot } from '../../domain/catalog/bundle-slots';
+import { OrderingError } from '../../domain/errors';
 import { resolveLocalizedText } from '../../domain/catalog/localized-text';
 import {
   normalizeKitchenStation,
@@ -588,30 +589,65 @@ const PRODUCT_POPULATE = {
   availabilityWindows: true,
 };
 
-/** Unit price of the requested variant, or the headline variant when the line names none. */
-export const unitAmountOf = (sellable: Sellable, variantUid?: string | null): number => {
-  const variants =
-    (
-      sellable.metadata as {
-        catalog?: { variants?: Array<{ ref?: string; isDefault?: boolean; price?: number | null }> };
-      }
-    )?.catalog?.variants ?? [];
-  const chosen = variantUid
-    ? variants.find((row) => row.ref === variantUid)
-    : (variants.find((row) => row.isDefault) ?? variants[0]);
-  return typeof chosen?.price === 'number' ? chosen.price : sellable.listPrice.amount;
+type CatalogVariantInfo = {
+  ref?: string;
+  sku?: string;
+  title?: string;
+  isDefault?: boolean;
+  price?: number | null;
+  available?: boolean;
+};
+
+const catalogVariantsOf = (sellable: Sellable): CatalogVariantInfo[] | undefined => {
+  const variants = (sellable.metadata as { catalog?: { variants?: unknown } } | undefined)?.catalog?.variants;
+  return Array.isArray(variants) ? (variants as CatalogVariantInfo[]) : undefined;
 };
 
 /**
- * The sellable a product type prices for one line: its list price is the context-selected price
- * of the chosen variant (price lists, groups, time), so `quoteLine` stays the only place that
- * decides `unitAmount` — a custom product type keeps its own pricing on top of it.
+ * The sellable a product type prices for one line, with the chosen variant applied: its list price
+ * is the context-selected price of that variant (price lists, groups, time) so `quoteLine` stays the
+ * only place that decides `unitAmount` — a custom product type keeps its own pricing on top of it —
+ * and `variant` (uid, sku, title) is the chosen one, so the order-line snapshot keeps what was
+ * sold. A line that names no variant keeps the headline (default) variant untouched.
+ *
+ * A `variantUid` that is not a variant of this product is `VALIDATION_ERROR` (`lines.N.variantUid`)
+ * and a tạm hết variant is `SELLABLE_UNAVAILABLE` — never a silent fall back to the default price.
+ * Adapters that publish no `metadata.catalog.variants` cannot be checked and keep the sellable as is.
  */
-export const sellableForLine = (sellable: Sellable, variantUid?: string | null): Sellable => {
-  const amount = unitAmountOf(sellable, variantUid);
-  return amount === sellable.listPrice.amount
-    ? sellable
-    : { ...sellable, listPrice: { ...sellable.listPrice, amount } };
+export const sellableForLine = (
+  sellable: Sellable,
+  variantUid?: string | null,
+  lineIndex = 0,
+): Sellable => {
+  if (!variantUid) return sellable;
+  const variants = catalogVariantsOf(sellable);
+  if (!variants) return sellable;
+  const chosen = variants.find((row) => row.ref === variantUid);
+  if (!chosen) {
+    throw new OrderingError('VALIDATION_ERROR', 'variantUid is not a variant of this item', {
+      details: { field: `lines.${lineIndex}.variantUid`, lineIndex },
+    });
+  }
+  if (chosen.available === false) {
+    throw new OrderingError('SELLABLE_UNAVAILABLE', 'variant is not available', {
+      details: { lineIndex, reason: 'variant-unavailable' },
+    });
+  }
+  const amount = typeof chosen.price === 'number' ? chosen.price : sellable.listPrice.amount;
+  if (chosen.ref === sellable.variant?.uid && amount === sellable.listPrice.amount) return sellable;
+  const isHeadline = chosen.ref === sellable.variant?.uid;
+  return {
+    ...sellable,
+    ...(isHeadline || !chosen.title ? {} : { title: `${sellable.title} · ${chosen.title}` }),
+    variant: {
+      attributes: {},
+      ...(isHeadline ? sellable.variant : {}),
+      uid: variantUid,
+      ...(chosen.sku ? { sku: chosen.sku } : {}),
+      ...(chosen.title ? { title: chosen.title } : {}),
+    },
+    listPrice: { ...sellable.listPrice, amount },
+  };
 };
 
 const cursorOf = (offset: number): string =>

@@ -49,6 +49,21 @@ describe('parseCartRequest', () => {
     expect(JSON.stringify(parsed)).not.toContain('adjustments');
   });
 
+  it('keeps the chosen variantUid per line and omits it when absent', () => {
+    const parsed = parseCartRequest({
+      ...cart,
+      lines: [
+        { sellableUid: 'bun-bo', quantity: 1, variantUid: ' var-dac-biet ' },
+        { sellableUid: 'tra', quantity: 1 },
+      ],
+    });
+    expect(parsed.lines[0].variantUid).toBe('var-dac-biet');
+    expect('variantUid' in parsed.lines[1]).toBe(false);
+    expect(() =>
+      parseCartRequest({ ...cart, lines: [{ sellableUid: 'x', quantity: 1, variantUid: 42 }] }),
+    ).toThrow(/variantUid must be a string/);
+  });
+
   it('defaults to ASAP and rejects bad lines and non-pickup', () => {
     expect(parseCartRequest({ ...cart, receiveMethod: { kind: 'pickup' } }).pickup).toEqual({ asap: true });
     expect(() => parseCartRequest({ ...cart, lines: [] })).toThrow(/at least one line/);

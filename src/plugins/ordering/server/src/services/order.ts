@@ -668,8 +668,9 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
           });
         }
         const productType = registry.productType(sellable.productType);
+        const lineSellable = sellableForLine(sellable, line.variantUid, index);
         const configuration = {
-          sellable: sellableForLine(sellable, line.variantUid),
+          sellable: lineSellable,
           selected: line.selected ?? [],
           quantity: line.quantity,
           context: { locale, locationRef: input.locationRef, at: placedAt.toISOString() },
@@ -695,7 +696,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
           (sellable.metadata as JsonObject | undefined)?.leadTimeMinutes ?? 0,
         );
         priced.push({
-          sellable,
+          sellable: lineSellable,
           key: String(index),
           quantity: line.quantity,
           unitAmount: quote.unitAmount,

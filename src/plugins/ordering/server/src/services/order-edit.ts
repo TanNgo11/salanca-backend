@@ -998,8 +998,9 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
         });
       }
       const productType = input.registry.productType(sellable.productType);
+      const lineSellable = sellableForLine(sellable, line.variantUid, index);
       const configuration = {
-        sellable: sellableForLine(sellable, line.variantUid),
+        sellable: lineSellable,
         selected,
         quantity: line.quantity,
         context: { locale: input.locale, locationRef: input.locationRef, at: input.now.toISOString() },
@@ -1031,11 +1032,11 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
       }
       const lineLeadTime = Number((sellable.metadata as JsonObject | undefined)?.leadTimeMinutes ?? 0);
       quoted.push({
-        sellable,
+        sellable: lineSellable,
         selected,
         quantity: line.quantity,
         note: line.note?.trim() ? line.note.trim() : null,
-        variantUid: line.variantUid ?? sellable.variant?.uid ?? null,
+        variantUid: line.variantUid ?? lineSellable.variant?.uid ?? null,
         unitAmount: quote.unitAmount,
         optionAmount: quote.optionAmount,
         ...(quote.taxGroupRef || sellable.taxGroupRef

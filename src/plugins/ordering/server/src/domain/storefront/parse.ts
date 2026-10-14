@@ -21,6 +21,7 @@ export type CartRequest = {
   locale?: string;
   lines: Array<{
     sellableUid: string;
+    variantUid?: string;
     quantity: number;
     selected: Array<{ groupUid: string; optionUid: string; quantity: number }>;
     note?: string;
@@ -88,8 +89,10 @@ export function parseCartRequest(body: unknown): CartRequest {
     if (!Array.isArray(selected) || selected.length > LIMITS.selected) {
       throw invalid(`lines.${index}.selected`, 'selected must be a short list');
     }
+    const variantUid = str(raw.variantUid, `lines.${index}.variantUid`, 100);
     return {
       sellableUid: str(raw.sellableUid, `lines.${index}.sellableUid`, 100, true) as string,
+      ...(variantUid ? { variantUid } : {}),
       quantity: int(raw.quantity, `lines.${index}.quantity`, 1, LIMITS.quantity),
       selected: selected.map((pick, pickIndex) => {
         const field = `lines.${index}.selected.${pickIndex}`;
