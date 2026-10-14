@@ -18,6 +18,7 @@ export const ALERT_CODES = [
   'low-rating',
   'gift-card-probing',
   'table-session-open',
+  'data-request-overdue',
 ] as const;
 
 export type AlertCode = (typeof ALERT_CODES)[number];
@@ -55,6 +56,10 @@ const labels: Record<AlertCode, { vi: string; en: string }> = {
   'table-session-open': {
     vi: 'Phiên bàn chưa đóng sau giờ cuối ngày',
     en: 'Table session left open after business day end',
+  },
+  'data-request-overdue': {
+    vi: 'Yêu cầu dữ liệu cá nhân quá hạn xử lý',
+    en: 'Personal-data request past its deadline',
   },
 };
 

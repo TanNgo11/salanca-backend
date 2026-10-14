@@ -33,6 +33,7 @@ const scripts = [
   'consent-policy.mjs',
   'gift-card-counter.mjs',
   'webhook-new-events.mjs',
+  'data-request-overdue.mjs',
   'catalog-categories.mjs',
   'catalog-availability.mjs',
   'catalog-extension.mjs',

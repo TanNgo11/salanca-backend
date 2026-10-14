@@ -52,6 +52,7 @@ ghi change-log `alert-rules.update`), lưu trong plugin store key `alert-rules`.
 | `cash-closing-mismatch` | chốt/điều chỉnh tiền mặt chênh ≠ 0 | 1 lần | 1 lần | `report.read` | đếm lại và tạo bản điều chỉnh có lý do; về 0 tự đóng |
 | `audit-tampered` | job `audit-chain` thấy dòng lịch sử thay đổi bị sửa/xóa thẳng trong DB (hash hoặc liên kết sai) | 1 lần | luôn critical | `ops.read` | xem `aggregateRef` (`change-log:<id>`), so với backup DB, điều tra quyền truy cập DB; không tự đóng |
 | `gift-card-probing` | mã thẻ quà tặng sai liên tiếp từ một IP (`dedupeKey` = IP; đếm cả request đang bị 429) | 20 lần / cửa sổ | 60 lần | `ops.read` | IP đã bị rate-limit + captcha — chỉ cần xác nhận, cân nhắc chặn IP ở edge nếu critical; không tự đóng |
+| `data-request-overdue` | yêu cầu dữ liệu cá nhân (xuất/xóa) còn `received`/`waiting` quá `dataRights.deadlineHours` (mặc định 72 giờ); `dedupeKey` = `data-request-overdue:<documentId>`, không mang SĐT | 1 yêu cầu | — | `ops.read` | mở Yêu cầu dữ liệu, xử lý (hoặc từ chối có ghi chú) trước hạn Nghị định 13; **tự đóng** ở lần chạy `data-request-waiting` kế tiếp (35 phút) sau khi yêu cầu xong/bị từ chối. Cảnh báo không gắn chi nhánh nên chỉ nhân viên xem tất cả chi nhánh thấy |
 
 Cơ chế chung:
 

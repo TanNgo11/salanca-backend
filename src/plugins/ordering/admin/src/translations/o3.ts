@@ -369,6 +369,8 @@ export const o3Messages: Record<string, [string, string]> = {
   'settings.up': ['Lên', 'Up'],
   'settings.down': ['Xuống', 'Down'],
   'settings.delays': ['Số phút lùi khi nhận', 'Accept & delay options (minutes)'],
+  'alert.code.table-session-open': ['Phiên bàn chưa đóng sau giờ cuối ngày', 'Table session left open after business day end'],
+  'alert.code.data-request-overdue': ['Yêu cầu dữ liệu cá nhân quá hạn', 'Personal-data request past its deadline'],
   'settings.policyVersion': ['Phiên bản điều khoản đồng ý', 'Consent policy version'],
   'settings.policyVersionDefault': ['Mặc định theo cấu hình hệ thống', 'System default'],
   'settings.policyVersionHint': [

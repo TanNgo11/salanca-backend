@@ -148,6 +148,15 @@ export const ALERT_RULE_DEFAULTS: AlertRules = {
     aggregationMinutes: 720,
     recipients: ['ops.read'],
   },
+  // Core gaps: a Decree 13 request (export/erase) still received/waiting past
+  // `dataRights.deadlineHours`. One alert per request; closes itself once the request is
+  // done or rejected.
+  'data-request-overdue': {
+    enabled: true,
+    threshold: 1,
+    aggregationMinutes: 1440,
+    recipients: ['ops.read'],
+  },
 };
 
 /** Unknown codes (custom callers) behave as a minimal warning rule rather than being dropped. */
