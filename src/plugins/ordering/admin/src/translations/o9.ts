@@ -5,6 +5,31 @@
 export const o9Messages: Record<string, [string, string]> = {
   'nav.giftCards': ['Thẻ quà tặng', 'Gift cards'],
 
+  // S6 "Tạo đơn hộ": counter sale of gift cards
+  'create.saleKind': ['Loại đơn', 'Order type'],
+  'create.saleKind.pickup': ['Món ăn (tự lấy)', 'Food (pickup)'],
+  'create.saleKind.giftCard': ['Bán thẻ quà tặng', 'Sell gift cards'],
+  'create.variant': ['Mệnh giá / biến thể', 'Denomination / variant'],
+  'create.gift.title': ['Người nhận thẻ', 'Card recipient'],
+  'create.gift.recipientEmail': ['Email người nhận (gửi thẻ điện tử)', 'Recipient email (digital card)'],
+  'create.gift.recipientName': ['Tên người nhận', 'Recipient name'],
+  'create.gift.message': ['Lời nhắn', 'Message'],
+  'create.gift.messageHint': ['Tối đa 300 ký tự, gửi kèm email', 'Up to 300 characters, sent with the email'],
+  'create.gift.scan': ['Quét mã thẻ giấy', 'Scan printed cards'],
+  'create.gift.scanHint': [
+    'Mỗi dòng một mã (máy quét tự xuống dòng). Quét đủ một thẻ cho mỗi thẻ bán; để trống nếu gửi thẻ điện tử qua email.',
+    'One code per line (the scanner adds the newline). Scan one card per card sold; leave empty to send digital cards by email.',
+  ],
+  'create.gift.scanned': ['Đã quét {scanned} / {units} thẻ', 'Scanned {scanned} / {units} cards'],
+  'create.gift.duplicate': ['Có mã bị quét hai lần', 'A code was scanned twice'],
+  'create.gift.countMismatch': ['Đã quét {scanned} mã nhưng bán {units} thẻ', 'Scanned {scanned} codes but selling {units} cards'],
+  'create.gift.badEmail': ['Email không hợp lệ', 'Invalid email'],
+  'create.gift.noDelivery': [
+    'Cần email người nhận (hoặc email khách) hoặc quét mã thẻ giấy để giao thẻ.',
+    'Enter a recipient (or customer) email or scan the printed cards so the cards can be delivered.',
+  ],
+  'create.gift.payment': ['Thanh toán: thu tiền mặt tại quầy', 'Payment: cash at the counter'],
+
   // S4 additions
   'method.gift-card': ['Thẻ quà tặng', 'Gift card'],
   'detail.refundToCard': ['Hoàn về thẻ ••••', 'Refund to card ••••'],

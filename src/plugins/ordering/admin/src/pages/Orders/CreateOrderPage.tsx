@@ -31,6 +31,7 @@ import { useNavigate } from 'react-router-dom';
 import { normalizeVietnamesePhone } from '../../../../shared/contact/phone';
 import { apiErrorOf, useErrorToast } from '../../lib/api';
 import { formatMoney, formatTime, localized } from '../../lib/format';
+import { giftSaleIssue, isGiftCardProduct, parseScannedCodes } from '../../lib/gift-sale';
 import { useLocale, useT } from '../../lib/i18n';
 import type { OrderDetail } from '../../lib/types';
 
@@ -39,6 +40,10 @@ type Product = {
   name: string;
   price: number;
   available: boolean;
+  /** `['digital']` marks a gift card; food lists pickup/delivery. */
+  fulfillment?: string[];
+  /** Sellable variants (size, card denomination); the default one prices the product. */
+  variants?: Array<{ id: string; name: string; price: number | null; default?: boolean; available?: boolean }>;
   options: Array<{
     id: string;
     group: string;
@@ -51,6 +56,8 @@ type Product = {
 type CartLine = {
   key: string;
   product: Product;
+  /** Chosen variant when the product has several (e.g. the card denomination). */
+  variant?: { id: string; name: string; price: number | null };
   quantity: number;
   selected: Array<{ groupUid: string; optionUid: string; quantity: number }>;
   note: string;
@@ -66,9 +73,11 @@ type Quote = {
   pendingPromotions?: Array<{ code: string; label: string; condition: string }>;
 };
 
-/** Option picker for one product (variants come from the catalog's default variant in O3). */
+/** Variant + option picker for one product. */
 const ProductModal = ({ product, onClose, onAdd }: { product: Product; onClose: () => void; onAdd: (line: Omit<CartLine, 'key'>) => void }) => {
   const t = useT();
+  const variants = product.variants ?? [];
+  const [variantId, setVariantId] = useState(() => (variants.find((item) => item.default) ?? variants[0])?.id ?? '');
   const [quantity, setQuantity] = useState(1);
   const [note, setNote] = useState('');
   const [picked, setPicked] = useState<Record<string, string[]>>({});
@@ -81,6 +90,18 @@ const ProductModal = ({ product, onClose, onAdd }: { product: Product; onClose: 
         </Modal.Header>
         <Modal.Body>
           <Flex direction="column" alignItems="stretch" gap={4}>
+            {variants.length > 1 ? (
+              <Field.Root>
+                <Field.Label>{t('create.variant')}</Field.Label>
+                <SingleSelect value={variantId} onChange={(value: string | number) => setVariantId(String(value))}>
+                  {variants.map((item) => (
+                    <SingleSelectOption key={item.id} value={item.id} disabled={item.available === false}>
+                      {`${item.name}${item.price !== null ? ` · ${formatMoney(item.price)}` : ''}${item.available === false ? ` · ${t('create.unavailable')}` : ''}`}
+                    </SingleSelectOption>
+                  ))}
+                </SingleSelect>
+              </Field.Root>
+            ) : null}
             {product.options.map((group) => (
               <Box key={group.id}>
                 <Typography fontWeight="bold">
@@ -128,10 +149,16 @@ const ProductModal = ({ product, onClose, onAdd }: { product: Product; onClose: 
             {t('common.cancel')}
           </Button>
           <Button
-            disabled={missing.length > 0}
+            disabled={missing.length > 0 || (variants.length > 1 && variants.find((item) => item.id === variantId)?.available === false)}
             onClick={() =>
               onAdd({
                 product,
+                ...(variants.length > 1 && variantId
+                  ? (() => {
+                      const chosen = variants.find((item) => item.id === variantId);
+                      return chosen ? { variant: { id: chosen.id, name: chosen.name, price: chosen.price } } : {};
+                    })()
+                  : {}),
                 quantity,
                 note,
                 selected: Object.entries(picked).flatMap(([groupUid, ids]) =>
@@ -171,6 +198,9 @@ export const CreateOrderPage = () => {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [slot, setSlot] = useState('');
   const [consent, setConsent] = useState(false);
+  // Gift-card counter sale: cards are delivered by email or handed over as scanned printed stock.
+  const [saleKind, setSaleKind] = useState<'pickup' | 'gift-card'>('pickup');
+  const [gift, setGift] = useState({ recipientEmail: '', recipientName: '', message: '', codes: '' });
   const [customerNote, setCustomerNote] = useState('');
   const [quote, setQuote] = useState<Quote | null>(null);
   // O8: the code is applied with a button so typing does not re-quote on every key.
@@ -209,24 +239,35 @@ export const CreateOrderPage = () => {
       .catch(() => setSlots([]));
   }, [branch, get, slotDate, timingMode]);
 
+  const isGift = saleKind === 'gift-card';
+  const scannedCodes = useMemo(() => parseScannedCodes(gift.codes), [gift.codes]);
+  const cardUnits = cart.reduce((sum, line) => sum + line.quantity, 0);
+  const giftIssue = isGift
+    ? giftSaleIssue({ codes: scannedCodes, units: cardUnits, recipientEmail: gift.recipientEmail, contactEmail: contact.email })
+    : null;
+
+  // The quote body leaves out recipient details and scans so typing them does not re-quote.
   const body = useMemo(
     () => ({
       branch,
       locale,
       lines: cart.map((line) => ({
         sellableUid: line.product.id,
+        ...(line.variant ? { variantUid: line.variant.id } : {}),
         quantity: line.quantity,
         selected: line.selected,
         ...(line.note ? { note: line.note } : {}),
       })),
-      receiveMethod: { kind: 'pickup', ...(timingMode === 'slot' && slot ? { slot: { startsAt: slot } } : {}) },
-      ...(promoCode ? { promotionCode: promoCode } : {}),
+      receiveMethod: isGift
+        ? { kind: 'digital' }
+        : { kind: 'pickup', ...(timingMode === 'slot' && slot ? { slot: { startsAt: slot } } : {}) },
+      ...(promoCode && !isGift ? { promotionCode: promoCode } : {}),
     }),
-    [branch, cart, locale, promoCode, slot, timingMode],
+    [branch, cart, isGift, locale, promoCode, slot, timingMode],
   );
 
   const requote = useCallback(async () => {
-    if (!branch || cart.length === 0 || (timingMode === 'slot' && !slot)) {
+    if (!branch || cart.length === 0 || (!isGift && timingMode === 'slot' && !slot)) {
       setQuote(null);
       return;
     }
@@ -242,20 +283,33 @@ export const CreateOrderPage = () => {
         lineIndex: typeof api.details?.lineIndex === 'number' ? api.details.lineIndex : undefined,
       });
     }
-  }, [body, branch, cart.length, post, slot, t, timingMode]);
+  }, [body, branch, cart.length, isGift, post, slot, t, timingMode]);
 
   useEffect(() => {
     void requote();
   }, [requote]);
 
   const phone = normalizeVietnamesePhone(contact.phone);
-  const ready = cart.length > 0 && contact.name.trim() !== '' && phone.valid && consent && quote !== null;
+  const ready =
+    cart.length > 0 && contact.name.trim() !== '' && phone.valid && consent && quote !== null && giftIssue === null;
 
   const save = async (confirm: boolean) => {
     setSaving(confirm ? 'confirm' : 'draft');
     try {
       const { data } = await post('/ordering/drafts', {
         ...body,
+        ...(isGift
+          ? {
+              receiveMethod: {
+                kind: 'digital',
+                ...(gift.recipientEmail.trim() ? { recipientEmail: gift.recipientEmail.trim() } : {}),
+                ...(gift.recipientName.trim() ? { recipientName: gift.recipientName.trim() } : {}),
+                ...(gift.message.trim() ? { message: gift.message.trim() } : {}),
+                ...(scannedCodes.length > 0 ? { physicalCodes: scannedCodes } : {}),
+              },
+              payment: { providerCode: 'cash' },
+            }
+          : {}),
         contact: { name: contact.name.trim(), phone: contact.phone, ...(contact.email.trim() ? { email: contact.email.trim() } : {}) },
         // The server stamps the policy version in force (Settings → Bán hàng); staff only attest consent.
         consent: { accepted: consent },
@@ -308,7 +362,7 @@ export const CreateOrderPage = () => {
                   if (product) setPicking(product);
                 }}
               >
-                {products.map((product) => (
+                {products.filter((product) => isGiftCardProduct(product) === isGift).map((product) => (
                   <ComboboxOption key={product.id} value={product.id} disabled={!product.available}>
                     {`${product.name} · ${formatMoney(product.price)}${product.available ? '' : ` · ${t('create.unavailable')}`}`}
                   </ComboboxOption>
@@ -340,6 +394,11 @@ export const CreateOrderPage = () => {
                     <Tr key={line.key}>
                       <Td>
                         <Typography fontWeight="semiBold">{line.product.name}</Typography>
+                        {line.variant ? (
+                          <Typography variant="pi" textColor="neutral600" tag="p">
+                            {line.variant.name}
+                          </Typography>
+                        ) : null}
                         {quoteError?.lineIndex === index ? (
                           <Typography variant="pi" textColor="danger600" tag="p">
                             {quoteError.message}
@@ -374,6 +433,7 @@ export const CreateOrderPage = () => {
                 {quoteError.message}
               </Alert>
             ) : null}
+            {isGift ? null : (
             <Flex gap={2} alignItems="flex-end">
               <Field.Root>
                 <Field.Label>{t('create.promoCode')}</Field.Label>
@@ -386,6 +446,7 @@ export const CreateOrderPage = () => {
                 {t('create.promoApply')}
               </Button>
             </Flex>
+            )}
             {quote?.rejectedPromotions?.map((row) => (
               <Typography key={`${row.code}:${row.reason}`} tag="p" textColor="danger600">
                 {t(`promo.reason.${row.reason}`, { code: row.code }, row.reason)}
@@ -416,6 +477,22 @@ export const CreateOrderPage = () => {
           </Grid.Item>
           <Grid.Item col={5} s={12} direction="column" alignItems="stretch" gap={4}>
             <Field.Root>
+              <Field.Label>{t('create.saleKind')}</Field.Label>
+              <SingleSelect
+                value={saleKind}
+                onChange={(value: string | number) => {
+                  setSaleKind(String(value) as 'pickup' | 'gift-card');
+                  setCart([]);
+                  setQuote(null);
+                  setPromoCode('');
+                  setPromoInput('');
+                }}
+              >
+                <SingleSelectOption value="pickup">{t('create.saleKind.pickup')}</SingleSelectOption>
+                <SingleSelectOption value="gift-card">{t('create.saleKind.giftCard')}</SingleSelectOption>
+              </SingleSelect>
+            </Field.Root>
+            <Field.Root>
               <Field.Label>{t('orders.filter.branch')}</Field.Label>
               <SingleSelect
                 value={branch}
@@ -445,6 +522,63 @@ export const CreateOrderPage = () => {
               <Field.Label>{t('create.email')}</Field.Label>
               <TextInput type="email" value={contact.email} onChange={(event: React.ChangeEvent<HTMLInputElement>) => setContact({ ...contact, email: event.target.value })} />
             </Field.Root>
+            {isGift ? (
+              <Flex direction="column" alignItems="stretch" gap={3} data-testid="gift-sale-fields">
+                <Typography variant="delta" tag="h2">
+                  {t('create.gift.title')}
+                </Typography>
+                <Field.Root error={giftIssue === 'bad-email' ? t('create.gift.badEmail') : undefined}>
+                  <Field.Label>{t('create.gift.recipientEmail')}</Field.Label>
+                  <TextInput
+                    type="email"
+                    value={gift.recipientEmail}
+                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => setGift({ ...gift, recipientEmail: event.target.value })}
+                  />
+                  <Field.Error />
+                </Field.Root>
+                <Field.Root>
+                  <Field.Label>{t('create.gift.recipientName')}</Field.Label>
+                  <TextInput
+                    value={gift.recipientName}
+                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => setGift({ ...gift, recipientName: event.target.value.slice(0, 120) })}
+                  />
+                </Field.Root>
+                <Field.Root hint={t('create.gift.messageHint')}>
+                  <Field.Label>{t('create.gift.message')}</Field.Label>
+                  <Textarea
+                    value={gift.message}
+                    onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setGift({ ...gift, message: event.target.value.slice(0, 300) })}
+                  />
+                  <Field.Hint />
+                </Field.Root>
+                <Field.Root
+                  hint={t('create.gift.scanHint')}
+                  error={
+                    giftIssue === 'duplicate'
+                      ? t('create.gift.duplicate')
+                      : giftIssue === 'count-mismatch'
+                        ? t('create.gift.countMismatch', { scanned: scannedCodes.length, units: cardUnits })
+                        : undefined
+                  }
+                >
+                  <Field.Label>{t('create.gift.scan')}</Field.Label>
+                  <Textarea
+                    value={gift.codes}
+                    onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setGift({ ...gift, codes: event.target.value })}
+                  />
+                  <Field.Hint />
+                  <Field.Error />
+                </Field.Root>
+                <Typography variant="pi" textColor="neutral600">
+                  {t('create.gift.scanned', { scanned: scannedCodes.length, units: cardUnits })}
+                </Typography>
+                {giftIssue === 'no-delivery' && cart.length > 0 ? (
+                  <Typography variant="pi" textColor="danger600">
+                    {t('create.gift.noDelivery')}
+                  </Typography>
+                ) : null}
+              </Flex>
+            ) : (
             <Field.Root>
               <Field.Label>{t('create.pickup')}</Field.Label>
               <SingleSelect value={timingMode} onChange={(value: string | number) => setTimingMode(String(value) as 'asap' | 'slot')}>
@@ -452,7 +586,8 @@ export const CreateOrderPage = () => {
                 <SingleSelectOption value="slot">{t('create.pickSlot')}</SingleSelectOption>
               </SingleSelect>
             </Field.Root>
-            {timingMode === 'slot' ? (
+            )}
+            {!isGift && timingMode === 'slot' ? (
               <Flex gap={2}>
                 <TextInput type="date" value={slotDate} onChange={(event: React.ChangeEvent<HTMLInputElement>) => setSlotDate(event.target.value)} />
                 <SingleSelect value={slot} placeholder={t('create.pickSlot')} onChange={(value: string | number) => setSlot(String(value))}>
@@ -464,7 +599,7 @@ export const CreateOrderPage = () => {
                 </SingleSelect>
               </Flex>
             ) : null}
-            <Typography>{t('create.payment')}</Typography>
+            <Typography>{isGift ? t('create.gift.payment') : t('create.payment')}</Typography>
             <Checkbox checked={consent} onCheckedChange={(value: boolean) => setConsent(value)}>
               {t('create.consent')}
             </Checkbox>

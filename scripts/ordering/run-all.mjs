@@ -31,6 +31,7 @@ const scripts = [
   'catalog-api.mjs',
   'variant-order.mjs',
   'consent-policy.mjs',
+  'gift-card-counter.mjs',
   'catalog-categories.mjs',
   'catalog-availability.mjs',
   'catalog-extension.mjs',
