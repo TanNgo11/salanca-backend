@@ -18,6 +18,7 @@ import type { HttpCtx } from './http';
 import { sendError, text } from './http';
 import { sessionFor } from './customer-auth';
 import {
+  alertGiftCardProbing,
   clientIpOf,
   isWrongPromotionCode,
   notePromotionCodeFailure,
@@ -44,39 +45,10 @@ const TOKEN_QUERY_KEYS = ['token', 't', 'orderToken', 'order_token', 'publicToke
 export default ({ strapi }: { strapi: Core.Strapi }) => {
   const branches = () => strapi.plugin('ordering').service('branch') as BranchService;
   const storefront = () => strapi.plugin('ordering').service('storefront') as StorefrontService;
-  const alerts = () =>
-    strapi.plugin('ordering').service('alert') as ReturnType<typeof import('../services/alert').default>;
-  const alertRules = () =>
-    strapi.plugin('ordering').service('alert-rules') as ReturnType<typeof import('../services/alert-rules').default>;
   const config = () => strapi.config.get('plugin::ordering') as OrderingConfig;
 
-  /**
-   * O9: once one IP's wrong-card-code count reaches the `gift-card-probing` threshold the ops
-   * board gets one alert per IP (dedupeKey); further failures bump its count and the alert
-   * escalates at `criticalThreshold`. Shares the in-memory limiter window — a process restart
-   * resets both. Alerting must never break a public request.
-   */
-  const maybeAlertProbing = async (ip: string, count: number, serviceCtx: ServiceContext) => {
-    try {
-      const rule = await alertRules().ruleOf('gift-card-probing');
-      if (!rule.enabled || count < rule.threshold) return;
-      await alerts().open(
-        {
-          alertCode: 'gift-card-probing',
-          dedupeKey: `gift-card-probing:${ip}`,
-          severity:
-            rule.criticalThreshold !== undefined && count >= rule.criticalThreshold
-              ? 'critical'
-              : 'warning',
-          aggregateRef: `${count} wrong codes`,
-        },
-        serviceCtx,
-      );
-    } catch (error) {
-      // alerting must never break a public request — warn so a broken pipeline is visible
-      strapi.log.warn(`[ordering] gift-card-probing alert failed: ${(error as Error).message}`);
-    }
-  };
+  const maybeAlertProbing = (ip: string, count: number, serviceCtx: ServiceContext) =>
+    alertGiftCardProbing(strapi, ip, count, serviceCtx);
   const ratings = () =>
     strapi.plugin('ordering').service('rating') as ReturnType<typeof import('../services/rating').default>;
 

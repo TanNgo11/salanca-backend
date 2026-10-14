@@ -222,6 +222,49 @@ withApp(async (app) => {
   );
   console.log('[ordering-test] line cancel on a card-paid order → refund rides the card');
 
+  // Card paid part of the order (30k of 110k), cash the rest: cancelling trà đào (45k) splits
+  // the refund — the card takes back at most what it paid, cash takes the rest.
+  const splitCard = await issue({ amount: 30000, source: 'manual' });
+  const splitOrder = await order.createOrder(
+    foodInput({
+      lines: [
+        { sellableUid: 'bun-bo', quantity: 1 },
+        { sellableUid: 'tra-dao', quantity: 1 },
+      ],
+      payment: { providerCode: 'cash', giftCardCode: splitCard.code },
+    }),
+    systemCtx,
+  );
+  const splitId = splitOrder.order.order.id;
+  const cashPay = await services(app).payment.createPayment(
+    { orderId: splitId, providerCode: 'cash' },
+    systemCtx,
+  );
+  await services(app).payment.capturePayment(
+    { paymentId: cashPay.id, amount: 80000, providerTransactionId: 'cash-split' },
+    systemCtx,
+  );
+  agg = await order.getOrder(splitId, systemCtx);
+  await lineCancel.cancelLineQuantity(
+    {
+      orderId: splitId,
+      lineId: agg.lines.find((line) => line.titleSnapshot === 'Trà đào').id,
+      quantity: 1,
+      reason: 'hết đào',
+    },
+    lanCtx,
+  );
+  const splitRefunds = await app.db.query('plugin::ordering.refund').findMany({
+    where: { order: { id: splitId } },
+    populate: { payment: true },
+  });
+  const byProvider = Object.fromEntries(
+    splitRefunds.map((row) => [row.payment.providerCode, Number(row.amount)]),
+  );
+  assert.deepEqual(byProvider, { 'gift-card': 30000, cash: 15000 }, 'card first, capped, rest to cash');
+  assert.equal(Number((await cardRow(splitCard.id)).balance), 30000, 'card got back what it paid');
+  console.log('[ordering-test] line cancel split → 30k back to the card, 15k to cash');
+
   // --- concurrency: two orders race one card ----------------------------------------------
   const raceCard = await issue({ amount: 100000, source: 'manual' });
   const raceInput = () =>
@@ -283,6 +326,7 @@ withApp(async (app) => {
   await giftCard.block(blocked.id, 'báo mất', systemCtx);
   quoted = await quoteFor(blocked.code);
   assert.equal(quoted.giftCard.reason, 'invalid');
+  assert.equal(quoted.giftCard.last4, null, 'a blocked card does not confirm it exists');
   quoted = await quoteFor(raceCard.code);
   assert.equal(quoted.giftCard.reason, 'insufficient');
   const stale = await issue({

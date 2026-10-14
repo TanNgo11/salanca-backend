@@ -878,7 +878,8 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         }
         const card = await services().giftCard.findByCode(input.payment.giftCardCode);
         if (!card || card.status !== 'active') {
-          giftCard = { last4: card?.last4 ?? null, applied: 0, reason: 'invalid' };
+          // No last4 for a blocked card or unsold stock either — that would confirm it exists.
+          giftCard = { last4: null, applied: 0, reason: 'invalid' };
         } else if (new Date(card.expiresAt).getTime() <= placedAt.getTime()) {
           giftCard = { last4: card.last4, applied: 0, reason: 'expired' };
         } else if (card.balance <= 0) {

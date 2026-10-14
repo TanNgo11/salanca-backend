@@ -3,6 +3,7 @@ import type { Core } from '@strapi/strapi';
 import type { OrderingConfig } from '../config';
 import { resolveClientIp } from '../domain/client-ip';
 import { InMemoryRateLimit } from '../domain/rate-limit';
+import type { ServiceContext } from '../services/context';
 import type { HttpCtx } from './http';
 
 type Bucket = keyof OrderingConfig['storefront']['rateLimits'];
@@ -115,4 +116,43 @@ export const resetStorefrontLimiters = (): void => {
   limiters.clear();
   codeFailures.clear();
   cardFailures.clear();
+};
+
+/**
+ * O9: once one IP's wrong-card-code count reaches the `gift-card-probing` threshold the ops
+ * board gets one alert per IP (dedupeKey); further failures bump its count and the alert
+ * escalates at `criticalThreshold`. Shares the in-memory limiter window — a process restart
+ * resets both. Alerting must never break a public request.
+ */
+export const alertGiftCardProbing = async (
+  strapi: Core.Strapi,
+  ip: string,
+  count: number,
+  serviceCtx: ServiceContext,
+): Promise<void> => {
+  try {
+    const rule = await (
+      strapi.plugin('ordering').service('alert-rules') as ReturnType<
+        typeof import('../services/alert-rules').default
+      >
+    ).ruleOf('gift-card-probing');
+    if (!rule.enabled || count < rule.threshold) return;
+    await (
+      strapi.plugin('ordering').service('alert') as ReturnType<typeof import('../services/alert').default>
+    ).open(
+      {
+        alertCode: 'gift-card-probing',
+        dedupeKey: `gift-card-probing:${ip}`,
+        severity:
+          rule.criticalThreshold !== undefined && count >= rule.criticalThreshold
+            ? 'critical'
+            : 'warning',
+        aggregateRef: `${count} wrong codes`,
+      },
+      serviceCtx,
+    );
+  } catch (error) {
+    // alerting must never break a public request — warn so a broken pipeline is visible
+    strapi.log.warn(`[ordering] gift-card-probing alert failed: ${(error as Error).message}`);
+  }
 };

@@ -12,7 +12,14 @@ import type storefrontFactory from '../services/storefront';
 import type { HttpCtx } from './http';
 import { sendError } from './http';
 import { sessionFor } from './customer-auth';
-import { clientIpOf, rateLimited } from './storefront-guard';
+import {
+  alertGiftCardProbing,
+  clientIpOf,
+  giftCardFailureCount,
+  giftCardLimit,
+  noteGiftCardFailure,
+  rateLimited,
+} from './storefront-guard';
 import { withCartPromotionGuard } from './cart-promotion-guard';
 
 type CartService = ReturnType<typeof cartFactory>;
@@ -201,19 +208,39 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
                 : {}),
             }
           : undefined;
-      const result = await carts().checkout(
-        cartRow,
-        {
-          consent: {
-            policyVersion: consent.policyVersion,
-            marketingOptIn: consent.marketingOptIn === true,
+      // O9: a card code at checkout is the same guessing surface as POST /orders — same IP
+      // budget, 429 once spent, every wrong code counted and alerted.
+      const ip = clientIpOf(strapi, ctx);
+      const cardLimit = giftCardLimit(strapi);
+      if (payment?.giftCardCode && giftCardFailureCount(ip) >= cardLimit.max) {
+        await alertGiftCardProbing(strapi, ip, noteGiftCardFailure(ip, cardLimit.windowMs), serviceCtx);
+        ctx.status = 429;
+        ctx.body = {
+          error: { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' },
+        };
+        return undefined;
+      }
+      let result;
+      try {
+        result = await carts().checkout(
+          cartRow,
+          {
+            consent: {
+              policyVersion: consent.policyVersion,
+              marketingOptIn: consent.marketingOptIn === true,
+            },
+            ...(payment ? { payment } : {}),
+            idempotencyKey,
+            customerId: (await owner(ctx, serviceCtx)).customerId,
           },
-          ...(payment ? { payment } : {}),
-          idempotencyKey,
-          customerId: (await owner(ctx, serviceCtx)).customerId,
-        },
-        serviceCtx,
-      );
+          serviceCtx,
+        );
+      } catch (error) {
+        if (payment?.giftCardCode && error instanceof OrderingError && error.code === 'GIFT_CARD_INVALID') {
+          await alertGiftCardProbing(strapi, ip, noteGiftCardFailure(ip, cardLimit.windowMs), serviceCtx);
+        }
+        throw error;
+      }
       const view = await storefront().viewByToken(result.publicToken, serviceCtx);
       ctx.status = result.replayed ? 200 : 201;
       return { order: view, token: result.publicToken, replayed: result.replayed };

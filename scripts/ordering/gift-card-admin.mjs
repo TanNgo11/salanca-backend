@@ -210,6 +210,33 @@ withApp(async (app) => {
     assert.equal(noExport.status, 403, 'batch export needs the export action too');
     console.log('[ordering-test] batch generate → inactive stock; export CSV plaintext gated by export');
 
+    // A card sold at the counter is live money: re-export lists it without its code.
+    const soldStock = batchDetail.body.items[0];
+    await app.db.transaction(async ({ trx }) =>
+      giftCard.activateInTransaction(trx, { cardId: soldStock.id, reason: 'test' }, systemCtx),
+    );
+    const reExport = await (
+      await fetch(`http://127.0.0.1:${process.env.PORT}/ordering/gift-card-batches/${batchId}/export`, {
+        headers: { Authorization: `Bearer ${await staff.tokenOf('quanly')}` },
+      })
+    ).text();
+    const soldCode = generated.body.codes.find(
+      (code) => code.replaceAll('-', '').endsWith(soldStock.last4),
+    );
+    assert.ok(soldCode, 'found the sold code');
+    assert.ok(!reExport.includes(soldCode), 'an activated card is exported without its code');
+    assert.equal(
+      generated.body.codes.filter((code) => reExport.includes(code)).length,
+      2,
+      'unsold stock still exports',
+    );
+    // A full code never rides a GET query string (URLs reach access logs).
+    const fullQ = await as('GET', `/gift-cards?q=${encodeURIComponent(soldCode)}&status=all`);
+    assert.equal(fullQ.status, 400, 'GET ?q=<full code> is refused');
+    const tailQ = await as('GET', `/gift-cards?q=${soldStock.last4}&status=all`);
+    assert.equal(tailQ.status, 200);
+    console.log('[ordering-test] re-export hides sold codes; GET ?q=<full code> → 400');
+
     const importCodes = ['ABCD-EFGH-JKMN-PQRS', 'WXYZ-2345-6789-QRST'];
     const imported = await as('POST', '/gift-card-batches/import', {
       denomination: 50000,

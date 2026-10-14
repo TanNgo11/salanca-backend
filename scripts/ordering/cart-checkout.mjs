@@ -219,4 +219,29 @@ withApp(async (app) => {
   assert.equal(next.status, 201);
   assert.equal(next.body.cart.lines.length, 0);
   console.log('[ordering-test] session checkout: profile contact fallback, order.customer set');
+
+  // ── O9: a card code at checkout shares the per-IP wrong-code budget → 429 once spent ──
+  const probeCart = await call('POST', '/carts', {
+    body: { locationRef: 'Q1', receiveMethod: { kind: 'pickup' } },
+    headers: auth,
+  });
+  assert.equal(probeCart.status, 201);
+  await call('POST', '/carts/current/lines', {
+    body: { sellableUid: 'tra-dao', quantity: 1 },
+    headers: auth,
+  });
+  const probeIp = { ...auth, 'x-salanca-visitor-ip': '192.0.9.9' };
+  // Below the generic `create` bucket (10/IP) so the 429 can only come from the card budget.
+  const max = 3;
+  app.config.get('plugin::ordering').storefront.rateLimits.giftCard.max = max;
+  const statuses = [];
+  for (let i = 0; i <= max; i += 1) {
+    const res = await checkout(probeIp, {
+      payment: { providerCode: 'cash', giftCardCode: 'BBBB-BBBB-BBBB-BBBB' },
+    });
+    statuses.push(res.status);
+  }
+  assert.ok(statuses.slice(0, max).every((status) => status === 400), JSON.stringify(statuses));
+  assert.equal(statuses[max], 429, 'wrong card codes at checkout are rate limited per IP');
+  console.log('[ordering-test] checkout: wrong gift-card codes counted, 429 after the budget');
 });
