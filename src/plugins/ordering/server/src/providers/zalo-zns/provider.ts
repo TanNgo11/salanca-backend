@@ -15,6 +15,20 @@ import { parseZaloSettings, type ZaloSettings } from './config';
  */
 type ZaloToken = { value: string; expiresAt: number };
 
+/**
+ * Zalo refresh tokens are single-use: every refresh returns a new `refresh_token` that must be
+ * kept, or the next refresh fails and ZNS stops for good. `refresh` runs the given callback
+ * with the current refresh token under a cross-process lock and persists what it returns.
+ */
+export type ZaloTokenStore = {
+  refresh(
+    initialRefreshToken: string,
+    exchange: (refreshToken: string) => Promise<{ accessToken: string; expiresAt: number; refreshToken: string }>,
+    /** The access token Zalo just rejected (-124): a stored copy of it must not be reused. */
+    rejectedAccessToken?: string,
+  ): Promise<{ accessToken: string; expiresAt: number }>;
+};
+
 /** `+84xxxxxxxxx` → `84xxxxxxxxx` (ZNS wants the digits, no plus). */
 const zaloPhone = (e164: string): string => e164.replace(/^\+/, '');
 
@@ -29,6 +43,8 @@ export const createZaloNotificationProvider = (deps: {
   client?: ProviderHttpClient;
   /** Injectable for tests; the OAuth host differs from the API host — one bounded client each. */
   oauthClient?: ProviderHttpClient;
+  /** Persists the rotated refresh token (register.ts: plugin store + advisory lock). */
+  tokenStore?: ZaloTokenStore;
 }): NotificationProvider => {
   let token: ZaloToken | null = null;
 
@@ -47,24 +63,32 @@ export const createZaloNotificationProvider = (deps: {
   const accessToken = async (settings: ZaloSettings, forceRefresh = false): Promise<string> => {
     if (settings.accessToken) return settings.accessToken;
     if (!forceRefresh && token && token.expiresAt > Date.now()) return token.value;
-    const response = await oauth(settings).postForm(
-      '',
-      {
-        app_id: String(settings.appId),
-        grant_type: 'refresh_token',
-        refresh_token: String(settings.refreshToken),
-      },
-      { secret_key: String(settings.appSecret) },
-    );
-    const body = jsonObject(response);
-    const value = typeof body?.access_token === 'string' ? body.access_token : null;
-    if (!value) throw zaloError(body?.error ?? response.status);
-    const expiresIn = Number(body?.expires_in);
-    token = {
-      value,
-      expiresAt: Date.now() + (Number.isFinite(expiresIn) ? expiresIn * 1000 : 3600_000) - 60_000,
+    const exchange = async (refreshToken: string) => {
+      const response = await oauth(settings).postForm(
+        '',
+        {
+          app_id: String(settings.appId),
+          grant_type: 'refresh_token',
+          refresh_token: refreshToken,
+        },
+        { secret_key: String(settings.appSecret) },
+      );
+      const body = jsonObject(response);
+      const value = typeof body?.access_token === 'string' ? body.access_token : null;
+      if (!value) throw zaloError(body?.error ?? response.status);
+      const expiresIn = Number(body?.expires_in);
+      return {
+        accessToken: value,
+        expiresAt: Date.now() + (Number.isFinite(expiresIn) ? expiresIn * 1000 : 3600_000) - 60_000,
+        // Zalo rotates the refresh token on every use; keep the old one only if none came back.
+        refreshToken: typeof body?.refresh_token === 'string' && body.refresh_token !== '' ? body.refresh_token : refreshToken,
+      };
     };
-    return value;
+    const fresh = deps.tokenStore
+      ? await deps.tokenStore.refresh(String(settings.refreshToken), exchange, forceRefresh ? token?.value : undefined)
+      : await exchange(String(settings.refreshToken));
+    token = { value: fresh.accessToken, expiresAt: fresh.expiresAt };
+    return fresh.accessToken;
   };
 
   return {

@@ -20,6 +20,7 @@ import {
 // server. Logs must never carry phones or message bodies — the fake keeps them in memory.
 const startFakeZalo = () => {
   const calls = { refresh: [], send: [] };
+  const usedRefreshTokens = new Set();
   const fake = { mode: 'ok', sentOtp: [] };
   const server = http.createServer((req, res) => {
     let raw = '';
@@ -37,7 +38,13 @@ const startFakeZalo = () => {
           reply({ error: -1, message: 'bad refresh request' });
           return;
         }
-        reply({ access_token: `tok-${calls.refresh.length}`, expires_in: 3600 });
+        // Zalo refresh tokens are single-use: a used one is rejected, each refresh rotates it.
+        if (usedRefreshTokens.has(fields.refresh_token)) {
+          reply({ error: -14014, message: 'refresh token already used' });
+          return;
+        }
+        usedRefreshTokens.add(fields.refresh_token);
+        reply({ access_token: `tok-${calls.refresh.length}`, refresh_token: `rt-${calls.refresh.length}`, expires_in: 3600 });
         return;
       }
       if (req.url === '/message/template') {
@@ -170,6 +177,9 @@ try {
       await dispatch();
       assert.equal(zalo.calls.refresh.length, 2, 'expired token refreshes once');
       assert.equal(zalo.calls.send.at(-1).headers.access_token, 'tok-2');
+      // The second refresh used the rotated token (the env one is single-use and already spent).
+      assert.equal(zalo.calls.refresh[0].refresh_token, 'zalo-test-refresh');
+      assert.equal(zalo.calls.refresh[1].refresh_token, 'rt-1');
       assert.equal(
         (await deliveries().count({
           where: { template: 'customer.order-ready', channel: 'zalo', status: 'sent' },

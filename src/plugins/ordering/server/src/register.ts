@@ -220,6 +220,29 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
           zaloSettingsFromConfig(
             (strapi.config.get('plugin::ordering') as OrderingConfig).providers.notification,
           ),
+        // Single-use refresh tokens: refresh under a cross-process lock and keep the rotated
+        // token in the plugin store (env only seeds the first one). Never logged.
+        tokenStore: {
+          refresh: async (initialRefreshToken, exchange, rejectedAccessToken) =>
+            (await strapi.db.transaction(async ({ trx }) => {
+              await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', ['ordering-zalo-oauth']);
+              const store = strapi.store({ type: 'plugin', name: 'ordering', key: 'zalo-oauth' });
+              const saved = (await store.get({})) as
+                | { refreshToken?: string; accessToken?: string; expiresAt?: number; seed?: string }
+                | null;
+              // Another process may have refreshed while this one waited for the lock.
+              if (saved?.accessToken && saved.accessToken !== rejectedAccessToken && typeof saved.expiresAt === 'number' && saved.expiresAt > Date.now() && saved.seed === initialRefreshToken) {
+                return { accessToken: saved.accessToken, expiresAt: saved.expiresAt };
+              }
+              // A new env refresh token (re-authorized app) replaces the stored chain.
+              const current = saved?.refreshToken && saved.seed === initialRefreshToken ? saved.refreshToken : initialRefreshToken;
+              const fresh = await exchange(current);
+              await store.set({
+                value: { refreshToken: fresh.refreshToken, accessToken: fresh.accessToken, expiresAt: fresh.expiresAt, seed: initialRefreshToken },
+              });
+              return { accessToken: fresh.accessToken, expiresAt: fresh.expiresAt };
+            })) as { accessToken: string; expiresAt: number },
+        },
       }),
     );
   }
