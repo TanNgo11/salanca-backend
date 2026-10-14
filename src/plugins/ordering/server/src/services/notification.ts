@@ -564,7 +564,8 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
       await deliver({
         event,
         template: 'customer.gift-card-issued',
-        email: input.email,
+        // Email only: a card code never rides SMS/Zalo.
+        recipient: { email: input.email },
         role: 'customer',
         orderId: input.orderId,
         locale,
@@ -605,7 +606,8 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
       await deliver({
         event: { id: input.dedupeKey, payload: {} } as OutboxEvent,
         template: 'customer.gift-card-issued',
-        email: input.email,
+        // Email only: a card code never rides SMS/Zalo.
+        recipient: { email: input.email },
         role: 'customer',
         orderId: null,
         locale,
