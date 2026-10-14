@@ -75,6 +75,8 @@ const lineCancel = ({ strapi }: { strapi: Core.Strapi }) => {
       }
       return strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
         const { order, refund, timeline, outbox } = services();
+        // Mutex first: the totals read below must not be overtaken by a concurrent edit or capture.
+        await repo.lockOrder(trx, input.orderId);
         const aggregate = await order.getOrder(input.orderId, ctx); // scope check inside
         if (!aggregate.lines.some((line) => line.id === input.lineId)) {
           throw new OrderingError('LINE_INVALID', 'line does not belong to the order', {

@@ -17,6 +17,11 @@ bản này thêm phần còn thiếu và test hồi quy `scripts/ordering/core-s
 - **Sửa đơn rồi hủy món**: `order-edit` định giá lại chỉ các đơn vị còn sống nên dòng có `lineTotalAmount` cho
   `pricedQuantity` đơn vị (cột mới, null = toàn bộ `quantity`); chia tiền khi hủy/hoàn dùng số đơn vị đã định
   giá (`lineRemovalAmount`), phiếu in dùng `activeAmount`. Trước đó phần chia lệch (ví dụ 8.780đ thay vì 13.171đ).
+- **Khóa theo đơn** (review bổ sung 2026-10-14, 3 lỗi P1): `repo.lockOrder` = advisory lock `ordering-order:<id>` lấy
+  TRƯỚC mọi khóa dòng; `lockGroup/lockLine/lockPayment` tự lấy nó, `line-cancel` và `order-edit` lấy ngay đầu
+  transaction. Hủy món/thu tiền/sửa đơn của một đơn nay xếp hàng, không còn deadlock 40P01, sửa đơn không tính
+  lại món vừa hủy, hai capture đồng thời không ghi sai `paymentStatus`. Quy ước: đường mới đụng tiền/dòng/trạng
+  thái của đơn phải lấy khóa này trước khi khóa hàng khác.
 - **`recordManual` vào đơn đã đóng** bị từ chối `ORDER_CLOSED` (như gán giao dịch từ hàng đợi review): mở lại
   đơn trước, không để tiền nằm trên đơn đóng mà không có phiếu hoàn.
 - **`config/plugins.test.ts`**: cập nhật kỳ vọng `tables`/`walletReturnOrigins` (4 test fail do cấu hình O12/O13

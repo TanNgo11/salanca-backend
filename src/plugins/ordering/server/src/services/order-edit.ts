@@ -292,6 +292,8 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
       registry,
     } = services();
 
+    // Mutex before any read: line cancels, captures and edits of this order all queue here.
+    await repo.lockOrder(trx, orderId);
     const groupRows = (await groups().findMany({
       where: { order: orderId },
       select: ['id'],

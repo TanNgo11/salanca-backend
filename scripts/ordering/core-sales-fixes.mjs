@@ -407,4 +407,93 @@ withApp(async (app) => {
   await assert.rejects(transfer(closedId, 50000), (error) => error?.code === 'ORDER_CLOSED');
   assert.equal((await order.getOrder(closedId, systemCtx)).payments.length, 0);
   console.log('[ordering-test] core fixes: manual record on a closed order is refused');
+
+  // Concurrency: one operation is held inside its transaction while another starts. Every pair
+  // must finish without a deadlock and leave the same state as running them one after the other.
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const holdProjection = (ms) => {
+    const original = order.recomputeProjection.bind(order);
+    let held = false;
+    order.recomputeProjection = async (id) => {
+      if (!held) { held = true; await sleep(ms); }
+      return original(id);
+    };
+    return () => { order.recomputeProjection = original; };
+  };
+  const holdGetOrder = (ms, orderId) => {
+    const original = order.getOrder.bind(order);
+    let held = false;
+    order.getOrder = async (id, ctx) => {
+      const result = await original(id, ctx);
+      if (!held && id === orderId && ctx.actor.kind === 'system') { held = true; await sleep(ms); }
+      return result;
+    };
+    return () => { order.getOrder = original; };
+  };
+  await setPickup();
+
+  // 15. A capture and a line cancel on one order no longer take locks in opposite orders.
+  const lockPair = await place();
+  const lockPairId = lockPair.order.order.id;
+  const lockPairPay = await payment.createPayment({ orderId: lockPairId, providerCode: 'cash', amount: 220000 }, systemCtx);
+  await payment.capturePayment({ paymentId: lockPairPay.id, amount: 195000, providerTransactionId: randomUUID() }, systemCtx);
+  const release15 = holdProjection(400);
+  let outcomes15;
+  try {
+    const collecting = payment.capturePayment({ paymentId: lockPairPay.id, amount: 1, providerTransactionId: randomUUID() }, systemCtx);
+    await sleep(100);
+    const canceling = lineCancel.cancelLineQuantity({ orderId: lockPairId, lineId: line(lockPair, 'tra-dao').id, quantity: 1, reason: 'unavailable' }, systemCtx);
+    outcomes15 = await Promise.allSettled([collecting, canceling]);
+  } finally { release15(); }
+  assert.deepEqual(outcomes15.map((row) => row.status), ['fulfilled', 'fulfilled'], JSON.stringify(outcomes15.map((row) => row.reason?.code)));
+  console.log('[ordering-test] core fixes: capture and line cancel do not deadlock');
+
+  // 16. A staff edit and a line cancel on one order apply one after the other, in either order:
+  // the result equals running the two operations back to back.
+  const pairOps = (pair) => ({
+    runEdit: () => edit.edit(pair.order.order.id, { revision: 0, reason: 'them tra dao', add: [{ sellableUid: 'tra-dao', quantity: 1 }] }, systemCtx),
+    runCancel: () => lineCancel.cancelLineQuantity({ orderId: pair.order.order.id, lineId: line(pair, 'tra-dao').id, quantity: 1, reason: 'unavailable' }, systemCtx),
+  });
+  for (const editFirst of [true, false]) {
+    const reference = await place();
+    const refOps = pairOps(reference);
+    if (editFirst) { await refOps.runEdit(); await refOps.runCancel(); } else { await refOps.runCancel(); await refOps.runEdit(); }
+    const expected = await admin.detail(reference.order.order.id, systemCtx);
+
+    const pair = await place();
+    const pairId = pair.order.order.id;
+    const ops = pairOps(pair);
+    const release = holdGetOrder(400, pairId);
+    let done;
+    try {
+      const first = editFirst ? ops.runEdit() : ops.runCancel();
+      await sleep(100);
+      const second = editFirst ? ops.runCancel() : ops.runEdit();
+      done = await Promise.allSettled([first, second]);
+    } finally { release(); }
+    assert.deepEqual(done.map((row) => row.status), ['fulfilled', 'fulfilled'], JSON.stringify(done.map((row) => row.reason?.message)));
+    const detail = await admin.detail(pairId, systemCtx);
+    assert.equal(detail.totals.due, expected.totals.due, `edit ${editFirst ? 'first' : 'second'}: same amount owed as back to back`);
+    assert.equal(detail.order.totalAmount, expected.order.totalAmount);
+  }
+  console.log('[ordering-test] core fixes: edit and line cancel serialize');
+
+  // 17. Two captures that finish an order together leave it paid.
+  for (let round = 0; round < 3; round += 1) {
+    const both = await place();
+    const bothId = both.order.order.id;
+    const total = both.order.order.totalAmount;
+    const half = Math.floor(total / 2);
+    const payA = await payment.createPayment({ orderId: bothId, providerCode: 'cash', amount: half }, systemCtx);
+    const payB = await payment.createPayment({ orderId: bothId, providerCode: 'cash', amount: total - half }, systemCtx);
+    const release17 = holdProjection(300);
+    try {
+      await Promise.all([
+        payment.capturePayment({ paymentId: payA.id, amount: half, providerTransactionId: randomUUID() }, systemCtx),
+        payment.capturePayment({ paymentId: payB.id, amount: total - half, providerTransactionId: randomUUID() }, systemCtx),
+      ]);
+    } finally { release17(); }
+    assert.equal((await order.getOrder(bothId, systemCtx)).order.paymentStatus, 'paid');
+  }
+  console.log('[ordering-test] core fixes: simultaneous captures leave the order paid');
 });

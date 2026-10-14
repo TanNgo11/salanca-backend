@@ -119,15 +119,42 @@ const orderRepository = ({ strapi }: { strapi: Core.Strapi }) => {
       await orders().update({ where: { id }, data });
     },
 
+    /**
+     * Per-order mutex, held to the end of the transaction. Every path that moves an order's money,
+     * lines or state takes it BEFORE any row lock (the group/line/payment helpers below do it
+     * for the caller), so those paths serialize per order and cannot deadlock on opposite
+     * row-lock orders. Re-entrant within a transaction. An advisory lock leaves ordinary row
+     * and foreign-key locking alone.
+     */
+    async lockOrder(trx: TransactionClient, orderId: number): Promise<void> {
+      await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [`ordering-order:${orderId}`]);
+    },
+
+    /** Order id behind a child row through its link table, then the order mutex. */
+    async lockOrderOf(
+      trx: TransactionClient,
+      linkTable: string,
+      column: string,
+      id: number,
+    ): Promise<void> {
+      const link = (await trx(linkTable).where({ [column]: id }).select('order_id').first()) as
+        | { order_id: number | string }
+        | undefined;
+      if (link) await this.lockOrder(trx, Number(link.order_id));
+    },
+
     async lockGroup(trx: TransactionClient, groupId: number): Promise<RawRow | undefined> {
+      await this.lockOrderOf(trx, 'plugins_ordering_fulfillment_group_order_lnk', 'fulfillment_group_id', groupId);
       return trx('plugins_ordering_fulfillment_group').where({ id: groupId }).forUpdate().first();
     },
 
     async lockLine(trx: TransactionClient, lineId: number): Promise<RawRow | undefined> {
+      await this.lockOrderOf(trx, 'plugins_ordering_order_line_order_lnk', 'order_line_id', lineId);
       return trx('plugins_ordering_order_line').where({ id: lineId }).forUpdate().first();
     },
 
     async lockPayment(trx: TransactionClient, paymentId: number): Promise<RawRow | undefined> {
+      await this.lockOrderOf(trx, 'plugins_ordering_payment_order_lnk', 'payment_id', paymentId);
       return trx('plugins_ordering_payment').where({ id: paymentId }).forUpdate().first();
     },
 
