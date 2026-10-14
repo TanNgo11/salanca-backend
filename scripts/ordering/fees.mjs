@@ -57,9 +57,23 @@ withApp(async (app) => {
           taxable: true,
           minSubtotal: 200000,
         },
+        {
+          code: 'tai-ban',
+          label: { vi: 'Phí tại bàn', en: 'Table fee' },
+          kind: 'service',
+          amount: 15000,
+          receiveKinds: ['dine-in'],
+          taxable: true,
+        },
       ],
       fulfillment: {
         pickup: {
+          enabled: true,
+          paymentTiming: 'pay-on-pickup',
+          paymentProviders: ['cash'],
+          schedule: { openingHours: { mode: '24_7' } },
+        },
+        dineIn: {
           enabled: true,
           paymentTiming: 'pay-on-pickup',
           paymentProviders: ['cash'],
@@ -178,7 +192,50 @@ withApp(async (app) => {
   }))[0];
   assert.equal(Number(editedFee.amount), 6_500, 'percent fee repriced on the edited subtotal');
 
+  // ── Dine-in edit keeps its dine-in-only fee (edit prices the order as dine-in, not pickup) ──
+  const table = await app.plugin('ordering').service('table').create(
+    { locationRef: 'Q1', code: 'F1', name: 'Bàn phí' },
+    systemCtx,
+  );
+  const tableToken = table.item.qrUrl.match(/[?&]t=([^&]+)/)[1];
+  const dineIn = await order.createOrder(
+    basicOrderInput({
+      adjustments: [],
+      lines: cart.lines,
+      receiveMethod: { kind: 'dine-in', locationRef: 'Q1', tableToken },
+    }),
+    systemCtx,
+  );
+  const dineInId = dineIn.order.order.id;
+  const dineInFees = async () =>
+    (await app.db.query('plugin::ordering.order-adjustment').findMany({
+      where: { order: dineInId, kind: 'fee' },
+      orderBy: { id: 'desc' },
+    }));
+  assert.deepEqual(
+    [...new Set((await dineInFees()).map((row) => row.code))].sort(),
+    ['phuc-vu', 'tai-ban'],
+    'dine-in gets the service fee and the table fee, never packaging',
+  );
+  const dineAgg = await order.getOrder(dineInId, systemCtx);
+  await edit.edit(
+    dineInId,
+    {
+      revision: 0,
+      reason: 'bot tra dao',
+      reduce: [{ lineId: dineAgg.lines.find((line) => line.sellableUid === 'tra-dao').id, quantity: 1 }],
+    },
+    systemCtx,
+  );
+  const dineAfter = await order.getOrder(dineInId, systemCtx);
+  // 130_000 → 5% = 6_500 + table fee 15_000 → grand 151_500.
+  assert.equal(dineAfter.order.totalAmount, 151_500, 'table fee survives the edit');
+  assert.equal(
+    Number((await dineInFees()).find((row) => row.code === 'tai-ban').amount),
+    15_000,
+  );
+
   console.log(
-    '[ordering-test] fees: quote=create, percent-on-discounted, kind scoping, minSubtotal, edit reprice verified',
+    '[ordering-test] fees: quote=create, percent-on-discounted, kind scoping, minSubtotal, edit reprice, dine-in edit keeps table fee verified',
   );
 });

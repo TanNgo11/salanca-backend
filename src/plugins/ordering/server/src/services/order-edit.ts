@@ -312,6 +312,9 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
     }
     const receive = orderRow.receiveMethod as StoredReceive;
     const kind = receiveKind(receive);
+    // Fees, price channel and branch settings must see a dine-in order as dine-in (`kind` folds it
+    // into pickup for slot/edit rules, which dine-in shares).
+    const channelKind = receive.kind === 'dine-in' ? 'dine-in' : kind;
     const openGroups = aggregate.groups.filter((group) => {
       const definition = registry.workflow(group.workflowName, group.workflowVersion);
       return !isTerminal(definition, group.status);
@@ -362,7 +365,9 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
       });
     }
     const settings =
-      kind === 'delivery' ? branchService.deliverySettings(branch) : branchService.pickupSettings(branch);
+      kind === 'delivery'
+        ? branchService.deliverySettings(branch)
+        : (branchService.receiveSettings(branch, channelKind) as PickupSettings);
     const slotSettings = settings as PickupSettings;
 
     let nextAddress: AddressSnapshot | null = kind === 'delivery' ? (receive.address ?? null) : null;
@@ -403,7 +408,7 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
       openGroups,
       channel: priceChannelOf({
         originKind: (orderRow.origin as { kind?: string } | undefined)?.kind,
-        receiveKind: kind,
+        receiveKind: channelKind,
       }),
       customerGroups,
       timezone: branch.timezone,
@@ -542,7 +547,7 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
         let finalAmount = amount;
         if (feeSnap) {
           const applied = branchFeeAmount(feeSnap, {
-            receiveKind: kind,
+            receiveKind: channelKind,
             merchandiseSubtotal: merchandise,
             discountedSubtotal: editedDiscounted,
           });

@@ -127,10 +127,8 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
     if (!startsAt) return true;
     const branch = await branches().findByCode(aggregate.order.locationRef);
     const receive = aggregate.order.receiveMethod as { kind?: string };
-    const settings =
-      receive.kind === 'delivery'
-        ? branches().deliverySettings(branch ?? { fulfillment: null })
-        : branches().pickupSettings(branch ?? { fulfillment: null });
+    // Dine-in orders read the dine-in settings (providers, cancel window), not pickup's.
+    const settings = branches().receiveSettings(branch ?? { fulfillment: null }, receive.kind ?? 'pickup');
     return now.getTime() <= new Date(startsAt).getTime() - settings.customerCancelBeforeMinutes * 60_000;
   };
 
@@ -177,10 +175,8 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
       const due = Math.max(0, aggregate.order.totalAmount - captured);
       const receive = aggregate.order.receiveMethod as { kind?: string };
       const branch = await branches().findByCode(aggregate.order.locationRef);
-      const settings =
-        receive.kind === 'delivery'
-          ? branches().deliverySettings(branch ?? { fulfillment: null })
-          : branches().pickupSettings(branch ?? { fulfillment: null });
+      // Dine-in orders read the dine-in settings (providers, cancel window), not pickup's.
+      const settings = branches().receiveSettings(branch ?? { fulfillment: null }, receive.kind ?? 'pickup');
       const awaitingPayment = aggregate.groups.some((group) => group.status === 'awaiting-payment');
       let presentation: Record<string, unknown> | null = null;
       if (awaitingPayment && due > 0 && settings) {
@@ -279,10 +275,8 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
       }
       const receive = aggregate.order.receiveMethod as { kind?: string };
       const branch = await branches().findByCode(aggregate.order.locationRef);
-      const settings =
-        receive.kind === 'delivery'
-          ? branches().deliverySettings(branch ?? { fulfillment: null })
-          : branches().pickupSettings(branch ?? { fulfillment: null });
+      // Dine-in orders read the dine-in settings (providers, cancel window), not pickup's.
+      const settings = branches().receiveSettings(branch ?? { fulfillment: null }, receive.kind ?? 'pickup');
       if (!settings.paymentProviders.includes(providerCode)) {
         throw new OrderingError('VALIDATION_ERROR', 'this branch does not offer that provider', {
           details: { field: 'provider' },
