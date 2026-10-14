@@ -11,6 +11,12 @@ import type { OrderingRegistry } from '../services/registry';
 
 /** Pending sessions younger than this are left alone — an in-flight IPN would race the poll. */
 const GRACE_MS = 60_000;
+/**
+ * Sessions older than this are abandoned (MoMo/VNPay sessions expire in ~15 minutes): one
+ * last query, then — unless it shows money moved — the payment is cancelled so it leaves the
+ * pending set. Without this, 50 abandoned rows filled every batch forever.
+ */
+const ABANDON_MS = 2 * 60 * 60_000;
 const BATCH = 50;
 
 type PendingPayment = {
@@ -54,33 +60,67 @@ export const runWalletStatusCheck = async (
   const outcome = await jobLock.withLock(
     { jobName: 'wallet-status-check', owner: options.owner, now },
     async () => {
-      const rows = (await strapi.db.query('plugin::ordering.payment').findMany({
-        where: {
-          status: 'pending',
-          providerCode: { $in: codes },
-          providerReference: { $notNull: true },
-          createdAt: { $lt: new Date(now.getTime() - GRACE_MS).toISOString() },
-        },
+      const payments = strapi.db.query('plugin::ordering.payment');
+      const abandonBefore = new Date(now.getTime() - ABANDON_MS).toISOString();
+      const pendingWhere = {
+        status: 'pending',
+        providerCode: { $in: codes },
+        providerReference: { $notNull: true },
+      };
+      // Abandoned sessions first (bounded), then live ones least-recently checked first, so
+      // every pending session gets its turn.
+      const abandoned = (await payments.findMany({
+        where: { ...pendingWhere, createdAt: { $lte: abandonBefore } },
         orderBy: { id: 'asc' },
         limit: BATCH,
       })) as PendingPayment[];
+      const live = (await payments.findMany({
+        where: {
+          ...pendingWhere,
+          createdAt: { $gt: abandonBefore, $lt: new Date(now.getTime() - GRACE_MS).toISOString() },
+        },
+        orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+        limit: BATCH,
+      })) as PendingPayment[];
+      const abandonedIds = new Set(abandoned.map((row) => row.id));
+      const rows = [...abandoned, ...live];
       let applied = 0;
       for (const row of rows) {
         const provider = registry.paymentProvider(row.providerCode);
+        const giveUp = async () => {
+          if (!abandonedIds.has(row.id)) {
+            // Rotate: the next tick starts with other sessions.
+            await payments.update({ where: { id: row.id }, data: { updatedAt: now } });
+            return;
+          }
+          await payments.update({
+            where: { id: row.id, status: 'pending' },
+            data: { status: 'cancelled', actorRef: 'job:wallet-status-check' },
+          });
+        };
         let event;
         try {
           event = await provider.queryTransaction?.(row.providerReference ?? '', {
             session: row.session ?? {},
           });
         } catch (error) {
-          // One bad payment must not abort the sweep — it retries next tick.
+          // One bad payment must not abort the sweep — it retries next tick (or, when
+          // abandoned, is closed: "not found" means the customer never paid).
           if (!(error instanceof OrderingError)) throw error;
           strapi.log.warn(
             `[ordering] wallet-status ${row.providerCode} query failed: ${error.code}`,
           );
+          await giveUp();
           continue;
         }
-        if (!event) continue;
+        if (!event || event.kind !== 'capture') {
+          if (event) {
+            const saved = await matching.ingest({ event, rawPayload: { source: 'wallet-status-check' } }, ctx);
+            if (!saved.duplicate) applied += 1;
+          }
+          await giveUp();
+          continue;
+        }
         const saved = await matching.ingest(
           { event, rawPayload: { source: 'wallet-status-check' } },
           ctx,

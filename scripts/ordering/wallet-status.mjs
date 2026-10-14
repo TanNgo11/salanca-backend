@@ -149,6 +149,44 @@ try {
     assert.equal(idle.checked, 0);
     assert.equal(idle.applied, 0);
 
+
+    // --- review fix: abandoned sessions leave the queue; new ones are never starved -------
+    const knex = app.db.connection;
+    // Created through the service: 56 HTTP sessions in a row would trip the storefront rate limit.
+    const walletSession = async () => {
+      const created = await order.createOrder(
+        basicOrderInput({ locationRef: 'W1', receiveMethod: { kind: 'pickup', locationRef: 'W1' } }),
+        systemCtx,
+      );
+      const { payment } = await app
+        .plugin('ordering')
+        .service('payment')
+        .createWalletSession({ orderId: created.order.order.id, providerCode: 'momo' }, systemCtx);
+      const row = await payments().findOne({ where: { id: payment.id } });
+      return row.providerReference;
+    };
+    const abandonedRefs = [];
+    for (let i = 0; i < 55; i += 1) abandonedRefs.push(await walletSession());
+    for (const ref of abandonedRefs) fake.transactions.delete(ref); // never paid: MoMo 1005
+    await knex('plugins_ordering_payment')
+      .whereIn('provider_reference', abandonedRefs)
+      .update({ created_at: new Date(Date.now() - 3 * 60 * 60_000) });
+    const fresh = await walletSession();
+    fake.transactions.get(fresh).resultCode = 1000; // still processing
+    const sweep = await runWalletStatusCheck(app, { owner, now: later });
+    assert.ok(sweep.checked >= 51, 'the fresh session is checked alongside a full batch of abandoned ones');
+    const freshRow = await payments().findOne({ where: { providerReference: fresh } });
+    assert.equal(freshRow.status, 'pending');
+    const cancelled = await payments().count({ where: { providerReference: { $in: abandonedRefs }, status: 'cancelled' } });
+    assert.equal(cancelled, 50, 'one batch of abandoned sessions is closed per run');
+    await runWalletStatusCheck(app, { owner, now: later });
+    assert.equal(
+      await payments().count({ where: { providerReference: { $in: abandonedRefs }, status: 'cancelled' } }),
+      55,
+      'the rest close on the next run',
+    );
+    console.log('[ordering-test] wallet-status review fix: abandoned sessions close, fresh ones still polled');
+
     console.log('[ordering-test] wallet-status job: capture, processing→pending, failed, idle');
   });
 } finally {
