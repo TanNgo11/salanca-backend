@@ -103,6 +103,17 @@ const paymentService = ({ strapi }: { strapi: Core.Strapi }) => {
         // One lock per order (not per provider): opening a VNPay session cancels a pending
         // MoMo one and vice versa, so a customer can never pay two wallet sessions.
         await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [`wallet-session:${input.orderId}`]);
+        // A booked carrier trip already collects the remainder in cash (COD) — paying online
+        // as well would collect twice (carrierBook takes the same lock).
+        const trips = (await strapi.db.query('plugin::ordering.fulfillment').findMany({
+          where: { order: input.orderId, providerReference: { $notNull: true } },
+          select: ['id', 'metadata'],
+        })) as Array<{ metadata: { carrier?: { codAmount?: unknown } | null } | null }>;
+        if (trips.some((trip) => Number(trip.metadata?.carrier?.codAmount ?? 1) > 0)) {
+          throw new OrderingError('VALIDATION_ERROR', 'a carrier trip already collects cash for this order', {
+            details: { reason: 'cod-trip-booked' },
+          });
+        }
         const otherWallets = (await payments().findMany({
           where: { order: input.orderId, status: 'pending', providerCode: { $ne: input.providerCode } },
           select: ['id', 'providerCode', 'providerReference'],

@@ -205,10 +205,26 @@ const carrierAssignment = ({ strapi }: { strapi: Core.Strapi }) => {
             details: { providerCode: provider.code },
           });
         }
+        // Serialize with wallet checkout (same lock as createWalletSession): once a trip that
+        // collects cash is booked, the customer can no longer open a wallet session — Ahamove
+        // cannot lower the COD of a booked SGN-BIKE trip. A session already pending is
+        // cancelled; its late IPN lands in payment review.
+        await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [`wallet-session:${aggregate.order.id}`]);
+        const codAmount = paidAmounts(aggregate).due;
+        if (codAmount > 0) {
+          await trx('plugins_ordering_payment')
+            .whereIn(
+              'id',
+              trx('plugins_ordering_payment_order_lnk').select('payment_id').where({ order_id: aggregate.order.id }),
+            )
+            .where('status', 'pending')
+            .whereNotNull('session')
+            .update({ status: 'cancelled', updated_at: nowOf(ctx) });
+        }
         const booking = await provider.book({
           pickup: await pickupFor(aggregate.order.locationRef ?? ''),
           dropoff: dropoffFor(locked),
-          codAmount: paidAmounts(aggregate).due,
+          codAmount,
           ...(input.note ? { note: input.note.slice(0, 200) } : {}),
           remarks: aggregate.order.code,
           ...(input.serviceId ? { option: { serviceId: input.serviceId } } : {}),
@@ -225,6 +241,7 @@ const carrierAssignment = ({ strapi }: { strapi: Core.Strapi }) => {
               ...(locked.metadata ?? {}),
               carrier: {
                 bookedAt: nowOf(ctx).toISOString(),
+                codAmount,
                 ...(input.serviceId ? { serviceId: input.serviceId } : {}),
               },
             },
@@ -325,8 +342,18 @@ const carrierAssignment = ({ strapi }: { strapi: Core.Strapi }) => {
       event: CarrierStatusEvent,
       ctx: ServiceContext,
     ) {
-      const fulfillment = (await fulfillments().findOne({
+      const found = (await fulfillments().findOne({
         where: { providerCode, providerReference: event.carrierRef },
+        populate: { group: { columns: ['id'] } },
+      })) as FulfillmentRow | null;
+      if (!found) return { matched: false };
+      // Parallel or retried pushes for one trip serialize here. Same lock order as the
+      // transitions (group row, then leg row); everything is re-read under the locks.
+      return strapi.db.transaction(async ({ trx }) => {
+      await trx('plugins_ordering_fulfillment_group').where({ id: groupIdOf(found) }).forUpdate().first('id');
+      await trx('plugins_ordering_fulfillment').where({ id: found.id }).forUpdate().first('id');
+      const fulfillment = (await fulfillments().findOne({
+        where: { id: found.id, providerCode, providerReference: event.carrierRef },
         populate: { group: { columns: ['id'] }, order: { columns: ['id'] } },
       })) as FulfillmentRow | null;
       if (!fulfillment) return { matched: false };
@@ -384,6 +411,25 @@ const carrierAssignment = ({ strapi }: { strapi: Core.Strapi }) => {
             // delivered themselves (same PAYMENT_REQUIRED rule as a manual mark).
             metadata.awaitingCollection = nowOf(ctx).toISOString();
             break;
+          }
+          const carrier = metadata.carrier as { codAmount?: unknown } | null | undefined;
+          const bookedCod = Number(carrier?.codAmount ?? 0);
+          const paidNonCash = aggregate.payments
+            .filter((payment) => payment.providerCode !== 'cash')
+            .reduce((sum, payment) => sum + payment.capturedAmount - payment.refundedAmount, 0);
+          if (bookedCod > 0 && paidNonCash + bookedCod > aggregate.order.totalAmount && !metadata.codConflict) {
+            // Booked to collect cash, but part of it was paid another way meanwhile (e.g. a bank
+            // transfer): the courier may have collected twice — flag it for staff to refund.
+            metadata.codConflict = { codAmount: bookedCod, at: nowOf(ctx).toISOString() };
+            await services().changeLog.record(
+              {
+                action: 'carrier.cod-conflict',
+                entityType: 'order',
+                entityId: orderId,
+                after: { providerCode, carrierRef: event.carrierRef, codAmount: bookedCod },
+              },
+              ctx,
+            );
           }
           await transition.transitionGroup(
             {
@@ -447,6 +493,7 @@ const carrierAssignment = ({ strapi }: { strapi: Core.Strapi }) => {
         data: { ...patch, metadata },
       });
       return { matched: true, duplicate: false, orderId };
+      });
     },
   };
 };

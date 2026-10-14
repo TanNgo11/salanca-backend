@@ -203,6 +203,9 @@ try {
     assert.equal(estimateCall.path.length, 2);
     assert.equal(estimateCall.path[0].address.includes('Kho Chính'), true);
     assert.equal(estimateCall.path[1].cod, 145000);
+    // No coordinates known: lat/lng are left out (optional in v3), never sent as 0,0.
+    assert.equal('lat' in estimateCall.path[0], false);
+    assert.equal('lng' in estimateCall.path[1], false);
 
     // Book: one gateway call, the trip lands on the leg.
     const booked = await carriers.carrierBook(codId, { note: 'gọi trước khi giao' }, keToanCtx);
@@ -227,6 +230,24 @@ try {
     assert.equal(again.alreadyBooked, true);
     assert.equal(again.carrierRef, 'AHM-TEST-1');
     assert.equal(fake.calls.create.length, 1);
+    assert.equal(leg.metadata.carrier.codAmount, 145000, 'the booked COD is remembered');
+    // A trip that collects cash is booked: the customer can no longer open a wallet session.
+    const registry = plugin.service('registry');
+    if (!registry.hasPaymentProvider('fake-wallet')) {
+      registry.registerPaymentProvider({
+        code: 'fake-wallet',
+        capabilities: ['wallet', 'capture'],
+        initiate: async () => {
+          throw new Error('fake-wallet must not be called');
+        },
+      });
+    }
+    const walletError = await paymentService
+      .createWalletSession({ orderId: codId, providerCode: 'fake-wallet' }, systemCtx)
+      .then(() => null, (error) => error);
+    assert.equal(walletError?.code, 'VALIDATION_ERROR');
+    assert.equal(walletError?.details?.reason, 'cod-trip-booked');
+
     // And quoting is refused while a trip is live.
     assert.equal(
       await errorOf(() => carriers.carrierQuote(codId, {}, keToanCtx)),
@@ -348,7 +369,12 @@ try {
     const thirdGroup = third.order.groups[0];
     await readyUp(thirdId, thirdGroup.id);
     await carriers.carrierBook(thirdId, {}, keToanCtx);
-    await push({ _id: 'AHM-TEST-4', status: 'IN PROCESS' });
+    // Two parallel deliveries of the same push serialize on the leg: both ACK, one dispatch.
+    const parallel = await Promise.all([
+      push({ _id: 'AHM-TEST-4', status: 'IN PROCESS' }),
+      push({ _id: 'AHM-TEST-4', status: 'IN PROCESS' }),
+    ]);
+    assert.deepEqual(parallel.map((res) => res.status), [200, 200]);
     assert.equal((await groupOf(thirdId)).status, 'out-for-delivery');
     // Staff cancel is refused once the courier is underway — it goes through the webhook.
     assert.equal(
@@ -362,6 +388,26 @@ try {
     assert.equal(thirdLeg.metadata.lastFailure.reasonCode, 'carrier-failed');
     assert.equal(thirdLeg.metadata.carrierTrips.length, 1);
     assert.equal((await groupOf(thirdId)).status, 'failed');
+
+    // ── Paid by transfer after a COD trip was booked: delivered, flagged for refund ──
+    const fourth = await place();
+    const fourthId = fourth.order.order.id;
+    const fourthGroup = fourth.order.groups[0];
+    await readyUp(fourthId, fourthGroup.id);
+    const fourthTrip = await carriers.carrierBook(fourthId, {}, keToanCtx);
+    const transfer = await paymentService.createPayment({ orderId: fourthId, providerCode: 'test' }, systemCtx);
+    await paymentService.capturePayment(
+      { paymentId: transfer.id, amount: transfer.requestedAmount, providerTransactionId: `transfer:${fourthId}` },
+      systemCtx,
+    );
+    await push({ _id: fourthTrip.carrierRef, status: 'IN PROCESS' });
+    assert.equal((await push({ _id: fourthTrip.carrierRef, status: 'COMPLETED' })).status, 200);
+    const fourthLeg = await legOf(fourthGroup.id);
+    assert.equal(fourthLeg.status, 'delivered');
+    assert.equal(fourthLeg.metadata.codConflict.codAmount, 145000, 'possible double collection is flagged');
+    // The normal COD flow (cash at the door) is not flagged.
+    assert.equal((await legOf(codGroup.id)).metadata.codConflict, undefined);
+    console.log('[ordering-test] ahamove review fixes: no 0,0 coords, COD blocks wallet, parallel pushes, COD conflict flag');
 
     console.log(
       '[ordering-test] ahamove quote/book idempotent, webhook flow + COD gate, cancel/re-book, fallback',

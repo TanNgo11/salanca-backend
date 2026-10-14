@@ -77,8 +77,6 @@ export const addressText = (snapshot: AddressSnapshotLike | null | undefined): s
 
 export const endpointOf = (snapshot: AddressSnapshotLike | null | undefined): CarrierEndpoint => ({
   address: addressText(snapshot),
-  lat: 0,
-  lng: 0,
   ...(snapshot?.recipientName ? { name: snapshot.recipientName } : {}),
   ...(snapshot?.phone ? { phone: snapshot.phone } : {}),
 });
@@ -140,17 +138,22 @@ export const createAhamoveProvider = (deps: {
     return run(http, { Authorization: `Bearer ${await token(settings, true)}` });
   };
 
+  // lat/lng are optional in Ahamove v3 ("optional but recommended") — sent only when known,
+  // never as 0,0; Ahamove geocodes the address text otherwise.
+  const coordsOf = (point: CarrierEndpoint) =>
+    typeof point.lat === 'number' && typeof point.lng === 'number' && (point.lat !== 0 || point.lng !== 0)
+      ? { lat: point.lat, lng: point.lng }
+      : {};
+
   const pathOf = (pickup: CarrierEndpoint, dropoff: CarrierEndpoint, codAmount: number) => [
     {
-      lat: pickup.lat ?? 0,
-      lng: pickup.lng ?? 0,
+      ...coordsOf(pickup),
       address: pickup.address,
       ...(pickup.name ? { name: pickup.name } : {}),
       ...(pickup.phone ? { mobile: pickup.phone } : {}),
     },
     {
-      lat: dropoff.lat ?? 0,
-      lng: dropoff.lng ?? 0,
+      ...coordsOf(dropoff),
       address: dropoff.address,
       ...(dropoff.name ? { name: dropoff.name } : {}),
       ...(dropoff.phone ? { mobile: dropoff.phone } : {}),
