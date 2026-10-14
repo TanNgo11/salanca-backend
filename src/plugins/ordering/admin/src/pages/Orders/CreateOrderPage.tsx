@@ -257,7 +257,8 @@ export const CreateOrderPage = () => {
       const { data } = await post('/ordering/drafts', {
         ...body,
         contact: { name: contact.name.trim(), phone: contact.phone, ...(contact.email.trim() ? { email: contact.email.trim() } : {}) },
-        consent: { policyVersion: 'v1', accepted: consent },
+        // The server stamps the policy version in force (Settings → Bán hàng); staff only attest consent.
+        consent: { accepted: consent },
         ...(customerNote.trim() ? { customerNote: customerNote.trim() } : {}),
         idempotencyKey: idempotencyKey.current,
       });

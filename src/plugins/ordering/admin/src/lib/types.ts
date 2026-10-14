@@ -10,6 +10,8 @@ export type InboxSettings = {
   soundByDefault: boolean;
   rejectReasons: Array<{ code: string; label: Record<string, string> }>;
   delayMinutes: number[];
+  /** Consent text version customers accept; unset = the server's configured default. */
+  consentPolicyVersion?: string;
   /** O8 rating block. */
   ratingInviteEnabled: boolean;
   ratingInviteDelayMinutes: number;

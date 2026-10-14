@@ -29,6 +29,7 @@ import type pickupSchedulingFactory from './pickup-scheduling';
 import type { OrderingRegistry } from './registry';
 import type timelineFactory from './timeline';
 import type transitionFactory from './transition';
+import { currentPolicyVersion } from './ordering-settings';
 
 /** `randomBytes(32).toString('base64url')` → 43 chars. Anything else is rejected before hashing. */
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
@@ -422,7 +423,7 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
       const cfg = config();
       const base = {
         currency: cfg.currency,
-        consentPolicyVersion: cfg.consent.policyVersion,
+        consentPolicyVersion: await currentPolicyVersion(strapi),
         captcha: cfg.storefront.captchaProvider ? { provider: cfg.storefront.captchaProvider } : null,
         // O9: whether the storefront may offer a `digital` gift-card checkout at all.
         giftCards: {

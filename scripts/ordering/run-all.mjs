@@ -30,6 +30,7 @@ const scripts = [
   'catalog-adapter.mjs',
   'catalog-api.mjs',
   'variant-order.mjs',
+  'consent-policy.mjs',
   'catalog-categories.mjs',
   'catalog-availability.mjs',
   'catalog-extension.mjs',

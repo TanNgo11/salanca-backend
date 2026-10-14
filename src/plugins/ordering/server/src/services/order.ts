@@ -77,6 +77,7 @@ import type outboxFactory from './outbox';
 import type scopeFactory from './scope';
 import type timelineFactory from './timeline';
 import type { OrderingRegistry } from './registry';
+import { currentPolicyVersion } from './ordering-settings';
 
 export type CreateOrderLineInput = {
   sellableUid: string;
@@ -1020,9 +1021,10 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
       const cfg = config();
 
       // Cheap validations before claiming the key; failures never consume it.
-      if (input.consent.policyVersion !== cfg.consent.policyVersion) {
+      const policyVersion = await currentPolicyVersion(strapi);
+      if (input.consent.policyVersion !== policyVersion) {
         throw new OrderingError('CONSENT_REQUIRED', 'consent policy version is not current', {
-          details: { expected: cfg.consent.policyVersion },
+          details: { expected: policyVersion },
         });
       }
       const phone = normalizeVietnamesePhone(input.contact.phone);

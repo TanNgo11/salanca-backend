@@ -12,6 +12,7 @@ import type { ServiceContext } from './context';
 import { nowOf } from './context';
 import { lockCustomer } from './customer-lock';
 import type { OutboxEvent } from '../contracts';
+import { currentPolicyVersion } from './ordering-settings';
 
 type CustomerRow = {
   id: number;
@@ -201,7 +202,7 @@ const customer = ({ strapi }: { strapi: Core.Strapi }) => {
           granted,
           at: nowOf(ctx).toISOString(),
           source: 'self',
-          policyVersion: config().consent.policyVersion,
+          policyVersion: await currentPolicyVersion(strapi),
         };
         const history = [
           entry,

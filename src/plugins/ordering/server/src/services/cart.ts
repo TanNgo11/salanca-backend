@@ -21,6 +21,7 @@ import type { OrderingRegistry } from './registry';
 import type { ServiceContext } from './context';
 import { nowOf } from './context';
 import { lockCustomer } from './customer-lock';
+import { currentPolicyVersion } from './ordering-settings';
 
 type CartLine = {
   id: string;
@@ -556,7 +557,7 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
               receiveMethod: row.receiveMethod as never,
               // Public cart quotes do not consult a phone's order history (O8).
               contact: { phone: '' },
-              consent: { policyVersion: config().consent.policyVersion, channel: 'web-checkout' },
+              consent: { policyVersion: await currentPolicyVersion(strapi), channel: 'web-checkout' },
               origin: { kind: 'storefront' },
               ...(row.customer?.id ? { customerId: row.customer.id } : {}),
               ...(row.pickup ? { pickup: row.pickup as never } : {}),
@@ -761,7 +762,7 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
               })),
               receiveMethod: aggregate.order.receiveMethod as never,
               contact: { phone: '' },
-              consent: { policyVersion: config().consent.policyVersion, channel: 'web-checkout' },
+              consent: { policyVersion: await currentPolicyVersion(strapi), channel: 'web-checkout' },
               origin: { kind: 'storefront' },
               customerId,
             },

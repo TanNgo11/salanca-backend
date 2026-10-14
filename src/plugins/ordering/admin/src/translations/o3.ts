@@ -367,6 +367,12 @@ export const o3Messages: Record<string, [string, string]> = {
   'settings.up': ['Lên', 'Up'],
   'settings.down': ['Xuống', 'Down'],
   'settings.delays': ['Số phút lùi khi nhận', 'Accept & delay options (minutes)'],
+  'settings.policyVersion': ['Phiên bản điều khoản đồng ý', 'Consent policy version'],
+  'settings.policyVersionDefault': ['Mặc định theo cấu hình hệ thống', 'System default'],
+  'settings.policyVersionHint': [
+    'Để trống = dùng giá trị mặc định của hệ thống. Đổi sang phiên bản mới thì mọi khách phải đồng ý lại: đơn gửi với phiên bản cũ sẽ bị từ chối. Chỉ dùng chữ, số, dấu chấm, gạch ngang, gạch dưới (tối đa 32 ký tự).',
+    'Empty = the system default. A new version makes every customer accept again: orders sent with the old version are refused. Letters, digits, dot, dash and underscore only (max 32 characters).',
+  ],
   'settings.delaysHint': ['Cách nhau bằng dấu phẩy, ví dụ 10, 20, 30', 'Comma separated, e.g. 10, 20, 30'],
   'settings.saved': ['Đã lưu cài đặt', 'Settings saved'],
 };

@@ -396,6 +396,20 @@ const SettingsPage = () => {
                   <Field.Hint />
                   <Field.Error />
                 </Field.Root>
+                <Field.Root error={errors.consentPolicyVersion} hint={t('settings.policyVersionHint')}>
+                  <Field.Label>{t('settings.policyVersion')}</Field.Label>
+                  <TextInput
+                    value={settings.consentPolicyVersion ?? ''}
+                    placeholder={t('settings.policyVersionDefault')}
+                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                      const { consentPolicyVersion: _previous, ...rest } = settings;
+                      const value = event.target.value.trim();
+                      setSettings(value === '' ? rest : { ...rest, consentPolicyVersion: value });
+                    }}
+                  />
+                  <Field.Hint />
+                  <Field.Error />
+                </Field.Root>
                 </Flex>
               </Box>
               <Box background="neutral0" padding={6} hasRadius shadow="tableShadow">

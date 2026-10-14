@@ -1204,8 +1204,18 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
     },
 
     async createDraft(body: unknown, ctx: ServiceContext) {
-      const request = parseOrderRequest(body);
-      const raw = (body ?? {}) as { idempotencyKey?: unknown };
+      // The staff member attests the customer agreed by phone to the policy in force — the server
+      // stamps that version, whatever the page sent, so a draft never records a stale or made-up one.
+      const source = (body ?? {}) as Record<string, unknown>;
+      const consentIn =
+        typeof source.consent === 'object' && source.consent !== null && !Array.isArray(source.consent)
+          ? (source.consent as Record<string, unknown>)
+          : {};
+      const request = parseOrderRequest({
+        ...source,
+        consent: { ...consentIn, policyVersion: await s.settings().effectivePolicyVersion() },
+      });
+      const raw = source as { idempotencyKey?: unknown };
       const idempotencyKey =
         typeof raw.idempotencyKey === 'string' && /^[A-Za-z0-9_:.-]{8,128}$/.test(raw.idempotencyKey)
           ? raw.idempotencyKey

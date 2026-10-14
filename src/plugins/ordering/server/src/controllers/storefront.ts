@@ -31,6 +31,7 @@ import {
   noteGiftCardFailure,
   rateLimited,
 } from './storefront-guard';
+import { currentPolicyVersion } from '../services/ordering-settings';
 
 type BranchService = ReturnType<typeof branchFactory>;
 type StorefrontService = ReturnType<typeof storefrontFactory>;
@@ -175,7 +176,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
           {
             ...cart,
             contact: { phone: '' },
-            consent: { policyVersion: config().consent.policyVersion, channel: 'web-checkout' },
+            consent: { policyVersion: await currentPolicyVersion(strapi), channel: 'web-checkout' },
             origin: { kind: 'storefront' },
             ...(session ? { customerId: session.customer.id } : {}),
           },

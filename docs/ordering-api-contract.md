@@ -182,6 +182,12 @@ Quote body plus:
 }
 ```
 
+`consent.policyVersion` must equal `consentPolicyVersion` from `GET /config`: the version in force is the Admin
+setting (Settings → Bán hàng, key `consentPolicyVersion` in `ordering-settings`) or, when unset, the plugin config
+`consent.policyVersion`. After an admin changes it, an order sent with the old version fails
+`CONSENT_REQUIRED` (`details.expected`) until the client re-reads `/config` and the customer accepts again.
+Staff drafts (`POST /drafts`) take only `consent.accepted`; the server stamps the version in force.
+
 Phone: Vietnamese numbers only (`0…`, `+84…`, `84…`), stored as E.164. `201` (new) or `200` (replay):
 `{ order: <token view>, token, replayed }`.
 

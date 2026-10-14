@@ -21,6 +21,18 @@ const ratingTag = z.object({
 });
 
 export const settingsSchema = z.object({
+  /**
+   * Version of the privacy/consent text customers accept at checkout. Unset = the plugin config
+   * default (`consent.policyVersion`); a new value makes every client re-accept (orders sent with
+   * the old version fail `CONSENT_REQUIRED`).
+   */
+  consentPolicyVersion: z
+    .string()
+    .trim()
+    .min(1)
+    .max(32)
+    .regex(/^[A-Za-z0-9._-]+$/, 'letters, digits, dot, dash and underscore only')
+    .optional(),
   newOrderDialog: z.boolean().default(true),
   soundByDefault: z.boolean().default(true),
   rejectReasons: z
@@ -52,15 +64,33 @@ export const settingsSchema = z.object({
 
 export type OrderingSettings = z.infer<typeof settingsSchema>;
 
+/** The consent policy version in force (Admin setting, else config) — the one place callers read it. */
+export const currentPolicyVersion = (strapi: Core.Strapi): Promise<string> =>
+  (
+    strapi.plugin('ordering').service('ordering-settings') as {
+      effectivePolicyVersion(): Promise<string>;
+    }
+  ).effectivePolicyVersion();
+
 const orderingSettings = ({ strapi }: { strapi: Core.Strapi }) => {
   const store = () => strapi.store({ type: 'plugin', name: 'ordering', key: 'settings' });
   const changeLog = () =>
     strapi.plugin('ordering').service('change-log') as ReturnType<typeof changeLogFactory>;
 
+  const read = async (): Promise<OrderingSettings> => {
+    const parsed = settingsSchema.safeParse((await store().get({})) ?? {});
+    return parsed.success ? parsed.data : settingsSchema.parse({});
+  };
+
   return {
-    async get(): Promise<OrderingSettings> {
-      const parsed = settingsSchema.safeParse((await store().get({})) ?? {});
-      return parsed.success ? parsed.data : settingsSchema.parse({});
+    get: read,
+
+    /** The consent policy version in force: the Admin setting, else the plugin config default. */
+    async effectivePolicyVersion(): Promise<string> {
+      const stored = (await read()).consentPolicyVersion;
+      if (stored) return stored;
+      return (strapi.config.get('plugin::ordering') as { consent: { policyVersion: string } }).consent
+        .policyVersion;
     },
 
     async put(raw: unknown, ctx: ServiceContext): Promise<OrderingSettings> {
@@ -84,7 +114,7 @@ const orderingSettings = ({ strapi }: { strapi: Core.Strapi }) => {
           details: { issues: [{ path: 'ratingTags', message: 'tag codes must be unique' }] },
         });
       }
-      const before = await this.get();
+      const before = await read();
       await store().set({ value: parsed.data });
       await changeLog().record(
         {
