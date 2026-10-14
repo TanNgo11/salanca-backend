@@ -60,9 +60,17 @@ export const signableFieldString = (
   order.map((key) => `${key}=${fields[key] ?? ''}`).join('&');
 
 /**
- * VNPay-style sign data: params sorted by key, joined as `k=v&…`, excluding listed keys
- * (`vnp_SecureHash`, `vnp_SecureHashType`) and empty values. Values are the DECODED form,
- * matching the official sample (`qs.stringify(params, { encode: false })`).
+ * VNPay value encoding, as the official Node sample's `sortObject`:
+ * `encodeURIComponent(value).replace(/%20/g, '+')`. VNPay signs (and expects merchants to
+ * sign) this ENCODED form — `qs.stringify(..., { encode: false })` in the sample only avoids
+ * encoding it a second time.
+ */
+export const vnpayEncode = (value: string): string => encodeURIComponent(value).replace(/%20/g, '+');
+
+/**
+ * VNPay-style sign data: params sorted by key, joined as `k=v&…` over the VNPay-encoded
+ * values ({@link vnpayEncode}), excluding listed keys (`vnp_SecureHash`, `vnp_SecureHashType`)
+ * and empty values. The same string is the pay URL's query (before the hash).
  */
 export const sortedParamString = (
   params: Record<string, string>,
@@ -72,6 +80,6 @@ export const sortedParamString = (
   return Object.keys(params)
     .filter((key) => !excluded.has(key) && params[key] !== '')
     .sort()
-    .map((key) => `${key}=${params[key]}`)
+    .map((key) => `${vnpayEncode(key)}=${vnpayEncode(params[key])}`)
     .join('&');
 };

@@ -20,7 +20,7 @@ Provider code: `vnpay`. Loại: payment provider (`wallet`). **Tắt mặc đị
 ## Checksum
 
 - Thuật toán: **HMAC-SHA512** hex với `vnp_HashSecret` (cấu hình cũ chấp nhận SHA256 — adapter dùng HMACSHA512 theo khuyến nghị hiện tại).
-- Pay URL + IPN verify: chuỗi ký là `k=v&...` của **mọi tham số `vnp_*` trừ `vnp_SecureHash`/`vnp_SecureHashType`**, sort theo key tăng dần. Giá trị tham gia ký ở dạng **đã decode** (theo mã mẫu chính thức `qs.stringify(params, {encode:false})`); URL thanh toán encode từng giá trị bằng `encodeURIComponent`.
+- Pay URL + IPN verify: chuỗi ký là `k=v&...` của **mọi tham số `vnp_*` trừ `vnp_SecureHash`/`vnp_SecureHashType`**, sort theo key tăng dần. Giá trị tham gia ký ở dạng **đã encode** như hàm `sortObject` của mã mẫu Node chính thức: `encodeURIComponent(v).replace(/%20/g,'+')` (PHP: `urlencode`); `qs.stringify(params, {encode:false})` trong mẫu chỉ để không encode lần hai. URL thanh toán dùng đúng chuỗi đã ký làm query. IPN nhận param đã decode → encode lại cùng quy tắc trước khi băm. (Sửa 2026-10-14 sau review; bản trước ký trên dạng decode → mọi URL có `https://` hoặc dấu cách bị VNPay từ chối. Test: `providers/vnpay/signature.test.ts` so với bản cài đặt lại của mã mẫu; **chưa kiểm sandbox**.)
 - `querydr`/`refund` ký trên chuỗi **pipe-separated** theo thứ tự tài liệu:
   `vnp_RequestId|vnp_Version|vnp_Command|vnp_TmnCode|vnp_TxnRef|vnp_TransactionDate|vnp_CreateDate|vnp_IpAddr|vnp_OrderInfo` (querydr) và refund thêm `vnp_TransactionType|vnp_Amount|vnp_TransactionNo|vnp_CreateBy` theo thứ tự tài liệu.
 - `vnp_Amount` = số tiền **× 100** (khử phần thập phân). `vnp_CreateDate`/`vnp_PayDate`/`vnp_TransactionDate` dạng `yyyyMMddHHmmss` giờ GMT+7.

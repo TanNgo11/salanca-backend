@@ -23,7 +23,8 @@ const checksum = (params) =>
       Object.keys(params)
         .filter((key) => key.startsWith('vnp_') && key !== 'vnp_SecureHash' && key !== 'vnp_SecureHashType' && params[key] !== '')
         .sort()
-        .map((key) => `${key}=${params[key]}`)
+        // Official Node sample (sortObject): encodeURIComponent, %20 → +, before signing.
+        .map((key) => `${key}=${encodeURIComponent(params[key]).replace(/%20/g, '+')}`)
         .join('&'),
     )
     .digest('hex');

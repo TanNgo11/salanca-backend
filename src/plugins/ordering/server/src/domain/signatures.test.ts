@@ -36,7 +36,7 @@ describe('domain/signatures', () => {
     ).toBe('partnerCode=MOMO&amount=150000&extraData=&orderId=X1');
   });
 
-  it('sortedParamString sorts keys, skips excluded and empty values', () => {
+  it('sortedParamString sorts keys, skips excluded and empty values (VNPay-encoded)', () => {
     const params = {
       vnp_TmnCode: 'TEST',
       vnp_Amount: '15000000',

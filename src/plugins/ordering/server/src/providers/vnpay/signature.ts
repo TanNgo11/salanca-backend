@@ -2,9 +2,10 @@ import { hmacSha512Hex, equalHex, sortedParamString } from '../../domain/signatu
 
 /**
  * VNPay checksums (docs/providers/vnpay.md). Pay URL + IPN verify sign the sorted `k=v&…`
- * string of every `vnp_*` param except the hash fields, over DECODED values (official
- * sample: `qs.stringify(params, { encode: false })`). querydr/refund sign a pipe-joined
- * field list instead.
+ * string of every `vnp_*` param except the hash fields, over values encoded the way the
+ * official Node sample's `sortObject` does (`encodeURIComponent`, space → `+`). IPN params
+ * arrive decoded (koa parsed the query) and are re-encoded the same way before hashing.
+ * querydr/refund sign a pipe-joined field list of raw values instead.
  */
 export const VNPAY_HASH_EXCLUDES = ['vnp_SecureHash', 'vnp_SecureHashType'] as const;
 

@@ -10,7 +10,9 @@ import { OrderingError } from '../../domain/errors';
 import type { ProviderHttpClient } from '../_http';
 import { createProviderHttp, jsonObject } from '../_http';
 import { parseVnpaySettings, vnpayBaseUrl, type VnpaySettings } from './config';
+import { sortedParamString } from '../../domain/signatures';
 import {
+  VNPAY_HASH_EXCLUDES,
   vnpayChecksum,
   vnpayDate,
   vnpayDateToDate,
@@ -132,10 +134,8 @@ export const createVnpayPaymentProvider = (deps: {
         vnp_ExpireDate: expireDate,
       };
       const secureHash = vnpayChecksum(settings.hashSecret, params);
-      const query = Object.keys(params)
-        .sort()
-        .map((key) => `${key}=${encodeURIComponent(params[key])}`)
-        .join('&');
+      // The pay URL query is exactly the signed string (VNPay recomputes it from the query).
+      const query = sortedParamString(params, VNPAY_HASH_EXCLUDES);
       const payUrl = `${vnpayBaseUrl(settings)}/paymentv2/vpcpay.html?${query}&vnp_SecureHash=${secureHash}`;
       return {
         status: 'pending',
