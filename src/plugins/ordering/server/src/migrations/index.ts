@@ -10,6 +10,7 @@ import { o8PromotionsRatingMigration } from './0008-o8-promotions-rating';
 import { o14PriceListsMigration } from './0009-o14-price-lists';
 import { o11CustomerDocumentIdsMigration } from './0009b-o11-customer-document-ids';
 import { o9GiftCardsMigration } from './0010-o9-gift-cards';
+import { o12RestaurantMigration } from './0011-o12-restaurant';
 import { o13ProvidersMigration } from './0012-o13-providers';
 import type { OrderingMigration } from './runner';
 
@@ -27,5 +28,6 @@ export const orderingMigrations: OrderingMigration[] = [
   o14PriceListsMigration,
   o11CustomerDocumentIdsMigration,
   o9GiftCardsMigration,
+  o12RestaurantMigration,
   o13ProvidersMigration,
 ];

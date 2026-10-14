@@ -145,7 +145,8 @@ const paymentLink = ({ strapi }: { strapi: Core.Strapi }) => {
       const aggregate = await orders().getOrder(orderId, ctx);
       const waiting = aggregate.groups.find((group) => group.status === 'awaiting-payment');
       const branch = await branches().findByCode(aggregate.order.locationRef);
-      const settings = branches().pickupSettings(branch ?? { fulfillment: null });
+      const kind = (aggregate.order.receiveMethod as { kind?: string } | null)?.kind ?? 'pickup';
+      const settings = branches().receiveSettings(branch ?? { fulfillment: null }, kind);
       const online = settings.paymentProviders.some((code) => {
         if (!registry().hasPaymentProvider(code)) return false;
         return isOnlinePaymentProvider(registry().paymentProvider(code));
@@ -235,11 +236,8 @@ const paymentLink = ({ strapi }: { strapi: Core.Strapi }) => {
         });
       }
       const branch = await branches().findByCode(aggregate.order.locationRef);
-      const kind = (aggregate.order.receiveMethod as { kind?: string }).kind;
-      const settings =
-        kind === 'delivery'
-          ? branches().deliverySettings(branch ?? { fulfillment: null })
-          : branches().pickupSettings(branch ?? { fulfillment: null });
+      const kind = (aggregate.order.receiveMethod as { kind?: string }).kind ?? 'pickup';
+      const settings = branches().receiveSettings(branch ?? { fulfillment: null }, kind);
       if (!settings.paymentProviders.includes(providerCode)) {
         throw new OrderingError('VALIDATION_ERROR', 'this branch does not offer that payment provider', {
           details: { providerCode },

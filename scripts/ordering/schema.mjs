@@ -30,6 +30,7 @@ const EXPECTED_TABLES = [
   'plugins_ordering_customer_otp',
   'plugins_ordering_customer_session',
   'plugins_ordering_data_request',
+  'plugins_ordering_dining_table',
   'plugins_ordering_fulfillment',
   'plugins_ordering_fulfillment_group',
   'plugins_ordering_fulfillment_line',
@@ -58,6 +59,7 @@ const EXPECTED_TABLES = [
   'plugins_ordering_refund',
   'plugins_ordering_refund_line',
   'plugins_ordering_staff_location_scope',
+  'plugins_ordering_table_session',
   'plugins_ordering_webhook_delivery',
   'plugins_ordering_webhook_endpoint',
 ];
@@ -121,6 +123,12 @@ const EXPECTED_INDEXES = [
   'plugins_ordering_gift_card_ledger_card_lnk_card_idx',
   'plugins_ordering_gift_card_ledger_at_idx',
   'plugins_ordering_gift_card_ledger_kind_at_idx',
+  // O12 (migration 0011).
+  'plugins_ordering_table_session_open_uq',
+  'plugins_ordering_dining_table_code_uq',
+  'plugins_ordering_dining_table_token_idx',
+  'plugins_ordering_table_session_list_idx',
+  'plugins_ordering_order_table_session_idx',
   // O13 (migration 0012).
   'plugins_ordering_fulfillment_provider_ref_idx',
   'plugins_ordering_notification_channel_rule_uq',
@@ -149,8 +157,9 @@ const CM_HIDDEN_CATALOG_UIDS = [
 // Every manyToOne owner side produces one link table (28 pre-O11 + 7 customer-era relations:
 // order.customer, customer-{address,otp,session}.customer, cart.{customer,order}, data-request.customer,
 // plus O14 catalog-price.priceList, plus 7 O9 gift-card relations:
-// gift-card.{order,orderLine,batch}, gift-card-ledger.{card,order,payment,refund}).
-const MIN_LINK_TABLES = 45;
+// gift-card.{order,orderLine,batch}, gift-card-ledger.{card,order,payment,refund},
+// plus O12 table-session.table and order.tableSession).
+const MIN_LINK_TABLES = 47;
 
 await withApp(async (app) => {
   const { rows: tables } = await app.db.connection.raw(
@@ -212,6 +221,7 @@ await withApp(async (app) => {
     '0009-o14-price-lists',
     '0009b-o11-customer-document-ids',
     '0010-o9-gift-cards',
+    '0011-o12-restaurant',
     '0012-o13-providers',
   ]) {
     assert.ok(

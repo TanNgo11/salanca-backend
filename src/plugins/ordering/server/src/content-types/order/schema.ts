@@ -69,6 +69,13 @@ export default collection(
     completedAt: { type: 'datetime' },
     /** Incremented on every staff edit. The client sends the revision it displayed. */
     editRevision: { type: 'integer', required: true, default: 0 },
+    /** O12: the open table session this dine-in order belongs to (null for pickup/delivery). */
+    tableSession: {
+      type: 'relation',
+      relation: 'manyToOne',
+      target: 'plugin::ordering.table-session',
+      inversedBy: 'orders',
+    },
     lines: oneToMany('order-line', 'order'),
     fulfillmentGroups: oneToMany('fulfillment-group', 'order'),
     fulfillments: oneToMany('fulfillment', 'order'),

@@ -58,6 +58,7 @@ export const configSchema = z.object({
     holdExpiryCron: z.string().min(1),
     idempotencyCleanupCron: z.string().min(1),
     slaCheckCron: z.string().min(1),
+    autoRejectCron: z.string().min(1),
     reconciliationCron: z.string().min(1),
     paymentExpiryCron: z.string().min(1),
     manualConfirmCron: z.string().min(1),
@@ -72,6 +73,8 @@ export const configSchema = z.object({
     dataRequestWaitingCron: z.string().min(1),
     customerGroupRefreshCron: z.string().min(1),
     giftCardExpiryCron: z.string().min(1),
+    /** O12: open sessions past business-day end get a `table-session-open` alert. */
+    tableSessionAutocloseCron: z.string().min(1),
     /** Expected run period in minutes per job for `job-heartbeat-missed` (ops-check). */
     heartbeatMinutes: z.record(z.string(), z.number().int().positive()),
   }),
@@ -139,6 +142,11 @@ export const configSchema = z.object({
     dailyLimit: z.number().int().positive(),
     /** Estimated per-message cost (VND) by channel — shown on P3, never a billing value. */
     costEstimates: z.record(z.string(), z.number().int().min(0)),
+  }),
+  /** O12: table QR links. `{token}` is replaced by the table's raw secret. */
+  tables: z.object({
+    /** Storefront menu URL for a scanned table QR (`{token}` placeholder required). */
+    menuUrlTemplate: z.string(),
   }),
   storefront: z.object({
     /** Registered CaptchaProvider code; empty string disables captcha (dev/test only). */
@@ -270,6 +278,7 @@ export default {
       holdExpiryCron: '*/30 * * * * *',
       idempotencyCleanupCron: '0 */15 * * * *',
       slaCheckCron: '0 * * * * *',
+      autoRejectCron: '30 * * * * *',
       reconciliationCron: '0 0 * * * *',
       paymentExpiryCron: '*/30 * * * * *',
       manualConfirmCron: '0 15 * * * *',
@@ -283,11 +292,13 @@ export default {
       dataRequestWaitingCron: '0 */30 * * * *',
       customerGroupRefreshCron: '0 15 3 * * *',
       giftCardExpiryCron: '0 45 3 * * *',
+      tableSessionAutocloseCron: '0 */15 * * * *',
       heartbeatMinutes: {
         outbox: 2,
         'hold-expiry': 2,
         'payment-expiry': 2,
         'sla-check': 3,
+        'auto-reject': 3,
         'idempotency-cleanup': 45,
         'sepay-reconciliation': 150,
         'manual-payment-check': 150,
@@ -300,6 +311,7 @@ export default {
         'data-request-waiting': 35,
         'customer-group-refresh': 1500,
         'gift-card-expiry': 1500,
+        'table-session-autoclose': 20,
       },
     },
     audit: {
@@ -343,6 +355,7 @@ export default {
       dailyLimit: 2000,
       costEstimates: { sms: 900, zalo: 300 },
     },
+    tables: { menuUrlTemplate: '' },
     storefront: {
       captchaProvider: '',
       rateLimits: {

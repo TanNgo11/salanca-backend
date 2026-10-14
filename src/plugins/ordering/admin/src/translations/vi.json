@@ -23,6 +23,8 @@
   "ordering.categories.form.parent": "Danh mục cha",
   "ordering.categories.form.root": "— Gốc —",
   "ordering.categories.form.description": "Mô tả",
+  "ordering.categories.form.kitchenStation": "Trạm bếp",
+  "ordering.categories.form.kitchenStation.hint": "VD: Bếp nóng — để trống kế thừa danh mục cha",
   "ordering.categories.form.visible": "Hiện cho khách",
   "ordering.categories.form.internal": "Nội bộ",
   "ordering.categories.form.cancel": "Hủy",

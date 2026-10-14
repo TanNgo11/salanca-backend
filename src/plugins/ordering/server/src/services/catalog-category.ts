@@ -8,6 +8,7 @@ import {
 } from '../domain/catalog/category-tree';
 import { withAuditSuppressed } from '../domain/audit/suppress';
 import { resolveLocalizedText } from '../domain/catalog/localized-text';
+import { normalizeKitchenStation } from '../domain/catalog/allergens';
 import { OrderingError } from '../domain/errors';
 import type { ServiceContext } from './context';
 import type changeLogFactory from './change-log';
@@ -27,6 +28,7 @@ type CategoryRow = {
   rank?: number;
   isActive?: boolean;
   isInternal?: boolean;
+  kitchenStation?: string | null;
   parent?: { id?: number; documentId?: string } | null;
 };
 
@@ -175,6 +177,7 @@ const catalogCategory = ({ strapi }: { strapi: Core.Strapi }) => {
         descriptions: row.description ?? {},
         isActive: row.isActive !== false,
         isInternal: row.isInternal === true,
+        kitchenStation: normalizeKitchenStation(row.kitchenStation),
         productCount: counts.get(row.id) ?? 0,
       }));
       return buildCategoryTree(items);
@@ -190,6 +193,9 @@ const catalogCategory = ({ strapi }: { strapi: Core.Strapi }) => {
             slug: data.slug,
             isActive: data.isActive ?? true,
             isInternal: data.isInternal ?? false,
+            ...(data.kitchenStation !== undefined
+              ? { kitchenStation: normalizeKitchenStation(data.kitchenStation) }
+              : {}),
             ...(data.image !== undefined ? { image: data.image } : {}),
             ...(parentId ? { parent: parentId } : {}),
           } as Record<string, unknown>,
@@ -222,6 +228,9 @@ const catalogCategory = ({ strapi }: { strapi: Core.Strapi }) => {
             ...(data.slug !== undefined ? { slug: data.slug } : {}),
             ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
             ...(data.isInternal !== undefined ? { isInternal: data.isInternal } : {}),
+            ...(data.kitchenStation !== undefined
+              ? { kitchenStation: normalizeKitchenStation(data.kitchenStation) }
+              : {}),
             ...(data.image !== undefined ? { image: data.image } : {}),
           } as Record<string, unknown>,
         }))) as { documentId: string };

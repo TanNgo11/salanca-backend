@@ -34,7 +34,8 @@ export type CartRequest = {
         recipientName?: string;
         message?: string;
         physicalCodes?: string[];
-      };
+      }
+    | { kind: 'dine-in'; locationRef: string; tableToken: string };
   pickup: { asap?: boolean; slot?: { startsAt: string } };
   payment?: { providerCode: string; giftCardCode?: string };
   promotionCode?: string;
@@ -166,6 +167,14 @@ export function parseCartRequest(body: unknown): CartRequest {
               ),
           }
         : {}),
+    };
+  } else if (receive.kind === 'dine-in') {
+    // O12: the table QR secret. Server resolves it to the table row — the stored order keeps
+    // tableId/tableCode, never the token.
+    receiveMethod = {
+      kind: 'dine-in',
+      locationRef,
+      tableToken: str(receive.tableToken, 'receiveMethod.tableToken', 200, true) as string,
     };
   } else {
     throw new OrderingError('FULFILLMENT_UNAVAILABLE', 'this receive method is not available', {

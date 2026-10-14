@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useAuth, useFetchClient, useRBAC } from '@strapi/strapi/admin';
 
 import { RBAC_INBOX } from '../lib/permissions';
+import { isCounterPrinter, printUrl } from '../lib/print';
 import type { InboxSettings, OrderDetail } from '../lib/types';
 import { NewOrderDialog } from './NewOrderDialog';
 
@@ -95,6 +96,9 @@ const InboxRuntime = ({ children }: { children: ReactNode }) => {
   const [settings, setSettings] = useState<InboxSettings | null>(null);
   const [sound, setSoundState] = useState(true);
   const [queue, setQueue] = useState<OrderDetail[]>([]);
+  // N1 auto-print: order ids whose kitchen ticket is currently printing in a hidden
+  // iframe (only on machines flagged "máy in quầy").
+  const [printJobs, setPrintJobs] = useState<number[]>([]);
   const listeners = useRef(new Set<Listener>());
   const seen = useRef(new Set<number>());
   const since = useRef(new Date().toISOString());
@@ -120,12 +124,33 @@ const InboxRuntime = ({ children }: { children: ReactNode }) => {
         }
         setQueue((current) => [...current, detail]);
         if (soundRef.current) chime();
+        // Auto-print the kitchen ticket: only on the flagged counter machine and only
+        // when the order's branch switched `printing.autoKitchenTicket` on.
+        if (isCounterPrinter()) {
+          try {
+            const { data: body } = await get(`/${PLUGIN}/print/orders/${orderId}?doc=kitchen`);
+            if ((body as { item?: { autoKitchenTicket?: boolean } }).item?.autoKitchenTicket) {
+              setPrintJobs((jobs) => [...jobs, orderId]);
+            }
+          } catch {
+            // Print data failing never blocks the order dialog.
+          }
+        }
       } catch {
         seen.current.delete(orderId);
       }
     },
     [get],
   );
+
+  // A kitchen-ticket iframe has to stay mounted until its print dialog closes; evict
+  // jobs conservatively after 45 s (the page also cleans up on `afterprint` when run
+  // in a full tab, but an iframe cannot notify back).
+  useEffect(() => {
+    if (printJobs.length === 0) return undefined;
+    const timer = setTimeout(() => setPrintJobs((jobs) => jobs.slice(1)), 45_000);
+    return () => clearTimeout(timer);
+  }, [printJobs]);
 
   const refreshSummary = useCallback(async () => {
     const { data } = await get(`/${PLUGIN}/orders/summary?since=${encodeURIComponent(since.current)}`);
@@ -258,6 +283,15 @@ const InboxRuntime = ({ children }: { children: ReactNode }) => {
           }}
         />
       ) : null}
+      {printJobs.map((jobId) => (
+        <iframe
+          key={jobId}
+          src={`${printUrl(jobId, 'kitchen')}&autoprint=1`}
+          title=""
+          aria-hidden
+          style={{ position: 'fixed', right: 0, bottom: 0, width: 0, height: 0, border: 0 }}
+        />
+      ))}
     </Context.Provider>
   );
 };

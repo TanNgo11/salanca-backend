@@ -39,6 +39,8 @@ export default collection(
     canceledQuantity: { type: 'integer', required: true, default: 0 },
     /** Null on lines placed with the order. A staff edit stamps the revision that added the line. */
     addedInRevision: { type: 'integer' },
+    /** O12 KDS: when kitchen staff marked the whole line prepared; null while it cooks. */
+    preparedAt: { type: 'datetime' },
     unitAmount: big(),
     optionAmount: big(),
     baseAmount: big(),

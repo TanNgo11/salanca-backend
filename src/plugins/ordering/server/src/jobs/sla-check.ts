@@ -30,19 +30,34 @@ export const runSlaCheck = async (
     let resolved = 0;
     const waiting = (await strapi.db.query('plugin::ordering.fulfillment-group').findMany({
       where: { status: 'awaiting-acceptance' },
-      populate: { order: { select: ['id', 'code', 'placedAt', 'locationRef', 'status'] } },
+      populate: {
+        order: { select: ['id', 'code', 'placedAt', 'locationRef', 'status', 'receiveMethod'] },
+      },
       limit: 500,
-    })) as Array<{ order: { id: number; code: string; placedAt: string; locationRef: string; status: string } | null }>;
+    })) as Array<{
+      order: {
+        id: number;
+        code: string;
+        placedAt: string;
+        locationRef: string;
+        status: string;
+        receiveMethod: { kind?: string } | null;
+      } | null;
+    }>;
     const sla = new Map<string, number>();
     const stillWaiting = new Set<string>();
     for (const group of waiting) {
       const order = group.order;
       if (!order || order.status !== 'open') continue;
-      let minutes = sla.get(order.locationRef);
+      const slaKey = `${order.locationRef}:${order.receiveMethod?.kind ?? 'pickup'}`;
+      let minutes = sla.get(slaKey);
       if (minutes === undefined) {
         const branch = await branches.findByCode(order.locationRef);
-        minutes = branches.pickupSettings(branch ?? { fulfillment: null }).slaMinutes;
-        sla.set(order.locationRef, minutes);
+        minutes = branches.receiveSettings(
+          branch ?? { fulfillment: null },
+          order.receiveMethod?.kind ?? 'pickup',
+        ).slaMinutes;
+        sla.set(slaKey, minutes);
       }
       const key = `order-awaiting-acceptance:${order.id}`;
       stillWaiting.add(key);

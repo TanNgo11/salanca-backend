@@ -164,6 +164,87 @@ export const deliveryAcceptThenPayWorkflow: WorkflowDefinition = {
 };
 
 /**
+ * O12 dine-in (at-table) workflows (plan step 7). The tail differs from pickup: the kitchen's
+ * `ready` becomes `served` when dishes hit the table (staff transition), and `served` waits —
+ * success-pending — until the table session closes, which pays the balance and moves the group
+ * to `completed`. `pay-later` covers "Thu tiền khi đóng bàn"; `prepay` and `accept-then-pay`
+ * mirror the pickup payment heads for branches that collect before cooking.
+ */
+export const dineInPayLaterWorkflow: WorkflowDefinition = {
+  name: 'dine-in-pay-later',
+  version: '1',
+  initial: 'awaiting-acceptance',
+  cancelState: 'canceled',
+  states: {
+    'awaiting-acceptance': {
+      next: ['preparing', 'rejected', 'canceled'],
+      isPublic: true,
+      customerCancellable: true,
+      slaMinutes: 10,
+    },
+    preparing: { next: ['ready', 'canceled'], isPublic: true },
+    ready: { next: ['served', 'canceled'], isPublic: true },
+    served: { next: ['completed', 'canceled'], isPublic: true },
+    completed: { next: [], terminal: 'success', isPublic: true },
+    rejected: { next: [], terminal: 'canceled', isPublic: true },
+    canceled: { next: [], terminal: 'canceled', isPublic: true },
+  },
+};
+
+export const dineInPrepayWorkflow: WorkflowDefinition = {
+  name: 'dine-in-prepay',
+  version: '1',
+  initial: 'awaiting-payment',
+  cancelState: 'canceled',
+  states: {
+    'awaiting-payment': {
+      next: ['awaiting-acceptance', 'expired', 'canceled'],
+      isPublic: true,
+      customerCancellable: true,
+    },
+    'awaiting-acceptance': {
+      next: ['preparing', 'rejected', 'canceled'],
+      isPublic: true,
+      slaMinutes: 10,
+    },
+    preparing: { next: ['ready', 'canceled'], isPublic: true },
+    ready: { next: ['served', 'canceled'], isPublic: true },
+    served: { next: ['completed', 'canceled'], isPublic: true },
+    completed: { next: [], terminal: 'success', isPublic: true },
+    expired: { next: [], terminal: 'canceled', isPublic: true },
+    rejected: { next: [], terminal: 'canceled', isPublic: true },
+    canceled: { next: [], terminal: 'canceled', isPublic: true },
+  },
+};
+
+export const dineInAcceptThenPayWorkflow: WorkflowDefinition = {
+  name: 'dine-in-accept-then-pay',
+  version: '1',
+  initial: 'awaiting-acceptance',
+  cancelState: 'canceled',
+  states: {
+    'awaiting-acceptance': {
+      next: ['awaiting-payment', 'rejected', 'canceled'],
+      isPublic: true,
+      customerCancellable: true,
+      slaMinutes: 10,
+    },
+    'awaiting-payment': {
+      next: ['preparing', 'expired', 'canceled'],
+      isPublic: true,
+      customerCancellable: true,
+    },
+    preparing: { next: ['ready', 'canceled'], isPublic: true },
+    ready: { next: ['served', 'canceled'], isPublic: true },
+    served: { next: ['completed', 'canceled'], isPublic: true },
+    completed: { next: [], terminal: 'success', isPublic: true },
+    expired: { next: [], terminal: 'canceled', isPublic: true },
+    rejected: { next: [], terminal: 'canceled', isPublic: true },
+    canceled: { next: [], terminal: 'canceled', isPublic: true },
+  },
+};
+
+/**
  * O9 gift-card sale (plan step 3): a digital order pays first, then the outbox consumer issues
  * one card per line unit. `awaiting-payment` ends at `issued` on capture — the only success
  * terminal — and the payment-expiry job (or a staff cancel) lands on `expired`/`canceled`.
@@ -205,6 +286,9 @@ export const builtinWorkflows: WorkflowDefinition[] = [
   deliveryPayOnDeliveryWorkflow,
   deliveryPrepayWorkflow,
   deliveryAcceptThenPayWorkflow,
+  dineInPayLaterWorkflow,
+  dineInPrepayWorkflow,
+  dineInAcceptThenPayWorkflow,
   giftCardWorkflow,
   testServiceWorkflow,
 ];

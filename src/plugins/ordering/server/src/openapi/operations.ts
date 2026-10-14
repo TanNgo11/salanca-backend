@@ -131,8 +131,12 @@ const cartBody = obj(
   {
     locationRef: str,
     receiveMethod: obj({
-      kind: { ...str, enum: ['pickup', 'delivery', 'digital'] },
+      kind: { ...str, enum: ['pickup', 'delivery', 'digital', 'dine-in'] },
       locationRef: str,
+      tableToken: {
+        ...str,
+        description: "O12 dine-in: the QR secret scanned at the table. The server stores tableId/tableCode, never the token.",
+      },
       address: obj({ street: str, ward: str, district: str, province: str, note: str }),
       // O9: digital = gift-card sale — recipient mailbox + optional message.
       recipientEmail: str,
@@ -193,6 +197,20 @@ export const OPERATIONS: Operation[] = [
       { name: 'branch', in: 'query', required: true, schema: str },
       { name: 'date', in: 'query', required: true, schema: { ...str, format: 'date' } },
     ],
+  }),
+  // O12 step 7: the table QR lands here — branch + table for the at-table menu. Unknown or
+  // rotated/disabled secrets all answer the same 404.
+  pub('get', '/tables/:token', 'Storefront', 'Resolve a table QR token (branch + table)', {
+    parameters: [pathParam('token', 'QR secret — sha256-hashed server-side, never stored raw')],
+    response: obj({
+      item: obj({
+        branch: str,
+        branchName: str,
+        table: obj({ code: str, name: str, area: str, seats: int }),
+        menuUrl: str,
+        status: { ...str, enum: ['available', 'open'] },
+      }),
+    }),
   }),
   pub('post', '/quote', 'Orders', 'Price a cart without creating an order', {
     requestBody: obj(
@@ -502,6 +520,19 @@ export const OPERATIONS: Operation[] = [
   adm('post', '/branches/:code/delivery-quote', 'Branches', 'Delivery quote for a branch', ['settings.manage'], {
     parameters: [pathParam('code')],
   }),
+  // O12: inbox staff pause/resume ordering and toggle busy mode (screens N3).
+  adm('post', '/branches/:code/pause', 'Branches', 'Pause ordering (minutes|until|endOfDay, kinds)', ['order.process'], {
+    parameters: [pathParam('code')],
+  }),
+  adm('post', '/branches/:code/resume', 'Branches', 'Resume ordering (optional kinds)', ['order.process'], {
+    parameters: [pathParam('code')],
+  }),
+  adm('post', '/branches/:code/busy', 'Branches', 'Set busy mode (extraMinutes + minutes)', ['order.process'], {
+    parameters: [pathParam('code')],
+  }),
+  adm('post', '/branches/:code/busy/clear', 'Branches', 'Clear busy mode', ['order.process'], {
+    parameters: [pathParam('code')],
+  }),
   adm('get', '/staff-scopes', 'Branches', 'Staff location scopes', ['scope.manage']),
   adm('put', '/staff-scopes/:adminUserId', 'Branches', 'Set a staff member scope', ['scope.manage'], {
     parameters: [pathParam('adminUserId')],
@@ -557,6 +588,67 @@ export const OPERATIONS: Operation[] = [
   }),
   adm('post', '/orders/:id/manual-payments', 'Orders', 'Record a manual payment', ['payment.review'], {
     parameters: [pathParam('id')],
+  }),
+
+  // ── Admin: O12 print, kitchen display, tables & sessions ───────────────────
+  adm('get', '/print/orders/:id', 'Orders', 'Kitchen-ticket / provisional-receipt print payload', ['order.read'], {
+    parameters: [pathParam('id')],
+  }),
+  adm('get', '/print/table-sessions/:id', 'Tables', 'Merged session receipt ("In hóa đơn bàn")', ['table.manage'], {
+    parameters: [pathParam('id')],
+  }),
+  adm('get', '/kitchen', 'Kitchen', 'KDS board (per-station columns)', ['kitchen.read'], {
+    parameters: [{ name: 'branch', in: 'query', schema: str }],
+  }),
+  adm('get', '/kitchen/stream', 'Kitchen', 'KDS-scoped SSE stream', ['kitchen.read'], {
+    parameters: [{ name: 'branch', in: 'query', schema: str }],
+  }),
+  adm('post', '/kitchen/lines/:lineId/prepared', 'Kitchen', 'Mark one line prepared', ['kitchen.read'], {
+    parameters: [pathParam('lineId')],
+    requestBody: obj({ prepared: bool }, ['prepared']),
+  }),
+  adm('post', '/kitchen/orders/:id/start', 'Kitchen', 'Mark the order started in the kitchen', ['kitchen.read'], {
+    parameters: [pathParam('id')],
+  }),
+  adm('post', '/kitchen/orders/:id/complete', 'Kitchen', 'Whole order ready (preparing → ready)', ['kitchen.read'], {
+    parameters: [pathParam('id')],
+  }),
+  adm('get', '/tables', 'Tables', 'Dining tables the caller can see', ['table.manage'], {
+    parameters: [{ name: 'branch', in: 'query', schema: str }],
+  }),
+  adm('post', '/tables', 'Tables', 'Create a table (or `{ bulk: { from, to } }` for a range)', ['table.manage'], {
+    requestBody: obj({
+      locationRef: str,
+      code: str,
+      name: str,
+      area: str,
+      seats: int,
+      bulk: obj({ prefix: str, from: int, to: int }),
+    }),
+  }),
+  adm('put', '/tables/:id', 'Tables', 'Update name/area/seats/code/active', ['table.manage'], {
+    parameters: [pathParam('id')],
+    requestBody: obj({ name: str, area: str, seats: int, code: str, active: bool }),
+  }),
+  adm('post', '/tables/:id/rotate-qr', 'Tables', 'Rotate the QR secret (old link dies at once)', ['table.manage'], {
+    parameters: [pathParam('id')],
+  }),
+  adm('get', '/tables/:id/qr.svg', 'Tables', 'Menu URL as a QR SVG (image/svg+xml)', ['table.manage'], {
+    parameters: [pathParam('id')],
+  }),
+  adm('get', '/table-sessions', 'Tables', 'Sessions with per-order totals/outstanding', ['table.manage'], {
+    parameters: [
+      { name: 'branch', in: 'query', schema: str },
+      { name: 'status', in: 'query', schema: { ...str, enum: ['open', 'closed'] } },
+    ],
+  }),
+  // Close also touches money — hence the extra `payment.record-cash` permission.
+  adm('post', '/table-sessions/:id/close', 'Tables', 'Collect outstanding + complete groups + close', ['table.manage', 'payment.record-cash'], {
+    parameters: [pathParam('id')],
+    requestBody: obj({
+      method: { ...str, enum: ['cash', 'transfer-at-counter'] },
+      reference: { ...str, description: 'Bank reference for transfer-at-counter' },
+    }),
   }),
 
   // ── Admin: payment review ───────────────────────────────────────────────────

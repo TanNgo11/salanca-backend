@@ -24,6 +24,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { fieldErrors, useErrorToast } from '../../lib/api';
 import { useT } from '../../lib/i18n';
 import { DeliveryTab, emptyDelivery, type Delivery } from './DeliveryTab';
+import { RestaurantTab, type BranchFee, type DineIn, type Printing } from './RestaurantTab';
 import { SpecialHoursEditor, type SpecialHourRow } from './SpecialHoursEditor';
 
 type Range = { start: string; end: string };
@@ -38,6 +39,7 @@ type Pickup = {
   minOrderAmount: number;
   customerCancelBeforeMinutes: number;
   slaMinutes: number;
+  autoRejectAfterMinutes: number | null;
   schedule: {
     leadTimeMinutes: number;
     slotLengthMinutes: number;
@@ -59,7 +61,9 @@ type Branch = {
   isActive: boolean;
   onlineOrdering: boolean;
   cashRounding: { enabled: boolean; multiple: number; providerCodes: string[] } | null;
-  fulfillment: { pickup: Pickup; delivery: Delivery } & Record<string, unknown>;
+  fees: BranchFee[] | null;
+  printing: Printing;
+  fulfillment: { pickup: Pickup; delivery: Delivery; dineIn?: DineIn } & Record<string, unknown>;
 };
 
 const TIMEZONES = ['Asia/Ho_Chi_Minh', 'Asia/Bangkok', 'Asia/Singapore', 'UTC'];
@@ -74,6 +78,8 @@ const emptyBranch = (): Branch => ({
   isActive: true,
   onlineOrdering: false,
   cashRounding: null,
+  fees: null,
+  printing: null,
   fulfillment: {
     pickup: {
       enabled: true,
@@ -84,6 +90,7 @@ const emptyBranch = (): Branch => ({
       minOrderAmount: 0,
       customerCancelBeforeMinutes: 30,
       slaMinutes: 10,
+      autoRejectAfterMinutes: null,
       schedule: {
         leadTimeMinutes: 180,
         slotLengthMinutes: 15,
@@ -230,7 +237,13 @@ export const BranchEditor = () => {
       isActive: branch.isActive,
       onlineOrdering: branch.onlineOrdering,
       cashRounding: branch.cashRounding,
-      fulfillment: { pickup, delivery: branch.fulfillment.delivery ?? emptyDelivery() },
+      fees: branch.fees,
+      printing: branch.printing,
+      fulfillment: {
+        pickup,
+        delivery: branch.fulfillment.delivery ?? emptyDelivery(),
+        ...(branch.fulfillment.dineIn ? { dineIn: branch.fulfillment.dineIn } : {}),
+      },
     };
     try {
       const { data } = creating ? await post('/ordering/branches', payload) : await put(`/ordering/branches/${code}`, payload);
@@ -270,6 +283,7 @@ export const BranchEditor = () => {
             <Tabs.Trigger value="hours">{t('branch.tab.hours')}</Tabs.Trigger>
             <Tabs.Trigger value="pickup">{t('branch.tab.pickup')}</Tabs.Trigger>
             <Tabs.Trigger value="delivery">{t('branch.tab.delivery')}</Tabs.Trigger>
+            <Tabs.Trigger value="restaurant">{t('branch.tab.restaurant')}</Tabs.Trigger>
           </Tabs.List>
           <Box background="neutral0" padding={6} hasRadius shadow="tableShadow" marginTop={4}>
             <Tabs.Content value="info">
@@ -571,6 +585,36 @@ export const BranchEditor = () => {
                   setSchedule({ businessDayPolicy: { ...schedule.businessDayPolicy, specialHours } });
                 }}
                 numberField={numberField}
+              />
+            </Tabs.Content>
+            <Tabs.Content value="restaurant">
+              <RestaurantTab
+                fees={branch.fees ?? []}
+                printing={branch.printing}
+                pickupAutoReject={pickup.autoRejectAfterMinutes}
+                deliveryAutoReject={(branch.fulfillment.delivery ?? emptyDelivery()).autoRejectAfterMinutes}
+                dineIn={
+                  branch.fulfillment.dineIn ?? {
+                    enabled: false,
+                    sessionPayment: 'at-close' as const,
+                    autoRejectAfterMinutes: null,
+                  }
+                }
+                onFees={(fees) => setBranch({ ...branch, fees })}
+                onPrinting={(printing) => setBranch({ ...branch, printing })}
+                onPickupAutoReject={(autoRejectAfterMinutes) => setPickup({ autoRejectAfterMinutes })}
+                onDeliveryAutoReject={(autoRejectAfterMinutes) =>
+                  setBranch({
+                    ...branch,
+                    fulfillment: {
+                      ...branch.fulfillment,
+                      delivery: { ...(branch.fulfillment.delivery ?? emptyDelivery()), autoRejectAfterMinutes },
+                    },
+                  })
+                }
+                onDineIn={(dineIn) =>
+                  setBranch({ ...branch, fulfillment: { ...branch.fulfillment, dineIn } })
+                }
               />
             </Tabs.Content>
           </Box>

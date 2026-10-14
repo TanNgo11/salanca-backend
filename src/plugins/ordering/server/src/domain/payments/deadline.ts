@@ -12,11 +12,23 @@ export const paymentWindowStart = (input: {
   placedAt: Date;
   groupId: number;
   events: WindowEvent[];
+}): Date => stateEnteredAt({ ...input, state: 'awaiting-payment' });
+
+/**
+ * When a group last entered `state` (its latest transition there), or `placedAt` when it was
+ * created in that state. O12 auto-reject measures `awaiting-acceptance` from here, so a prepay
+ * order paid late is not rejected the moment it starts waiting.
+ */
+export const stateEnteredAt = (input: {
+  placedAt: Date;
+  groupId: number;
+  events: WindowEvent[];
+  state: string;
 }): Date => {
   let latest = Number.NEGATIVE_INFINITY;
   for (const event of input.events) {
     if (event.type !== 'fulfillment-group.transitioned') continue;
-    if (event.payload?.to !== 'awaiting-payment') continue;
+    if (event.payload?.to !== input.state) continue;
     if (Number(event.payload.groupId) !== input.groupId) continue;
     const at = new Date(event.occurredAt ?? '').getTime();
     if (Number.isFinite(at) && at > latest) latest = at;

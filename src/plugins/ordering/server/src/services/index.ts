@@ -4,6 +4,7 @@ import { type OrderingMigration, runOrderingMigrations } from '../migrations/run
 import registry from './registry';
 import scope from './scope';
 import idempotency from './idempotency';
+import kitchen from './kitchen';
 import order from './order';
 import deliveryAssignment from './delivery-assignment';
 import carrierAssignment from './carrier-assignment';
@@ -59,6 +60,8 @@ import promotion from './promotion';
 import rating from './rating';
 import promotionAdmin from './promotion-admin';
 import priceList from './price-list';
+import print from './print';
+import table from './table';
 import customerGroup from './customer-group';
 import giftCard from './gift-card';
 import giftCardAdmin from './gift-card-admin';
@@ -125,6 +128,12 @@ export default {
   'customer-group': customerGroup,
   'gift-card': giftCard,
   'gift-card-admin': giftCardAdmin,
+  // O12 (plan step 5): kitchen-ticket / provisional-receipt print payloads.
+  print,
+  // O12 (plan step 6): kitchen display board + line prepared state.
+  kitchen,
+  // O12 (plan step 7): dining tables, QR rotation, table sessions and close/collect.
+  table,
   migrations: ({ strapi }: { strapi: Core.Strapi }) => ({
     run: (migrations: OrderingMigration[]) => runOrderingMigrations(strapi, migrations),
   }),

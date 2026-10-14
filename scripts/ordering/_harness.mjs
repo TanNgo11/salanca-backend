@@ -385,6 +385,7 @@ export const ORDERING_ACTIONS = [
   'customer.read', 'customer.manage', 'customer.erase',
   'promotion.manage', 'rating.manage', 'price.manage',
   'gift-card.manage', 'gift-card.adjust',
+  'kitchen.read', 'table.manage',
 ];
 
 /**

@@ -294,6 +294,15 @@ export const resolveOrderingPluginConfig = (
         ...(dailyLimit ? { dailyLimit: Number(dailyLimit) } : {}),
         ...(costEstimates ? { costEstimates } : {}),
       },
+      // O12: the table QR lands on the storefront's at-table menu route.
+      tables: builtins
+        ? { menuUrlTemplate: 'http://localhost:3000/ban?t={token}' }
+        : {
+            menuUrlTemplate: env(
+              'ORDERING_TABLE_MENU_TEMPLATE',
+              `${(env('FRONTEND_URLS', 'http://localhost:3000').split(',')[0] ?? '').trim()}/ban?t={token}`,
+            ),
+          },
       // Turnstile guards order creation and lookup when the app has a secret (same key as forms).
       // Builtins replace it with the in-memory captcha. SePay and captcha share `providers`.
       ...(Object.keys(providers).length > 0 ? { providers } : {}),

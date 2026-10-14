@@ -27,7 +27,7 @@ type PromotionRow = {
   target: PromotionSnapshot['target'] | string;
   minSubtotal: number | null;
   locationRefs: string[] | null | string;
-  receiveKinds: Array<'pickup' | 'delivery' | 'digital'> | string;
+  receiveKinds: Array<'pickup' | 'delivery' | 'digital' | 'dine-in'> | string;
   startsAt: string;
   endsAt: string | null;
   weekdays: string[] | string;
@@ -193,7 +193,7 @@ const promotionService = ({ strapi }: { strapi: Core.Strapi }) => {
       now: Date;
       timezone: string;
       locationRef: string;
-      receiveKind: 'pickup' | 'delivery' | 'digital';
+      receiveKind: 'pickup' | 'delivery' | 'digital' | 'dine-in';
       lines: PromotionLine[];
       fulfillmentAmount: number;
       subtotal: number;

@@ -17,6 +17,7 @@ export const ALERT_CODES = [
   'notification-daily-limit',
   'low-rating',
   'gift-card-probing',
+  'table-session-open',
 ] as const;
 
 export type AlertCode = (typeof ALERT_CODES)[number];
@@ -51,6 +52,10 @@ const labels: Record<AlertCode, { vi: string; en: string }> = {
   },
   'low-rating': { vi: 'Khách đánh giá thấp', en: 'Low customer rating' },
   'gift-card-probing': { vi: 'Dò mã thẻ quà tặng', en: 'Gift-card code probing' },
+  'table-session-open': {
+    vi: 'Phiên bàn chưa đóng sau giờ cuối ngày',
+    en: 'Table session left open after business day end',
+  },
 };
 
 export const alertLabel = (code: string, locale: string | null | undefined): string =>

@@ -11,7 +11,13 @@ import type transitionFactory from '../services/transition';
 
 type WaitingGroup = {
   id: number;
-  order: { id: number; placedAt: string; locationRef: string; status: string } | null;
+  order: {
+    id: number;
+    placedAt: string;
+    locationRef: string;
+    status: string;
+    receiveMethod: { kind?: string } | null;
+  } | null;
 };
 
 /**
@@ -40,7 +46,9 @@ export const runPaymentExpiry = async (
     async () => {
       const waiting = (await strapi.db.query('plugin::ordering.fulfillment-group').findMany({
         where: { status: 'awaiting-payment' },
-        populate: { order: { select: ['id', 'placedAt', 'locationRef', 'status'] } },
+        populate: {
+          order: { select: ['id', 'placedAt', 'locationRef', 'status', 'receiveMethod'] },
+        },
         // Oldest first, so a long queue of fresh orders cannot starve the ones already due.
         orderBy: { id: 'asc' },
         limit: 200,
@@ -50,7 +58,10 @@ export const runPaymentExpiry = async (
         const order = group.order;
         if (!order || order.status !== 'open') continue;
         const branch = await branches.findByCode(order.locationRef);
-        const timeout = branches.pickupSettings(branch ?? { fulfillment: null }).paymentTimeoutMinutes;
+        const timeout = branches.receiveSettings(
+          branch ?? { fulfillment: null },
+          order.receiveMethod?.kind ?? 'pickup',
+        ).paymentTimeoutMinutes;
         const history = (await events().findMany({
           where: { order: order.id, type: 'fulfillment-group.transitioned' },
         })) as Array<{ occurredAt: string; payload: { groupId?: unknown; to?: unknown } | null }>;

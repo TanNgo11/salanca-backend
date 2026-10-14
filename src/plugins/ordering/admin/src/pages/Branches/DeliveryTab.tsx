@@ -62,6 +62,7 @@ export type Delivery = {
   minOrderAmount: number;
   customerCancelBeforeMinutes: number;
   slaMinutes: number;
+  autoRejectAfterMinutes: number | null;
   schedule: Schedule;
   zones: DeliveryZone[];
 };
@@ -101,6 +102,7 @@ export const emptyDelivery = (): Delivery => ({
   minOrderAmount: 0,
   customerCancelBeforeMinutes: 30,
   slaMinutes: 10,
+  autoRejectAfterMinutes: null,
   schedule: emptySchedule(),
   zones: [],
 });

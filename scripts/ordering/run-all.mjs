@@ -98,6 +98,20 @@ const scripts = [
   'gift-card-admin.mjs',
   // O9 step 6: card metrics, cash closing, CSV column, expiry job, seal retention, probing alert.
   'gift-card-report.mjs',
+  // O12 step 1: per-kind pause + busy mode.
+  'pause.mjs',
+  // O12 step 2: auto-reject stuck awaiting-acceptance groups.
+  'auto-reject.mjs',
+  // O12 step 3: branch service/packaging fees via the pricing pipeline.
+  'fees.mjs',
+  // O12 step 4: allergen/dietary codes, filters, kitchenStation inheritance.
+  'allergens.mjs',
+  // O12 step 5: kitchen-ticket / provisional-receipt print payloads (privacy + scope).
+  'print.mjs',
+  // O12 step 6: kitchen display board — stations, prepared toggles, complete.
+  'kds.mjs',
+  // O12 step 7: QR dine-in — tables, sessions, close-and-collect, autoclose alert.
+  'dine-in.mjs',
   'review-round4.mjs',
   // O13: provider adapters — all fake-server, no real network.
   'momo.mjs',

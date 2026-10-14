@@ -38,6 +38,17 @@ type Services = {
 
 const BANK_REFERENCE = /^[A-Za-z0-9][A-Za-z0-9-]{3,40}$/;
 
+/** Pending refunds already count against a payment's refundable room (same rule as refundBank). */
+const pendingRefundSum = async (strapi: Core.Strapi, paymentId: number): Promise<number> => {
+  const rows = (await strapi.db
+    .connection('plugins_ordering_refund as refund')
+    .join('plugins_ordering_refund_payment_lnk as link', 'link.refund_id', 'refund.id')
+    .where('link.payment_id', paymentId)
+    .where('refund.status', 'pending')
+    .select('refund.amount')) as Array<{ amount: string | number }>;
+  return rows.reduce((sum, row) => sum + amountFromDb(row.amount), 0);
+};
+
 const relationId = (value: unknown): number | null => {
   if (typeof value === 'number' && Number.isInteger(value)) return value;
   if (typeof value === 'string' && /^\d+$/.test(value)) return Number(value);
@@ -599,6 +610,54 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
   return {
     createRefundInTransaction,
     settleRefund,
+    pendingRefundSum: (paymentId: number) => pendingRefundSum(strapi, paymentId),
+
+    /**
+     * Gives back the money still held when an order closes as canceled (contracts §19.1, §19.8).
+     * Cash is refunded now; a captured transfer becomes a refund row the bank provider leaves
+     * `pending` until staff settle it. Call it after the close took the group locks: payments are
+     * re-read here, so a transfer captured just before the close is not missed. Shared by the
+     * admin cancel/reject paths and the O12 auto-reject job. MUST run inside the caller's
+     * transaction.
+     */
+    async refundHeldForOrder(
+      trx: TransactionClient,
+      orderId: number,
+      reason: string,
+      ctx: ServiceContext,
+    ): Promise<{ refunded: number; refundPending: number }> {
+      // O9: card value returns before cash/bank — a restored balance is spendable at once,
+      // where a transfer refund waits on the bank.
+      const payments = [...((await repo.loadOrderAggregate(orderId))?.payments ?? [])].sort(
+        (a, b) => Number(b.providerCode === 'gift-card') - Number(a.providerCode === 'gift-card'),
+      );
+      let refunded = 0;
+      let refundPending = 0;
+      for (const payment of payments) {
+        const held = payment.capturedAmount - payment.refundedAmount;
+        if (held <= 0) continue;
+        if (payment.providerCode === 'cash') {
+          const { amount } = await createRefundInTransaction(
+            trx,
+            { paymentId: payment.id, amount: held, reason },
+            ctx,
+          );
+          refunded += amount;
+        } else {
+          const room = held - (await pendingRefundSum(strapi, payment.id));
+          if (room <= 0) continue;
+          const { amount, status } = await createRefundInTransaction(
+            trx,
+            { paymentId: payment.id, amount: room, reason },
+            ctx,
+          );
+          if (status === 'settled') refunded += amount;
+          else refundPending += amount;
+        }
+      }
+      return { refunded, refundPending };
+    },
+
     dispatchWalletRefund,
 
     async createRefund(

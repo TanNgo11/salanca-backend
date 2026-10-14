@@ -29,6 +29,7 @@ import customerAddress from './customer-address';
 import customerOtp from './customer-otp';
 import customerSession from './customer-session';
 import dataRequest from './data-request';
+import diningTable from './dining-table';
 import fulfillment from './fulfillment';
 import fulfillmentGroup from './fulfillment-group';
 import fulfillmentLine from './fulfillment-line';
@@ -56,6 +57,7 @@ import paymentEvent from './payment-event';
 import refund from './refund';
 import refundLine from './refund-line';
 import staffLocationScope from './staff-location-scope';
+import tableSession from './table-session';
 import webhookDelivery from './webhook-delivery';
 import webhookEndpoint from './webhook-endpoint';
 
@@ -86,6 +88,7 @@ export default {
   'customer-otp': customerOtp,
   'customer-session': customerSession,
   'data-request': dataRequest,
+  'dining-table': diningTable,
   fulfillment,
   'fulfillment-group': fulfillmentGroup,
   'fulfillment-line': fulfillmentLine,
@@ -113,6 +116,7 @@ export default {
   refund,
   'refund-line': refundLine,
   'staff-location-scope': staffLocationScope,
+  'table-session': tableSession,
   'webhook-delivery': webhookDelivery,
   'webhook-endpoint': webhookEndpoint,
 };

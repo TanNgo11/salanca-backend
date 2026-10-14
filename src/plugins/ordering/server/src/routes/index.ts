@@ -50,6 +50,8 @@ export default {
       publicRoute('GET', '/admin-units', 'admin-units.list'),
       publicRoute('GET', '/config', 'storefront.config'),
       publicRoute('GET', '/slots', 'storefront.slots'),
+      // O12: scanned table QR resolves branch + table for the at-table menu.
+      publicRoute('GET', '/tables/:token', 'table.resolve'),
       publicRoute('POST', '/quote', 'storefront.quote'),
       publicRoute('POST', '/orders', 'storefront.create'),
       publicRoute('GET', '/orders', 'storefront.show'),
@@ -212,6 +214,11 @@ export default {
       // The Admin fetch client has no PATCH; PUT carries the same partial update.
       adminRoute('PUT', '/branches/:code', 'admin-branches.update', 'settings.manage'),
       adminRoute('POST', '/branches/:code/delivery-quote', 'admin-branches.deliveryQuote', 'settings.manage'),
+      // O12 pause/busy (screens N3): inbox staff toggle them, so `order.process` not `settings.manage`.
+      adminRoute('POST', '/branches/:code/pause', 'admin-branches.pause', 'order.process'),
+      adminRoute('POST', '/branches/:code/resume', 'admin-branches.resume', 'order.process'),
+      adminRoute('POST', '/branches/:code/busy', 'admin-branches.busy', 'order.process'),
+      adminRoute('POST', '/branches/:code/busy/clear', 'admin-branches.clearBusy', 'order.process'),
       adminRoute('GET', '/staff-scopes', 'admin-branches.staffList', 'scope.manage'),
       adminRoute('PUT', '/staff-scopes/:adminUserId', 'admin-branches.staffPut', 'scope.manage'),
       // Phone page for the assigned courier (screens E4). Scope is the assignee, not the branch.
@@ -226,6 +233,31 @@ export default {
       // CSV export (screens V5) — before `/orders/:id` so 'export' is not parsed as an id.
       adminRoute('GET', '/orders/export', 'admin-orders.exportOrders', 'export'),
       adminRoute('GET', '/orders/:id', 'admin-orders.detail', 'order.read'),
+      // O12 print pages (screens N1): kitchen ticket / provisional receipt payload. The
+      // session variant (N7 "In hóa đơn bàn") merges every order of the table on one bill.
+      adminRoute('GET', '/print/orders/:id', 'print.order', 'order.read'),
+      adminRoute('GET', '/print/table-sessions/:id', 'print.session', 'table.manage'),
+      // O12 KDS (screens N2): board, per-line prepared, whole-order ready, KDS-scoped SSE.
+      adminRoute('GET', '/kitchen', 'kitchen.board', 'kitchen.read'),
+      adminRoute('GET', '/kitchen/stream', 'admin-stream.stream', 'kitchen.read'),
+      adminRoute('POST', '/kitchen/lines/:lineId/prepared', 'kitchen.prepared', 'kitchen.read'),
+      adminRoute('POST', '/kitchen/orders/:id/start', 'kitchen.start', 'kitchen.read'),
+      adminRoute('POST', '/kitchen/orders/:id/complete', 'kitchen.complete', 'kitchen.read'),
+      // O12 tables (screens N6) and sessions (screens N7). The session close also touches
+      // money, so it additionally requires `payment.record-cash`.
+      adminRoute('GET', '/tables', 'table.list', 'table.manage'),
+      adminRoute('POST', '/tables', 'table.create', 'table.manage'),
+      adminRoute('PUT', '/tables/:id', 'table.update', 'table.manage'),
+      adminRoute('POST', '/tables/:id/rotate-qr', 'table.rotateQr', 'table.manage'),
+      adminRoute('GET', '/tables/:id/qr.svg', 'table.qr', 'table.manage'),
+      adminRoute('GET', '/table-sessions', 'table.sessions', 'table.manage'),
+      adminRoute(
+        'POST',
+        '/table-sessions/:id/close',
+        'table.closeSession',
+        'table.manage',
+        'payment.record-cash',
+      ),
       adminRoute('POST', '/orders/:id/payment-link', 'admin-orders.paymentLink', 'order.read'),
       adminRoute('POST', '/orders/:id/transition', 'admin-orders.transition', 'order.process'),
       adminRoute('POST', '/orders/:id/notes', 'admin-orders.addNote', 'order.process'),

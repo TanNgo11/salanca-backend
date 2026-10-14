@@ -17,6 +17,14 @@ export default collection(
     fulfillment: { type: 'json' },
     tax: { type: 'json' },
     cashRounding: { type: 'json' },
+    // O12: per-receive-kind pause deadlines `{ pickup?, delivery?, dineIn? }` (until ISO instant).
+    orderingPause: { type: 'json' },
+    // O12: busy mode `{ extraMinutes, until, by }` — adds lead time to new ASAP orders.
+    busyMode: { type: 'json' },
+    // O12: branch service/packaging fees (resolved by `resolveBranchFees`).
+    fees: { type: 'json' },
+    // O12: print layout `{ width, header?, footer?, autoKitchenTicket }`.
+    printing: { type: 'json' },
     orders: {
       type: 'relation',
       relation: 'oneToMany',

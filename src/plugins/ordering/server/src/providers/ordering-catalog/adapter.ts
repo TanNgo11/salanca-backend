@@ -17,6 +17,11 @@ import {
 } from '../../domain/catalog/availability';
 import type { BundleSlot } from '../../domain/catalog/bundle-slots';
 import { resolveLocalizedText } from '../../domain/catalog/localized-text';
+import {
+  normalizeKitchenStation,
+  sanitizeAllergens,
+  sanitizeDietaryTags,
+} from '../../domain/catalog/allergens';
 import type { ProductModifierGroup } from '../../domain/catalog/modifier-groups';
 import {
   applyAdjustLists,
@@ -56,6 +61,7 @@ type CategoryRow = DbRow & {
   rank?: number;
   isActive?: boolean;
   isInternal?: boolean;
+  kitchenStation?: unknown;
   parent?: { documentId?: string } | null;
 };
 
@@ -92,6 +98,8 @@ type ProductRow = DbRow & {
   taxGroupRef?: string;
   modifierGroups?: unknown;
   bundleSlots?: unknown;
+  allergens?: unknown;
+  dietaryTags?: unknown;
   rank?: number;
   variants?: VariantRow[];
   categories?: { documentId?: string }[];
@@ -334,6 +342,9 @@ const toSellable = async (
   // Category snapshots: every direct category, path rendered root → leaf.
   const categorySnapshots: Sellable['categories'] = [];
   let categoryActive = true;
+  // O12: KDS station — own category first, then each ancestor nearest-first; the first
+  // non-empty station wins across all direct categories in link order.
+  let kitchenStation: string | null = null;
   for (const ref of asArray<{ documentId?: string }>(product.categories)) {
     if (!ref.documentId) continue;
     const category = categories.get(ref.documentId);
@@ -345,6 +356,15 @@ const toSellable = async (
       title: pick(category.name) ?? category.documentId,
       path: chain.map((row) => row.documentId),
     });
+    if (!kitchenStation) {
+      for (const row of [...chain].reverse()) {
+        const station = normalizeKitchenStation(row.kitchenStation);
+        if (station) {
+          kitchenStation = station;
+          break;
+        }
+      }
+    }
   }
 
   // Modifier library needed by the attach records.
@@ -494,6 +514,10 @@ const toSellable = async (
   await loader.collectSlugs('catalog-product', [product.documentId]);
   const catalogExtras = {
     slug: loader.slugOf(product.documentId, locale),
+    // O12: allergen/dietary codes travel as codes; serializers label them per locale.
+    allergens: sanitizeAllergens(product.allergens),
+    dietaryTags: sanitizeDietaryTags(product.dietaryTags),
+    ...(kitchenStation ? { kitchenStation } : {}),
     availability: {
       reasons: verdict.reasons,
       ...(verdict.resumesAt ? { resumesAt: verdict.resumesAt.toISOString() } : {}),
@@ -671,6 +695,7 @@ export const createOrderingCatalogAdapter = ({ strapi }: { strapi: Core.Strapi }
           rank: row.rank ?? 0,
           isActive: row.isActive !== false,
           isInternal: row.isInternal === true,
+          kitchenStation: normalizeKitchenStation(row.kitchenStation),
         });
       }
       return output;

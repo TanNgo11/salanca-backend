@@ -23,6 +23,8 @@
   "ordering.categories.form.parent": "Parent category",
   "ordering.categories.form.root": "— Root —",
   "ordering.categories.form.description": "Description",
+  "ordering.categories.form.kitchenStation": "Kitchen station",
+  "ordering.categories.form.kitchenStation.hint": "E.g. Hot kitchen — empty inherits the parent station",
   "ordering.categories.form.visible": "Visible to customers",
   "ordering.categories.form.internal": "Internal",
   "ordering.categories.form.cancel": "Cancel",

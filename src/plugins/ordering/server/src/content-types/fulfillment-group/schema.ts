@@ -17,6 +17,8 @@ export default collection(
     // Set when the branch accepts (slot start, or now + preparation time for ASAP) and moved
     // by "Nhận và lùi"; shown to the customer and in emails (screens S2/S4).
     estimatedReadyAt: { type: 'datetime' },
+    /** O12 KDS: when a kitchen screen pressed "Bắt đầu"; KDS-only state, not a workflow status. */
+    kitchenStartedAt: { type: 'datetime' },
     lines: {
       type: 'relation',
       relation: 'oneToMany',

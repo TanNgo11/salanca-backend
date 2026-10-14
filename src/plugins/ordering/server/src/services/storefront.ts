@@ -7,7 +7,7 @@ import { normalizeVietnamesePhone } from '../../../shared/contact/phone';
 import { OrderingError, isOrderingError } from '../domain/errors';
 import { paymentWindowStart } from '../domain/payments/deadline';
 import { sha256Hex } from '../domain/hashing';
-import type { PickupSettings } from '../domain/branch-settings';
+import { activePause, type PickupSettings } from '../domain/branch-settings';
 import { asapReadyAt, bookingWindow, isOpenAt } from '../domain/scheduling/slots';
 import { addDays, toLocalParts } from '../domain/scheduling/zoned-time';
 import {
@@ -51,11 +51,13 @@ const upcomingSpecialHours = (settings: PickupSettings, timezone: string, now: D
     }));
 };
 
-const receiveConfig = (settings: PickupSettings, timezone: string, now: Date) => {
+const receiveConfig = (settings: PickupSettings, timezone: string, now: Date, busyExtra = 0) => {
   const window = bookingWindow(settings, timezone, now);
+  const leadTime = settings.schedule.leadTimeMinutes + busyExtra;
   return {
     orderTiming: settings.orderTiming,
-    leadTimeMinutes: settings.schedule.leadTimeMinutes,
+    leadTimeMinutes: leadTime,
+    busyExtraMinutes: busyExtra,
     slotLengthMinutes: settings.schedule.slotLengthMinutes,
     maxAdvanceDays: settings.schedule.maxAdvanceDays,
     bookableFrom: window.today,
@@ -65,8 +67,7 @@ const receiveConfig = (settings: PickupSettings, timezone: string, now: Date) =>
     paymentMethods: settings.paymentProviders,
     customerCancelBeforeMinutes: settings.customerCancelBeforeMinutes,
     openNow: isOpenAt(settings, timezone, now),
-    asapReadyAt:
-      asapReadyAt(settings, timezone, now, settings.schedule.leadTimeMinutes)?.toISOString() ?? null,
+    asapReadyAt: asapReadyAt(settings, timezone, now, leadTime)?.toISOString() ?? null,
     specialHours: upcomingSpecialHours(settings, timezone, now),
   };
 };
@@ -128,10 +129,8 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
     if (!startsAt) return true;
     const branch = await branches().findByCode(aggregate.order.locationRef);
     const receive = aggregate.order.receiveMethod as { kind?: string };
-    const settings =
-      receive.kind === 'delivery'
-        ? branches().deliverySettings(branch ?? { fulfillment: null })
-        : branches().pickupSettings(branch ?? { fulfillment: null });
+    // Dine-in orders read the dine-in settings (providers, cancel window), not pickup's.
+    const settings = branches().receiveSettings(branch ?? { fulfillment: null }, receive.kind ?? 'pickup');
     return now.getTime() <= new Date(startsAt).getTime() - settings.customerCancelBeforeMinutes * 60_000;
   };
 
@@ -191,11 +190,8 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
             ]),
           ]
         : null;
-      const settings = digital
-        ? null
-        : receive.kind === 'delivery'
-          ? branches().deliverySettings(fallback)
-          : branches().pickupSettings(fallback);
+      // Dine-in orders read the dine-in settings (providers, cancel window), not pickup's.
+      const settings = digital ? null : branches().receiveSettings(fallback, receive.kind ?? 'pickup');
       const awaitingPayment = aggregate.groups.some((group) => group.status === 'awaiting-payment');
       const candidates = providers ?? settings?.paymentProviders;
       let presentation: Record<string, unknown> | null = null;
@@ -299,10 +295,8 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
       }
       const receive = aggregate.order.receiveMethod as { kind?: string };
       const branch = await branches().findByCode(aggregate.order.locationRef);
-      const settings =
-        receive.kind === 'delivery'
-          ? branches().deliverySettings(branch ?? { fulfillment: null })
-          : branches().pickupSettings(branch ?? { fulfillment: null });
+      // Dine-in orders read the dine-in settings (providers, cancel window), not pickup's.
+      const settings = branches().receiveSettings(branch ?? { fulfillment: null }, receive.kind ?? 'pickup');
       if (!settings.paymentProviders.includes(providerCode)) {
         throw new OrderingError('VALIDATION_ERROR', 'this branch does not offer that provider', {
           details: { field: 'provider' },
@@ -445,14 +439,44 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
       }
       const pickup = branches().pickupSettings(branch);
       const delivery = branches().deliverySettings(branch);
+      const dineIn = branches().dineInSettings(branch);
       const now = nowOf(ctx);
+      // O12: pause/busy state — the client dims paused methods and shows the resume time;
+      // busy mode is already baked into each method's lead time/asapReadyAt.
+      const pause = branches().pauseState(branch);
+      const busy = branches().busyState(branch);
+      const busyExtra = branches().busyExtra(branch, now);
       return {
         ...base,
         branch: {
           code: branch.code,
           timezone: branch.timezone,
-          pickup: pickup.enabled ? receiveConfig(pickup, branch.timezone, now) : null,
-          ...(delivery.enabled ? { delivery: receiveConfig(delivery, branch.timezone, now) } : {}),
+          pause: {
+            pickup: activePause(pause, 'pickup', now),
+            delivery: activePause(pause, 'delivery', now),
+            dineIn: activePause(pause, 'dineIn', now),
+          },
+          busy: busyExtra > 0 ? { extraMinutes: busyExtra, until: busy?.until ?? null } : null,
+          // O12: configured fees so checkout can list them before quoting.
+          fees: branches()
+            .branchFees(branch)
+            .map((fee) => ({
+              code: fee.code,
+              label: fee.label,
+              kind: fee.kind,
+              ...(fee.amount !== undefined ? { amount: fee.amount } : {}),
+              ...(fee.percent !== undefined ? { percent: fee.percent } : {}),
+              receiveKinds: fee.receiveKinds,
+              taxable: fee.taxable,
+              ...(fee.minSubtotal !== undefined ? { minSubtotal: fee.minSubtotal } : {}),
+            })),
+          pickup: pickup.enabled ? receiveConfig(pickup, branch.timezone, now, busyExtra) : null,
+          ...(delivery.enabled
+            ? { delivery: receiveConfig(delivery, branch.timezone, now, busyExtra) }
+            : {}),
+          ...(dineIn.enabled
+            ? { dineIn: { sessionPayment: dineIn.sessionPayment, paymentMethods: dineIn.paymentProviders } }
+            : {}),
         },
       };
     },
@@ -472,12 +496,13 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
       }
       const pickup = branches().pickupSettings(branch);
       if (!pickup.enabled || pickup.orderTiming === 'asap') return { items: [] };
+      const now = nowOf(ctx);
       const slots = await scheduling().listSlots({
         branch,
         settings: pickup,
         date,
-        leadTimeMinutes: pickup.schedule.leadTimeMinutes,
-        now: nowOf(ctx),
+        leadTimeMinutes: pickup.schedule.leadTimeMinutes + branches().busyExtra(branch, now),
+        now,
       });
       return {
         items: slots.map((slot) => ({

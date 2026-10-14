@@ -62,6 +62,19 @@ kế hoạch [`ordering-o12-restaurant.md`](ordering-o12-restaurant.md), mockup
   bàn" (chọn Tiền mặt / Chuyển khoản tại quầy + mã tham chiếu) — còn đơn chưa xong thì `Alert` và chặn.
 - Phiên mở qua ngày kinh doanh: thẻ đỏ "Chưa đóng từ hôm qua".
 
+## Đã đổi khi code O12 (2026-10-14)
+
+- **Tip chưa làm** (N1 dòng "tip", N4 khối Tip, checkout nút %): chờ kế toán xác nhận cách hạch toán và thuế. Hóa đơn
+  tạm không có dòng tip.
+- **N7 "In hóa đơn bàn"** chỉ gộp các đơn còn sống: đơn đã hủy không in và không tính vào tổng, giống lúc đóng bàn
+  không thu tiền đơn hủy.
+- **N7 "Chuyển khoản tại quầy"**: một mã tham chiếu cho cả lần đóng. Đơn đầu tiên dùng đúng mã đó, các đơn sau dùng
+  `<mã>-<id đơn>` (cắt mã gốc cho vừa 41 ký tự). Để trống thì server tự sinh `tsc<id phiên>-<8 hex>`.
+- **N4 / cấu hình Tại bàn**: `sessionPayment` mặc định `at-close` — mọi đơn tại bàn đi luồng trả sau, thu khi đóng bàn,
+  bất kể `paymentTiming`. Muốn khách trả từng đơn thì đặt `per-order`, khi đó `paymentTiming` có hiệu lực.
+- **N4 "Tự từ chối"**: thời gian chờ tính từ lúc đơn vào "chờ nhận". Đơn trả trước tính từ lúc đã trả, không tính từ lúc đặt.
+- **N6**: link QR (chứa token bàn) vẫn hiện cho người có `table.manage`, nhưng không ghi vào nhật ký thay đổi.
+
 ## Phía khách (OW dùng)
 
 - `/config` có `pause` → web hiện "Quán tạm dừng nhận đơn giao đến 12:45" và gợi ý cách nhận còn mở; `busy` → "Quán đang

@@ -14,6 +14,7 @@ import {
   RBAC_CUSTOMERS,
   RBAC_DATA_REQUESTS,
   RBAC_GIFT_CARD,
+  RBAC_KITCHEN,
   RBAC_OPS,
   RBAC_ORDERS_READ,
   RBAC_PAYMENT_REVIEW,
@@ -22,10 +23,16 @@ import {
   RBAC_REPORT,
   RBAC_SCOPE,
   RBAC_SETTINGS,
+  RBAC_TABLES,
   RBAC_WEBHOOK,
 } from '../lib/permissions';
 
 const OrdersPage = lazy(() => import('./Orders'));
+const PrintPage = lazy(() => import('./Print'));
+const SessionPrintPage = lazy(() => import('./Print/Session'));
+const KitchenPage = lazy(() => import('./Kitchen'));
+const TablesPage = lazy(() => import('./Tables'));
+const TableSessionsPage = lazy(() => import('./TableSessions'));
 const CustomersPage = lazy(() => import('./Customers'));
 const DataRequestsPage = lazy(() => import('./DataRequests'));
 const DeliveriesPage = lazy(() => import('./Deliveries'));
@@ -52,6 +59,8 @@ const GiftCardsPage = lazy(() => import('./GiftCards'));
 
 type Section =
   | 'orders'
+  | 'kitchen'
+  | 'table-sessions'
   | 'customers'
   | 'data-requests'
   | 'deliveries'
@@ -70,6 +79,7 @@ type Section =
   | 'catalog-import'
   | 'availability'
   | 'branches'
+  | 'tables'
   | 'staff'
   | 'audit-log'
   | 'webhooks'
@@ -134,6 +144,8 @@ const SideNav = ({
       <SubNavHeader label={t('nav.title')} />
       <SubNavSections>
         {visible.orders ||
+        visible.kitchen ||
+        visible['table-sessions'] ||
         visible.customers ||
         visible['customer-groups'] ||
         visible.deliveries ||
@@ -144,6 +156,8 @@ const SideNav = ({
         visible.ops ? (
           <SubNavSection label={t('nav.operations')}>
             {visible.orders ? link('orders', t('nav.orders'), inbox?.awaiting) : null}
+            {visible.kitchen ? link('kitchen', t('nav.kitchen')) : null}
+            {visible['table-sessions'] ? link('table-sessions', t('nav.tableSessions')) : null}
             {visible.customers ? link('customers', t('nav.customers')) : null}
             {visible['customer-groups'] ? link('customer-groups', t('nav.customerGroups')) : null}
             {visible.deliveries ? link('deliveries', t('nav.deliveries')) : null}
@@ -174,9 +188,10 @@ const SideNav = ({
             {visible.availability ? link('availability', t('nav.availability')) : null}
           </SubNavSection>
         ) : null}
-        {visible.branches || visible.staff || visible.settings || visible['audit-log'] || visible.webhooks || visible.providers || visible['api-docs'] || visible['data-requests'] ? (
+        {visible.branches || visible.tables || visible.staff || visible.settings || visible['audit-log'] || visible.webhooks || visible.providers || visible['api-docs'] || visible['data-requests'] ? (
           <SubNavSection label={t('nav.setup')}>
             {visible.branches ? link('branches', t('nav.branches')) : null}
+            {visible.tables ? link('tables', t('nav.tables')) : null}
             {visible.staff ? link('staff', t('nav.staff')) : null}
             {visible['data-requests'] ? link('data-requests', t('nav.dataRequests')) : null}
             {visible.webhooks ? link('webhooks', t('nav.webhooks')) : null}
@@ -197,6 +212,8 @@ const SideNav = ({
 
 const OrderingApp = () => {
   const orders = useRBAC(RBAC_ORDERS_READ);
+  const kitchen = useRBAC(RBAC_KITCHEN);
+  const tables = useRBAC(RBAC_TABLES);
   const process = useRBAC(PERMISSIONS.process);
   const recordCash = useRBAC(PERMISSIONS.recordCash);
   const reviews = useRBAC(RBAC_PAYMENT_REVIEW);
@@ -211,6 +228,7 @@ const OrderingApp = () => {
   const canProcess = !process.isLoading && process.allowedActions.canProcess === true;
   const canRecordCash = !recordCash.isLoading && recordCash.allowedActions.canRecordCash === true;
   const [hasAssigned, setHasAssigned] = useState(false);
+  const { pathname } = useLocation();
   useEffect(() => {
     if (!canProcess || canRecordCash) return undefined;
     let live = true;
@@ -231,7 +249,7 @@ const OrderingApp = () => {
   const price = useRBAC(RBAC_PRICE);
   const customers = useRBAC(RBAC_CUSTOMERS);
   const dataRequests = useRBAC(RBAC_DATA_REQUESTS);
-  const loading = [orders, process, recordCash, reviews, alerts, ops, report, catalogManage, catalogAccess, settings, scope, audit, webhook, customers, dataRequests, promotion, giftCards, price].some(
+  const loading = [orders, kitchen, tables, process, recordCash, reviews, alerts, ops, report, catalogManage, catalogAccess, settings, scope, audit, webhook, customers, dataRequests, promotion, giftCards, price].some(
     (item) => item.isLoading,
   );
   if (loading) {
@@ -244,6 +262,9 @@ const OrderingApp = () => {
   const any = (actions: Record<string, boolean>) => Object.values(actions).some(Boolean);
   const visible = {
     orders: any(orders.allowedActions),
+    kitchen: any(kitchen.allowedActions),
+    'table-sessions': any(tables.allowedActions),
+    tables: any(tables.allowedActions),
     customers: any(customers.allowedActions),
     'customer-groups': any(price.allowedActions),
     'data-requests': any(dataRequests.allowedActions),
@@ -272,6 +293,8 @@ const OrderingApp = () => {
   const first = (
     [
       'orders',
+      'kitchen',
+      'table-sessions',
       'customers',
       'customer-groups',
       'deliveries',
@@ -289,6 +312,7 @@ const OrderingApp = () => {
       'catalog-import',
       'availability',
       'branches',
+      'tables',
       'staff',
       'data-requests',
       'audit-log',
@@ -297,6 +321,25 @@ const OrderingApp = () => {
       'api-docs',
     ] as Section[]
   ).find((key) => visible[key]);
+
+  // N1 print pages render raw — no Admin frame, no inbox/SSE. They run inside hidden
+  // auto-print iframes on counter machines, so anything heavy would print twice.
+  if (pathname.includes('/plugins/ordering/print')) {
+    return (
+      <Suspense
+        fallback={
+          <Flex justifyContent="center" padding={10}>
+            <Loader />
+          </Flex>
+        }
+      >
+        <Routes>
+          <Route path="print/:orderId" element={<PrintPage />} />
+          <Route path="print/session/:sessionId" element={<SessionPrintPage />} />
+        </Routes>
+      </Suspense>
+    );
+  }
 
   return (
     <OrderingInboxProvider>
@@ -313,6 +356,9 @@ const OrderingApp = () => {
           <Routes>
             <Route index element={first ? <Navigate to={first} replace /> : null} />
             <Route path="orders/*" element={<OrdersPage />} />
+            <Route path="kitchen/*" element={<KitchenPage />} />
+            <Route path="table-sessions/*" element={<TableSessionsPage />} />
+            <Route path="tables/*" element={<TablesPage />} />
             <Route path="customers/*" element={<CustomersPage />} />
             <Route path="customer-groups/*" element={<CustomerGroupsPage />} />
             <Route path="data-requests/*" element={<DataRequestsPage />} />

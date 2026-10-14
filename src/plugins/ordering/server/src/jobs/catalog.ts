@@ -2,6 +2,7 @@ import type { Core } from '@strapi/strapi';
 
 import type { OrderingConfig } from '../config';
 import { runAuditChain } from './audit-chain';
+import { runAutoReject } from './auto-reject';
 import { runCartExpiry } from './cart-expiry';
 import { runCustomerGroupRefresh } from './customer-group-refresh';
 import { runCartReminder } from './cart-reminder';
@@ -17,6 +18,7 @@ import { runSepayReconciliation } from './reconciliation';
 import { runWalletStatusCheck } from './wallet-status';
 import { runRetention } from './retention';
 import { runSlaCheck } from './sla-check';
+import { runTableSessionAutoclose } from './table-session-autoclose';
 import { runWebhookDispatcher } from './webhook-dispatcher';
 
 export type JobRun = (
@@ -52,6 +54,8 @@ export const ORDERING_JOBS: OrderingJob[] = [
     runnable: true,
   },
   { name: 'sla-check', cronKey: 'slaCheckCron', run: runSlaCheck, runnable: true },
+  // O12: rejects groups stuck in `awaiting-acceptance` past the branch's per-kind timeout.
+  { name: 'auto-reject', cronKey: 'autoRejectCron', run: runAutoReject, runnable: true },
   {
     name: 'sepay-reconciliation',
     cronKey: 'reconciliationCron',
@@ -98,6 +102,14 @@ export const ORDERING_JOBS: OrderingJob[] = [
   },
   // O9: daily write-off of expired card balances (`expire` ledger rows).
   { name: 'gift-card-expiry', cronKey: 'giftCardExpiryCron', run: runGiftCardExpiry, runnable: true },
+  // O12 (plan step 7): flags dine-in table sessions still open after the business day rolled
+  // over — alerts only, never collects payment or closes the session.
+  {
+    name: 'table-session-autoclose',
+    cronKey: 'tableSessionAutocloseCron',
+    run: runTableSessionAutoclose,
+    runnable: true,
+  },
 ];
 
 export const jobByName = (name: string): OrderingJob | undefined =>

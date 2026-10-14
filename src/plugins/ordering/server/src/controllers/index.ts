@@ -12,12 +12,14 @@ import catalogImport from './catalog-import';
 import categories from './categories';
 import customerAuth from './customer-auth';
 import customer from './customer';
+import kitchen from './kitchen';
 import cart from './cart';
 import notificationChannels from './notification-channels';
 import notificationTemplates from './notification-templates';
 import openapi from './openapi';
 import ops from './ops';
 import paymentReview from './payment-review';
+import print from './print';
 import providers from './providers';
 import promotions from './promotions';
 import priceLists from './price-lists';
@@ -26,6 +28,7 @@ import giftCards from './gift-cards';
 import ratings from './ratings';
 import reports from './reports';
 import storefront from './storefront';
+import table from './table';
 import webhook from './webhook';
 import webhooks from './webhooks';
 
@@ -43,6 +46,8 @@ export default {
   webhook,
   webhooks,
   'payment-review': paymentReview,
+  print,
+  kitchen,
   openapi,
   ops,
   'cash-closing': cashClosing,
@@ -60,4 +65,5 @@ export default {
   'customer-auth': customerAuth,
   customer,
   cart,
+  table,
 };

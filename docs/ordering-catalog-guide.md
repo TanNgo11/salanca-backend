@@ -40,7 +40,10 @@ phải hai bản dịch tách rời như content i18n thường:
 ### 1. Danh mục — Ordering → Danh mục
 
 - **Thêm danh mục gốc**: nút trên đầu trang. **Thêm con**: nút `+` trên dòng cha.
-- **Sửa**: tên (vi/en), slug, mô tả, `isActive`, `isInternal`.
+- **Sửa**: tên (vi/en), slug, mô tả, `isActive`, `isInternal`, `kitchenStation`.
+- **Trạm bếp** (`kitchenStation`, O12): tên tự do của trạm (ví dụ "Bếp nóng", "Pha chế"). Món
+  thuộc danh mục kế thừa trạm này khi in phiếu bếp và trên màn Bếp — để trống nếu chi nhánh
+  chưa chia trạm. Sửa ở form sửa danh mục.
 - **Sắp xếp / đổi cha**: kéo-thả trực tiếp trên cây, hoặc dùng nút ↑/↓ và ô chọn cha.
   Cấm chọn chính nó hoặc con cháu làm cha (chống vòng lặp).
 - **Xóa**: bị chặn khi còn danh mục con — phải dời/xóa con trước. Nếu danh mục còn sản
@@ -59,10 +62,25 @@ phải hai bản dịch tách rời như content i18n thường:
 | `status` | `draft` → `active` khi sẵn sàng bán; `archived` = ngừng |
 | `sellOnline` | Bắt buộc bật để lên web |
 | `minQuantity` | Số lượng tối thiểu mỗi dòng đơn (mặc định 1) |
-| `fulfillmentKinds` | `["pickup","delivery"]` — hình thức nhận hàng hỗ trợ |
+| `fulfillmentKinds` | `["pickup","delivery","dine-in"]` — hình thức nhận hàng hỗ trợ (thêm `dine-in` cho món bán tại bàn, O12) |
 | `modifierGroups` | Gắn nhóm tùy chọn (xem mục 4) |
 | `bundleSlots` | Định nghĩa combo (xem mục 5) |
 | `availabilityWindows` | Khung giờ bán (xem mục 6) |
+| `allergens` | Mã dị ứng (O12, xem mục 2b) |
+| `dietaryTags` | Nhãn ăn kiêng (O12, xem mục 2b) |
+
+### 2b. Dị ứng và nhãn ăn kiêng (O12)
+
+Hai checklist trên sản phẩm; khách lọc/loại trên menu công khai.
+
+- **`allergens`** — bộ mã cố định 14 dị ứng EU FIC: `gluten`, `crustacean`, `egg`, `fish`,
+  `peanut`, `soy`, `milk`, `nut`, `celery`, `mustard`, `sesame`, `sulfite`, `lupin`, `mollusc`.
+  Dị ứng ngoài danh sách nhập `custom:<tên>` (≤ 60 ký tự, ví dụ `custom:ớt`). Nhãn hiển thị theo
+  locale, trùng lặp tự gỡ.
+- **`dietaryTags`** — `vegetarian`, `vegan`, `halal`, `gluten-free`, `sugar-free`, `spicy`.
+- API công khai trả `allergens[]`/`dietaryTags[]` dạng `{ code, label }` theo locale; tham số
+  `excludeAllergens=a,b` loại món chứa bất kỳ mã nào, `dietary=a,b` chỉ giữ món đủ các nhãn.
+  Dữ liệu sai mã bị middleware từ chối khi lưu — không tự nhập JSON thô.
 
 ### 3. Biến thể và giá
 

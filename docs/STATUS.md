@@ -2,6 +2,36 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
+2026-10-14: **Ordering O12 (vận hành nhà hàng: tạm dừng, phí, dị ứng, KDS, in, tại bàn) — implemented +
+automated verification passed, chờ manual UAT** trên `TanNgo11/ordering-o12` (tách từ `feat/ordering`
+`d292229`). 9 commit `a776b76`…`dfa62b3`, merge `fdd55ce`, review fixes `55a0996` `b070335` `45de2d7` theo
+[`plans/ordering-o12-restaurant.md`](plans/ordering-o12-restaurant.md) +
+[`plans/ordering-o12-handoff.md`](plans/ordering-o12-handoff.md):
+
+- **Tạm dừng / quán đông**: per-branch per-kênh (pickup/delivery/dine-in), hết hạn tự mở, busy cộng
+  phút vào giờ lấy; chặn quote+create trên kênh đang dừng; thanh điều khiển trên Đơn hàng + Bếp.
+- **Tự từ chối đơn kẹt**: job `order-autoreject` (mặc định 60', chỉnh per-branch); hoàn hold đã thu
+  + email khách lý do "no-response"; khoá job chống 2 process từ chối hai lần.
+- **Phí dịch vụ/đóng gói**: `fees[]` trên branch settings (cố định/%, lọc kênh, ngưỡng tạm tính),
+  chạy qua pricing-adjustment pipeline, hiện dòng phí trên đơn/tạm tính; `%` tính lại khi sửa đơn.
+- **Dị ứng + ăn kiêng + trạm bếp**: 14 mã EU FIC + `custom:*`, 6 nhãn dietary; public catalog trả
+  `{code,label}` theo locale, lọc `excludeAllergens`/`dietary`; `kitchenStation` trên danh mục.
+- **In trình duyệt**: `GET /admin/orders/:id/print` (kitchen|receipt), trang `/print/:orderId`
+  80/58mm, cờ `autoKitchenTicket` + ô "Máy in quầy" tự in qua iframe.
+- **KDS**: `GET /kitchen/board` (mới/đang làm/xong 15'), start/prepared/complete theo trạm, màn
+  `/kitchen` tối + SSE; cột `order-line.preparedAt`, `fulfillment-group.kitchenStartedAt`.
+- **Tại bàn**: `dining-table` (QR token chỉ lưu SHA-256, đổi mã vô hiệu tức thì) + `table-session`
+  (một phiên mở/bàn qua cột `openTableId` + unique index); `GET /tables/:token` public tối thiểu;
+  đơn `receiveMethod.kind: 'dine-in'` + `tableToken`; nhiều đơn cùng phiên; 3 workflow dine-in;
+  `ready→served→completed`; `POST /table-sessions/:id/close` thu tiền mặt/chuyển khoản quầy,
+  chặn khi còn món chưa xong, idempotent, ghi người thu; job `table-session-autoclose` chỉ cảnh báo;
+  in hóa đơn gộp phiên `/print/session/:id`. **Không có tiền tip** (chờ kế toán xác nhận).
+
+Gate: lint, typecheck, typecheck:admin, vitest `src/plugins/ordering`, `build:ordering`,
+`strapi build` bật plugin, `ordering:openapi` regen (127 path), vitest 761/761, 7 script O12
+(`pause` `auto-reject` `fees` `allergens` `print` `kds` `dine-in`) + các script bị ảnh hưởng —
+số liệu trong Completion record. **Open:** manual UAT browser (in nhiệt thật, KDS trên TV/tablet,
+quét QR bằng điện thoại); merge về `feat/ordering` theo quyết định chủ dự án.
 2026-10-14: **Ordering O13 (provider adapters: MoMo, VNPay, Ahamove, Zalo ZNS, eSMS) — implemented + automated verification passed, chờ manual UAT** trên `TanNgo11/ordering-o13` (tách từ `feat/ordering`; chưa merge/push). 8 commit bắt đầu từ `4c223f9` theo [`phases/phase-ordering-13-providers.md`](phases/phase-ordering-13-providers.md) + [`plans/ordering-o13-providers.md`](plans/ordering-o13-providers.md) (Completion record có bảng bước→commit đầy đủ):
 
 - **Review fixes (2026-10-14)**: 12 lỗi review (P0 chữ ký VNPay, P1 capture ví/job/hoàn tiền/Zalo token, P2 hạn mức, mã 9000/07, open redirect, che API key, HTTP cap, Ahamove COD/khóa/tọa độ) — bảng lỗi→commit→test trong Completion record của plan O13. Mã đối tác vẫn che 4 ký tự cuối; API key không còn hiện.

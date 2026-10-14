@@ -38,6 +38,7 @@ import {
 } from '../domain/order-edit';
 import { pricePromotion, type PromotionSnapshot } from '../domain/promotions/evaluate';
 import { appliesCashRounding } from '../domain/pricing/cash-rounding';
+import { branchFeeAmount, type BranchFeeSnapshot } from '../domain/pricing/branch-fees';
 import type { PricedLine, PricingAdjustmentInput } from '../domain/pricing/pipeline';
 import type { TaxContext } from '../domain/pricing/tax';
 import { describeSelectedOptions } from '../domain/storefront/serialize';
@@ -311,6 +312,9 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
     }
     const receive = orderRow.receiveMethod as StoredReceive;
     const kind = receiveKind(receive);
+    // Fees, price channel and branch settings must see a dine-in order as dine-in (`kind` folds it
+    // into pickup for slot/edit rules, which dine-in shares).
+    const channelKind = receive.kind === 'dine-in' ? 'dine-in' : kind;
     const openGroups = aggregate.groups.filter((group) => {
       const definition = registry.workflow(group.workflowName, group.workflowVersion);
       return !isTerminal(definition, group.status);
@@ -361,7 +365,9 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
       });
     }
     const settings =
-      kind === 'delivery' ? branchService.deliverySettings(branch) : branchService.pickupSettings(branch);
+      kind === 'delivery'
+        ? branchService.deliverySettings(branch)
+        : (branchService.receiveSettings(branch, channelKind) as PickupSettings);
     const slotSettings = settings as PickupSettings;
 
     let nextAddress: AddressSnapshot | null = kind === 'delivery' ? (receive.address ?? null) : null;
@@ -402,7 +408,7 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
       openGroups,
       channel: priceChannelOf({
         originKind: (orderRow.origin as { kind?: string } | undefined)?.kind,
-        receiveKind: kind,
+        receiveKind: channelKind,
       }),
       customerGroups,
       timezone: branch.timezone,
@@ -487,7 +493,11 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
         base: (line.unitAmount + line.optionAmount) * line.quantity,
       });
     }
-    const adjustmentInputs: PricingAdjustmentInput[] = keptAdjustments.map((row) => {
+    // O12: percent branch fees ride the same reprice — resolved per row first so the
+    // discounted merchandise base (merchandise + resolved discounts) is known, then each
+    // `branchFee` snapshot reprices against it. A fee whose snapshot rules no longer hold
+    // (kind switched, below minimum) drops out of the edited order.
+    const resolvedAdjustments = keptAdjustments.map((row) => {
       if (!ADJUSTMENT_KINDS.has(row.kind)) {
         throw new OrderingError('VALIDATION_ERROR', 'stored adjustment kind is not supported', {
           details: { code: row.code },
@@ -524,18 +534,41 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
         amount = repriced?.amount ?? 0;
         target = repriced?.target ?? { kind: 'order' };
       }
-      return {
-        kind: row.kind as PricingAdjustmentInput['kind'],
-        code: row.code,
-        label: row.label,
-        amount,
-        taxable: row.taxable,
-        priority: row.priority,
-        ...(row.sourceRef ? { sourceRef: row.sourceRef } : {}),
-        ...(row.ruleSnapshot ? { ruleSnapshot: row.ruleSnapshot } : {}),
-        ...(target ? { target } : {}),
-      };
+      return { row, amount, target };
     });
+    const editedDiscounted =
+      merchandise +
+      resolvedAdjustments
+        .filter(({ row, target }) => row.kind === 'discount' && target?.kind !== 'fulfillment')
+        .reduce((sum, { amount }) => sum + amount, 0);
+    const adjustmentInputs: PricingAdjustmentInput[] = resolvedAdjustments.flatMap(
+      ({ row, amount, target }) => {
+        const feeSnap = (row.ruleSnapshot as BranchFeeSnapshot | null)?.branchFee;
+        let finalAmount = amount;
+        if (feeSnap) {
+          const applied = branchFeeAmount(feeSnap, {
+            receiveKind: channelKind,
+            merchandiseSubtotal: merchandise,
+            discountedSubtotal: editedDiscounted,
+          });
+          if (applied === null) return [];
+          finalAmount = applied;
+        }
+        return [
+          {
+            kind: row.kind as PricingAdjustmentInput['kind'],
+            code: row.code,
+            label: row.label,
+            amount: finalAmount,
+            taxable: row.taxable,
+            priority: row.priority,
+            ...(row.sourceRef ? { sourceRef: row.sourceRef } : {}),
+            ...(row.ruleSnapshot ? { ruleSnapshot: row.ruleSnapshot } : {}),
+            ...(target ? { target } : {}),
+          },
+        ];
+      },
+    );
     const capturedOnline = aggregate.payments.find(
       (paymentRow) =>
         paymentRow.providerCode !== 'cash' && paymentRow.capturedAmount - paymentRow.refundedAmount > 0,

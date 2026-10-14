@@ -37,12 +37,18 @@ import { RBAC_EXPORT, RBAC_LIST } from '../../lib/permissions';
 import type { OrderRow } from '../../lib/types';
 import { useOrderActions } from '../../lib/useOrderActions';
 import { OrderPreviewModal } from './OrderPreviewModal';
+import { PauseBusyBar, type BranchAvailability } from './PauseBusyBar';
 
 const TABS = ['awaiting', 'preparing', 'ready', 'done', 'canceled', 'all', 'drafts'] as const;
 type Tab = (typeof TABS)[number];
 const BRANCH_KEY = 'ordering.inbox.branch';
 
-type StaffBranch = { code: string; name: Record<string, string>; timezone: string; businessDate: string };
+type StaffBranch = {
+  code: string;
+  name: Record<string, string>;
+  timezone: string;
+  businessDate: string;
+} & BranchAvailability;
 type ListResponse = {
   results: OrderRow[];
   pagination: { page: number; pageSize: number; total: number; pageCount: number };
@@ -86,25 +92,26 @@ export const OrdersList = () => {
   const [preview, setPreview] = useState<number | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data: response } = await get('/ordering/orders/branches');
-        const items = ((response as { results?: StaffBranch[] })?.results ?? []) as StaffBranch[];
-        setBranches(items);
-        const chosen = items.find((item) => item.code === remembered()) ?? items[0];
-        if (chosen) {
-          setBranch(chosen.code);
-          setBusinessDate(chosen.businessDate);
-        } else {
-          setStatus('ready');
-        }
-      } catch (error) {
-        const code = httpStatusOf(error);
-        setStatus(code === 403 ? 'forbidden' : 'error');
-      }
-    })();
+  const loadBranches = useCallback(async () => {
+    try {
+      const { data: response } = await get('/ordering/orders/branches');
+      const items = ((response as { results?: StaffBranch[] })?.results ?? []) as StaffBranch[];
+      setBranches(items);
+      setBranch((current) => {
+        const chosen = items.find((item) => item.code === (current || remembered())) ?? items[0];
+        if (chosen) setBusinessDate((date) => date || chosen.businessDate);
+        return chosen?.code ?? current;
+      });
+      if (items.length === 0) setStatus('ready');
+    } catch (error) {
+      const code = httpStatusOf(error);
+      setStatus(code === 403 ? 'forbidden' : 'error');
+    }
   }, [get]);
+
+  useEffect(() => {
+    void loadBranches();
+  }, [loadBranches]);
 
   const load = useCallback(async () => {
     if (!branch) return;
@@ -137,8 +144,9 @@ export const OrdersList = () => {
   );
 
   const actions = useOrderActions(() => void load());
-  const timezone = useMemo(() => branches?.find((item) => item.code === branch)?.timezone ?? 'Asia/Ho_Chi_Minh', [branch, branches]);
-  const branchName = localized(branches?.find((item) => item.code === branch)?.name, locale);
+  const activeBranch = useMemo(() => branches?.find((item) => item.code === branch), [branch, branches]);
+  const timezone = activeBranch?.timezone ?? 'Asia/Ho_Chi_Minh';
+  const branchName = localized(activeBranch?.name, locale);
   const filtered = Boolean(search || payment || origin);
 
   const header = (
@@ -179,6 +187,15 @@ export const OrdersList = () => {
     <>
       {header}
       <Layouts.Content>
+        {branch ? (
+          <PauseBusyBar
+            branch={branch}
+            availability={activeBranch}
+            timezone={timezone}
+            canProcess={allowedActions.canProcess === true}
+            onChanged={() => void loadBranches()}
+          />
+        ) : null}
         <Flex gap={3} wrap="wrap" alignItems="flex-end" paddingBottom={4}>
           <Field.Root>
             <Field.Label>{t('orders.filter.branch')}</Field.Label>

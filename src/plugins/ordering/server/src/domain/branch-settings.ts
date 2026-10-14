@@ -104,31 +104,27 @@ export const scheduleSchema = z
 export const PAYMENT_TIMINGS = ['prepay', 'accept-then-pay', 'pay-on-pickup'] as const;
 export type PaymentTiming = (typeof PAYMENT_TIMINGS)[number];
 
-export const pickupSettingsSchema = z
-  .object({
-    enabled: z.boolean().default(false),
-    orderTiming: z.enum(['asap', 'scheduled', 'both']).default('both'),
-    paymentTiming: z.enum(PAYMENT_TIMINGS).default('pay-on-pickup'),
-    paymentProviders: z.array(z.string().min(1)).max(10).default(['cash']),
-    paymentTimeoutMinutes: z.number().int().min(1).max(1440).default(15),
-    minOrderAmount: z.number().int().min(0).max(1_000_000_000).default(0),
-    customerCancelBeforeMinutes: z.number().int().min(0).max(10_080).default(30),
-    slaMinutes: z.number().int().min(1).max(1440).default(10),
-    schedule: scheduleSchema,
-  })
-  .prefault({});
+/** Empty/null disables automatic rejection (screens N4 "trống = tắt"). */
+const autoRejectSetting = z.number().int().min(1).max(1440).nullable().default(null);
+
+const receiveBase = {
+  enabled: z.boolean().default(false),
+  orderTiming: z.enum(['asap', 'scheduled', 'both']).default('both'),
+  paymentTiming: z.enum(PAYMENT_TIMINGS).default('pay-on-pickup'),
+  paymentProviders: z.array(z.string().min(1)).max(10).default(['cash']),
+  paymentTimeoutMinutes: z.number().int().min(1).max(1440).default(15),
+  minOrderAmount: z.number().int().min(0).max(1_000_000_000).default(0),
+  customerCancelBeforeMinutes: z.number().int().min(0).max(10_080).default(30),
+  slaMinutes: z.number().int().min(1).max(1440).default(10),
+  autoRejectAfterMinutes: autoRejectSetting,
+  schedule: scheduleSchema,
+} as const;
+
+export const pickupSettingsSchema = z.object(receiveBase).prefault({});
 
 export const deliverySettingsSchema = z
   .object({
-    enabled: z.boolean().default(false),
-    orderTiming: z.enum(['asap', 'scheduled', 'both']).default('both'),
-    paymentTiming: z.enum(PAYMENT_TIMINGS).default('pay-on-pickup'),
-    paymentProviders: z.array(z.string().min(1)).max(10).default(['cash']),
-    paymentTimeoutMinutes: z.number().int().min(1).max(1440).default(15),
-    minOrderAmount: z.number().int().min(0).max(1_000_000_000).default(0),
-    customerCancelBeforeMinutes: z.number().int().min(0).max(10_080).default(30),
-    slaMinutes: z.number().int().min(1).max(1440).default(10),
-    schedule: scheduleSchema,
+    ...receiveBase,
     zones: deliveryZoneListSchema.default([]),
     /**
      * O13: which fulfillment provider owns delivery legs. `self-delivery` prices from zones and
@@ -139,10 +135,91 @@ export const deliverySettingsSchema = z
   })
   .prefault({});
 
+/**
+ * O12 dine-in (at-table) settings. Same receive rules as pickup plus `sessionPayment`:
+ * `at-close` bills all orders of a table when the session closes; `per-order` follows the
+ * normal payment flows (prepay before cooking / pay at counter by `paymentTiming`).
+ * `autoRejectAfterMinutes` applies to groups stuck in `awaiting-acceptance`.
+ */
+export const dineInSettingsSchema = z
+  .object({
+    ...receiveBase,
+    sessionPayment: z.enum(['per-order', 'at-close']).default('at-close'),
+  })
+  .prefault({});
+
 export type PickupSettings = z.infer<typeof pickupSettingsSchema>;
 export type DeliverySettings = z.infer<typeof deliverySettingsSchema>;
+export type DineInSettings = z.infer<typeof dineInSettingsSchema>;
 export type ScheduleSettings = z.infer<typeof scheduleSchema>;
 export type TimeRange = z.infer<typeof timeRange>;
+
+/** O12: the receive kinds pause/busy/config surfaces address. */
+export const RECEIVE_KINDS = ['pickup', 'delivery', 'dineIn'] as const;
+export type ReceiveKind = (typeof RECEIVE_KINDS)[number];
+
+/** receiveMethod.kind ↔ branch settings key ('dine-in' orders read `dineIn`). */
+export const receiveKindKey = (kind: string): ReceiveKind | null =>
+  kind === 'pickup' ? 'pickup' : kind === 'delivery' ? 'delivery' : kind === 'dine-in' ? 'dineIn' : null;
+
+const isoInstant = z.string().refine((value) => Number.isFinite(new Date(value).getTime()), 'expected ISO datetime');
+
+/**
+ * O12 pause entry per receive kind — `{ until, reason?, by }`. `until` is the instant ordering
+ * reopens (staff picks the duration; the API stores the deadline). `reason` is staff-facing.
+ */
+const pauseEntry = z.object({
+  until: isoInstant,
+  reason: z.string().max(200).optional(),
+  by: z.string().max(120).optional(),
+});
+export const orderingPauseSchema = z
+  .object({
+    pickup: pauseEntry.nullable().optional(),
+    delivery: pauseEntry.nullable().optional(),
+    dineIn: pauseEntry.nullable().optional(),
+  })
+  .nullable();
+export type OrderingPause = z.infer<typeof orderingPauseSchema>;
+export type PauseEntry = z.infer<typeof pauseEntry>;
+
+/** O12 busy mode: adds `extraMinutes` to every new ASAP lead time until `until`. */
+export const busyModeSchema = z
+  .object({
+    extraMinutes: z.number().int().min(1).max(240),
+    until: isoInstant,
+    by: z.string().max(120).optional(),
+  })
+  .nullable();
+export type BusyMode = z.infer<typeof busyModeSchema>;
+
+/** O12 fee (service / packaging) configured on the branch (screens N4). */
+export const RECEIVE_KIND_VALUES = ['pickup', 'delivery', 'dine-in'] as const;
+export const branchFeeSchema = z
+  .object({
+    code: z.string().regex(/^[a-z0-9-]{2,40}$/),
+    label: z.record(z.string(), z.string().max(120)),
+    kind: z.enum(['service', 'packaging']),
+    amount: z.number().int().min(0).max(1_000_000_000).optional(),
+    percent: z.number().min(0).max(100).optional(),
+    receiveKinds: z.array(z.enum(RECEIVE_KIND_VALUES)).min(1).max(3),
+    taxable: z.boolean().default(true),
+    minSubtotal: z.number().int().min(0).max(1_000_000_000).optional(),
+  })
+  .refine((fee) => (fee.amount === undefined) !== (fee.percent === undefined), 'exactly one of amount or percent');
+export const branchFeesSchema = z.array(branchFeeSchema).max(20).nullable();
+export type BranchFee = z.infer<typeof branchFeeSchema>;
+
+/** O12 branch print layout (screens N1/N4). */
+export const printingSchema = z
+  .object({
+    width: z.union([z.literal(58), z.literal(80)]).default(80),
+    header: z.string().max(200).optional(),
+    footer: z.string().max(200).optional(),
+    autoKitchenTicket: z.boolean().default(false),
+  })
+  .nullable();
+export type PrintingSettings = z.infer<typeof printingSchema>;
 
 export const cashRoundingSchema = z
   .object({
@@ -174,10 +251,13 @@ export const branchInputSchema = z.object({
   cartReminderEnabled: z.boolean().optional(),
   rank: z.number().int().optional(),
   cashRounding: cashRoundingSchema.optional(),
+  fees: branchFeesSchema.optional(),
+  printing: printingSchema.optional(),
   fulfillment: z
     .object({
       pickup: pickupSettingsSchema.optional(),
       delivery: deliverySettingsSchema.optional(),
+      dineIn: dineInSettingsSchema.optional(),
     })
     .loose()
     .optional(),
@@ -204,7 +284,7 @@ type ReceiveSettings = {
 };
 
 const receiveIssues = (
-  kind: 'pickup' | 'delivery',
+  kind: ReceiveKind,
   settings: ReceiveSettings,
   options: { knownProviders: string[]; onlineProviders: string[] },
 ): ValidationIssue[] => {
@@ -309,6 +389,14 @@ export function validateBranchInput(
       }
     }
   }
+  const dineIn = value.fulfillment?.dineIn;
+  if (dineIn) issues.push(...receiveIssues('dineIn', dineIn, options));
+  if (value.fees) {
+    const codes = value.fees.map((fee) => fee.code);
+    if (new Set(codes).size !== codes.length) {
+      issues.push({ path: 'fees', message: 'fee codes must be unique' });
+    }
+  }
   return issues.length > 0 ? { valid: false, issues } : { valid: true, value };
 }
 
@@ -321,4 +409,47 @@ export function resolvePickupSettings(raw: unknown): PickupSettings {
 export function resolveDeliverySettings(raw: unknown): DeliverySettings {
   const parsed = deliverySettingsSchema.safeParse(raw ?? {});
   return parsed.success ? parsed.data : deliverySettingsSchema.parse({});
+}
+
+export function resolveDineInSettings(raw: unknown): DineInSettings {
+  const parsed = dineInSettingsSchema.safeParse(raw ?? {});
+  return parsed.success ? parsed.data : dineInSettingsSchema.parse({});
+}
+
+export function resolveOrderingPause(raw: unknown): OrderingPause {
+  const parsed = orderingPauseSchema.safeParse(raw ?? null);
+  return parsed.success ? parsed.data : null;
+}
+
+export function resolveBusyMode(raw: unknown): BusyMode {
+  const parsed = busyModeSchema.safeParse(raw ?? null);
+  return parsed.success ? parsed.data : null;
+}
+
+export function resolveBranchFees(raw: unknown): BranchFee[] {
+  const parsed = branchFeesSchema.safeParse(raw ?? []);
+  return parsed.success ? parsed.data ?? [] : [];
+}
+
+export function resolvePrinting(raw: unknown): PrintingSettings {
+  const parsed = printingSchema.safeParse(raw ?? null);
+  return parsed.success ? parsed.data : null;
+}
+
+/** Active pause entry for a receive kind at `now`, or null when ordering is open. */
+export function activePause(pause: OrderingPause, kind: ReceiveKind, now: Date): PauseEntry | null {
+  const entry = pause?.[kind];
+  if (!entry) return null;
+  return new Date(entry.until).getTime() > now.getTime() ? entry : null;
+}
+
+/** Extra lead-time minutes a busy branch adds at `now` (0 when off/expired). */
+export function busyExtraMinutes(busy: BusyMode, now: Date): number {
+  if (!busy) return 0;
+  return new Date(busy.until).getTime() > now.getTime() ? busy.extraMinutes : 0;
+}
+
+/** Auto-reject timeout for a receive kind, or null when the job skips this branch. */
+export function autoRejectMinutes(settings: { autoRejectAfterMinutes: number | null }): number | null {
+  return settings.autoRejectAfterMinutes ?? null;
 }

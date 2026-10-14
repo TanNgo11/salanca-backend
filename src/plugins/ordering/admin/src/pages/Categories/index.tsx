@@ -13,6 +13,7 @@ import {
   Loader,
   SingleSelect,
   SingleSelectOption,
+  TextInput,
   Typography,
 } from '@strapi/design-system';
 import {
@@ -44,6 +45,7 @@ type TreeItem = {
   descriptions: LocalizedMap;
   isActive: boolean;
   isInternal: boolean;
+  kitchenStation: string | null;
   productCount: number;
 };
 
@@ -57,6 +59,7 @@ type FormState = {
   parentRef: string | null;
   isActive: boolean;
   isInternal: boolean;
+  kitchenStation: string;
 };
 
 type DeleteState = {
@@ -75,6 +78,7 @@ const EMPTY_FORM: FormState = {
   parentRef: null,
   isActive: true,
   isInternal: false,
+  kitchenStation: '',
 };
 
 const nonEmpty = (map: LocalizedMap): LocalizedMap =>
@@ -238,6 +242,7 @@ const CategoriesPage = () => {
       description: nonEmpty(form.description),
       isActive: form.isActive,
       isInternal: form.isInternal,
+      kitchenStation: form.kitchenStation,
       ...(form.parentRef !== (findNode(tree, form.ref ?? '')?.item.parentRef ?? null)
         ? { parent: form.parentRef }
         : {}),
@@ -303,6 +308,19 @@ const CategoriesPage = () => {
     const own = subtreeRefs(tree, form.ref);
     return rows.map(({ node }) => node.item).filter((item) => !own.has(item.ref));
   }, [form?.ref, rows, tree]);
+
+  /** Existing kitchen-station values — datalist suggestions keep spellings consistent. */
+  const stationSuggestions = useMemo(() => {
+    const found = new Set<string>();
+    const walk = (nodes: TreeNode[]) => {
+      for (const node of nodes) {
+        if (node.item.kitchenStation) found.add(node.item.kitchenStation);
+        walk(node.children);
+      }
+    };
+    walk(tree);
+    return [...found].sort();
+  }, [tree]);
 
   return (
     <Box padding={8}>
@@ -425,6 +443,7 @@ const CategoriesPage = () => {
                     </Typography>
                     {item.isInternal ? <Badge>{t('internal', 'nội bộ')}</Badge> : null}
                     {!item.isActive ? <Badge>{t('inactive', 'tắt')}</Badge> : null}
+                    {item.kitchenStation ? <Badge>{item.kitchenStation}</Badge> : null}
                   </Flex>
                   <Flex gap={1} alignItems="center">
                     <Typography variant="pi" textColor="neutral500">
@@ -466,6 +485,7 @@ const CategoriesPage = () => {
                           parentRef: item.parentRef,
                           isActive: item.isActive,
                           isInternal: item.isInternal,
+                          kitchenStation: item.kitchenStation ?? '',
                         })
                       }
                       variant="ghost"
@@ -536,6 +556,27 @@ const CategoriesPage = () => {
                 {...localizedProps('description')}
                 intlLabel={{ defaultMessage: t('form.description', 'Mô tả') }}
               />
+            </Box>
+            <Box paddingTop={3}>
+              <Field.Root name="kitchenStation">
+                <Field.Label>
+                  {t('form.kitchenStation', 'Trạm bếp')}
+                </Field.Label>
+                <TextInput
+                  aria-label="kitchenStation"
+                  list="ordering-kitchen-stations"
+                  placeholder={t('form.kitchenStation.hint', 'VD: Bếp nóng — để trống kế thừa danh mục cha')}
+                  value={form.kitchenStation}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                    setForm((f) => (f ? { ...f, kitchenStation: event.target.value } : f))
+                  }
+                />
+                <datalist id="ordering-kitchen-stations">
+                  {stationSuggestions.map((station) => (
+                    <option key={station} value={station} />
+                  ))}
+                </datalist>
+              </Field.Root>
             </Box>
             <Flex gap={6} paddingTop={4}>
               <Checkbox

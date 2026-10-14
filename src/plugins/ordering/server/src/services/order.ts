@@ -31,12 +31,23 @@ import { formatOrderCode } from '../domain/order-code';
 import { projectPaymentStatus } from '../domain/payment-status';
 import { appliesCashRounding, type CashRoundingPolicy } from '../domain/pricing/cash-rounding';
 import { normalizeVietnamesePhone } from '../../../shared/contact/phone';
-import type { DeliverySettings, PickupSettings } from '../domain/branch-settings';
+import type {
+  DeliverySettings,
+  DineInSettings,
+  PickupSettings,
+} from '../domain/branch-settings';
+import { receiveKindKey } from '../domain/branch-settings';
 import { snapshotDeliveryAddress, type DeliveryAddressInput } from '../domain/contact/address';
 import { CARRIER_PRICING, resolveDeliveryProvider } from '../domain/delivery/carrier';
 import { quoteDelivery } from '../domain/delivery/zones';
 import { describeSelectedOptions } from '../domain/storefront/serialize';
 import { priceCart, type PricingAdjustmentInput } from '../domain/pricing/pipeline';
+import {
+  branchFeeAdjustments,
+  branchFeeAmount,
+  discountedMerchandise,
+  type BranchFeeSnapshot,
+} from '../domain/pricing/branch-fees';
 import { scopeIncludes } from '../domain/scope';
 import {
   projectFulfillmentStatus,
@@ -58,6 +69,7 @@ import type customerFactory from './customer';
 import type dailyStockFactory from './daily-stock';
 import type giftCardFactory from './gift-card';
 import type holdFactory from './hold';
+import type tableFactory from './table';
 import type pickupSchedulingFactory from './pickup-scheduling';
 import type { PickupTiming, PickupTimingInput } from './pickup-scheduling';
 import type idempotencyFactory from './idempotency';
@@ -136,6 +148,9 @@ export type PreparedOrder = {
   branch: BranchRow;
   pickupSettings: PickupSettings | null;
   deliverySettings: DeliverySettings | null;
+  dineInSettings: DineInSettings | null;
+  /** O12: the resolved QR table for dine-in orders; null otherwise. */
+  diningTable: import('./table').TableRow | null;
   delivery: DeliveryQuote | null;
   /** Catalog names at quote time. Create stores this object and does not read the client names again. */
   deliveryAddress: AddressSnapshot | null;
@@ -213,6 +228,9 @@ type BranchRow = {
   fulfillment: JsonObject | null;
   tax: Partial<OrderingConfig['tax']> | null;
   cashRounding: CashRoundingPolicy | null;
+  orderingPause: unknown;
+  busyMode: unknown;
+  fees: unknown;
 };
 
 const MAX_CUSTOMER_NOTE = 500;
@@ -236,7 +254,8 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
   };
   const cutoffFromFulfillment = (fulfillment: unknown, kind: string): string => {
     const root = fulfillment && typeof fulfillment === 'object' ? (fulfillment as JsonObject) : {};
-    const method = root[kind] as JsonObject | undefined;
+    // `receiveMethod.kind` is 'dine-in' while the stored JSON key is `dineIn`.
+    const method = root[receiveKindKey(kind) ?? kind] as JsonObject | undefined;
     const policy = (method?.schedule as JsonObject | undefined)?.businessDayPolicy as
       | JsonObject
       | undefined;
@@ -351,7 +370,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
       kind?: string;
       timing?: { mode?: string; slot?: { startsAt?: string } };
     };
-    const kind = receive.kind === 'delivery' ? 'delivery' : 'pickup';
+    const kind = receiveKindKey(receive.kind ?? '') ?? 'pickup';
     const cutoff = cutoffFromFulfillment(branch?.fulfillment, kind);
     const slotStartsAt = receive.timing?.mode === 'scheduled' ? receive.timing.slot?.startsAt ?? null : null;
     const date = slotStartsAt
@@ -538,6 +557,9 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
           details: { locationRef: branch.code },
         });
       }
+      // O12: a paused branch rejects quotes AND creates for that receive kind — the same check
+      // runs on both paths so a quote→create race cannot sneak an order through.
+      branchService.assertOrderingOpen(branch, input.receiveMethod.kind, nowOf(ctx));
 
       const kind = input.receiveMethod.kind;
       // O9: a gift-card order is `digital` — no pickup/delivery rules, but gift cards must be
@@ -553,15 +575,40 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         kind === 'pickup' ? branchService.pickupSettings(branch) : null;
       const deliverySettings: DeliverySettings | null =
         kind === 'delivery' ? branchService.deliverySettings(branch) : null;
-      const receiveSettings = pickupSettings ?? deliverySettings;
-      // Pickup callers pass `pickup`. A delivery cart always carries an address, so its rules apply.
-      const enforce = (kind === 'pickup' && input.pickup !== undefined) || kind === 'delivery';
+      const dineInSettings: DineInSettings | null =
+        kind === 'dine-in' ? branchService.dineInSettings(branch) : null;
+      const receiveSettings = pickupSettings ?? deliverySettings ?? dineInSettings;
+      // Pickup callers pass `pickup`. A delivery cart always carries an address and a dine-in
+      // cart always carries a table token, so both their rules always apply.
+      const enforce =
+        (kind === 'pickup' && input.pickup !== undefined) ||
+        kind === 'delivery' ||
+        kind === 'dine-in';
       if (enforce && !receiveSettings?.enabled) {
         throw new OrderingError(
           kind === 'delivery' ? 'DELIVERY_UNAVAILABLE' : 'FULFILLMENT_UNAVAILABLE',
-          kind === 'delivery' ? 'this branch does not offer delivery' : 'this branch does not offer pickup',
+          kind === 'delivery'
+            ? 'this branch does not offer delivery'
+            : kind === 'dine-in'
+              ? 'this branch does not offer dine-in ordering'
+              : 'this branch does not offer pickup',
           { details: kind === 'delivery' ? { reason: 'disabled' } : { kind } },
         );
+      }
+
+      // O12: the QR secret resolves to an active table of THIS branch — a valid token of
+      // another branch, a rotated secret or a disabled table all answer 404 (TABLE_NOT_FOUND),
+      // so a guest cannot order onto a table they did not scan.
+      let diningTable: import('./table').TableRow | null = null;
+      if (kind === 'dine-in' && input.receiveMethod.kind === 'dine-in') {
+        diningTable = await (
+          strapi.plugin('ordering').service('table') as ReturnType<typeof tableFactory>
+        ).resolveByToken(input.receiveMethod.tableToken ?? '', branch.code);
+        if (!diningTable) {
+          throw new OrderingError('TABLE_NOT_FOUND', 'table not found', {
+            details: { locationRef: branch.code },
+          });
+        }
       }
 
       const placedAt = input.placedAt ? new Date(input.placedAt) : nowOf(ctx);
@@ -587,10 +634,18 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         timezone: branch.timezone,
       };
       const catalog = registry.catalogAdapter(cfg.catalog.adapter);
-      const branchMethod = branch.fulfillment?.[kind] as JsonObject | undefined;
-      const paymentTiming =
-        (receiveSettings?.paymentTiming as string | undefined) ??
-        (branchMethod?.paymentTiming as string | undefined);
+      const branchMethod = branch.fulfillment?.[receiveKindKey(kind) ?? kind] as
+        | JsonObject
+        | undefined;
+      // Dine-in `sessionPayment: 'at-close'` means the table pays once, at session close — every
+      // order takes the pay-later flow whatever `paymentTiming` says; 'per-order' follows it.
+      const atClose =
+        kind === 'dine-in' &&
+        (receiveSettings as { sessionPayment?: string } | undefined)?.sessionPayment === 'at-close';
+      const paymentTiming = atClose
+        ? 'pay-on-pickup'
+        : ((receiveSettings?.paymentTiming as string | undefined) ??
+          (branchMethod?.paymentTiming as string | undefined));
 
       const priced: PricedLine[] = [];
       for (const [index, line] of input.lines.entries()) {
@@ -646,6 +701,10 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
       }
 
       let providerCode = input.payment?.providerCode;
+      // At-close: the closer picks cash or a counter transfer, so an order placed without a
+      // provider is fine even on a branch that does not list cash.
+      const atCloseUnpicked =
+        atClose && providerCode === undefined && !receiveSettings?.paymentProviders.includes('cash');
       if (digital) {
         // O9: online sales prepay through one of the branch's configured online providers
         // (the union of its pickup/delivery method lists, there is no digital settings block);
@@ -672,8 +731,8 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
             details: { field: 'payment.providerCode', allowed: branchProviders },
           });
         }
-      } else if (enforce && receiveSettings) {
-        providerCode ??= receiveSettings.paymentTiming === 'pay-on-pickup' ? 'cash' : undefined;
+      } else if (enforce && receiveSettings && !atCloseUnpicked) {
+        providerCode ??= paymentTiming === 'pay-on-pickup' ? 'cash' : undefined;
         if (!providerCode || !receiveSettings.paymentProviders.includes(providerCode)) {
           throw new OrderingError('VALIDATION_ERROR', 'payment method is not offered here', {
             details: { field: 'payment.providerCode', allowed: receiveSettings.paymentProviders },
@@ -748,7 +807,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         locationRef: branch.code,
         // O9: digital carts match only promotions that declare the `digital` receive kind —
         // an ordinary pickup/delivery promo can never discount a card purchase.
-        receiveKind: kind === 'digital' ? 'digital' : kind === 'delivery' ? 'delivery' : 'pickup',
+        receiveKind: kind === 'digital' ? 'digital' : kind === 'delivery' || kind === 'dine-in' ? kind : 'pickup',
         lines: priced.map((line, index) => ({
           index,
           sellableUid: line.sellable.ref.uid,
@@ -765,6 +824,23 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         })(),
         ...(input.promotionCode ? { code: input.promotionCode } : {}),
       });
+      // O12: configured branch fees become pipeline `fee` adjustments. A percent fee prices
+      // on the merchandise subtotal after merchandise discounts (decision: fee % trên subtotal
+      // sau giảm giá món), so it is resolved here — not left to the pipeline's own percent.
+      const fees = branchService.branchFees(branch);
+      const lineBases = priced.map((line) => (line.unitAmount + line.optionAmount) * line.quantity);
+      const feeFor = (promotionAdjustments: PricingAdjustmentInput[]): PricingAdjustmentInput[] => {
+        if (fees.length === 0) return [];
+        return branchFeeAdjustments(fees, {
+          receiveKind: kind,
+          merchandiseSubtotal: merchandise,
+          discountedSubtotal: discountedMerchandise(lineBases, [
+            ...(input.adjustments ?? []),
+            ...promotionAdjustments,
+          ]),
+          labelFor: (fee) => fee.label[locale] ?? fee.label.vi ?? fee.code,
+        });
+      };
       const priceWith = (promotionAdjustments: PricingAdjustmentInput[]) =>
         priceCart({
           currency: cfg.currency,
@@ -775,7 +851,11 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
             optionAmount: line.optionAmount,
             taxGroupRef: line.taxGroupRef,
           })),
-          adjustments: [...(input.adjustments ?? []), ...promotionAdjustments],
+          adjustments: [
+            ...(input.adjustments ?? []),
+            ...promotionAdjustments,
+            ...feeFor(promotionAdjustments),
+          ],
           fulfillmentAmount,
           tax: { ...cfg.tax, ...(branch.tax ?? {}) },
           at: placedAt.toISOString(),
@@ -842,7 +922,9 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
       }
 
       let timing: PickupTiming | null = null;
-      if (enforce && receiveSettings && input.pickup) {
+      // O12: dine-in has no pickup timing — a guest already seated must never hit
+      // ASAP/slot gates; the parse default `asap: true` stays a no-op here.
+      if (enforce && receiveSettings && input.pickup && kind !== 'dine-in') {
         timing = await scheduling.resolveTiming({
           branch,
           settings: receiveSettings,
@@ -851,7 +933,10 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
             scheduling.leadTimeFor(
               receiveSettings,
               priced.map((line) => line.leadTimeMinutes),
-            ) + (delivery?.extraLeadTimeMinutes ?? 0),
+            ) +
+            (delivery?.extraLeadTimeMinutes ?? 0) +
+            // O12 busy mode pushes every new ASAP/slot lead time out until the deadline.
+            branchService.busyExtra(branch, nowOf(ctx)),
           now: nowOf(ctx),
         });
       }
@@ -860,6 +945,8 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         branch,
         pickupSettings,
         deliverySettings,
+        dineInSettings,
+        diningTable,
         delivery,
         deliveryAddress,
         priced,
@@ -1035,19 +1122,42 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
           const publicToken = randomBytes(32).toString('base64url');
           const now = nowOf(ctx);
           const kind = input.receiveMethod.kind;
-          const branchMethod = branch.fulfillment?.[kind] as JsonObject | undefined;
+          const branchMethod = branch.fulfillment?.[receiveKindKey(kind) ?? kind] as
+            | JsonObject
+            | undefined;
           const businessDayPolicy = (branchMethod?.schedule as JsonObject | undefined)
             ?.businessDayPolicy as JsonObject | undefined;
           const cutoffLocalTime =
             (businessDayPolicy?.cutoffLocalTime as string | undefined) ??
             cfg.businessDay.cutoffLocalTime;
+          const orderBusinessDate = businessDate(placedAt, branch.timezone, cutoffLocalTime);
+          // O12: the first dine-in order on a table opens its session under the table-row
+          // lock — a concurrent first order attaches to the same one. The stored receiveMethod
+          // keeps tableId/tableCode and never the QR secret (rotation must not expose it).
+          let tableSessionId: number | null = null;
+          if (kind === 'dine-in' && prepared.diningTable) {
+            const session = await (
+              strapi.plugin('ordering').service('table') as ReturnType<typeof tableFactory>
+            ).openSessionFor(
+              trx as TransactionClient,
+              prepared.diningTable,
+              orderBusinessDate,
+              ctx,
+            );
+            tableSessionId = session.id;
+          }
           const deliveryAddress = prepared.deliveryAddress;
+          const { tableToken: _tableSecret, ...receiveBase } = input.receiveMethod as
+            Record<string, unknown>;
           const receiveMethod = {
-            ...input.receiveMethod,
-            ...(kind === 'pickup' ? { locationRef: branch.code } : {}),
+            ...receiveBase,
+            ...(kind === 'pickup' || kind === 'dine-in' ? { locationRef: branch.code } : {}),
+            ...(prepared.diningTable
+              ? { tableId: prepared.diningTable.id, tableCode: prepared.diningTable.code }
+              : {}),
             ...(deliveryAddress ? { address: deliveryAddress } : {}),
             ...(timing ? { timing: timingSnapshot(timing) } : {}),
-          };
+          } as Record<string, unknown> & { kind: string; address?: AddressSnapshot };
 
           const customerId = await customer.linkForOrder({
             sessionCustomerId: input.customerId ?? null,
@@ -1085,7 +1195,8 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
               branch: branch.id,
               locationRef: branch.code,
               branchSnapshot: { code: branch.code, name: branch.name },
-              businessDate: businessDate(placedAt, branch.timezone, cutoffLocalTime),
+              businessDate: orderBusinessDate,
+              ...(tableSessionId !== null ? { tableSession: tableSessionId } : {}),
               placedAt,
               receiveMethod,
               origin: input.origin,
@@ -1110,6 +1221,17 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
             );
             if (reserved.dropped.length > 0) {
               const dropped = new Set(reserved.dropped.map((id) => `promotion:${id}`));
+              const kept = pricing.adjustments.filter(
+                (adjustment) =>
+                  adjustment.code !== 'cash-rounding' && !dropped.has(adjustment.sourceRef ?? ''),
+              );
+              // A dropped promotion shrinks the discounted base: percent fees reprice on it
+              // (fees below their minimum or outside the order's kind drop with it).
+              const repricedBases = prepared.priced.map(
+                (line) => (line.unitAmount + line.optionAmount) * line.quantity,
+              );
+              const repricedMerchandise = repricedBases.reduce((sum, base) => sum + base, 0);
+              const repricedDiscounted = discountedMerchandise(repricedBases, kept);
               pricing = priceCart({
                 currency: cfg.currency,
                 lines: priced.map((line) => ({
@@ -1119,19 +1241,33 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
                   optionAmount: line.optionAmount,
                   taxGroupRef: line.taxGroupRef,
                 })),
-                adjustments: pricing.adjustments
-                  .filter((adjustment) => adjustment.code !== 'cash-rounding' && !dropped.has(adjustment.sourceRef ?? ''))
-                  .map((adjustment) => ({
-                    kind: adjustment.kind,
-                    code: adjustment.code,
-                    label: adjustment.label,
-                    amount: adjustment.amount,
-                    taxable: adjustment.taxable,
-                    priority: adjustment.priority,
-                    ...(adjustment.sourceRef ? { sourceRef: adjustment.sourceRef } : {}),
-                    ...(adjustment.ruleSnapshot ? { ruleSnapshot: adjustment.ruleSnapshot } : {}),
-                    target: adjustment.target,
-                  })),
+                adjustments: kept
+                  .flatMap((adjustment) => {
+                    const snap = (adjustment.ruleSnapshot as BranchFeeSnapshot | null)?.branchFee;
+                    let amount = adjustment.amount;
+                    if (snap) {
+                      const applied = branchFeeAmount(snap, {
+                        receiveKind: kind,
+                        merchandiseSubtotal: repricedMerchandise,
+                        discountedSubtotal: repricedDiscounted,
+                      });
+                      if (applied === null) return [];
+                      amount = applied;
+                    }
+                    return [
+                      {
+                        kind: adjustment.kind,
+                        code: adjustment.code,
+                        label: adjustment.label,
+                        amount,
+                        taxable: adjustment.taxable,
+                        priority: adjustment.priority,
+                        ...(adjustment.sourceRef ? { sourceRef: adjustment.sourceRef } : {}),
+                        ...(adjustment.ruleSnapshot ? { ruleSnapshot: adjustment.ruleSnapshot } : {}),
+                        target: adjustment.target,
+                      },
+                    ];
+                  }),
                 fulfillmentAmount: prepared.delivery?.fee ?? input.fulfillmentAmount ?? 0,
                 tax: { ...cfg.tax, ...(branch.tax ?? {}) },
                 at: placedAt.toISOString(),
@@ -1179,7 +1315,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
               order: { locationRef: branch.code, subtotalAmount: pricing.totals.subtotal } as Order,
               group: { id: String(groupId) } as FulfillmentGroup,
               option: {
-                communeCode: receiveMethod.address.wardCode ?? '',
+                communeCode: receiveMethod.address?.wardCode ?? '',
                 subtotal: pricing.totals.subtotal,
                 address: receiveMethod.address,
               },

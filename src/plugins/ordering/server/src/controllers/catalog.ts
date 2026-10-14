@@ -169,6 +169,33 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     return input?.status === 'active' && input.sellOnline !== false;
   };
 
+  // O12 (plan step 4): catalog filters ride metadata.catalog — `excludeAllergens` drops a
+  // product containing ANY listed code (custom codes compare case-insensitively), `dietary`
+  // keeps only products carrying EVERY listed tag.
+  const catalogCodes = (sellable: Sellable, key: 'allergens' | 'dietaryTags'): string[] => {
+    const catalog = sellable.metadata?.catalog as Record<string, unknown> | undefined;
+    const list = catalog?.[key];
+    return Array.isArray(list) ? list.filter((v): v is string => typeof v === 'string') : [];
+  };
+
+  const dietaryFilter = (ctx: PublicCtx): ((sellable: Sellable) => boolean) => {
+    const csv = (raw: unknown): string[] =>
+      (typeof raw === 'string' ? raw : '')
+        .split(',')
+        .map((item) => item.trim().toLowerCase())
+        .filter((item) => item !== '');
+    const excluded = new Set(csv(ctx.query.excludeAllergens));
+    const required = csv(ctx.query.dietary);
+    if (excluded.size === 0 && required.length === 0) return () => true;
+    return (sellable) => {
+      const allergens = catalogCodes(sellable, 'allergens').map((code) => code.toLowerCase());
+      if (excluded.size > 0 && allergens.some((code) => excluded.has(code))) return false;
+      if (required.length === 0) return true;
+      const tags = new Set(catalogCodes(sellable, 'dietaryTags'));
+      return required.every((tag) => tags.has(tag));
+    };
+  };
+
   return {
     /** GET /catalog/categories?locale= — nested tree, internal/inactive pruned. */
     async categories(ctx: PublicCtx) {
@@ -181,7 +208,10 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       ctx.body = { items: serializeCategoryTree(rows) };
     },
 
-    /** GET /catalog/products?locale=&category=&location=&receiveKind=&cursor=&limit= */
+    /**
+     * GET /catalog/products?locale=&category=&location=&receiveKind=&cursor=&limit=
+     *                       &excludeAllergens=&dietary=
+     */
     async products(ctx: PublicCtx) {
       if (rateLimited(ctx)) return;
       const context = await adapterContext(ctx);
@@ -196,9 +226,10 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
         cursor: text(ctx.query.cursor),
         limit,
       });
-      const daily = await dailyView(ctx, items);
+      const filtered = items.filter(dietaryFilter(ctx));
+      const daily = await dailyView(ctx, filtered);
       ctx.body = {
-        items: items.map((item) => serializeProduct(item, daily)),
+        items: filtered.map((item) => serializeProduct(item, daily, locale)),
         ...(nextCursor ? { nextCursor } : {}),
       };
     },
@@ -220,7 +251,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
         errorBody(ctx, 404, 'NOT_FOUND', 'Product not found.');
         return;
       }
-      ctx.body = { item: serializeProduct(sellable, await dailyView(ctx, [sellable])) };
+      ctx.body = { item: serializeProduct(sellable, await dailyView(ctx, [sellable]), locale) };
     },
   };
 };

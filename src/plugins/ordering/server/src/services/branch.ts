@@ -2,11 +2,26 @@ import type { Core } from '@strapi/strapi';
 
 import type { OrderingConfig } from '../config';
 import {
+  RECEIVE_KINDS,
+  activePause,
+  busyExtraMinutes,
+  resolveBranchFees,
+  resolveBusyMode,
   resolveDeliverySettings,
+  resolveDineInSettings,
+  resolveOrderingPause,
   resolvePickupSettings,
+  resolvePrinting,
+  receiveKindKey,
   validateBranchInput,
+  type BranchFee,
+  type BusyMode,
   type DeliverySettings,
+  type DineInSettings,
+  type OrderingPause,
   type PickupSettings,
+  type PrintingSettings,
+  type ReceiveKind,
 } from '../domain/branch-settings';
 import { deliveryQuoteInputSchema, quoteDelivery } from '../domain/delivery/zones';
 import { OrderingError } from '../domain/errors';
@@ -15,6 +30,7 @@ import { isOnlinePaymentProvider } from '../providers/cash';
 import type adminUnitsFactory from './admin-units';
 import type changeLogFactory from './change-log';
 import type { ServiceContext } from './context';
+import { actorRefOf } from './context';
 import type { OrderingRegistry } from './registry';
 import type scopeFactory from './scope';
 
@@ -33,6 +49,10 @@ export type BranchRow = {
   fulfillment: Record<string, unknown> | null;
   tax: Record<string, unknown> | null;
   cashRounding: { enabled: boolean; multiple: number; providerCodes: string[] } | null;
+  orderingPause: OrderingPause;
+  busyMode: BusyMode;
+  fees: BranchFee[] | null;
+  printing: PrintingSettings;
 };
 
 /** Keys the client actually sent. Zod prefills omitted pickup/delivery, which must not overwrite storage. */
@@ -55,6 +75,8 @@ const BRANCH_FIELDS = [
   'cartReminderEnabled',
   'rank',
   'cashRounding',
+  'fees',
+  'printing',
 ] as const;
 
 /**
@@ -101,10 +123,15 @@ const branch = ({ strapi }: { strapi: Core.Strapi }) => {
     cartReminderEnabled: row.cartReminderEnabled ?? false,
     rank: row.rank ?? 0,
     cashRounding: row.cashRounding ?? null,
+    orderingPause: resolveOrderingPause(row.orderingPause),
+    busyMode: resolveBusyMode(row.busyMode),
+    fees: resolveBranchFees(row.fees),
+    printing: resolvePrinting(row.printing),
     fulfillment: {
       ...(row.fulfillment ?? {}),
       pickup: resolvePickupSettings(row.fulfillment?.pickup),
       delivery: resolveDeliverySettings(row.fulfillment?.delivery),
+      dineIn: resolveDineInSettings(row.fulfillment?.dineIn),
     },
   });
 
@@ -157,6 +184,50 @@ const branch = ({ strapi }: { strapi: Core.Strapi }) => {
     /** Resolved delivery settings for a branch row (defaults applied). */
     deliverySettings(row: Pick<BranchRow, 'fulfillment'>): DeliverySettings {
       return resolveDeliverySettings(row.fulfillment?.delivery);
+    },
+
+    /** Resolved dine-in settings for a branch row (defaults applied). */
+    dineInSettings(row: Pick<BranchRow, 'fulfillment'>): DineInSettings {
+      return resolveDineInSettings(row.fulfillment?.dineIn);
+    },
+
+    /**
+     * Resolved settings for a `receiveMethod.kind` ('pickup' | 'delivery' | 'dine-in');
+     * unknown kinds fall back to pickup — callers that validated the kind never see that.
+     */
+    receiveSettings(
+      row: Pick<BranchRow, 'fulfillment'>,
+      kind: string,
+    ): PickupSettings | DeliverySettings | DineInSettings {
+      const key = receiveKindKey(kind);
+      if (key === 'delivery') return resolveDeliverySettings(row.fulfillment?.delivery);
+      if (key === 'dineIn') return resolveDineInSettings(row.fulfillment?.dineIn);
+      return resolvePickupSettings(row.fulfillment?.pickup);
+    },
+
+    /** Resolved pause map `{ pickup?, delivery?, dineIn? }` (entries may be expired). */
+    pauseState(row: { orderingPause?: unknown }): OrderingPause {
+      return resolveOrderingPause(row.orderingPause);
+    },
+
+    /** Resolved busy mode (may be expired). */
+    busyState(row: { busyMode?: unknown }): BusyMode {
+      return resolveBusyMode(row.busyMode);
+    },
+
+    /** Extra lead minutes busy mode adds right now (0 when off). */
+    busyExtra(row: { busyMode?: unknown }, now: Date): number {
+      return busyExtraMinutes(resolveBusyMode(row.busyMode), now);
+    },
+
+    /** Resolved fee list for the pricing pipeline / storefront config. */
+    branchFees(row: { fees?: unknown }): BranchFee[] {
+      return resolveBranchFees(row.fees);
+    },
+
+    /** Resolved print layout (null = defaults). */
+    printing(row: { printing?: unknown }): PrintingSettings {
+      return resolvePrinting(row.printing);
     },
 
     /** Admin list: only branches inside the staff scope (system actors see all). */
@@ -232,10 +303,13 @@ const branch = ({ strapi }: { strapi: Core.Strapi }) => {
       if (requested && value.fulfillment) {
         // Kinds the request does not mention stay as stored.
         const next: Record<string, unknown> = { ...(current.fulfillment ?? {}) };
-        if ('pickup' in requested) next.pickup = value.fulfillment.pickup;
-        if ('delivery' in requested) next.delivery = value.fulfillment.delivery;
+        for (const key of ['pickup', 'delivery', 'dineIn'] as const) {
+          if (key in requested) next[key] = value.fulfillment[key];
+        }
         for (const key of Object.keys(requested)) {
-          if (key !== 'pickup' && key !== 'delivery') next[key] = (value.fulfillment as Record<string, unknown>)[key];
+          if (key !== 'pickup' && key !== 'delivery' && key !== 'dineIn') {
+            next[key] = (value.fulfillment as Record<string, unknown>)[key];
+          }
         }
         data.fulfillment = next;
       }
@@ -301,6 +375,136 @@ const branch = ({ strapi }: { strapi: Core.Strapi }) => {
         communeCode: parsed.data.communeCode,
         subtotal: parsed.data.subtotal,
       });
+    },
+
+    /**
+     * O12 pause/busy (screens N3). Staff set a deadline (`until`, ISO); the branch reopens
+     * automatically when it passes — no job needed. `kinds` selects which receive methods
+     * pause; `clear*` resumes. Route permission is `order.process`; scope still applies.
+     */
+    async setPause(
+      code: string,
+      input: { kinds: ReceiveKind[]; until: Date; reason?: string },
+      ctx: ServiceContext,
+    ): Promise<ReturnType<typeof toAdmin>> {
+      const row = await service.findByCode(code);
+      if (!row || !scopeIncludes(await scope().loadScope(ctx), row.code)) throw notFound(code);
+      const before = resolveOrderingPause(row.orderingPause) ?? {};
+      const entry = { until: input.until.toISOString(), reason: input.reason, by: actorRefOf(ctx) };
+      const next: OrderingPause = { ...before };
+      for (const kind of input.kinds) next[kind] = entry;
+      const updated = (await branches().update({
+        where: { id: row.id },
+        data: { orderingPause: next },
+      })) as BranchRow;
+      await changeLog().record(
+        {
+          action: 'branch.pause',
+          entityType: 'branch',
+          entityId: row.id,
+          locationRef: row.code,
+          before: { orderingPause: row.orderingPause ?? null },
+          after: { orderingPause: next },
+        },
+        ctx,
+      );
+      return toAdmin(updated);
+    },
+
+    async clearPause(
+      code: string,
+      kinds: ReceiveKind[] | undefined,
+      ctx: ServiceContext,
+    ): Promise<ReturnType<typeof toAdmin>> {
+      const row = await service.findByCode(code);
+      if (!row || !scopeIncludes(await scope().loadScope(ctx), row.code)) throw notFound(code);
+      const current = resolveOrderingPause(row.orderingPause) ?? {};
+      const targets = kinds ?? RECEIVE_KINDS;
+      const next: OrderingPause = { ...current };
+      for (const kind of targets) next[kind] = null;
+      const updated = (await branches().update({
+        where: { id: row.id },
+        data: { orderingPause: next },
+      })) as BranchRow;
+      await changeLog().record(
+        {
+          action: 'branch.pause',
+          entityType: 'branch',
+          entityId: row.id,
+          locationRef: row.code,
+          before: { orderingPause: row.orderingPause ?? null },
+          after: { orderingPause: next },
+        },
+        ctx,
+      );
+      return toAdmin(updated);
+    },
+
+    async setBusy(
+      code: string,
+      input: { extraMinutes: number; until: Date },
+      ctx: ServiceContext,
+    ): Promise<ReturnType<typeof toAdmin>> {
+      const row = await service.findByCode(code);
+      if (!row || !scopeIncludes(await scope().loadScope(ctx), row.code)) throw notFound(code);
+      const next: BusyMode = {
+        extraMinutes: input.extraMinutes,
+        until: input.until.toISOString(),
+        by: actorRefOf(ctx),
+      };
+      const updated = (await branches().update({
+        where: { id: row.id },
+        data: { busyMode: next },
+      })) as BranchRow;
+      await changeLog().record(
+        {
+          action: 'branch.busy',
+          entityType: 'branch',
+          entityId: row.id,
+          locationRef: row.code,
+          before: { busyMode: row.busyMode ?? null },
+          after: { busyMode: next },
+        },
+        ctx,
+      );
+      return toAdmin(updated);
+    },
+
+    async clearBusy(code: string, ctx: ServiceContext): Promise<ReturnType<typeof toAdmin>> {
+      const row = await service.findByCode(code);
+      if (!row || !scopeIncludes(await scope().loadScope(ctx), row.code)) throw notFound(code);
+      const updated = (await branches().update({
+        where: { id: row.id },
+        data: { busyMode: null },
+      })) as BranchRow;
+      await changeLog().record(
+        {
+          action: 'branch.busy',
+          entityType: 'branch',
+          entityId: row.id,
+          locationRef: row.code,
+          before: { busyMode: row.busyMode ?? null },
+          after: { busyMode: null },
+        },
+        ctx,
+      );
+      return toAdmin(updated);
+    },
+
+    /** Throws LOCATION_PAUSED when this receive kind is paused at `now` (O12). */
+    assertOrderingOpen(
+      row: { code?: string; orderingPause?: unknown },
+      receiveKind: string,
+      now: Date,
+    ): void {
+      const key = receiveKindKey(receiveKind);
+      if (!key) return;
+      const entry = activePause(resolveOrderingPause(row.orderingPause), key, now);
+      if (entry) {
+        throw new OrderingError('LOCATION_PAUSED', 'this branch is not taking orders right now', {
+          details: { kind: receiveKind, resumeAt: entry.until },
+        });
+      }
     },
 
     // O1 compatibility: generic create/update used by fixtures and older call sites.
