@@ -155,22 +155,29 @@ const lineCancel = ({ strapi }: { strapi: Core.Strapi }) => {
           .sort(
             (a, b) => Number(b.giftCard) - Number(a.giftCard) || b.remaining - a.remaining,
           );
-        const cap = Math.min(due, sumAmounts(candidates.map((payment) => payment.remaining)));
+        // Split across payments in that order (card first), each slice capped at its own
+        // remainder — a card that paid part of the order must not take the whole line refund.
+        // Every slice carries the line so its refund-line rows exist; their quantities repeat
+        // per slice (nothing reads refund-line quantities, the amounts sum to the refund).
+        let left = Math.min(due, sumAmounts(candidates.map((payment) => payment.remaining)));
         let refundAmount = 0;
-        if (cap > 0 && candidates[0]) {
+        for (const candidate of candidates) {
+          if (left <= 0) break;
+          const slice = Math.min(candidate.remaining, left);
           const { amount } = await refund.createRefundInTransaction(
             trx,
             {
-              paymentId: candidates[0].id,
+              paymentId: candidate.id,
               lines: [{ lineId: input.lineId, quantity: input.quantity }],
               countsAs: 'canceled',
-              amountCap: cap,
+              amountCap: slice,
               reason: input.reason,
               idempotencyKey: `line-cancel:${input.lineId}:${randomUUID()}`,
             },
             ctx,
           );
-          refundAmount = amount;
+          refundAmount += amount;
+          left -= amount;
         }
         const refundShortfall = due - refundAmount;
 
