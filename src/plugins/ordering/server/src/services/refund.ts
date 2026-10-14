@@ -283,6 +283,36 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
         { details: { paymentId: input.paymentId } },
       );
     }
+    // O9: card value is never refunded to cash (owner decision, `giftCards.refundUnused`
+    // false). On a card-sale order only money above the face value of the cards already
+    // issued may go back — an overpaid transfer, a doubled wallet capture. Before issuance
+    // there are no cards and a cancel refunds in full.
+    if ((aggregate.order.receiveMethod as { kind?: string } | null)?.kind === 'digital') {
+      const issued = (await trx('plugins_ordering_gift_card_order_lnk as lnk')
+        .join('plugins_ordering_gift_card as c', 'c.id', 'lnk.gift_card_id')
+        .where('lnk.order_id', orderId)
+        .sum({ value: 'c.initial_amount' })
+        .first()) as { value: string | number | null } | undefined;
+      const issuedValue = amountFromDb(issued?.value ?? 0);
+      if (issuedValue > 0) {
+        const orderPending = (await trx('plugins_ordering_refund as refund')
+          .join('plugins_ordering_refund_order_lnk as link', 'link.refund_id', 'refund.id')
+          .where('link.order_id', orderId)
+          .where('refund.status', 'pending')
+          .sum({ value: 'refund.amount' })
+          .first()) as { value: string | number | null } | undefined;
+        const held = aggregate.payments.reduce(
+          (sum, row) => sum + row.capturedAmount - row.refundedAmount,
+          0,
+        );
+        const room = held - amountFromDb(orderPending?.value ?? 0) - issuedValue;
+        if (total > room) {
+          throw new OrderingError('GIFT_CARD_NOT_ALLOWED', 'issued gift-card value is not refundable', {
+            details: { reason: 'card-sale-refund', refundable: Math.max(0, room) },
+          });
+        }
+      }
+    }
 
     const provider = registry.paymentProvider(payment.providerCode);
     if (!provider.refund) {
