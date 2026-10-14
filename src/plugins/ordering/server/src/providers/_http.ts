@@ -34,13 +34,35 @@ const fail = (reason: string, status?: number): never => {
   });
 };
 
-/** Reads the body capped at `maxBytes`; too-large or non-JSON responses still parse what fits. */
+/**
+ * Reads the body chunk by chunk and gives up (cancelling the stream) as soon as it passes
+ * `maxBytes` — a huge or endless response is never buffered. Non-JSON parses to null.
+ */
 const readBody = async (
   res: Response,
   maxBytes: number,
 ): Promise<ProviderResponse> => {
-  const text = await res.text();
-  if (text.length > maxBytes) fail('response-too-large', res.status);
+  const declared = Number(res.headers.get('content-length'));
+  if (Number.isFinite(declared) && declared > maxBytes) {
+    await res.body?.cancel().catch(() => undefined);
+    fail('response-too-large', res.status);
+  }
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  if (res.body) {
+    const reader = res.body.getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > maxBytes) {
+        await reader.cancel().catch(() => undefined);
+        fail('response-too-large', res.status);
+      }
+      chunks.push(value);
+    }
+  }
+  const text = Buffer.concat(chunks).toString('utf8');
   let body: unknown = null;
   if (text !== '') {
     try {

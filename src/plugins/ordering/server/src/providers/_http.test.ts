@@ -38,6 +38,13 @@ beforeAll(async () => {
         res.end('<html>error</html>');
         return;
       }
+      if (req.url === '/endless') {
+        // Never ends: a reader that buffers the whole body would hang until the timeout.
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        const timer = setInterval(() => res.write('x'.repeat(16 * 1024)), 5);
+        res.on('close', () => clearInterval(timer));
+        return;
+      }
       if (req.url === '/big') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(`{"pad":"${'x'.repeat(200_000)}"}`);
@@ -84,6 +91,14 @@ describe('providers/_http', () => {
     await expect(
       createProviderHttp({ baseUrl, maxBytes: 1024 }).postJson('/big', {}),
     ).rejects.toMatchObject({ code: 'PROVIDER_UNAVAILABLE', details: { reason: 'response-too-large' } });
+  });
+
+  it('stops reading an endless body as soon as it passes the cap', async () => {
+    const started = Date.now();
+    await expect(
+      createProviderHttp({ baseUrl, maxBytes: 1024, timeoutMs: 5_000 }).postJson('/endless', {}),
+    ).rejects.toMatchObject({ code: 'PROVIDER_UNAVAILABLE', details: { reason: 'response-too-large' } });
+    expect(Date.now() - started).toBeLessThan(2_000);
   });
 
   it('times out a hung endpoint', async () => {
