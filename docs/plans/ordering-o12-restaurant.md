@@ -182,4 +182,45 @@ Lỗi mới: `LOCATION_PAUSED` 409 (`details.kind`, `resumeAt`), `TABLE_NOT_FOUN
 
 ## Completion record
 
-- Chưa bắt đầu.
+Trạng thái: **implemented + automated verification passed — chờ UAT tay + duyệt merge** (nhánh
+`TanNgo11/ordering-o12`, tách từ `feat/ordering` `d292229`).
+
+| Bước | Nội dung | Commit |
+| --- | --- | --- |
+| — | Handoff prompt | `a776b76` |
+| 1 | Tạm dừng / quán đông theo kênh, hết hạn tự mở | `84a80a9` |
+| 2 | Job `order-autoreject` | `b199cca` |
+| 3 | Phí dịch vụ/đóng gói qua pricing pipeline | `2f529c9` |
+| 4 | Dị ứng/ăn kiêng + trạm bếp | `10ced2b` |
+| 5 | Trang in trình duyệt (phiếu bếp, hóa đơn) | `aefd228` |
+| 6 | KDS | `84c0b30` |
+| 7 | Đặt món tại bàn (bàn, QR, phiên, đóng bàn) | `3a6a39a` |
+| 8 | Staff guide, API contract, UAT seed, STATUS | `dfa62b3` |
+| merge | `origin/feat/ordering` (O13): migration 0009b → `0011-o12-restaurant` → 0012; config/controllers/`App.tsx`/`order.ts`/`refund.ts` giữ cả hai phía | `fdd55ce` |
+
+Không có tiền tip (chờ kế toán).
+
+### Review fixes (2026-10-14)
+
+Test đỏ trên code cũ, xanh sau khi sửa (DB test `salanca_ordering_o12`).
+
+| Lỗi | Sửa | Test | Commit |
+| --- | --- | --- | --- |
+| P1 Tự từ chối tính từ `placedAt` | Tính từ lúc group vào `awaiting-acceptance` (`stateEnteredAt`), lấy mốc muộn nhất của đơn | `deadline.test.ts`, `auto-reject.mjs` (đơn trả trước trả muộn; lùi mốc thì bị từ chối) | `55a0996` |
+| P1 Sửa đơn tại bàn mất phí `dine-in` | `channelKind` = `dine-in` cho phí, kênh giá, cài đặt | `fees.mjs` (phí chỉ tại bàn còn sau khi sửa) | `b070335` |
+| P1 Thanh toán online đơn tại bàn đọc cài đặt pickup | 3 chỗ storefront dùng `receiveSettings(branch, kind)` | `dine-in.mjs` (per-order trả trước, sepay chỉ có ở `dineIn`) | `b070335` |
+| P1 Đóng bàn sót đơn đang đặt | Khóa dòng `dining_table` trước dòng session | không có test race (lý luận theo thứ tự khóa như `openSessionFor`) | `45de2d7` |
+| P1 Hóa đơn bàn cộng đơn hủy | Bỏ đơn `canceled` khỏi `forSession` | `dine-in.mjs` | `45de2d7` |
+| P2 Change-log chứa `qrUrl` (token bàn) | `logged()` bỏ `qrUrl` | `dine-in.mjs` | `45de2d7` |
+| P2 Mã tham chiếu cộng dồn hậu tố | `<ref>` cho đơn đầu, `<ref>-<id>` cho đơn sau | `dine-in.mjs` — đỏ chỉ suy luận: code cũ fail ở bước change-log trước khi tới bước này | `45de2d7` |
+| P2 Deadlock với webhook SePay | Lấy advisory lock `sepay-ref:sepay:<ref>` (sắp xếp) cho mọi tham chiếu trước khóa group | không có test race | `45de2d7` |
+| P2 `sessionPayment: 'at-close'` không có tác dụng | Ép luồng trả sau; đơn at-close không cần provider kể cả khi chi nhánh không có `cash` | `dine-in.mjs` (chi nhánh chỉ sepay) | `45de2d7` |
+
+Gates (targeted): `lint`, `typecheck`, `typecheck:admin`, `vitest run src/plugins/ordering` 761/761,
+`build:ordering`, `ORDERING_ENABLED=true strapi build`, `openapi.mjs --write` (127 path). Script PASS:
+`auto-reject` `fees` `dine-in` `print` `kds` `pause` `allergens` `create-order` `storefront` `order-edit`
+`payment-refund` `reports` `cash-closing` `email-templates` `audit-coverage` `notifications` `momo` `vnpay`
+`ahamove` `wallet-status` `sepay-match` `sepay-manual` `schema` `registry-boot`.
+
+Còn lại (chủ dự án): UAT tay (máy in nhiệt, KDS trên TV/tablet, quét QR bằng điện thoại), tip/thuế,
+merge `feat/ordering-o12` → `feat/ordering`.

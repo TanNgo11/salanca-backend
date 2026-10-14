@@ -4,7 +4,7 @@ Last reviewed against repository documentation: 2026-09-29
 
 2026-10-14: **Ordering O12 (vận hành nhà hàng: tạm dừng, phí, dị ứng, KDS, in, tại bàn) — implemented +
 automated verification passed, chờ manual UAT** trên `TanNgo11/ordering-o12` (tách từ `feat/ordering`
-`d292229`; chưa merge/push). 9 commit `a776b76`…`<step8>` theo
+`d292229`). 9 commit `a776b76`…`dfa62b3`, merge `fdd55ce`, review fixes `55a0996` `b070335` `45de2d7` theo
 [`plans/ordering-o12-restaurant.md`](plans/ordering-o12-restaurant.md) +
 [`plans/ordering-o12-handoff.md`](plans/ordering-o12-handoff.md):
 
@@ -28,7 +28,7 @@ automated verification passed, chờ manual UAT** trên `TanNgo11/ordering-o12` 
   in hóa đơn gộp phiên `/print/session/:id`. **Không có tiền tip** (chờ kế toán xác nhận).
 
 Gate: lint, typecheck, typecheck:admin, vitest `src/plugins/ordering`, `build:ordering`,
-`strapi build` bật plugin, `ordering:openapi` regen (120 path), 7 script O12
+`strapi build` bật plugin, `ordering:openapi` regen (127 path), vitest 761/761, 7 script O12
 (`pause` `auto-reject` `fees` `allergens` `print` `kds` `dine-in`) + các script bị ảnh hưởng —
 số liệu trong Completion record. **Open:** manual UAT browser (in nhiệt thật, KDS trên TV/tablet,
 quét QR bằng điện thoại); merge về `feat/ordering` theo quyết định chủ dự án.
