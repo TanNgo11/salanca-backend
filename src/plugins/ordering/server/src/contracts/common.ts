@@ -38,13 +38,14 @@ export type ReceiveMethod =
   // O9: a gift-card order delivers codes by email, not food. `recipientEmail` is required on
   // the public storefront (staff counter sales may hand a printed card instead). `physicalCodes`
   // (counter sale of preprinted stock) names the inactive batch cards to activate — one per
-  // card unit.
+  // card unit. It is intake only: create stores the resolved `physicalCardIds`, never codes.
   | {
       kind: 'digital';
       recipientEmail?: string;
       recipientName?: string;
       message?: string;
       physicalCodes?: string[];
+      physicalCardIds?: number[];
     };
 
 export type ValidationResult =

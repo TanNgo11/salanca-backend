@@ -571,6 +571,12 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
           details: { reason: 'disabled' },
         });
       }
+      // A staff discount on a card sale would issue more value than was paid: refused.
+      if (digital && (input.adjustments ?? []).some((adjustment) => adjustment.kind === 'discount')) {
+        throw new OrderingError('GIFT_CARD_NOT_ALLOWED', 'a gift-card sale takes no manual discount', {
+          details: { field: 'adjustments', reason: 'card-discount' },
+        });
+      }
       const pickupSettings: PickupSettings | null =
         kind === 'pickup' ? branchService.pickupSettings(branch) : null;
       const deliverySettings: DeliverySettings | null =
@@ -1071,30 +1077,85 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         async (trx) => {
           const { timeline, hold, outbox, scheduling, customer } = services();
           const prepared = await service.prepareOrder(payload, ctx);
-          // Counter sale: fail the scan while the staff member is still at the counter —
-          // one code per unit sold, every code a sellable preprinted card. The outbox
-          // consumer re-checks transactionally; this pass only catches early what it can.
+          // Counter sale: fail the scan while the staff member is still at the counter, so a
+          // paid order can never get stuck in issuance — one card per unit sold, no card twice,
+          // each card sellable stock of the unit's face value (units in line order, the order
+          // onGroupIssued assigns them), and not held by another live order. The codes are
+          // resolved to card ids here and never stored: the order keeps `physicalCardIds`.
+          let physicalCardIds: number[] | null = null;
           if (
             payload.receiveMethod.kind === 'digital' &&
             payload.receiveMethod.physicalCodes?.length
           ) {
             const scans = payload.receiveMethod.physicalCodes;
-            const units = prepared.priced.reduce((sum, line) => sum + line.quantity, 0);
-            if (scans.length !== units) {
+            const field = { field: 'receiveMethod.physicalCodes' };
+            const unitAmounts = prepared.priced.flatMap((line) =>
+              Array.from({ length: line.quantity }, () => line.unitAmount + line.optionAmount),
+            );
+            if (scans.length !== unitAmounts.length) {
               throw new OrderingError('VALIDATION_ERROR', 'scan one card per card sold', {
-                details: { field: 'receiveMethod.physicalCodes', scanned: scans.length, units },
+                details: { ...field, scanned: scans.length, units: unitAmounts.length },
               });
             }
-            for (const scanned of scans) {
+            const ids: number[] = [];
+            for (const [index, scanned] of scans.entries()) {
               const stock = await services().giftCard.findByCode(scanned);
               if (!stock || stock.source !== 'batch' || stock.status !== 'inactive') {
+                throw new OrderingError('GIFT_CARD_INVALID', 'a scanned card is not sellable stock', {
+                  details: field,
+                });
+              }
+              if (ids.includes(stock.id)) {
+                throw new OrderingError('VALIDATION_ERROR', 'the same card was scanned twice', {
+                  details: field,
+                });
+              }
+              if (stock.initialAmount !== unitAmounts[index]) {
                 throw new OrderingError(
                   'GIFT_CARD_INVALID',
-                  'a scanned card is not sellable stock',
-                  { details: { field: 'receiveMethod.physicalCodes' } },
+                  'a scanned card does not match the sold denomination',
+                  { details: { ...field, index } },
                 );
               }
+              ids.push(stock.id);
             }
+            // Reserve: one lock per card (sorted, so two counters cannot deadlock), then refuse
+            // a card another live order (drafts included) already holds. Canceling, expiring or
+            // deleting that order releases it.
+            for (const id of [...ids].sort((a, b) => a - b)) {
+              await (trx as TransactionClient).raw('SELECT pg_advisory_xact_lock(hashtext(?))', [
+                `gift-card-stock:${id}`,
+              ]);
+            }
+            const { rows: held } = (await (trx as TransactionClient).raw(
+              `SELECT 1 FROM plugins_ordering_order o
+                WHERE o.status <> 'canceled'
+                  AND o.receive_method::jsonb ->> 'kind' = 'digital'
+                  -- A deleted draft keeps status 'draft' with its group canceled: only an
+                  -- order with a live gift-card group still holds its cards.
+                  AND EXISTS (
+                    SELECT 1
+                      FROM plugins_ordering_fulfillment_group_order_lnk lnk
+                      JOIN plugins_ordering_fulfillment_group g ON g.id = lnk.fulfillment_group_id
+                     WHERE lnk.order_id = o.id
+                       AND g.status NOT IN ('canceled', 'expired', 'rejected')
+                  )
+                  AND EXISTS (
+                    SELECT 1
+                      FROM jsonb_array_elements_text(
+                        coalesce(o.receive_method::jsonb -> 'physicalCardIds', '[]'::jsonb)
+                      ) AS held(id)
+                     WHERE held.id = ANY(?::text[])
+                  )
+                LIMIT 1`,
+              [ids.map(String)],
+            )) as { rows: unknown[] };
+            if (held.length > 0) {
+              throw new OrderingError('GIFT_CARD_INVALID', 'a scanned card is held by another order', {
+                details: field,
+              });
+            }
+            physicalCardIds = ids;
           }
           if (payload.promotionCode) {
             (
@@ -1148,10 +1209,14 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
             tableSessionId = session.id;
           }
           const deliveryAddress = prepared.deliveryAddress;
-          const { tableToken: _tableSecret, ...receiveBase } = input.receiveMethod as
-            Record<string, unknown>;
+          const {
+            tableToken: _tableSecret,
+            physicalCodes: _scannedCodes,
+            ...receiveBase
+          } = input.receiveMethod as Record<string, unknown>;
           const receiveMethod = {
             ...receiveBase,
+            ...(physicalCardIds ? { physicalCardIds } : {}),
             ...(kind === 'pickup' || kind === 'dine-in' ? { locationRef: branch.code } : {}),
             ...(prepared.diningTable
               ? { tableId: prepared.diningTable.id, tableCode: prepared.diningTable.code }

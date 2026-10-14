@@ -682,15 +682,18 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
         recipientEmail?: string;
         recipientName?: string;
         message?: string;
-        physicalCodes?: string[];
+        physicalCardIds?: number[];
       };
       if (receive.kind !== 'digital') return;
       const contactEmail =
         ((aggregate.order.contactSnapshot as { email?: string }).email ?? '').trim();
       const recipientEmail = (receive.recipientEmail ?? '').trim() || contactEmail;
       // Counter sale of preprinted stock: staff scanned the cards the customer takes home;
-      // those activate instead of minting (step 5 builds the staff UI on top).
-      const physicalQueue = Array.isArray(receive.physicalCodes) ? [...receive.physicalCodes] : [];
+      // create resolved the scans to card ids (the codes are never stored on the order) and
+      // those activate instead of minting, in line-id order — the order create checked.
+      const physicalQueue = Array.isArray(receive.physicalCardIds)
+        ? receive.physicalCardIds.map(Number).filter(Number.isSafeInteger)
+        : [];
       const ctx: ServiceContext = { actor: { kind: 'system' } };
 
       const freshCodes = new Map<number, string>();
@@ -702,7 +705,9 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
              FROM plugins_ordering_order_line ol
              JOIN plugins_ordering_order_line_fulfillment_group_lnk lnk
                ON lnk.order_line_id = ol.id
-            WHERE lnk.fulfillment_group_id = ? FOR UPDATE OF ol`,
+            WHERE lnk.fulfillment_group_id = ?
+            ORDER BY ol.id
+              FOR UPDATE OF ol`,
           [groupId],
         )) as {
           rows: Array<{
@@ -718,7 +723,7 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
         // a committed run — drop it now so leftover scans only ever hold unsold stock. A card
         // sold on a different order stays in the queue and fails the strict check below.
         while (physicalQueue.length > 0) {
-          const stock = await service.findByCode(physicalQueue[0]);
+          const stock = await service.findById(physicalQueue[0]);
           if (
             !stock ||
             stock.source !== 'batch' ||
@@ -739,7 +744,7 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
             const physical = physicalQueue.shift();
             const lineAmount = asInt(line.unit_amount) + asInt(line.option_amount);
             if (physical) {
-              const stock = await service.findByCode(physical);
+              const stock = await service.findById(physical);
               if (!stock || stock.status !== 'inactive' || stock.source !== 'batch') {
                 throw new OrderingError(
                   'GIFT_CARD_INVALID',

@@ -126,6 +126,37 @@ withApp(async (app) => {
     assert.ok(card.sealedCode, 'sealed copy kept for the staff reveal');
     assert.ok(card.orderLine?.id, 'linked to its line');
   }
+
+  // Issued card value is never refunded to cash: a full refund of the sale is refused, while
+  // money above the face value (an overpaid second capture) may still go back.
+  const refunds = app.plugin('ordering').service('refund');
+  await assert.rejects(
+    refunds.createRefund(
+      { paymentId: pay.id, amount: 400000, reason: 'khách đổi ý', idempotencyKey: `gc-refund-${randomUUID()}` },
+      systemCtx,
+    ),
+    (error) => error?.code === 'GIFT_CARD_NOT_ALLOWED' && error.details?.reason === 'card-sale-refund',
+    'refunding an issued card sale is refused',
+  );
+  const extra = await payment.createPayment({ orderId, providerCode: 'test', amount: 50000 }, systemCtx);
+  await payment.capturePayment(
+    { paymentId: extra.id, amount: 50000, providerTransactionId: 'gc-txn-overpay' },
+    systemCtx,
+  );
+  const overpay = await refunds.createRefund(
+    { paymentId: extra.id, amount: 50000, reason: 'trả dư', idempotencyKey: `gc-refund-${randomUUID()}` },
+    systemCtx,
+  );
+  assert.equal(Number(overpay.refund.amount), 50000, 'the overpaid part refunds');
+  await assert.rejects(
+    refunds.createRefund(
+      { paymentId: pay.id, amount: 1, reason: 'thêm', idempotencyKey: `gc-refund-${randomUUID()}` },
+      systemCtx,
+    ),
+    (error) => error?.code === 'GIFT_CARD_NOT_ALLOWED',
+    'nothing beyond the overpay',
+  );
+  console.log('[ordering-test] card sale: issued value not refundable, overpay refunds');
   const ledger = await app.db
     .query('plugin::ordering.gift-card-ledger')
     .findMany({ where: { kind: 'issue' } });
@@ -261,6 +292,19 @@ withApp(async (app) => {
     (error) => error?.code === 'PROMOTION_NOT_ELIGIBLE',
   );
   console.log('[ordering-test] pickup/delivery promotion on a digital cart → PROMOTION_NOT_ELIGIBLE');
+  await assert.rejects(
+    order.createOrder(
+      digitalInput({
+        adjustments: [{ kind: 'discount', code: 'staff-50k', label: 'Giảm tay', amount: -50000 }],
+        origin: { kind: 'staff-draft' },
+        payment: { providerCode: 'cash' },
+      }),
+      systemCtx,
+    ),
+    (error) => error?.code === 'GIFT_CARD_NOT_ALLOWED' && error.details?.reason === 'card-discount',
+    'a staff discount cannot lower a card sale',
+  );
+  console.log('[ordering-test] manual discount on a card sale → GIFT_CARD_NOT_ALLOWED');
 
   // --- counter sale: staff scans preprinted stock, cash at the counter --------------------
   const staff = await seedStaff(app);
@@ -336,39 +380,58 @@ withApp(async (app) => {
   );
   console.log('[ordering-test] extra scan → rejected; rescanning sold stock → GIFT_CARD_INVALID');
 
-  // A denomination mismatch passes the counter check but is refused transactionally.
-  const wrong1 = await issue({ amount: 50000, source: 'batch' });
-  const wrong2 = await issue({ amount: 50000, source: 'batch' });
-  const mismatch = await order.createOrder(
+  // The order never stores the scanned codes — only the resolved card ids.
+  const counterRow = await app.db.query('plugin::ordering.order').findOne({
+    where: { id: counter.order.order.id },
+    populate: { fulfillmentGroups: true },
+  });
+  const storedJson = JSON.stringify(counterRow);
+  for (const code of [stock1.code, stock2.code]) {
+    assert.ok(!storedJson.includes(code) && !storedJson.includes(code.replaceAll('-', '')), 'no code stored');
+  }
+  assert.deepEqual(counterRow.receiveMethod.physicalCardIds, [stock1.id, stock2.id]);
+  const detail = await adminOrders.detail(counter.order.order.id, lanCtx);
+  assert.ok(!JSON.stringify(detail).includes(stock1.code), 'admin detail shows no code');
+  console.log('[ordering-test] counter sale stores card ids, never the scanned codes');
+
+  // Every scan problem fails at create, while staff are still at the counter — a paid order
+  // can no longer get stuck in issuance.
+  const counterInput = (physicalCodes, phone) =>
     digitalInput({
-      receiveMethod: { kind: 'digital', physicalCodes: [wrong1.code, wrong2.code] },
-      contact: { name: 'Counter', phone: '+84900000008' },
+      receiveMethod: { kind: 'digital', physicalCodes },
+      contact: { name: 'Counter', phone },
       payment: { providerCode: 'cash' },
       origin: { kind: 'staff-draft' },
-    }),
-    lanCtx,
-  );
-  await order.confirmDraft(mismatch.order.order.id, lanCtx);
-  await adminOrders.cashHandover(mismatch.order.order.id, { method: 'cash' }, lanCtx);
-  const groupId = (await order.getOrder(mismatch.order.order.id, systemCtx)).groups[0].id;
+    });
+  const wrong1 = await issue({ amount: 50000, source: 'batch' });
+  const wrong2 = await issue({ amount: 50000, source: 'batch' });
   await assert.rejects(
-    giftCard.onGroupIssued({
-      payload: {
-        orderId: mismatch.order.order.id,
-        groupId,
-        to: 'issued',
-        workflowName: 'gift-card',
-      },
-    }),
-    (error) => error?.code === 'GIFT_CARD_INVALID',
+    order.createOrder(counterInput([wrong1.code, wrong2.code], '+84900000008'), lanCtx),
+    (error) => error?.code === 'GIFT_CARD_INVALID' && /denomination/.test(error.message),
+    '50k stock on a 200k line is refused at create',
   );
-  assert.equal(
-    await app.db
-      .query('plugin::ordering.gift-card')
-      .count({ where: { order: { id: mismatch.order.order.id } } }),
-    0,
+  const fresh1 = await issue({ amount: 200000, source: 'batch' });
+  const fresh2 = await issue({ amount: 200000, source: 'batch' });
+  await assert.rejects(
+    order.createOrder(counterInput([fresh1.code, fresh1.code], '+84900000009'), lanCtx),
+    (error) => error?.code === 'VALIDATION_ERROR' && /twice/.test(error.message),
+    'the same card scanned twice is refused',
   );
-  console.log('[ordering-test] 50k stock on a 200k line → GIFT_CARD_INVALID at issuance, no cards');
+  // Two drafts racing one card: exactly one holds it.
+  const fresh3 = await issue({ amount: 200000, source: 'batch' });
+  const raced = await Promise.allSettled([
+    order.createOrder(counterInput([fresh1.code, fresh2.code], '+84900000010'), lanCtx),
+    order.createOrder(counterInput([fresh2.code, fresh3.code], '+84900000011'), lanCtx),
+  ]);
+  assert.equal(raced.filter((result) => result.status === 'fulfilled').length, 1, 'one draft wins the card');
+  const lost = raced.find((result) => result.status === 'rejected');
+  assert.equal(lost.reason?.code, 'GIFT_CARD_INVALID');
+  // Deleting the winning draft releases its cards.
+  const winner = raced.find((result) => result.status === 'fulfilled').value;
+  await adminOrders.deleteDraft(winner.order.order.id, lanCtx);
+  const retry = await order.createOrder(counterInput([fresh2.code, fresh3.code], '+84900000012'), lanCtx);
+  assert.equal(retry.order.order.status, 'draft', 'a deleted draft no longer holds its cards');
+  console.log('[ordering-test] scans: denomination, duplicate and reservation checked at create');
 
   console.log('[ordering-test] done');
 });

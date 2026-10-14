@@ -387,3 +387,26 @@ describe('evaluate selection', () => {
     expect(evaluate(same)).toEqual(evaluate(same));
   });
 });
+
+describe('digital (gift-card) carts', () => {
+  const digitalPromo = (target: PromotionSnapshot['target']) =>
+    promo({ receiveKinds: ['digital'], target });
+  it('rejects an order-wide promotion even when it declares digital', () => {
+    const result = evaluate(
+      input({ receiveKind: 'digital', fulfillmentAmount: 0, candidates: [digitalPromo({ kind: 'order', refs: [] })] }),
+    );
+    expect(result.applied).toEqual([]);
+    expect(reasons(result)).toEqual(['receive-kind']);
+  });
+
+  it('keeps a promotion aimed at the card products', () => {
+    const result = evaluate(
+      input({
+        receiveKind: 'digital',
+        fulfillmentAmount: 0,
+        candidates: [digitalPromo({ kind: 'products', refs: ['pho'] })],
+      }),
+    );
+    expect(result.applied.map((row) => row.amount)).toEqual([-10000]);
+  });
+});

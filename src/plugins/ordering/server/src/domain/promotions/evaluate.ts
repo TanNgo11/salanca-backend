@@ -104,6 +104,9 @@ export const rejectionReason = (promo: PromotionSnapshot, input: EvaluateInput):
     return 'location';
   }
   if (!promo.receiveKinds.includes(input.receiveKind)) return 'receive-kind';
+  // O9 plan step 3: a card purchase takes only a promotion aimed at the card products or their
+  // category — never an order-wide one, which would sell card value below its face.
+  if (input.receiveKind === 'digital' && promo.target.kind === 'order') return 'receive-kind';
   const local = toLocalParts(input.now, input.timezone);
   const weekday = WEEKDAYS[local.weekday] ?? 'mon';
   if (promo.weekdays.length > 0 && !promo.weekdays.includes(weekday)) return 'time';
