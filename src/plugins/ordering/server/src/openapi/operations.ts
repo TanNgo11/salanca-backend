@@ -200,8 +200,11 @@ export const OPERATIONS: Operation[] = [
   }),
   // O12 step 7: the table QR lands here — branch + table for the at-table menu. Unknown or
   // rotated/disabled secrets all answer the same 404.
-  pub('get', '/tables/:token', 'Storefront', 'Resolve a table QR token (branch + table)', {
-    parameters: [pathParam('token', 'QR secret — sha256-hashed server-side, never stored raw')],
+  pub('post', '/tables/resolve', 'Storefront', 'Resolve a table QR token (branch + table)', {
+    requestBody: obj(
+      { token: { ...str, description: 'QR secret — sha256-hashed server-side, never stored raw' } },
+      ['token'],
+    ),
     response: obj({
       item: obj({
         branch: str,

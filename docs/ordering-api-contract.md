@@ -129,7 +129,7 @@ For delivery send `receiveMethod.kind: 'delivery'`, `providerCode: 'self-deliver
 (`wardCode` is accepted as an alias for older payloads). Commune codes come from the administrative-unit
 catalog; an unknown code or a required field fails `VALIDATION_ERROR` with `details.field`
 (`address.communeCode`, `address.line1`…). For dine-in (O12) send `receiveMethod.kind: 'dine-in'`,
-`locationRef` and `tableToken` — the QR secret from `GET /tables/:token`; a bad or foreign-branch token
+`locationRef` and `tableToken` — the QR secret as resolved by `POST /tables/resolve`; a bad or foreign-branch token
 fails `404 TABLE_NOT_FOUND`. No `slot` means ASAP. Any amount, adjustment or fee in the
 body is ignored — the delivery fee always comes from the matched zone, not the request. Response:
 `cartHash`, `lines[] { index, sellableUid, title, quantity, unitAmount, optionAmount, lineTotalAmount }`,
@@ -152,10 +152,12 @@ Wrong codes are counted per IP: after 3 a quote with a code needs `captchaToken`
 (`CAPTCHA_FAILED` otherwise), after `rateLimits.promotionCode.max` (20 / 10 min) → `429 RATE_LIMITED`.
 Eligibility misses on a real code are not counted.
 
-### `GET /tables/:token` — O12
+### `POST /tables/resolve` — O12
 
-Public resolve for a scanned table QR. `token` is the QR secret from the printed link
-(`…/ban?t=<token>`); the server only stores its sha256. `200` answers `{ item: { branch, branchName,
+Public resolve for a scanned table QR. Body `{ "token": "<secret>" }` — the QR secret from the printed link
+(`…/ban?t=<token>`, a web page URL; the web page reads it and calls this route). The secret is never in
+the API path or query (access logs record the URL): a `token`/`t`/`orderToken`/… query key answers
+`400 VALIDATION_ERROR`, and the old `GET /tables/:token` no longer exists. The server only stores its sha256. `200` answers `{ item: { branch, branchName,
 table: { code, name, area, seats }, menuUrl, status } }` where `status` is `open` when the table already
 has a live session, else `available`. Unknown, rotated, disabled and cross-branch secrets all answer the
 same `404 TABLE_NOT_FOUND` — probing learns nothing. `Cache-Control: no-store`.

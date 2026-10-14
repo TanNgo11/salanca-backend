@@ -18,9 +18,12 @@ interface AdminCtx {
   type?: string;
 }
 
+/** Query names the table secret must never travel in (same list as the storefront guard). */
+const TOKEN_QUERY_KEYS = ['token', 't', 'orderToken', 'order_token', 'publicToken'];
+
 /**
  * O12 step 7: table management (screens N6) and table sessions (screens N7), plus the public
- * `GET /tables/:token` the scanned QR hits. Admin routes are guarded by `table.manage` (the
+ * `POST /tables/resolve` the scanned QR's page calls. Admin routes are guarded by `table.manage` (the
  * session close also requires `payment.record-cash` — it collects money); the service layers
  * the caller's location scope on top. `resolve` is public: it answers with the least data the
  * menu needs (branch, table code/name, menu URL, open/dining-closed status).
@@ -133,15 +136,24 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     },
 
     /**
-     * GET /api/v1/ordering/tables/:token — public. The QR secret resolves to the branch +
-     * table the menu should open on; unknown/disabled secrets are a plain 404 so probing a
-     * hash learns nothing.
+     * POST /api/v1/ordering/tables/resolve — public, body `{ token }`. The QR secret resolves to
+     * the branch + table the menu should open on; unknown/disabled secrets are a plain 404 so
+     * probing a hash learns nothing. The secret travels in the body, never the path or query, so
+     * access logs (which record the URL) never see it.
      */
     async resolve(ctx: AdminCtx) {
       if (rateLimited(strapi, ctx as never, 'read')) return;
       try {
         ctx.set?.('Cache-Control', 'no-store');
-        const token = typeof ctx.params.token === 'string' ? ctx.params.token.trim() : '';
+        if (TOKEN_QUERY_KEYS.some((key) => ctx.query[key] !== undefined)) {
+          throw new OrderingError(
+            'VALIDATION_ERROR',
+            'send the table token in the request body, never in the URL',
+            { details: { field: 'token' } },
+          );
+        }
+        const raw = (ctx.request.body as { token?: unknown } | undefined)?.token;
+        const token = typeof raw === 'string' ? raw.trim() : '';
         const table = token ? await tables().resolveByToken(token) : null;
         if (!table) {
           ctx.status = 404;

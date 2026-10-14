@@ -50,8 +50,9 @@ export default {
       publicRoute('GET', '/admin-units', 'admin-units.list'),
       publicRoute('GET', '/config', 'storefront.config'),
       publicRoute('GET', '/slots', 'storefront.slots'),
-      // O12: scanned table QR resolves branch + table for the at-table menu.
-      publicRoute('GET', '/tables/:token', 'table.resolve'),
+      // O12: scanned table QR resolves branch + table for the at-table menu. POST so the secret
+      // stays out of the URL (access logs record it).
+      publicRoute('POST', '/tables/resolve', 'table.resolve'),
       publicRoute('POST', '/quote', 'storefront.quote'),
       publicRoute('POST', '/orders', 'storefront.create'),
       publicRoute('GET', '/orders', 'storefront.show'),

@@ -124,12 +124,20 @@ withApp(async (app) => {
     );
 
     // ── Public resolve: good token resolves, garbage is a plain 404 ─────────────────────
-    const resolved = await api('GET', `/tables/${b1Token}`);
+    const resolved = await api('POST', '/tables/resolve', { token: b1Token });
     assert.equal(resolved.status, 200, JSON.stringify(resolved.body));
     assert.equal(resolved.body.item.branch, 'Q1');
     assert.equal(resolved.body.item.table.code, 'B1');
     assert.equal(resolved.body.item.status, 'available');
-    assert.equal((await api('GET', '/tables/not-a-real-token')).status, 404);
+    assert.equal((await api('POST', '/tables/resolve', { token: 'not-a-real-token' })).status, 404);
+    assert.equal((await api('POST', '/tables/resolve', {})).status, 404, 'missing token is a 404');
+    assert.equal(
+      (await api('POST', `/tables/resolve?token=${b1Token}`, { token: b1Token })).status,
+      400,
+      'token in the query is refused',
+    );
+    const legacy = await api('GET', `/tables/${b1Token}`);
+    assert.ok([404, 405].includes(legacy.status), `token-in-path route is gone (${legacy.status})`);
 
     // ── Order create on the token: session opens, secret never persisted ────────────────
     const first = await place(b1Token);
@@ -175,15 +183,15 @@ withApp(async (app) => {
     const t1 = bulk.body.items[0];
     const t1Token = tokenOf(t1.qrUrl);
     assert.equal((await lan('PUT', `/tables/${t1.id}`, { active: false })).status, 200);
-    assert.equal((await api('GET', `/tables/${t1Token}`)).status, 404, 'disabled table 404s');
+    assert.equal((await api('POST', '/tables/resolve', { token: t1Token })).status, 404, 'disabled table 404s');
     assert.equal((await place(t1Token)).status, 404, 'disabled table cannot order');
 
     const rotated = await lan('POST', `/tables/${b1.id}/rotate-qr`, {});
     assert.equal(rotated.status, 200);
     const newToken = tokenOf(rotated.body.item.qrUrl);
     assert.notEqual(newToken, b1Token);
-    assert.equal((await api('GET', `/tables/${b1Token}`)).status, 404, 'rotated token dies');
-    assert.equal((await api('GET', `/tables/${newToken}`)).status, 200);
+    assert.equal((await api('POST', '/tables/resolve', { token: b1Token })).status, 404, 'rotated token dies');
+    assert.equal((await api('POST', '/tables/resolve', { token: newToken })).status, 200);
 
     assert.equal(
       (await place(b2Token, 'Q3')).status,

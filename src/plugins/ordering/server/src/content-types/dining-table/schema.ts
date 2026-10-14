@@ -10,7 +10,7 @@ export default collection(
     area: { type: 'string' },
     seats: { type: 'integer' },
     /**
-     * sha256 of the QR secret: the public `/tables/:token` route looks tables up by hash, so
+     * sha256 of the QR secret: the public `/tables/resolve` route looks tables up by hash, so
      * a leaked table list does not hand out the capability. The QR image needs the raw secret
      * again — `qrUrl` keeps the full link for staff reprints (rotate to revoke both).
      */
