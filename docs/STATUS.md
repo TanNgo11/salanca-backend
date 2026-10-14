@@ -14,10 +14,15 @@ bản này thêm phần còn thiếu và test hồi quy `scripts/ordering/core-s
 - **Job `payment-expiry`**: hết hạn + hoàn tiền đã nhận trong một transaction dưới khóa group; đơn vừa trả đủ
   được chuyển tiếp thay vì hết hạn.
 - **Khách tự hủy**: cửa sổ hủy kiểm tra lại sau khi khóa group.
-- **Chưa xác minh / mở:** `recordManual` (nhân viên ghi chuyển khoản) vào đơn đã đóng vẫn capture mà không tạo
-  phiếu hoàn — theo thiết kế "nhân viên đã thấy tiền", cần quyết định; `config/plugins.test.ts` có 4 test fail
-  sẵn có trên `feat/ordering`; `order-edit` rồi hủy món định giá từ `lineTotalAmount` đã định giá lại theo số
-  lượng còn sống (có từ trước, chưa sửa).
+- **Sửa đơn rồi hủy món**: `order-edit` định giá lại chỉ các đơn vị còn sống nên dòng có `lineTotalAmount` cho
+  `pricedQuantity` đơn vị (cột mới, null = toàn bộ `quantity`); chia tiền khi hủy/hoàn dùng số đơn vị đã định
+  giá (`lineRemovalAmount`), phiếu in dùng `activeAmount`. Trước đó phần chia lệch (ví dụ 8.780đ thay vì 13.171đ).
+- **`recordManual` vào đơn đã đóng** bị từ chối `ORDER_CLOSED` (như gán giao dịch từ hàng đợi review): mở lại
+  đơn trước, không để tiền nằm trên đơn đóng mà không có phiếu hoàn.
+- **`config/plugins.test.ts`**: cập nhật kỳ vọng `tables`/`walletReturnOrigins` (4 test fail do cấu hình O12/O13
+  thêm mà test chưa cập nhật).
+- **Còn mở:** quy tắc "hủy món không hoàn khi trả một phần" chờ chủ quán xác nhận; chưa backfill
+  `canceledAmount`/`pricedQuantity` cho đơn cũ (hệ thống chưa chạy thật).
 
 2026-10-14: **Ordering core gaps — implemented + targeted verification passed, chờ review/UAT** trên
 `TanNgo11/ordering-core-gaps` (tách từ `feat/ordering` `f32ba2f`), 7 commit theo

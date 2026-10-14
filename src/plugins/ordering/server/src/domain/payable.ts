@@ -22,6 +22,7 @@ export function amountOwed(order: PayableOrder, capturedAmount: number): number 
 
 export type ReturnedLine = {
   quantity: number;
+  pricedQuantity?: number | null;
   returnedQuantity: number;
   lineTotalAmount: number;
 };
@@ -32,7 +33,11 @@ export function returnedLineAmount(lines: readonly ReturnedLine[]): number {
     (sum, line) =>
       sum +
       (line.returnedQuantity > 0
-        ? cumulativeRefundedAmount(line.lineTotalAmount, line.quantity, line.returnedQuantity)
+        ? cumulativeRefundedAmount(
+            line.lineTotalAmount,
+            line.pricedQuantity ?? line.quantity,
+            line.returnedQuantity,
+          )
         : 0),
     0,
   );

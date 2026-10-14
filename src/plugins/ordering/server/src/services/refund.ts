@@ -8,7 +8,7 @@ import { businessDate } from '../domain/business-date';
 import { OrderingError } from '../domain/errors';
 import { amountFromDb, toMoney } from '../domain/money';
 import { allocateLargestRemainder } from '../domain/pricing/allocation';
-import { refundLineAmount } from '../domain/refund-amount';
+import { lineRemovalAmount } from '../domain/refund-amount';
 import type { TransactionClient } from '../migrations/runner';
 import orderRepository from '../repositories/order';
 import type { PaymentRow, RefundRow } from '../repositories/types';
@@ -64,6 +64,7 @@ type LineRow = {
   quantity: number;
   returnedQuantity: number;
   canceledQuantity: number;
+  pricedQuantity?: number | null;
   lineTotalAmount: string | number;
 };
 
@@ -242,7 +243,11 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
             data: { returnedQuantity: line.returnedQuantity + requested.quantity },
           });
         }
-        const amount = refundLineAmount(lineTotal, line.quantity, k0, requested.quantity);
+        const amount = lineRemovalAmount(
+          { quantity: line.quantity, pricedQuantity: line.pricedQuantity, lineTotalAmount: lineTotal },
+          k0,
+          requested.quantity,
+        );
         sum += amount;
         lineRefunds.push({ lineId: line.id, quantity: requested.quantity, amount });
       }

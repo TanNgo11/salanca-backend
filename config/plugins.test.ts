@@ -235,6 +235,8 @@ describe('ordering plugin configuration', () => {
   const baseConfig = {
     orderCode: { prefix: 'SLC' },
     publicApiUrl: '',
+    walletReturnOrigins: ['http://localhost:3000'],
+    tables: { menuUrlTemplate: 'http://localhost:3000/ban?t={token}' },
     clientIp: {
       sharedSecret: '',
       secretHeader: 'x-salanca-intake-secret',

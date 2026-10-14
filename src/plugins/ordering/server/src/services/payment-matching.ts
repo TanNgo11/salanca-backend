@@ -853,6 +853,14 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
         const first = await order.getOrder(input.orderId, ctx);
         await lockGroups(trx, first);
         const aggregate = await order.getOrder(input.orderId, ctx);
+        // A closed order takes no capture: money recorded here would sit on it with no refund
+        // queued. Same rule as assigning a review transfer — reopen the order first.
+        if (
+          aggregate.groups.length > 0 &&
+          aggregate.groups.every((group) => (CLOSED_GROUP_STATUSES as readonly string[]).includes(group.status))
+        ) {
+          throw new OrderingError('ORDER_CLOSED', 'the order is closed; reopen it instead');
+        }
         const existing = await events().findOne({
           where: { providerCode: 'sepay', providerTransactionId: input.reference },
         });

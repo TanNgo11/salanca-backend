@@ -114,6 +114,7 @@ const print = ({ strapi }: { strapi: Core.Strapi }) => {
           unitAmount: line.unitAmount,
           optionAmount: line.optionAmount,
           lineTotalAmount: line.lineTotalAmount,
+          activeAmount: line.activeAmount,
         })),
         adjustments: detail.adjustments.map((adjustment) => ({
           kind: adjustment.kind,
@@ -181,6 +182,7 @@ const print = ({ strapi }: { strapi: Core.Strapi }) => {
           quantity: number;
           canceledQuantity: number;
           lineTotalAmount: number;
+          activeAmount: number;
           unitAmount: number;
           optionAmount: number;
         }>;
@@ -198,7 +200,7 @@ const print = ({ strapi }: { strapi: Core.Strapi }) => {
       // Merge lines across orders — same title+price collapses into one row.
       const lineMap = new Map<
         string,
-        { title: unknown; quantity: number; canceledQuantity: number; lineTotalAmount: number }
+        { title: unknown; quantity: number; canceledQuantity: number; lineTotalAmount: number; activeAmount: number }
       >();
       const adjustments = [] as Array<{ kind: unknown; label: unknown; amount: number; orders: string[] }>;
       const payments = [] as Array<Record<string, unknown>>;
@@ -233,12 +235,14 @@ const print = ({ strapi }: { strapi: Core.Strapi }) => {
             existing.quantity += line.quantity;
             existing.canceledQuantity += line.canceledQuantity;
             existing.lineTotalAmount += line.lineTotalAmount;
+            existing.activeAmount += line.activeAmount;
           } else {
             lineMap.set(key, {
               title: line.title,
               quantity: line.quantity,
               canceledQuantity: line.canceledQuantity,
               lineTotalAmount: line.lineTotalAmount,
+              activeAmount: line.activeAmount,
             });
           }
         }

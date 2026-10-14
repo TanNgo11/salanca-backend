@@ -37,6 +37,11 @@ export default collection(
     fulfilledQuantity: { type: 'integer', required: true, default: 0 },
     returnedQuantity: { type: 'integer', required: true, default: 0 },
     canceledQuantity: { type: 'integer', required: true, default: 0 },
+    /**
+     * Units `lineTotalAmount` covers; null = all `quantity` units. A staff edit reprices the live
+     * units only and stamps this, so cancel/refund shares stay exact (domain/refund-amount).
+     */
+    pricedQuantity: { type: 'integer' },
     /** Null on lines placed with the order. A staff edit stamps the revision that added the line. */
     addedInRevision: { type: 'integer' },
     /** O12 KDS: when kitchen staff marked the whole line prepared; null while it cooks. */

@@ -286,14 +286,7 @@ withApp(async (app) => {
     const held = settled.payments.reduce((sum, row) => sum + row.capturedAmount - row.refundedAmount, 0);
     const pending = settled.refunds.filter((row) => row.status === 'pending').reduce((sum, row) => sum + row.amount, 0);
     if (settled.groups[0].status === 'expired') {
-      // A manual record after the close is a staff decision to capture (documented), so only
-      // money received before the expiry must have been queued for refund.
-      const events = await app.db.query('plugin::ordering.order-event').findMany({ where: { order: racerId }, orderBy: { id: 'asc' } });
-      const closedAt = events.find((row) => row.type === 'fulfillment-group.transitioned' && row.payload?.to === 'expired').id;
-      const late = events
-        .filter((row) => row.type === 'payment.captured' && row.id > closedAt)
-        .reduce((sum, row) => sum + row.payload.amount, 0);
-      assert.equal(held - pending, late, 'money received before the expiry is queued for refund');
+      assert.equal(held - pending, 0, 'an expired order keeps no unrefunded money');
     } else {
       assert.equal(held, 195000, 'a paid order was not expired');
       assert.equal(settled.refunds.length, 0);
@@ -375,4 +368,43 @@ withApp(async (app) => {
   assert.equal(slotError?.code, 'CANCEL_NOT_ALLOWED');
   assert.equal((await order.getOrder(slottedId, systemCtx)).order.status, 'open');
   console.log('[ordering-test] core fixes: cancel window is checked under the lock');
+
+  // 13. After a staff edit a line is priced for its live units only: a later cancel is worth one
+  // live unit, not a fraction of the original quantity.
+  await setPickup();
+  const reduced = await place();
+  const reducedId = reduced.order.order.id;
+  const reducedLine = line(reduced, 'goi-cuon');
+  await edit.edit(reducedId, { revision: 0, reason: 'bot mot cuon', reduce: [{ lineId: reducedLine.id, quantity: 1 }] }, systemCtx);
+  const editedLine = (await order.getOrder(reducedId, systemCtx)).lines.find((row) => row.id === reducedLine.id);
+  assert.equal(editedLine.pricedQuantity, 2);
+  const unit = Math.round(editedLine.lineTotalAmount / 2);
+  const afterEditCancel = await lineCancel.cancelLineQuantity(
+    { orderId: reducedId, lineId: reducedLine.id, quantity: 1, reason: 'unavailable' },
+    systemCtx,
+  );
+  assert.equal((await order.getOrder(reducedId, systemCtx)).order.canceledAmount, unit);
+  assert.equal(afterEditCancel.refundAmount, 0);
+  const reducedPaid = await place();
+  const reducedPaidId = reducedPaid.order.order.id;
+  const reducedPaidLine = line(reducedPaid, 'goi-cuon');
+  await edit.edit(reducedPaidId, { revision: 0, reason: 'bot mot cuon', reduce: [{ lineId: reducedPaidLine.id, quantity: 1 }] }, systemCtx);
+  const reducedTotal = (await order.getOrder(reducedPaidId, systemCtx)).order.totalAmount;
+  await capture(reducedPaidId, reducedTotal);
+  const paidEditedLine = (await order.getOrder(reducedPaidId, systemCtx)).lines.find((row) => row.id === reducedPaidLine.id);
+  const editedPaidCancel = await lineCancel.cancelLineQuantity(
+    { orderId: reducedPaidId, lineId: reducedPaidLine.id, quantity: 2, reason: 'unavailable' },
+    systemCtx,
+  );
+  assert.equal(editedPaidCancel.refundAmount, paidEditedLine.lineTotalAmount, 'canceling every live unit refunds exactly what they cost');
+  console.log('[ordering-test] core fixes: cancel after an edit is priced on live units');
+
+  // 14. A transfer recorded by hand against a closed order is refused, not left unrefunded.
+  await setPickup('prepay');
+  const closed = await place();
+  const closedId = closed.order.order.id;
+  await storefront.cancelByToken(closed.publicToken, 'closed', systemCtx);
+  await assert.rejects(transfer(closedId, 50000), (error) => error?.code === 'ORDER_CLOSED');
+  assert.equal((await order.getOrder(closedId, systemCtx)).payments.length, 0);
+  console.log('[ordering-test] core fixes: manual record on a closed order is refused');
 });

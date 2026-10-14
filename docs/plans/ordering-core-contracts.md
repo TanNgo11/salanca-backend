@@ -1791,7 +1791,9 @@ type ConsentSnapshot = {
 - **Hoàn tiền khi hủy món:** chỉ hoàn phần tiền đang giữ *vượt* số còn phải trả (đơn chưa trả hoặc trả một
   phần không có phiếu hoàn; đơn trả đủ hoàn đúng phần món hủy). `refundShortfall` là phần đáng hoàn nhưng
   đã bị phiếu hoàn `pending` giữ chỗ. Khoản hoàn chia qua các payment (thẻ quà tặng trước, rồi payment còn
-  nhiều nhất). Đơn tạo trước thay đổi này không backfill `canceledAmount` (hệ thống chưa chạy thật).
+  nhiều nhất). Đơn tạo trước thay đổi này không backfill `canceledAmount`/`pricedQuantity` (hệ thống chưa chạy thật).
+  `order-line.pricedQuantity` = số đơn vị `lineTotalAmount` bao phủ (null = `quantity`); `order-edit` đặt nó bằng số
+  đơn vị còn sống sau khi sửa, và mọi phép chia tiền theo dòng (hủy món, hoàn theo dòng) telescoping trên số này.
 - Quyền mới `plugin::ordering.order.edit-lines` cho Quản lý chi nhánh.
 
 ### 21.6. Nhật ký thay đổi trong Admin

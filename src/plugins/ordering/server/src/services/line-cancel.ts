@@ -5,7 +5,7 @@ import type { Core } from '@strapi/strapi';
 import { OrderingError } from '../domain/errors';
 import { amountFromDb, sumAmounts } from '../domain/money';
 import { returnedLineAmount } from '../domain/payable';
-import { cumulativeRefundedAmount } from '../domain/refund-amount';
+import { lineRemovalAmount } from '../domain/refund-amount';
 import type { TransactionClient } from '../migrations/runner';
 import orderRepository from '../repositories/order';
 import type { OrderAggregate } from '../repositories/types';
@@ -31,6 +31,7 @@ type LineRow = {
   fulfilledQuantity: number;
   returnedQuantity: number;
   canceledQuantity: number;
+  pricedQuantity?: number | null;
   lineTotalAmount: string | number;
 };
 
@@ -103,17 +104,11 @@ const lineCancel = ({ strapi }: { strapi: Core.Strapi }) => {
         await services().dailyStock.releaseForLine(trx, input.lineId, input.quantity);
 
         // Telescoped amount for the units just moved to canceled.
-        const due =
-          cumulativeRefundedAmount(
-            amountFromDb(line.lineTotalAmount),
-            line.quantity,
-            line.returnedQuantity + line.canceledQuantity + input.quantity,
-          ) -
-          cumulativeRefundedAmount(
-            amountFromDb(line.lineTotalAmount),
-            line.quantity,
-            line.returnedQuantity + line.canceledQuantity,
-          );
+        const due = lineRemovalAmount(
+          { ...line, lineTotalAmount: amountFromDb(line.lineTotalAmount) },
+          line.returnedQuantity + line.canceledQuantity,
+          input.quantity,
+        );
 
         // Refund against the payment with the largest captured remainder, capped at it.
         // Pending rows already reserve that remainder (refund.ts checks the same sum).
@@ -163,8 +158,8 @@ const lineCancel = ({ strapi }: { strapi: Core.Strapi }) => {
         const canceledAfter = await repo.addCanceledAmount(trx, input.orderId, due);
         const orderLines = (await lines().findMany({
           where: { order: input.orderId },
-          select: ['quantity', 'returnedQuantity', 'lineTotalAmount'],
-        })) as Array<Pick<LineRow, 'quantity' | 'returnedQuantity'> & {
+          select: ['quantity', 'pricedQuantity', 'returnedQuantity', 'lineTotalAmount'],
+        })) as Array<Pick<LineRow, 'quantity' | 'pricedQuantity' | 'returnedQuantity'> & {
           lineTotalAmount: string | number;
         }>;
         const stillOwed = Math.max(

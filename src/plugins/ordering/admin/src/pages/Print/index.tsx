@@ -18,6 +18,8 @@ type PrintLine = {
   unitAmount?: number;
   optionAmount?: number;
   lineTotalAmount?: number;
+  /** Worth of the units still open, from the server (edited lines are priced for live units only). */
+  activeAmount?: number;
 };
 
 type PrintPayload = {
@@ -56,7 +58,9 @@ const KIND_KEY: Record<string, string> = {
 
 /** `lineTotalAmount` is stored for the original quantity — prorate the units still open. */
 const activeLineTotal = (line: PrintLine): number =>
-  line.lineTotalAmount === undefined || line.quantity <= 0
+  line.activeAmount !== undefined
+    ? line.activeAmount
+    : line.lineTotalAmount === undefined || line.quantity <= 0
     ? 0
     : Math.round((line.lineTotalAmount * (line.quantity - line.canceledQuantity)) / line.quantity);
 

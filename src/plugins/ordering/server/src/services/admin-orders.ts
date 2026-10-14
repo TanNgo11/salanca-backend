@@ -9,6 +9,7 @@ import { OrderingError } from '../domain/errors';
 import { amountFromDb } from '../domain/money';
 import { maskEmail } from '../domain/pii';
 import { parseCartRequest, parseOrderRequest } from '../domain/storefront/parse';
+import { liveLineAmount } from '../domain/refund-amount';
 import { paidAmounts, type SelectedOptionSnapshot } from '../domain/storefront/serialize';
 import { editability } from '../domain/order-edit';
 import { isTerminal } from '../domain/workflow/transition';
@@ -657,6 +658,8 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
           unitAmount: line.unitAmount,
           optionAmount: line.optionAmount,
           lineTotalAmount: line.lineTotalAmount,
+          // Worth of the units still open (an edited line is priced for its live units only).
+          activeAmount: liveLineAmount(line),
         })),
         adjustments: aggregate.adjustments.map((adjustment) => ({
           kind: adjustment.kind,

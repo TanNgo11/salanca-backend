@@ -658,7 +658,11 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
       const priced = pricedByKey.get(pricingKeyForLine(line.lineId));
       const data: Record<string, unknown> = {};
       if (cut > 0) data.canceledQuantity = stored.canceledQuantity + cut;
-      if (priced) Object.assign(data, moneyColumns(priced));
+      if (priced) {
+        Object.assign(data, moneyColumns(priced));
+        // The new total covers the live units only (see domain/refund-amount).
+        data.pricedQuantity = line.quantityAfter;
+      }
       if (Object.keys(data).length > 0) {
         await lines().update({ where: { id: line.lineId }, data });
       }

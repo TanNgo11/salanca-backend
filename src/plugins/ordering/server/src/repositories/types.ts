@@ -59,6 +59,8 @@ export type OrderLineRow = {
   fulfilledQuantity: number;
   returnedQuantity: number;
   canceledQuantity: number;
+  /** Units `lineTotalAmount` covers (null/absent = `quantity`); see domain/refund-amount. */
+  pricedQuantity?: number | null;
   /** Null when the line was on the order at placement. */
   addedInRevision?: number | null;
   unitAmount: number;

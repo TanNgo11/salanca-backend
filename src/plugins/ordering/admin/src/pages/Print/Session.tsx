@@ -22,7 +22,13 @@ type SessionPayload = {
   };
   branch: { code: string; name: string; phone: string | null; timezone: string };
   orderCodes: string[];
-  lines: Array<{ title: string; quantity: number; canceledQuantity: number; lineTotalAmount: number }>;
+  lines: Array<{
+    title: string;
+    quantity: number;
+    canceledQuantity: number;
+    lineTotalAmount: number;
+    activeAmount?: number;
+  }>;
   adjustments: Array<{ kind: string; label: string; amount: number }>;
   totals: {
     currency: string;
@@ -38,8 +44,15 @@ type SessionPayload = {
   payments: Array<{ providerCode: string; status: string; capturedAmount: number; orderCode?: string }>;
 };
 
-const activeLineTotal = (line: { quantity: number; canceledQuantity: number; lineTotalAmount: number }) =>
-  line.quantity <= 0
+const activeLineTotal = (line: {
+  quantity: number;
+  canceledQuantity: number;
+  lineTotalAmount: number;
+  activeAmount?: number;
+}) =>
+  line.activeAmount !== undefined
+    ? line.activeAmount
+    : line.quantity <= 0
     ? 0
     : Math.round((line.lineTotalAmount * (line.quantity - line.canceledQuantity)) / line.quantity);
 
