@@ -45,7 +45,7 @@ Lưu ý: trường optional vắng mặt vẫn phải xuất hiện trong chuỗ
 
 - MoMo `POST` JSON đến `ipnUrl` khai báo lúc `create` — ta trỏ về `POST /api/v1/ordering/webhooks/momo`.
 - Trường bắt buộc trong payload: `orderId`, `requestId`, `amount`, `resultCode`, `transId`, `signature`.
-- `resultCode = 0` → thành công; `1006` hủy bởi người dùng, `9000`… và các mã khác → thất bại (ghi nhận `payment failed`, không capture).
+- `resultCode = 0` → thành công; `1006` hủy bởi người dùng, `1004` → thất bại (ghi nhận `payment failed`, không capture). `9000` (đã ủy quyền, tiền đang bị giữ — tích hợp này dùng autoCapture nên không mong đợi) → hàng duyệt O4 lý do `provider-uncertain`, payment giữ nguyên. Mã khác (vd `1000` đang xử lý) → bỏ qua, job query đối soát sau. (Sửa 2026-10-14 sau review; **chưa kiểm sandbox**.)
 - Adapter trả **HTTP 204** cho mọi kết quả hợp lệ (kể cả duplicate/unknown) và 401 khi chữ ký sai — theo khuyến nghị AIO v2 IPN trả `204 No Content`.
 - `transId` là idempotency key (`providerTransactionId`); `orderId` mang tham chiếu `reference` về phiên thanh toán của ta.
 

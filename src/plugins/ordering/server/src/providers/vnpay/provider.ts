@@ -168,6 +168,13 @@ export const createVnpayPaymentProvider = (deps: {
         });
       }
       const ok = p.vnp_ResponseCode === '00' && p.vnp_TransactionStatus === '00';
+      // 07: money was taken but VNPay flags the transaction as suspicious — staff review, not
+      // `failed`.
+      const kind = ok
+        ? 'capture'
+        : p.vnp_ResponseCode === '07' || p.vnp_TransactionStatus === '07'
+          ? 'review'
+          : 'failed';
       const transactionNo = p.vnp_TransactionNo?.trim() ?? '';
       return [
         {
@@ -175,8 +182,10 @@ export const createVnpayPaymentProvider = (deps: {
           // VNPay may send TransactionNo 0 (or nothing) for a failed/cancelled payment; a shared
           // id would collide on the event unique index for every later failure.
           providerTransactionId:
-            ok && transactionNo !== '' && transactionNo !== '0' ? transactionNo : `vnpay-failed-${txnRef}`,
-          kind: ok ? 'capture' : 'failed',
+            kind !== 'failed' && transactionNo !== '' && transactionNo !== '0'
+              ? transactionNo
+              : `vnpay-${kind}-${txnRef}`,
+          kind,
           amount: { amount: amount / 100, currency: 'VND' },
           transferType: 'in',
           reference: txnRef,
@@ -228,10 +237,12 @@ export const createVnpayPaymentProvider = (deps: {
       const status = str(body?.vnp_TransactionStatus);
       const amount = Number(str(body?.vnp_Amount));
       const transactionNo = str(body?.vnp_TransactionNo);
-      const event = (kind: 'capture' | 'failed'): NormalizedPaymentEvent => ({
+      const event = (kind: 'capture' | 'failed' | 'review'): NormalizedPaymentEvent => ({
         providerCode: 'vnpay',
         providerTransactionId:
-          transactionNo !== '' ? transactionNo : `vnpay-${kind}-${reference}`,
+          kind !== 'failed' && transactionNo !== '' && transactionNo !== '0'
+            ? transactionNo
+            : `vnpay-${kind}-${reference}`,
         kind,
         amount: { amount: Number.isSafeInteger(amount) ? amount / 100 : -1, currency: 'VND' },
         transferType: 'in',
@@ -245,6 +256,7 @@ export const createVnpayPaymentProvider = (deps: {
       if (status === '00') return event('capture');
       // 01 pending / 02 processing at VNPay → nothing to apply yet.
       if (status === '01' || status === '02' || status === '') return null;
+      if (status === '07') return event('review');
       return event('failed');
     },
 

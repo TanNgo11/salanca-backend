@@ -36,7 +36,7 @@ Provider code: `vnpay`. Loại: payment provider (`wallet`). **Tắt mặc đị
    - `04` Invalid amount — lệch `vnp_Amount` vs `requestedAmount`.
    - `97` Invalid Checksum — chữ ký sai.
    - `99` Unknown error — lỗi khác.
-   Thành công cần `vnp_ResponseCode=00` **và** `vnp_TransactionStatus=00`; các mã khác (vd `07` nghi ngờ, `24` khách hủy) → đánh dấu thất bại.
+   Thành công cần `vnp_ResponseCode=00` **và** `vnp_TransactionStatus=00`; `07` (trừ tiền thành công nhưng bị nghi ngờ) → hàng duyệt O4 lý do `provider-uncertain`, IPN trả `00`, payment giữ nguyên; các mã khác (vd `24` khách hủy) → đánh dấu thất bại. querydr `vnp_TransactionStatus=07` cũng vào duyệt. (Sửa 2026-10-14; **chưa kiểm sandbox**.)
 4. `querydr` (`vnp_Command=querydr`) — job `wallet-status-check` hỏi trạng thái khi IPN trễ.
 5. `refund` (`vnp_Command=refund`, `vnp_TransactionType=02` full / `03` partial) — `vnp_ResponseCode=00` → settled; `94` trùng trong 5 phút → xem như đã nhận (idempotent bằng `vnp_RequestId`).
 
@@ -51,4 +51,4 @@ Provider code: `vnpay`. Loại: payment provider (`wallet`). **Tắt mặc đị
 
 ## Ghi chú chưa đối chiếu sandbox
 
-- Quy ước encode trong chuỗi ký IPN theo mã mẫu chính thức (giá trị đã decode). Nếu UAT sandbox báo `RspCode=97` sai lệch, kiểm tra lại quy ước encode trước khi đổi code.
+- Quy ước encode trong chuỗi ký IPN theo mã mẫu chính thức (giá trị đã encode, xem mục Chữ ký). Nếu UAT sandbox báo `RspCode=97` sai lệch, kiểm tra lại quy ước encode trước khi đổi code.

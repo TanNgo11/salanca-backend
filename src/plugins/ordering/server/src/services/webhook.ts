@@ -141,7 +141,9 @@ const webhook = ({ strapi }: { strapi: Core.Strapi }) => {
                   ? 'duplicate'
                   : reason === 'order-not-found' || reason === 'no-code'
                     ? 'order-not-found'
-                    : 'failed';
+                    : reason === 'provider-uncertain'
+                      ? 'accepted' // stored for staff review; a retry would add nothing
+                      : 'failed';
           }
         }
       } catch (error) {

@@ -481,6 +481,11 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
                 }
                 return walletPark('ignored', 'result-failed', locked.id);
               }
+              // The provider says money may have moved but not cleanly (MoMo 9000, VNPay 07):
+              // staff decide; the payment is left as it is.
+              if (event.kind === 'review') {
+                return walletPark('needs-review', 'provider-uncertain', locked.id);
+              }
               if (locked.status === 'captured') {
                 return walletPark('ignored', 'already-paid', locked.id);
               }

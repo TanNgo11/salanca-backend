@@ -411,7 +411,15 @@ try {
     }
     assert.equal((await payments().findOne({ where: { providerReference: failRef } })).status, 'failed');
     assert.equal((await events().findMany({ where: { providerTransactionId: `momo-failed-${failRef}` } })).length, 1);
-    console.log('[ordering-test] momo review fixes: closed order, paid elsewhere, repeated failures');
+    // 9000 (authorized, money held) is not a failure: staff review, payment untouched.
+    const held = await placeM1();
+    const heldRef = (await openSession(held.publicToken)).body.reference;
+    assert.equal((await momoIpn({ ...capturePayload(heldRef, 'momo-held'), resultCode: 9000 })).status, 204);
+    const heldEvent = await events().findOne({ where: { providerTransactionId: 'momo-held' } });
+    assert.equal(heldEvent.reviewStatus, 'needs-review');
+    assert.equal(heldEvent.reviewReason, 'provider-uncertain');
+    assert.equal((await payments().findOne({ where: { providerReference: heldRef } })).status, 'pending');
+    console.log('[ordering-test] momo review fixes: closed order, paid elsewhere, repeated failures, 9000 to review');
 
     console.log('[ordering-test] momo session, ipn capture/replay/mismatch/failed, refund, return');
   });

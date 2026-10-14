@@ -253,6 +253,34 @@ try {
     const failedPayment = await payments().findOne({ where: { providerReference: secondRef } });
     assert.equal(failedPayment.status, 'failed');
 
+    // 07: money taken but flagged suspicious → staff review, the payment is not marked failed.
+    const flagged = await order.createOrder(
+      basicOrderInput({ locationRef: 'V1', receiveMethod: { kind: 'pickup', locationRef: 'V1' } }),
+      systemCtx,
+    );
+    const flaggedRef = (
+      await (
+        await fetch(`${base}/api/v1/ordering/payments/session`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Order-Token': flagged.publicToken },
+          body: JSON.stringify({ provider: 'vnpay' }),
+        })
+      ).json()
+    ).reference;
+    const suspicious = await ipn({
+      ...ipnParams,
+      vnp_TxnRef: flaggedRef,
+      vnp_TransactionNo: 'VNPTXN-07',
+      vnp_ResponseCode: '07',
+      vnp_TransactionStatus: '07',
+      vnp_Amount: '19500000',
+    });
+    assert.equal(suspicious.body.RspCode, '00');
+    const flaggedEvent = await events().findOne({ where: { providerTransactionId: 'VNPTXN-07' } });
+    assert.equal(flaggedEvent.reviewStatus, 'needs-review');
+    assert.equal(flaggedEvent.reviewReason, 'provider-uncertain');
+    assert.equal((await payments().findOne({ where: { providerReference: flaggedRef } })).status, 'pending');
+
     // --- querydr + refund --------------------------------------------------------------
     const provider = app.plugin('ordering').service('registry').paymentProvider('vnpay');
     const sessionRow = await payments().findOne({ where: { id: payment.id } });

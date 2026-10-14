@@ -29,7 +29,21 @@ const num = (value: unknown): number => {
 
 const MOMO_RESULT_OK = '0';
 /** MoMo resultCodes for a finished-but-unsuccessful transaction (query/IPN). */
-const MOMO_RESULT_FAILED = new Set(['1006', '1004', '9000']);
+const MOMO_RESULT_FAILED = new Set(['1006', '1004']);
+/**
+ * 9000: authorized at MoMo — the customer's money is held, but this integration (autoCapture)
+ * never expects it. Money may have moved, so it goes to staff review instead of `failed`.
+ */
+const MOMO_RESULT_REVIEW = new Set(['9000']);
+
+const momoKind = (resultCode: string): 'capture' | 'failed' | 'review' | null =>
+  resultCode === MOMO_RESULT_OK
+    ? 'capture'
+    : MOMO_RESULT_REVIEW.has(resultCode)
+      ? 'review'
+      : MOMO_RESULT_FAILED.has(resultCode)
+        ? 'failed'
+        : null;
 
 const providerError = (operation: string, resultCode: string | undefined): OrderingError =>
   new OrderingError('PROVIDER_UNAVAILABLE', `momo ${operation} rejected`, {
@@ -92,15 +106,15 @@ export const createMomoPaymentProvider = (deps: {
 
   const eventFromPayload = (
     payload: Record<string, string>,
-    kind: 'capture' | 'failed',
+    kind: 'capture' | 'failed' | 'review',
   ): NormalizedPaymentEvent => ({
     providerCode: 'momo',
     // A failed result may carry no/zero transId; keep failures per session so they never
     // collide on the event unique index.
     providerTransactionId:
-      kind === 'capture' && payload.transId && payload.transId !== '0'
+      kind !== 'failed' && payload.transId && payload.transId !== '0'
         ? payload.transId
-        : `momo-failed-${payload.orderId}`,
+        : `momo-${kind}-${payload.orderId}`,
     kind,
     amount: { amount: num(payload.amount), currency: 'VND' },
     transferType: 'in',
@@ -213,10 +227,10 @@ export const createMomoPaymentProvider = (deps: {
           details: { reason: 'invalid-payload' },
         });
       }
-      const ok = event.resultCode === MOMO_RESULT_OK;
+      const kind = momoKind(event.resultCode);
       // A pending transaction (rare on IPN) is ignored — the status job catches up via query.
-      if (!ok && !MOMO_RESULT_FAILED.has(event.resultCode)) return [];
-      return [eventFromPayload(event, ok ? 'capture' : 'failed')];
+      if (!kind) return [];
+      return [eventFromPayload(event, kind)];
     },
 
     webhookResponse({ result }) {
@@ -229,33 +243,20 @@ export const createMomoPaymentProvider = (deps: {
       const settings = requireSettings();
       const body = await queryRaw(settings, reference);
       const resultCode = str(body.resultCode);
-      if (resultCode === MOMO_RESULT_OK) {
-        const transId = str(body.transId);
-        if (transId === '') throw providerError('query', 'no-trans-id');
+      const kind = momoKind(resultCode);
+      if (kind === 'capture' && str(body.transId) === '') throw providerError('query', 'no-trans-id');
+      if (kind) {
+        // failed/review: still a real terminal event for the pending payment.
         return eventFromPayload(
           {
-            transId,
+            transId: str(body.transId),
             orderId: reference,
             amount: str(body.amount),
             resultCode,
             requestId: str(body.requestId),
             payType: str(body.payType),
           },
-          'capture',
-        );
-      }
-      if (MOMO_RESULT_FAILED.has(resultCode)) {
-        // Failed at MoMo — still a real terminal event for the pending payment.
-        return eventFromPayload(
-          {
-            transId: `momo-failed-${reference}`,
-            orderId: reference,
-            amount: str(body.amount),
-            resultCode,
-            requestId: str(body.requestId),
-            payType: '',
-          },
-          'failed',
+          kind,
         );
       }
       // resultCode 1000 and friends: still processing at MoMo — nothing to apply yet.

@@ -113,11 +113,7 @@ export const runWalletStatusCheck = async (
           await giveUp();
           continue;
         }
-        if (!event || event.kind !== 'capture') {
-          if (event) {
-            const saved = await matching.ingest({ event, rawPayload: { source: 'wallet-status-check' } }, ctx);
-            if (!saved.duplicate) applied += 1;
-          }
+        if (!event) {
           await giveUp();
           continue;
         }
@@ -131,6 +127,9 @@ export const runWalletStatusCheck = async (
             await alerts.noteUnmatched(event.providerCode, ctx);
           }
         }
+        // failed/review leave the session pending or failed — rotate it, or close it when
+        // abandoned (a review row already holds the money question).
+        if (event.kind !== 'capture') await giveUp();
       }
       return { checked: rows.length, applied };
     },
