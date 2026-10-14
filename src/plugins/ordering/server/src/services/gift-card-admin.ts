@@ -200,9 +200,9 @@ const giftCardAdmin = ({ strapi }: { strapi: Core.Strapi }) => {
 
   const service = {
     /**
-     * GET /gift-cards (G1): `q` is a 4-char tail or an order code — a full code is hashed
-     * server-side too so staff may paste one, but the GET contract keeps it out of URLs by
-     * pointing staff at POST /gift-cards/search instead. `sold` = sold cards (sale source or
+     * GET /gift-cards (G1): `q` is a 4-char tail or an order code. A full code is refused
+     * (400) so it never sits in a URL or access log — POST /gift-cards/search takes it in the
+     * body. `sold` = sold cards (sale source or
      * an activated batch card); `manual` = complimentary. Unsold batch stock lives in Batches.
      */
     async list(
@@ -236,8 +236,14 @@ const giftCardAdmin = ({ strapi }: { strapi: Core.Strapi }) => {
         );
       }
       const q = query.q?.trim();
+      // A full code never rides a query string (URLs land in access logs): refuse it and point
+      // to POST /gift-cards/search, which takes the code in the body.
+      if (q && normalizeGiftCardCode(q)) {
+        throw new OrderingError('VALIDATION_ERROR', 'search a full card code with POST /gift-cards/search', {
+          details: { field: 'q' },
+        });
+      }
       if (q) {
-        const normalizedCode = normalizeGiftCardCode(q);
         const like = `%${q.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
         builder.where((where) => {
           where.where('c.last_4', q.toUpperCase()).orWhereExists(
@@ -247,10 +253,6 @@ const giftCardAdmin = ({ strapi }: { strapi: Core.Strapi }) => {
               .whereRaw('lnk.gift_card_id = c.id')
               .whereRaw('o.code ILIKE ?', [like]),
           );
-          // A pasted full code resolves by HMAC too — same hit as the POST search body.
-          if (normalizedCode) {
-            where.orWhere('c.code_hash', giftCard().codeHashOf(normalizedCode));
-          }
         });
       }
       const ids = ((await builder.orderBy('c.id', 'desc')) as Array<{ id: number }>).map(
@@ -807,7 +809,10 @@ const giftCardAdmin = ({ strapi }: { strapi: Core.Strapi }) => {
       return { batch: { id: batch.id, code: batch.code }, imported: codes.length };
     },
 
-    /** GET /gift-card-batches/:id/export — plaintext codes while the seal survives (24h). */
+    /**
+     * GET /gift-card-batches/:id/export — plaintext codes of unsold (`inactive`) stock while the
+     * seal survives (24h). A sold card's code is never exported: its row keeps last4 only.
+     */
     async exportBatch(id: number, ctx: ServiceContext) {
       const { batch } = await service.batchDetail(id, { page: 1 });
       const cardsOf = (await cards().findMany({
@@ -817,7 +822,7 @@ const giftCardAdmin = ({ strapi }: { strapi: Core.Strapi }) => {
       })) as Array<{ id: number; last4: string; status: string; balance: string | number }>;
       const rows: string[][] = [];
       for (const card of cardsOf) {
-        const code = await giftCard().revealCode(card.id);
+        const code = card.status === 'inactive' ? await giftCard().revealCode(card.id) : null;
         rows.push([
           code ?? '',
           card.last4,

@@ -212,6 +212,22 @@ withApp(async (app) => {
   assert.equal(Number(sealedAfter.n), 0, 'no sealed code left');
   const hashKept = await cardRow(expiring.id);
   assert.ok(hashKept.codeHash && hashKept.last4, 'hash + last4 kept after the purge');
+  // Unsold paper stock has no issued_at: its seal runs from the row's creation instead.
+  const paper = await app.plugin('ordering').service('gift-card-admin').createBatch(
+    { denomination: 100000, count: 1, note: 'retention' },
+    systemCtx,
+  );
+  const paperCard = await knex(app)('plugins_ordering_gift_card')
+    .whereNotNull('sealed_code')
+    .whereNull('issued_at')
+    .orderBy('id', 'desc')
+    .first('id');
+  assert.ok(paperCard && paper.batch.id, 'fresh paper stock is sealed');
+  await knex(app)('plugins_ordering_gift_card').where({ id: paperCard.id }).update({ created_at: old });
+  const retention2 = await runRetention(app, { owner: `test:${process.pid}-2` });
+  assert.equal(retention2.ran, true, JSON.stringify(retention2));
+  const paperAfter = await knex(app)('plugins_ordering_gift_card').where({ id: paperCard.id }).first('sealed_code');
+  assert.equal(paperAfter.sealed_code, null, 'unsold paper stock loses its seal too');
   console.log('[ordering-test] retention: sealed code purged, HMAC + last4 kept');
 
   // ── Probing alert: low thresholds via the rules store; wrong codes open one alert

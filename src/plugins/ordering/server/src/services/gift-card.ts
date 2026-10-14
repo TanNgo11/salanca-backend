@@ -639,12 +639,19 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
       return count;
     },
 
-    /** Retention: a sealed plaintext code lives only `sealedCodeHours` after issue. */
+    /**
+     * Retention: a sealed plaintext code lives only `sealedCodeHours` after issue — or, for
+     * unsold paper stock (`issued_at` still NULL), after the card row was created.
+     */
     async purgeSealedCodes(olderThan: Date, limit: number): Promise<number> {
       return strapi.db
         .connection(CARD_TABLE)
         .whereNotNull('sealed_code')
-        .where('issued_at', '<', olderThan)
+        .where((where) =>
+          where
+            .where('issued_at', '<', olderThan)
+            .orWhere((inner) => inner.whereNull('issued_at').where('created_at', '<', olderThan)),
+        )
         .orderBy('id')
         .limit(limit)
         .update({ sealed_code: null });
