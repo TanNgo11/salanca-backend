@@ -126,6 +126,30 @@ const notificationChannel = ({ strapi }: { strapi: Core.Strapi }) => {
   };
 
   const service = {
+    /**
+     * Takes one slot of today's paid-message budget (`notifications.dailyLimit`, UTC day) or
+     * answers false when it is spent. Atomic across processes: a per-day counter in the plugin
+     * store, updated under an advisory lock (seeded from today's sent rows). Every paid send —
+     * notifications, OTP, the staff test — calls this right before the provider call; a slot
+     * taken by a send that then fails is not given back (the cap errs on the low side).
+     */
+    async reservePaidSend(): Promise<boolean> {
+      const limit = config().notifications.dailyLimit;
+      const day = new Date().toISOString().slice(0, 10);
+      return (await strapi.db.transaction(async ({ trx }) => {
+        await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', ['ordering-paid-daily']);
+        const store = strapi.store({ type: 'plugin', name: 'ordering', key: 'paid-daily-usage' });
+        const saved = (await store.get({})) as { day?: string; used?: number } | null;
+        const used = saved?.day === day && typeof saved.used === 'number' ? saved.used : await paidSentToday();
+        if (used >= limit) {
+          if (saved?.day !== day) await store.set({ value: { day, used } });
+          return false;
+        }
+        await store.set({ value: { day, used: used + 1 } });
+        return true;
+      })) as boolean;
+    },
+
     /** Active rule for a template — `null` means the default email-only chain applies. */
     async ruleFor(template: string): Promise<ChannelRule | null> {
       const row = (await rules().findOne({
@@ -262,6 +286,9 @@ const notificationChannel = ({ strapi }: { strapi: Core.Strapi }) => {
         'vi',
         data as Parameters<ReturnType<typeof templates>['renderFor']>[2],
       );
+      if (channel !== 'email' && !(await service.reservePaidSend())) {
+        return validation('the daily paid-message limit is reached', { channel });
+      }
       const row = (await deliveries().create({
         data: {
           eventId: `test:${randomUUID()}`,

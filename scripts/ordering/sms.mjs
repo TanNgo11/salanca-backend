@@ -189,6 +189,15 @@ try {
       assert.equal(otpRow.status, 'sent');
       assert.ok(!JSON.stringify(otpRow).includes('901234569'), 'log carries the hash only');
 
+      // Review fix: the paid budget is taken atomically — 12 parallel sends, limit 5 → 5 slots.
+      const channelService = app.plugin('ordering').service('notification-channel');
+      const sentToday = await app.db.query('plugin::ordering.notification-delivery').count({
+        where: { channel: { $in: ['zalo', 'sms'] }, status: 'sent', sentAt: { $gt: new Date(new Date().setUTCHours(0, 0, 0, 0)) } },
+      });
+      app.config.set('plugin::ordering.notifications.dailyLimit', sentToday + 5);
+      await app.store({ type: 'plugin', name: 'ordering', key: 'paid-daily-usage' }).delete({});
+      const slots = await Promise.all(Array.from({ length: 12 }, () => channelService.reservePaidSend()));
+      assert.equal(slots.filter(Boolean).length, 5, 'exactly the remaining budget is handed out');
       console.log('[ordering-test] sms: eSMS send shape, 124 dedupe, fallback + OTP verified');
     } finally {
       await cleanupStaff(app, staff);

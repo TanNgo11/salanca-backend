@@ -173,14 +173,9 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
     // A staff-edited `notification-template` row overrides the built-in copy; a broken one falls
     // back to the default and raises `notification-template-broken` inside renderFor.
     const rendered = await templates().renderFor(input.template, input.locale, input.data);
-    // Daily cap for paid channels is evaluated once per delivery attempt.
-    let paidAtLimit: boolean | null = null;
+    // Daily cap for paid channels: one atomic slot per paid send (see reservePaidSend).
     const paidLimitHit = async (): Promise<boolean> => {
-      if (paidAtLimit !== null) return paidAtLimit;
-      const sentToday = (await deliveries().count({
-        where: { channel: { $in: [...PAID_CHANNELS] }, status: 'sent', sentAt: { $gt: utcDayStart() } },
-      })) as number;
-      paidAtLimit = sentToday >= notifications.dailyLimit;
+      const paidAtLimit = !(await channelRules().reservePaidSend());
       if (paidAtLimit) {
         await alerts()
           .open(
@@ -200,8 +195,10 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
     for (const channel of chain) {
       const value = channelValue(channel, input.recipient);
       if (!value) continue; // no address for this channel — nothing logged, next channel
-      const limitHit = PAID_CHANNELS.has(channel) ? await paidLimitHit() : false;
-      const blocked = await blockedReason(channel, rule, limitHit);
+      // Other reasons first, so a channel that cannot send never spends a paid slot.
+      const blockedOther = await blockedReason(channel, rule, false);
+      const limitHit = !blockedOther && PAID_CHANNELS.has(channel) ? await paidLimitHit() : false;
+      const blocked = blockedOther ?? (limitHit ? 'daily-limit' : null);
       if (blocked) {
         await markSkipped(
           {

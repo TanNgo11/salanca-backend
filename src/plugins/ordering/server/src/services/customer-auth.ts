@@ -167,6 +167,11 @@ const customerAuth = ({ strapi }: { strapi: Core.Strapi }) => {
       await mark('skipped', { lastError: unavailable ? 'provider-not-configured' : 'zns-template-missing' });
       return;
     }
+    // OTP over SMS/Zalo spends the same paid-message budget as notifications.
+    if (input.channel !== 'email' && !(await channelRules().reservePaidSend())) {
+      await mark('skipped', { lastError: 'daily-limit' });
+      return;
+    }
     try {
       const rendered = await templates().renderFor('customer.otp', 'vi', {
         otp: input.code,
