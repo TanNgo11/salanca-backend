@@ -4,7 +4,7 @@ import type { Core } from '@strapi/strapi';
 
 import { OrderingError } from '../domain/errors';
 import { amountFromDb, sumAmounts } from '../domain/money';
-import { removedLineAmount } from '../domain/payable';
+import { returnedLineAmount } from '../domain/payable';
 import { cumulativeRefundedAmount } from '../domain/refund-amount';
 import type { TransactionClient } from '../migrations/runner';
 import orderRepository from '../repositories/order';
@@ -157,19 +157,21 @@ const lineCancel = ({ strapi }: { strapi: Core.Strapi }) => {
           .sort(
             (a, b) => Number(b.giftCard) - Number(a.giftCard) || b.remaining - a.remaining,
           );
-        // Only money held above what is still owed goes back: an unpaid or part-paid order has
-        // nothing to refund (the canceled share just leaves `due`), a fully paid one gets the
-        // share back. Units already returned or canceled count as gone, settled refunds as given.
+        // The canceled share leaves what is owed (ledger on the order). Only money held above
+        // what is still owed goes back: an unpaid or part-paid order has nothing to refund, a
+        // fully paid one gets the share back. Returned units count as gone, settled refunds as given.
+        const canceledAfter = await repo.addCanceledAmount(trx, input.orderId, due);
         const orderLines = (await lines().findMany({
           where: { order: input.orderId },
-          select: ['quantity', 'returnedQuantity', 'canceledQuantity', 'lineTotalAmount'],
-        })) as Array<Pick<LineRow, 'quantity' | 'returnedQuantity' | 'canceledQuantity'> & {
+          select: ['quantity', 'returnedQuantity', 'lineTotalAmount'],
+        })) as Array<Pick<LineRow, 'quantity' | 'returnedQuantity'> & {
           lineTotalAmount: string | number;
         }>;
         const stillOwed = Math.max(
           0,
           aggregate.order.totalAmount -
-            removedLineAmount(
+            canceledAfter -
+            returnedLineAmount(
               orderLines.map((row) => ({ ...row, lineTotalAmount: amountFromDb(row.lineTotalAmount) })),
             ),
         );

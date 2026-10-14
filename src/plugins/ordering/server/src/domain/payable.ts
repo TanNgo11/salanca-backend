@@ -1,58 +1,39 @@
 import { cumulativeRefundedAmount } from './refund-amount';
 
 /**
- * The amount a customer still has to pay for. `order.totalAmount` is an immutable placement
- * snapshot; canceling units ("hủy một phần món") removes their allocated share from what is owed
- * without touching that snapshot. Returned units do not reduce it: those were delivered and paid,
- * and their money goes back through a refund. The share per line telescopes exactly like the
- * refund amount, so Σ canceled shares never drifts from the refund core.
+ * What a customer still has to pay for. `order.totalAmount` is the placement snapshot; canceling
+ * units ("hủy một phần món") leaves it alone and adds their telescoped share to
+ * `order.canceledAmount`, so the snapshot stays for reconciliation while the amount owed drops.
+ * A staff order edit reprices every live unit into a new `totalAmount` and resets the ledger to
+ * 0 — units cut earlier are already inside the new total. Returned units never move it: they
+ * were delivered and paid, and their money goes back through a refund.
  */
-export type PayableLine = {
-  quantity: number;
-  returnedQuantity: number;
-  canceledQuantity: number;
-  lineTotalAmount: number;
-};
+export type PayableOrder = { totalAmount: number; canceledAmount?: number | null };
 
-export function canceledLineAmount(lines: readonly PayableLine[]): number {
-  return lines.reduce(
-    (sum, line) =>
-      sum +
-      (line.canceledQuantity > 0
-        ? cumulativeRefundedAmount(
-            line.lineTotalAmount,
-            line.quantity,
-            line.returnedQuantity + line.canceledQuantity,
-          ) - cumulativeRefundedAmount(line.lineTotalAmount, line.quantity, line.returnedQuantity)
-        : 0),
-    0,
-  );
-}
-
-/** Value of every unit that left the order, canceled or returned (the refund core's telescoped share). */
-export function removedLineAmount(lines: readonly PayableLine[]): number {
-  return lines.reduce(
-    (sum, line) =>
-      sum +
-      cumulativeRefundedAmount(
-        line.lineTotalAmount,
-        line.quantity,
-        line.returnedQuantity + line.canceledQuantity,
-      ),
-    0,
-  );
-}
-
-/** Snapshot total minus the share of canceled units; never negative. */
-export function payableTotal(totalAmount: number, lines: readonly PayableLine[]): number {
-  return Math.max(0, totalAmount - canceledLineAmount(lines));
+/** Snapshot total less the canceled share; never negative. */
+export function payableTotal(order: PayableOrder): number {
+  return Math.max(0, order.totalAmount - (order.canceledAmount ?? 0));
 }
 
 /** What is still to collect: payable total less everything captured (refunds are not re-collected). */
-export function amountOwed(
-  totalAmount: number,
-  lines: readonly PayableLine[],
-  capturedAmount: number,
-): number {
-  return Math.max(0, payableTotal(totalAmount, lines) - capturedAmount);
+export function amountOwed(order: PayableOrder, capturedAmount: number): number {
+  return Math.max(0, payableTotal(order) - capturedAmount);
+}
+
+export type ReturnedLine = {
+  quantity: number;
+  returnedQuantity: number;
+  lineTotalAmount: number;
+};
+
+/** Telescoped value of the units already returned (the refund core's per-line share). */
+export function returnedLineAmount(lines: readonly ReturnedLine[]): number {
+  return lines.reduce(
+    (sum, line) =>
+      sum +
+      (line.returnedQuantity > 0
+        ? cumulativeRefundedAmount(line.lineTotalAmount, line.quantity, line.returnedQuantity)
+        : 0),
+    0,
+  );
 }

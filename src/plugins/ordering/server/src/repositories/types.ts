@@ -32,6 +32,8 @@ export type OrderRow = {
   draftConfirmedAt: string | null;
   /** Absent on a row loaded before the column existed. Readers treat that as 0. */
   editRevision?: number;
+  /** Canceled-line ledger (see domain/payable); absent on an old row, read as 0. */
+  canceledAmount?: number;
 };
 
 export type OrderLineRow = {

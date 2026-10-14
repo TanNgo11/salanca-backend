@@ -93,7 +93,7 @@ const paymentService = ({ strapi }: { strapi: Core.Strapi }) => {
         (sum, payment) => sum + amountFromDb(payment.capturedAmount),
         0,
       );
-      const due = amountOwed(aggregate.order.totalAmount, aggregate.lines, captured);
+      const due = amountOwed(aggregate.order, captured);
       if (!Number.isSafeInteger(due) || due <= 0) {
         throw new OrderingError('PAYMENT_NOT_DUE', 'nothing is due on this order');
       }
@@ -246,7 +246,7 @@ const paymentService = ({ strapi }: { strapi: Core.Strapi }) => {
           0,
         );
         const amount =
-          input.amount ?? amountOwed(aggregate.order.totalAmount, aggregate.lines, captured);
+          input.amount ?? amountOwed(aggregate.order, captured);
         if (!Number.isSafeInteger(amount) || amount <= 0) {
           throw new OrderingError('VALIDATION_ERROR', 'payment amount must be a positive integer');
         }

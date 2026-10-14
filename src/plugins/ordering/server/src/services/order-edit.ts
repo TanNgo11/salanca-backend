@@ -773,6 +773,8 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
       fulfillmentAmount: pricing.totals.fulfillmentTotal,
       taxAmount: pricing.totals.taxTotal,
       totalAmount: pricing.totals.grandTotal,
+      // The new total reprices every live unit, so earlier line cancels are inside it already.
+      canceledAmount: 0,
       cartHash: pricing.cartHash,
       receiveMethod: nextReceive,
       editRevision: nextRevision,

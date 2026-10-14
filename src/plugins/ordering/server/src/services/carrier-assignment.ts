@@ -3,6 +3,7 @@ import type { Core } from '@strapi/strapi';
 import type { Fulfillment } from '../contracts/entities';
 import type { CarrierEndpoint, CarrierStatusEvent } from '../contracts/fulfillment';
 import { OrderingError } from '../domain/errors';
+import { payableTotal } from '../domain/payable';
 import { paidAmounts } from '../domain/storefront/serialize';
 import { isTerminal } from '../domain/workflow/transition';
 import { endpointOf } from '../providers/ahamove/provider';
@@ -417,7 +418,7 @@ const carrierAssignment = ({ strapi }: { strapi: Core.Strapi }) => {
           const paidNonCash = aggregate.payments
             .filter((payment) => payment.providerCode !== 'cash')
             .reduce((sum, payment) => sum + payment.capturedAmount - payment.refundedAmount, 0);
-          if (bookedCod > 0 && paidNonCash + bookedCod > aggregate.order.totalAmount && !metadata.codConflict) {
+          if (bookedCod > 0 && paidNonCash + bookedCod > payableTotal(aggregate.order) && !metadata.codConflict) {
             // Booked to collect cash, but part of it was paid another way meanwhile (e.g. a bank
             // transfer): the courier may have collected twice — flag it for staff to refund.
             metadata.codConflict = { codAmount: bookedCod, at: nowOf(ctx).toISOString() };

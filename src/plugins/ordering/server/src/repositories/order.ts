@@ -1,7 +1,6 @@
 import type { Core } from '@strapi/strapi';
 
 import { amountFromDb } from '../domain/money';
-import { payableTotal } from '../domain/payable';
 import type { TransactionClient } from '../migrations/runner';
 import type {
   AdjustmentRow,
@@ -20,6 +19,7 @@ const MONEY_ORDER = [
   'fulfillmentAmount',
   'taxAmount',
   'totalAmount',
+  'canceledAmount',
 ] as const;
 const MONEY_LINE = [
   'unitAmount',
@@ -102,21 +102,17 @@ const orderRepository = ({ strapi }: { strapi: Core.Strapi }) => {
       return row ? mapAggregate(row) : null;
     },
 
-    /** Snapshot total less the share of canceled units: what the customer is actually asked to pay. */
-    async payableTotalOf(orderId: number, totalAmount: number): Promise<number> {
-      const rows = (await strapi.db.query('plugin::ordering.order-line').findMany({
-        where: { order: orderId },
-        select: ['quantity', 'returnedQuantity', 'canceledQuantity', 'lineTotalAmount'],
-      })) as Array<{
-        quantity: number;
-        returnedQuantity: number;
-        canceledQuantity: number;
-        lineTotalAmount: string | number;
-      }>;
-      return payableTotal(
-        totalAmount,
-        rows.map((row) => ({ ...row, lineTotalAmount: amountFromDb(row.lineTotalAmount) })),
-      );
+    /**
+     * Adds to the canceled-line ledger (`order.canceledAmount`) in the caller's transaction.
+     * The increment is done by the database so two cancels on different lines never overwrite
+     * each other. Returns the new ledger value.
+     */
+    async addCanceledAmount(trx: TransactionClient, orderId: number, amount: number): Promise<number> {
+      const rows = (await trx('plugins_ordering_order')
+        .where({ id: orderId })
+        .update({ canceled_amount: trx.raw('COALESCE(canceled_amount, 0) + ?', [amount]) })
+        .returning('canceled_amount')) as Array<{ canceled_amount: string | number }>;
+      return amountFromDb(rows[0]?.canceled_amount ?? 0);
     },
 
     async updateOrder(id: number, data: Record<string, unknown>): Promise<void> {

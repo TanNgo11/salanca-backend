@@ -5,7 +5,7 @@ import type { OrderingConfig } from '../config';
 import { OrderingError } from '../domain/errors';
 import type { LocationScope } from '../domain/scope';
 import { amountFromDb } from '../domain/money';
-import orderRepository from '../repositories/order';
+import { payableTotal } from '../domain/payable';
 import { CLOSED_GROUP_STATUSES } from '../domain/payments/match';
 import { extractOrderCode } from '../domain/payments/memo';
 import type { TransactionClient } from '../migrations/runner';
@@ -76,8 +76,15 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
   const outbox = () => plugin().service('outbox') as ReturnType<typeof outboxFactory>;
   const orderService = () => plugin().service('order') as ReturnType<typeof orderServiceFactory>;
   const events = () => strapi.db.query('plugin::ordering.payment-event');
-  const repo = orderRepository({ strapi });
   const orders = () => strapi.db.query('plugin::ordering.order');
+  /** Payable total of a raw order row (bigint columns arrive as strings). */
+  const payableOf = (row: { totalAmount: string | number; canceledAmount?: string | number | null } | undefined) =>
+    row
+      ? payableTotal({
+          totalAmount: amountFromDb(row.totalAmount),
+          canceledAmount: amountFromDb(row.canceledAmount ?? 0),
+        })
+      : 0;
   const groups = () => strapi.db.query('plugin::ordering.fulfillment-group');
   const payments = () => strapi.db.query('plugin::ordering.payment');
   const refunds = () => strapi.db.query('plugin::ordering.refund');
@@ -209,6 +216,7 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
             code: string;
             locationRef: string;
             totalAmount: string | number;
+            canceledAmount?: string | number | null;
             status: string;
           }>)
         : [];
@@ -221,13 +229,8 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
           const pay = (await payments().findMany({ where: { order: id } })) as Array<{
             capturedAmount: string | number;
           }>;
-          payableByOrder.set(
-            id,
-            await repo.payableTotalOf(
-              id,
-              amountFromDb(orderRows.find((candidate) => candidate.id === id)?.totalAmount ?? 0),
-            ),
-          );
+          const row = orderRows.find((candidate) => candidate.id === id);
+          payableByOrder.set(id, payableOf(row));
           capturedByOrder.set(
             id,
             pay.reduce((sum, row) => sum + amountFromDb(row.capturedAmount), 0),
@@ -301,7 +304,14 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
         where: { $and: [where, { $or: match }] },
         orderBy: { placedAt: 'desc' },
         limit: 8,
-      })) as Array<{ id: number; code: string; locationRef: string; totalAmount: string | number; status: string }>;
+      })) as Array<{
+        id: number;
+        code: string;
+        locationRef: string;
+        totalAmount: string | number;
+        canceledAmount?: string | number | null;
+        status: string;
+      }>;
       const results = [];
       for (const order of rows) {
         const pay = (await payments().findMany({ where: { order: order.id } })) as Array<{
@@ -313,10 +323,7 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
           code: order.code,
           locationRef: order.locationRef,
           status: order.status,
-          due: Math.max(
-            0,
-            (await repo.payableTotalOf(order.id, amountFromDb(order.totalAmount))) - captured,
-          ),
+          due: Math.max(0, payableOf(order) - captured),
         });
       }
       return { results };

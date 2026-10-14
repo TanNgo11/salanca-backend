@@ -1782,6 +1782,16 @@ type ConsentSnapshot = {
 - "Đổi món" ở v1 = hủy món cũ + nhân viên tạo đơn hộ cho món mới; không sửa line tại chỗ (mô hình
   `OrderModifier` của Vendure để về sau).
 - O3 làm cho tiền mặt và đơn chưa trả; O4 thêm hoàn tiền chuyển khoản thủ công.
+- **Số còn phải thu sau khi hủy món (core-sales audit, 2026-10-14):** `order.totalAmount` là snapshot lúc đặt,
+  không đổi. Phần tiền đã phân bổ của món hủy cộng dồn vào `order.canceledAmount` (tăng nguyên tử trong
+  transaction hủy món). Số còn phải trả = `totalAmount − canceledAmount`; `due = max(0, số còn phải trả −
+  captured)`. Mọi nơi tính `due` (trang thanh toán/QR, thu tiền mặt, matching SePay/ví, review, projection
+  `completed`, `paymentStatus`) dùng số này. Sửa đơn (`order-edit`) định giá lại mọi đơn vị còn sống vào
+  `totalAmount` mới nên đặt `canceledAmount = 0`. Đơn vị trả hàng (`returnedQuantity`) không làm giảm số còn phải trả.
+- **Hoàn tiền khi hủy món:** chỉ hoàn phần tiền đang giữ *vượt* số còn phải trả (đơn chưa trả hoặc trả một
+  phần không có phiếu hoàn; đơn trả đủ hoàn đúng phần món hủy). `refundShortfall` là phần đáng hoàn nhưng
+  đã bị phiếu hoàn `pending` giữ chỗ. Khoản hoàn chia qua các payment (thẻ quà tặng trước, rồi payment còn
+  nhiều nhất). Đơn tạo trước thay đổi này không backfill `canceledAmount` (hệ thống chưa chạy thật).
 - Quyền mới `plugin::ordering.order.edit-lines` cho Quản lý chi nhánh.
 
 ### 21.6. Nhật ký thay đổi trong Admin

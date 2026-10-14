@@ -35,6 +35,11 @@ export default collection(
     fulfillmentAmount: { type: 'biginteger', required: true },
     taxAmount: { type: 'biginteger', required: true },
     totalAmount: { type: 'biginteger', required: true },
+    /**
+     * Share of `totalAmount` removed by line cancels ("hủy một phần món"); the snapshot above never
+     * changes. A staff edit reprices into a new total and resets this to 0. See domain/payable.
+     */
+    canceledAmount: { type: 'biginteger', required: true, default: 0 },
     currency: { type: 'string', required: true, default: 'VND' },
     customerRef: { type: 'string' },
     // O11: owning side of order.customer — a linked profile when the order's phone matches one

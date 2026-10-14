@@ -176,7 +176,7 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
         aggregate = loaded;
       }
       const captured = aggregate.payments.reduce((sum, payment) => sum + payment.capturedAmount, 0);
-      const due = amountOwed(aggregate.order.totalAmount, aggregate.lines, captured);
+      const due = amountOwed(aggregate.order, captured);
       const receive = aggregate.order.receiveMethod as { kind?: string };
       const branch = await branches().findByCode(aggregate.order.locationRef);
       const fallback = branch ?? { fulfillment: null };
@@ -361,7 +361,18 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
       }
       try {
         await transitions().customerCancel(
-          { orderId: aggregate.order.id, reason: reason?.trim() || 'customer-cancel' },
+          {
+            orderId: aggregate.order.id,
+            reason: reason?.trim() || 'customer-cancel',
+            guard: async (locked) => {
+              if (!(await withinCancelWindow(locked, nowOf(ctx)))) {
+                throw new OrderingError(
+                  'CANCEL_NOT_ALLOWED',
+                  'it is too late to cancel online; call the branch',
+                );
+              }
+            },
+          },
           { ...ctx, actor: { kind: 'customer', actorRef: `customer:${aggregate.order.code}` } },
         );
       } catch (error) {

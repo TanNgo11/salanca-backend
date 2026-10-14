@@ -232,4 +232,147 @@ withApp(async (app) => {
   }
   assert.equal(splitAfter.lines.find((row) => row.id === splitLine.id).canceledQuantity, 1);
   console.log('[ordering-test] core fixes: line cancel refund split over payments');
+
+  // 7. A staff edit re-bases the total: units it cuts are not subtracted a second time, and a
+  // line cancel made before the edit is already inside the new total.
+  await setPickup();
+  const edit = plugin.service('order-edit');
+  const edited = await place();
+  const editedId = edited.order.order.id;
+  await lineCancel.cancelLineQuantity(
+    { orderId: editedId, lineId: line(edited, 'tra-dao').id, quantity: 1, reason: 'unavailable' },
+    systemCtx,
+  );
+  assert.equal((await admin.detail(editedId, systemCtx)).totals.due, 155114);
+  const goiCuon = line(edited, 'goi-cuon');
+  await edit.edit(editedId, { revision: 0, reason: 'bot mot cuon', reduce: [{ lineId: goiCuon.id, quantity: 1 }] }, systemCtx);
+  const afterEdit = await order.getOrder(editedId, systemCtx);
+  const editedDetail = await admin.detail(editedId, systemCtx);
+  assert.equal(editedDetail.totals.due, afterEdit.order.totalAmount, 'due equals the re-based total');
+  assert.ok(afterEdit.order.totalAmount < 155114);
+  console.log('[ordering-test] core fixes: staff edit re-bases what is owed');
+
+  // 8. Cancel after a return: refunds already paid out count as given, the cancel still refunds.
+  const returned = await place();
+  const returnedId = returned.order.order.id;
+  const returnedPay = await capture(returnedId, 195000);
+  await plugin.service('refund').createRefund(
+    { paymentId: returnedPay.id, lines: [{ lineId: line(returned, 'goi-cuon').id, quantity: 1 }], reason: 'return', idempotencyKey: randomUUID() },
+    systemCtx,
+  );
+  const afterReturn = await lineCancel.cancelLineQuantity(
+    { orderId: returnedId, lineId: line(returned, 'tra-dao').id, quantity: 1, reason: 'unavailable' },
+    systemCtx,
+  );
+  assert.equal(afterReturn.refundAmount, 39886, 'the canceled item is still refunded after a return');
+  assert.equal(
+    (await order.getOrder(returnedId, systemCtx)).refunds.reduce((sum, row) => sum + row.amount, 0),
+    13296 + 39886,
+  );
+  console.log('[ordering-test] core fixes: cancel after a return refunds the canceled share');
+
+  // 9. Money that arrives while the expiry job runs is either kept (order moves on) or refunded.
+  await setPickup('prepay');
+  for (const order_ of [0, 1, 2]) {
+    const racer = await place();
+    const racerId = racer.order.order.id;
+    await transfer(racerId, 50000);
+    await age(racerId, 20);
+    await Promise.allSettled([
+      runPaymentExpiry(app, { owner: `fix-expiry-race-${order_}` }),
+      transfer(racerId, 145000),
+    ]);
+    const settled = await order.getOrder(racerId, systemCtx);
+    const held = settled.payments.reduce((sum, row) => sum + row.capturedAmount - row.refundedAmount, 0);
+    const pending = settled.refunds.filter((row) => row.status === 'pending').reduce((sum, row) => sum + row.amount, 0);
+    if (settled.groups[0].status === 'expired') {
+      // A manual record after the close is a staff decision to capture (documented), so only
+      // money received before the expiry must have been queued for refund.
+      const events = await app.db.query('plugin::ordering.order-event').findMany({ where: { order: racerId }, orderBy: { id: 'asc' } });
+      const closedAt = events.find((row) => row.type === 'fulfillment-group.transitioned' && row.payload?.to === 'expired').id;
+      const late = events
+        .filter((row) => row.type === 'payment.captured' && row.id > closedAt)
+        .reduce((sum, row) => sum + row.payload.amount, 0);
+      assert.equal(held - pending, late, 'money received before the expiry is queued for refund');
+    } else {
+      assert.equal(held, 195000, 'a paid order was not expired');
+      assert.equal(settled.refunds.length, 0);
+    }
+  }
+  console.log('[ordering-test] core fixes: expiry racing a transfer loses no money');
+
+  // 10. A payment link extends the deadline the job respects.
+  const linked = await place();
+  const linkedId = linked.order.order.id;
+  await age(linkedId, 14);
+  await plugin.service('payment-link').issue(linkedId, systemCtx);
+  await age(linkedId, 20);
+  await runPaymentExpiry(app, { owner: 'fix-link-live' });
+  assert.equal((await order.getOrder(linkedId, systemCtx)).groups[0].status, 'awaiting-payment');
+  await runPaymentExpiry(app, { owner: 'fix-link-due', now: new Date(Date.now() + 16 * MINUTE) });
+  assert.equal((await order.getOrder(linkedId, systemCtx)).groups[0].status, 'expired');
+  console.log('[ordering-test] core fixes: payment link extension keeps the order alive');
+
+  // 11. Bank refunds stay pending and reserve the one SePay payment (transfers merge into it).
+  await setPickup();
+  const bank = await place();
+  const bankId = bank.order.order.id;
+  for (let index = 0; index < 5; index += 1) await transfer(bankId, 39000);
+  const bankCancel = await lineCancel.cancelLineQuantity(
+    { orderId: bankId, lineId: line(bank, 'tra-dao').id, quantity: 1, reason: 'unavailable' },
+    systemCtx,
+  );
+  assert.equal(bankCancel.refundAmount, 39886);
+  const bankAfter = await order.getOrder(bankId, systemCtx);
+  assert.equal(bankAfter.refunds.length, 1);
+  assert.ok(bankAfter.refunds.every((row) => row.status === 'pending'));
+  const second = await lineCancel.cancelLineQuantity(
+    { orderId: bankId, lineId: line(bank, 'goi-cuon').id, quantity: 1, reason: 'unavailable' },
+    systemCtx,
+  );
+  assert.equal(second.refundAmount, 13296);
+  assert.equal(second.refundShortfall, 0);
+  const reserved = (await order.getOrder(bankId, systemCtx)).refunds.reduce((sum, row) => sum + row.amount, 0);
+  assert.equal(reserved, 39886 + 13296);
+  console.log('[ordering-test] core fixes: pending bank refunds reserve the payment');
+
+  // 12. The customer cancel window is judged after the group lock, on a fresh read.
+  const slotted = await place();
+  const slottedId = slotted.order.order.id;
+  const baseReceive = (await order.getOrder(slottedId, systemCtx)).order.receiveMethod;
+  const setSlot = (startsAt) =>
+    app.db.query('plugin::ordering.order').update({
+      where: { id: slottedId },
+      data: { receiveMethod: { ...baseReceive, timing: { mode: 'scheduled', slot: { startsAt, endsAt: startsAt } } } },
+    });
+  await setSlot(new Date(Date.now() + 5 * 60 * MINUTE).toISOString());
+  const realGet = order.getOrder.bind(order);
+  let slotRead;
+  let slotResume;
+  const slotReached = new Promise((resolve) => { slotRead = resolve; });
+  const slotResumed = new Promise((resolve) => { slotResume = resolve; });
+  let slotPaused = false;
+  order.getOrder = async (id, ctx) => {
+    const result = await realGet(id, ctx);
+    if (id === slottedId && ctx.actor.kind === 'customer' && !slotPaused) {
+      slotPaused = true;
+      slotRead();
+      await slotResumed;
+    }
+    return result;
+  };
+  let slotError;
+  try {
+    const attempt = storefront.cancelByToken(slotted.publicToken, 'late', systemCtx);
+    await slotReached;
+    await setSlot(new Date(Date.now() + 10 * MINUTE).toISOString());
+    slotResume();
+    await attempt.catch((error) => { slotError = error; });
+  } finally {
+    slotResume();
+    order.getOrder = realGet;
+  }
+  assert.equal(slotError?.code, 'CANCEL_NOT_ALLOWED');
+  assert.equal((await order.getOrder(slottedId, systemCtx)).order.status, 'open');
+  console.log('[ordering-test] core fixes: cancel window is checked under the lock');
 });

@@ -220,9 +220,17 @@ const transition = ({ strapi }: { strapi: Core.Strapi }) => {
       });
     },
 
-    /** Customer cancel: only while every non-terminal group is `customerCancellable`. */
+    /**
+     * Customer cancel: only while every non-terminal group is `customerCancellable`. `guard` runs
+     * on a fresh read once the groups are locked (the storefront checks its cancel window there,
+     * so a concurrent staff edit of the slot cannot slip past a check made before the lock).
+     */
     async customerCancel(
-      input: { orderId: number; reason: string },
+      input: {
+        orderId: number;
+        reason: string;
+        guard?: (aggregate: OrderAggregate) => Promise<void> | void;
+      },
       ctx: ServiceContext,
     ): Promise<OrderAggregate> {
       if (!input.reason?.trim()) {
@@ -246,7 +254,11 @@ const transition = ({ strapi }: { strapi: Core.Strapi }) => {
             );
           }
         }
-        const canceled = await service.cancelOrder(input, ctx);
+        if (input.guard) await input.guard(await services().order.getOrder(input.orderId, ctx));
+        const canceled = await service.cancelOrder(
+          { orderId: input.orderId, reason: input.reason },
+          ctx,
+        );
         // A customer may cancel after paying (prepay transfer, test provider): give the money
         // back in the same transaction, exactly like a staff cancel.
         await (

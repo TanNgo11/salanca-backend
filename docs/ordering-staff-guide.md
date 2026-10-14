@@ -40,7 +40,9 @@ Hướng dẫn nhập món: `docs/ordering-catalog-guide.md`.
   còn nợ; nếu có phiếu hoàn chuyển khoản chưa đối chiếu, dòng "Đang chờ hoàn …" hiện bên dưới (số này chưa
   nằm trong "Đã hoàn").
 - **Hủy món** (biểu tượng thùng rác ở dòng món): chọn số lượng và lý do; số tiền hoàn hiện trước khi bấm,
-  tính theo phần giảm giá đã chia lúc đặt. Đơn đã thu tiền thì phiếu hoàn tiền mặt ghi tên bạn.
+  tính theo phần giảm giá đã chia lúc đặt. Chỉ hoàn khi khách đã trả *nhiều hơn* số còn phải trả: đơn chưa
+  trả hoặc mới trả một phần không có phiếu hoàn, "Còn thiếu" giảm đúng phần món hủy và lúc thu tiền chỉ thu
+  phần còn lại. Đơn đã thu tiền thì phiếu hoàn tiền mặt ghi tên bạn.
 - **…** → Hủy đơn (bắt buộc lý do; tiền mặt đã thu hoàn cùng lúc, tiền chuyển khoản thành phiếu hoàn chờ), Hoàn tiền mặt (tối đa số
   còn giữ), Sao chép mã đơn.
 - **Lịch sử**: chấm "Khách thấy" là bước khách thấy trên trang đơn; ghi chú nội bộ khách không thấy.

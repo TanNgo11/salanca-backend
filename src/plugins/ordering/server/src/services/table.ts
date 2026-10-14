@@ -5,6 +5,7 @@ import type { Core } from '@strapi/strapi';
 import { businessDate as businessDateOf } from '../domain/business-date';
 import { OrderingError } from '../domain/errors';
 import { sha256Hex } from '../domain/hashing';
+import { payableTotal } from '../domain/payable';
 import { qrSvg } from '../domain/qr';
 import { paidAmounts } from '../domain/storefront/serialize';
 import { isTerminal } from '../domain/workflow/transition';
@@ -451,7 +452,7 @@ const tableService = ({ strapi }: { strapi: Core.Strapi }) => {
               ) === null,
           );
           if (live.some((group) => group.status === 'awaiting-acceptance')) awaiting += 1;
-          const orderTotal = order.status === 'canceled' ? 0 : Number(order.totalAmount);
+          const orderTotal = order.status === 'canceled' ? 0 : payableTotal(aggregate.order);
           total += orderTotal;
           captured += Math.min(money.captured, orderTotal);
           orders.push({

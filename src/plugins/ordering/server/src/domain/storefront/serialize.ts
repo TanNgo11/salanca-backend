@@ -55,7 +55,7 @@ export function paidAmounts(aggregate: OrderAggregate) {
   return {
     captured,
     refunded,
-    due: amountOwed(aggregate.order.totalAmount, aggregate.lines, captured),
+    due: amountOwed(aggregate.order, captured),
   };
 }
 

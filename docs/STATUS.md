@@ -2,6 +2,23 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
+2026-10-14: **Ordering core-sales audit — 6 lỗi đã đóng, targeted verification passed, chờ review/UAT** trên
+`feat/ordering` (báo cáo `artifacts/core-sales-audit/report.md`). 4 lỗi (khách tự hủy không hoàn tiền,
+hủy sai quyền khi đồng thời, deadline giao hàng, hoàn qua nhiều payment) đã được các phase sau sửa sẵn;
+bản này thêm phần còn thiếu và test hồi quy `scripts/ordering/core-sales-fixes.mjs` (trong `check:ordering`):
+
+- **Số còn phải thu sau hủy món**: sổ `order.canceledAmount` (cột mới, mặc định 0); `due`, QR, thu tiền mặt,
+  matching, projection dùng `totalAmount − canceledAmount`; hủy món chỉ hoàn phần tiền giữ vượt số còn
+  phải trả. **Hành vi đổi** so với trước: đơn chưa trả/trả một phần hủy món không còn phiếu hoàn. Chờ chủ
+  quán xác nhận quy tắc này.
+- **Job `payment-expiry`**: hết hạn + hoàn tiền đã nhận trong một transaction dưới khóa group; đơn vừa trả đủ
+  được chuyển tiếp thay vì hết hạn.
+- **Khách tự hủy**: cửa sổ hủy kiểm tra lại sau khi khóa group.
+- **Chưa xác minh / mở:** `recordManual` (nhân viên ghi chuyển khoản) vào đơn đã đóng vẫn capture mà không tạo
+  phiếu hoàn — theo thiết kế "nhân viên đã thấy tiền", cần quyết định; `config/plugins.test.ts` có 4 test fail
+  sẵn có trên `feat/ordering`; `order-edit` rồi hủy món định giá từ `lineTotalAmount` đã định giá lại theo số
+  lượng còn sống (có từ trước, chưa sửa).
+
 2026-10-14: **Ordering core gaps — implemented + targeted verification passed, chờ review/UAT** trên
 `TanNgo11/ordering-core-gaps` (tách từ `feat/ordering` `f32ba2f`), 7 commit theo
 [`plans/ordering-core-gaps.md`](plans/ordering-core-gaps.md) (Completion record có bảng bước→commit):

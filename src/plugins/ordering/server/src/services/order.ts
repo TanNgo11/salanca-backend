@@ -28,6 +28,7 @@ import { OrderingError } from '../domain/errors';
 import { sha256Hex } from '../domain/hashing';
 import { amountFromDb, sumAmounts } from '../domain/money';
 import { formatOrderCode } from '../domain/order-code';
+import { payableTotal } from '../domain/payable';
 import { projectPaymentStatus } from '../domain/payment-status';
 import { appliesCashRounding, type CashRoundingPolicy } from '../domain/pricing/cash-rounding';
 import { normalizeVietnamesePhone } from '../../../shared/contact/phone';
@@ -473,7 +474,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         payments.map((payment) => amountFromDb(payment.refundedAmount)),
       );
       const totalAmount = order.totalAmount;
-      const payableAmount = await repo.payableTotalOf(orderId, totalAmount);
+      const payableAmount = payableTotal(order);
       const fulfillmentStatus = projectFulfillmentStatus(groupInputs);
       const paymentStatus = projectPaymentStatus({
         totalAmount,

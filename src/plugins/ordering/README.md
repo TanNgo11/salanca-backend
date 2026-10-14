@@ -156,8 +156,8 @@ allLocations?, locationRefs? }` (dựng bằng `scope.actorFromAdminUser`).
   cho service khác dùng (`countsAs: 'canceled'`).
 - `line-cancel.cancelLineQuantity({orderId, lineId, quantity, reason}, ctx)` — hủy một phần
   món: `canceledQuantity += q`, không tự chuyển group. Phần tiền của món hủy rời khỏi số còn phải
-  trả (`domain/payable`: `due = totalAmount − phần đã hủy − captured`; `totalAmount` giữ nguyên làm
-  snapshot). Chỉ tiền đang giữ vượt số còn phải trả mới hoàn — đơn chưa trả/trả một phần không hoàn.
+  trả (`domain/payable`: `due = totalAmount − order.canceledAmount − captured`; `totalAmount` giữ nguyên
+  làm snapshot, `order-edit` định giá lại và đặt `canceledAmount = 0`). Chỉ tiền đang giữ vượt số còn phải trả mới hoàn — đơn chưa trả/trả một phần không hoàn.
   Khoản hoàn chia qua nhiều payment (lớn nhất trước); `refundShortfall` là phần đáng hoàn nhưng
   đã bị phiếu hoàn pending giữ chỗ.
 - `scope.loadScope(ctx)`, `assertLocationInScope`, `orderWhere`, `actorFromAdminUser`,
