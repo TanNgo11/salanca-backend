@@ -200,10 +200,17 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     const refundRows = (await refunds
       .groupBy('p.provider_code', 'r.business_date')
       .select('p.provider_code', 'r.business_date')
-      .select(knex().raw('coalesce(sum(r.amount), 0) as refunded'))) as Array<{
+      .select(knex().raw('coalesce(sum(r.amount), 0) as refunded'))
+      // O9: refunds on card-sale orders leave food net alone, like the sale itself.
+      .select(
+        knex().raw(
+          `coalesce(sum(r.amount) filter (where o.receive_method ->> 'kind' = 'digital'), 0) as card_refunded`,
+        ),
+      )) as Array<{
       provider_code: string | null;
       business_date: string | Date;
       refunded: string | number;
+      card_refunded: string | number;
     }>;
 
     const lines = knex()
@@ -297,12 +304,17 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       return created;
     };
 
+    // O9: a card sale is a liability, not food revenue — revenue lands when the card is spent
+    // (a `gift-card` payment on a food order). Card-sale orders stay out of orders/gross/
+    // revenue/refunded; `cardSales` and the `digital` receive row still show them.
     for (const row of orderRows) {
       const gross = int(row.total_amount);
-      const day = bucket(dateText(row.business_date));
-      day.orders += 1;
-      day.gross += gross;
       const kind = row.receive_kind ?? 'unknown';
+      if (kind !== 'digital') {
+        const day = bucket(dateText(row.business_date));
+        day.orders += 1;
+        day.gross += gross;
+      }
       const receive = byReceive.get(kind) ?? { orders: 0, gross: 0 };
       receive.orders += 1;
       receive.gross += gross;
@@ -310,7 +322,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     }
     for (const row of paymentRows) {
       const captured = int(row.captured);
-      bucket(dateText(row.business_date)).revenue += captured;
+      bucket(dateText(row.business_date)).revenue += captured - int(row.card_sales);
       bucket(dateText(row.business_date)).cardSales += int(row.card_sales);
       const provider = byProvider.get(row.provider_code) ?? {
         orders: new Set<number>(),
@@ -323,7 +335,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     }
     for (const row of refundRows) {
       const refunded = int(row.refunded);
-      bucket(dateText(row.business_date)).refunded += refunded;
+      bucket(dateText(row.business_date)).refunded += refunded - int(row.card_refunded);
       if (row.provider_code !== null) {
         const provider = byProvider.get(row.provider_code) ?? {
           orders: new Set<number>(),
@@ -383,8 +395,10 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       expiredValue: int(expiredRow?.total),
       summary: {
         discount,
-        orders: orderRows.length,
-        gross: orderRows.reduce((sum, row) => sum + int(row.total_amount), 0),
+        orders: orderRows.filter((row) => row.receive_kind !== 'digital').length,
+        gross: orderRows
+          .filter((row) => row.receive_kind !== 'digital')
+          .reduce((sum, row) => sum + int(row.total_amount), 0),
         revenue,
         refunded,
         cardSales,

@@ -133,7 +133,12 @@ withApp(async (app) => {
   const report = await reports.sales(range, systemCtx);
   assert.equal(report.summary.giftCards.sold, 200000, 'card sale separated from food revenue');
   assert.equal(report.summary.giftCards.redeemed, 130000, 'gift-card provider captured');
-  assert.equal(report.summary.revenue, 330000, 'revenue = food captured + card sales');
+  // The card sale is a liability: food revenue counts the 130k only once, when the card
+  // is spent — never the 200k sale on top of it.
+  assert.equal(report.summary.revenue, 130000, 'revenue = food captured only, card sale excluded');
+  assert.equal(report.summary.gross, 130000, 'gross leaves the card-sale order out');
+  assert.equal(report.summary.orders, 1, 'only the food order counts');
+  assert.equal(report.summary.net, 130000);
   assert.equal(
     report.summary.giftCards.circulating,
     200000 + 170000 + 80000,
