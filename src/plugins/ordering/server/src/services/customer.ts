@@ -10,6 +10,7 @@ import type adminUnitsFactory from './admin-units';
 import type timelineFactory from './timeline';
 import type { ServiceContext } from './context';
 import { nowOf } from './context';
+import { lockCustomer } from './customer-lock';
 import type { OutboxEvent } from '../contracts';
 
 type CustomerRow = {
@@ -320,24 +321,31 @@ const customer = ({ strapi }: { strapi: Core.Strapi }) => {
       phoneE164: string;
     }): Promise<number | null> {
       if (!config().customers.enabled) return null;
-      if (input.sessionCustomerId) {
-        const row = (await customers().findOne({
-          where: { id: input.sessionCustomerId, status: { $ne: 'erased' } },
-          select: ['id'],
-        })) as { id: number } | null;
-        if (row) return row.id;
-      }
-      const phoneHash = hashing().phoneHash(input.phoneE164);
       return strapi.db.transaction(async ({ trx }) => {
-        // Also works inside createOrder's transaction: the lock survives until the order
-        // commits, so two first-time guest orders cannot create duplicate profiles.
+        if (input.sessionCustomerId) {
+          const identity = (await customers().findOne({
+            where: { id: input.sessionCustomerId }, select: ['id', 'phoneHash'],
+          })) as { id: number; phoneHash: string | null } | null;
+          if (identity) {
+            await lockCustomer(trx, identity);
+            const current = (await customers().findOne({
+              where: { id: identity.id }, select: ['id', 'status'],
+            })) as { id: number; status: string } | null;
+            return current && current.status !== 'erased' ? current.id : null;
+          }
+        }
+        const phoneHash = hashing().phoneHash(input.phoneE164);
+        // The advisory lock also covers the first order, before a customer row exists.
         await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [`ordering-customer:${phoneHash}`]);
         const existing = (await customers().findOne({
           where: { phoneHash },
           select: ['id', 'status'],
         })) as { id: number; status: string } | null;
         // Preserve erasure tombstones; an unauthenticated checkout must not resurrect them.
-        if (existing) return existing.status === 'erased' ? null : existing.id;
+        if (existing) {
+          await lockCustomer(trx, { id: existing.id, phoneHash });
+          return existing.status === 'erased' ? null : existing.id;
+        }
         const created = (await customers().create({
           data: { phone: input.phoneE164, phoneHash, status: 'unverified' },
         })) as { id: number };

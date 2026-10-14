@@ -263,6 +263,28 @@ only when `x-salanca-intake-secret` matches (constant-time compare; a wrong secr
 IP and never errors). Set `TRUST_PROXY=true` when Strapi sits behind a reverse proxy. Production boot logs a
 warning when the secret is missing (limit degrades to one site-wide bucket).
 
+## Ordering provider adapters (O13)
+
+Inbound adapters (MoMo, VNPay, Ahamove, Zalo ZNS, eSMS) are the second *data-entering* surface after
+SePay; each verifies its signature on the **raw** body before any parse.
+
+- **Signatures.** One `/api/v1/ordering/webhooks/:providerCode` route serves every provider; each
+  adapter verifies per its spec (MoMo: HMAC-SHA256 over the fixed-order field chain; VNPay:
+  `vnp_SecureHash` over sorted URL-encoded query params — its IPN arrives as GET; Ahamove:
+  pre-shared token; SePay: Bearer). Verification is constant-time, returns 401
+  `WEBHOOK_SIGNATURE_INVALID` on failure, and feeds `webhook-failing:<code>` alerts. Raw body is
+  required — the shared raw-body service must never be weakened for convenience.
+- **Secrets.** Provider credentials are env-only (`MOMO_*`, `VNPAY_*`, `AHAMOVE_*`, `ZALO_*`,
+  `ESMS_*`), parsed by strict schemas at boot (enabled + malformed → startup fails closed). Admin
+  and Ops surfaces (`GET /ordering/providers`, `/ordering/ops/status`) return masked identifiers
+  (`••••` + last 4) and timestamps only — no key, token, or secret field ever leaves the service.
+- **SSRF.** Provider `baseUrl` comes from env (never from request input or DB), requests use
+  `redirect: 'error'`, bounded bodies and ~10 s timeouts. Inbound webhook URLs are fixed paths —
+  nothing the provider returns is ever re-fetched.
+- **Privacy.** Notification delivery rows keep recipient hashes, not phone/email; provider error
+  text is whitelisted (`failureText`) before it reaches `lastError`. Wallet return URLs are
+  display-only — capture happens exclusively through verified IPN or `queryTransaction`.
+
 ## Audit (2026-10-04)
 
 Run with the public registry: `pnpm audit --prod --registry=https://registry.npmjs.org`.

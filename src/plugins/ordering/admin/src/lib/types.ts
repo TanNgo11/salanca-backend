@@ -43,6 +43,8 @@ export type OrderRow = {
     assigneeRef: string | null;
     assigneeName: string | null;
     carrier: string | null;
+    /** O13: raw carrier status (e.g. `IN PROCESS`) on a booked carrier leg. */
+    carrierStatus: string | null;
     trackingNumber: string | null;
     address: {
       line1?: string;
@@ -183,7 +185,16 @@ export type OrderDetail = {
     status: string | null;
     assigneeRef: string | null;
     assigneeName: string | null;
+    /** The fulfillment provider owning the leg — `ahamove` shows the O13 "Gọi xe" panel. */
+    providerCode: string | null;
     carrier: string | null;
+    /** O13 carrier trip state: trip id, raw carrier status, the carrier's own fee. */
+    carrierRef: string | null;
+    carrierStatus: string | null;
+    carrierFee: number | null;
+    carrierDriver: { name?: string; phoneMasked?: string } | null;
+    /** Set when the carrier reported COMPLETED while COD money is still due. */
+    awaitingCollection: string | null;
     trackingNumber: string | null;
     trackingUrl: string | null;
     address: {

@@ -1,6 +1,7 @@
 import type { Core } from '@strapi/strapi';
 
 import type adminOrdersFactory from '../services/admin-orders';
+import type carrierAssignmentFactory from '../services/carrier-assignment';
 import type deliveryAssignmentFactory from '../services/delivery-assignment';
 import type orderExportFactory from '../services/order-export';
 import type manualPaymentFactory from '../services/manual-payment';
@@ -11,6 +12,7 @@ import type orderingSettingsFactory from '../services/ordering-settings';
 import { adminAction, positiveInt, text } from './http';
 
 type AdminOrders = ReturnType<typeof adminOrdersFactory>;
+type CarrierAssignment = ReturnType<typeof carrierAssignmentFactory>;
 type Delivery = ReturnType<typeof deliveryAssignmentFactory>;
 type OrderExport = ReturnType<typeof orderExportFactory>;
 type Settings = ReturnType<typeof orderingSettingsFactory>;
@@ -93,6 +95,8 @@ const parseEdit = (value: unknown): EditInput => {
 export default ({ strapi }: { strapi: Core.Strapi }) => {
   const service = () => strapi.plugin('ordering').service('admin-orders') as AdminOrders;
   const delivery = () => strapi.plugin('ordering').service('delivery-assignment') as Delivery;
+  const carriers = () =>
+    strapi.plugin('ordering').service('carrier-assignment') as CarrierAssignment;
   const settings = () => strapi.plugin('ordering').service('ordering-settings') as Settings;
   const manual = () => strapi.plugin('ordering').service('manual-payment') as ManualPayment;
   const exporter = () => strapi.plugin('ordering').service('order-export') as OrderExport;
@@ -163,6 +167,33 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       service().cashHandover(
         id(ctx.params.id),
         { method: optionalText(body(ctx.request.body).method) },
+        serviceCtx,
+      ),
+    ),
+    // O13 carrier legs ("Gọi xe"): quote → book → cancel, all staff-initiated (order.process).
+    carrierQuote: adminAction(strapi, async (ctx, serviceCtx) =>
+      carriers().carrierQuote(
+        id(ctx.params.id),
+        { serviceId: optionalText(body(ctx.request.body).serviceId) },
+        serviceCtx,
+      ),
+    ),
+    carrierBook: adminAction(strapi, async (ctx, serviceCtx) => {
+      const input = body(ctx.request.body);
+      return carriers().carrierBook(
+        id(ctx.params.id),
+        {
+          serviceId: optionalText(input.serviceId),
+          note: optionalText(input.note),
+          notifyCustomer: typeof input.notifyCustomer === 'boolean' ? input.notifyCustomer : undefined,
+        },
+        serviceCtx,
+      );
+    }),
+    carrierCancel: adminAction(strapi, async (ctx, serviceCtx) =>
+      carriers().carrierCancel(
+        id(ctx.params.id),
+        { reason: optionalText(body(ctx.request.body).reason) },
         serviceCtx,
       ),
     ),

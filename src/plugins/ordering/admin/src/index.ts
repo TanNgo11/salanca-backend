@@ -1,6 +1,6 @@
 import { Cog, ShoppingCart } from '@strapi/icons';
 
-import { o10Translations, o11Translations, o14Translations, o8Translations, o9Translations, o15Translations, o3Translations, o4Translations, o5Translations, o6Translations, o7Translations } from './lib/i18n';
+import { o10Translations, o11Translations, o13Translations, o14Translations, o8Translations, o9Translations, o15Translations, o3Translations, o4Translations, o5Translations, o6Translations, o7Translations } from './lib/i18n';
 import { PERMISSIONS, RBAC_ANY_ORDERING } from './lib/permissions';
 
 import { PLUGIN_ID } from './pluginId';
@@ -67,6 +67,7 @@ export default {
         ...o11Translations(locale),
         ...o8Translations(locale),
         ...o9Translations(locale),
+        ...o13Translations(locale),
         ...o14Translations(locale),
       },
       locale,

@@ -12,15 +12,8 @@ import type storefrontFactory from '../services/storefront';
 import type { HttpCtx } from './http';
 import { sendError } from './http';
 import { sessionFor } from './customer-auth';
-import {
-  clientIpOf,
-  isWrongPromotionCode,
-  notePromotionCodeFailure,
-  PROMOTION_CAPTCHA_AFTER,
-  promotionCodeFailureCount,
-  promotionCodeLimit,
-  rateLimited,
-} from './storefront-guard';
+import { clientIpOf, rateLimited } from './storefront-guard';
+import { withCartPromotionGuard } from './cart-promotion-guard';
 
 type CartService = ReturnType<typeof cartFactory>;
 type StorefrontService = ReturnType<typeof storefrontFactory>;
@@ -100,29 +93,39 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     ) =>
     action(bucket, async (ctx, serviceCtx) => {
       const cartRow = await carts().resolve(await owner(ctx, serviceCtx), serviceCtx);
-      await run(ctx, serviceCtx, cartRow);
-      return carts().view(await carts().resolve(await owner(ctx, serviceCtx), serviceCtx), serviceCtx);
+      return withCartPromotionGuard(strapi, ctx, cartRow.promotionCode, 'stored', async () => {
+        await run(ctx, serviceCtx, cartRow);
+        return carts().view(await carts().resolve(await owner(ctx, serviceCtx), serviceCtx), serviceCtx);
+      });
     });
 
   return {
     /** POST /carts — guest → `{cartToken}` (once); signed-in → the customer's cart. */
     create: action('auth', async (ctx, serviceCtx) => {
-      const { row, cartToken } = await carts().create(
-        (ctx.request.body ?? {}) as Record<string, unknown>,
-        { customerId: (await owner(ctx, serviceCtx)).customerId },
-        serviceCtx,
-      );
-      ctx.status = 201;
-      return {
-        ...(cartToken ? { cartToken } : {}),
-        ...(await carts().view(row, serviceCtx)),
-      };
+      const body = (ctx.request.body ?? {}) as Record<string, unknown>;
+      const identity = await owner(ctx, serviceCtx);
+      // A signed-in create can reuse a cart and its stored code.
+      let storedCode: string | null = null;
+      if (identity.customerId && body.promotionCode === undefined) {
+        try {
+          storedCode = (await carts().resolve({ ...identity, cartToken: undefined }, serviceCtx)).promotionCode;
+        } catch (error) {
+          if (!(error instanceof OrderingError) || error.code !== 'CART_NOT_FOUND') throw error;
+        }
+      }
+      const setsCode = body.promotionCode !== undefined;
+      return withCartPromotionGuard(strapi, ctx, setsCode ? body.promotionCode : storedCode, setsCode ? 'set' : 'stored', async () => {
+        const { row, cartToken } = await carts().create(body, { customerId: identity.customerId }, serviceCtx);
+        ctx.status = 201;
+        return { ...(cartToken ? { cartToken } : {}), ...(await carts().view(row, serviceCtx)) };
+      });
     }),
 
     /** GET /carts/current — the resolved cart re-quoted; 404/410 when absent/dead. */
-    current: action('read', async (ctx, serviceCtx) =>
-      carts().view(await carts().resolve(await owner(ctx, serviceCtx), serviceCtx), serviceCtx),
-    ),
+    current: action('read', async (ctx, serviceCtx) => {
+      const row = await carts().resolve(await owner(ctx, serviceCtx), serviceCtx);
+      return withCartPromotionGuard(strapi, ctx, row.promotionCode, 'stored', () => carts().view(row, serviceCtx));
+    }),
 
     /**
      * PATCH /carts/current — branch/receiveMethod/pickup/contact/locale/promotionCode. A new code
@@ -131,30 +134,14 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
      */
     patch: action('auth', async (ctx, serviceCtx) => {
       const body = (ctx.request.body ?? {}) as Record<string, unknown>;
-      const code = typeof body.promotionCode === 'string' && body.promotionCode.trim() !== '' ? body.promotionCode : null;
-      const ip = clientIpOf(strapi, ctx);
-      const limit = promotionCodeLimit(strapi);
-      const tooMany = () => {
-        ctx.status = 429;
-        ctx.body = { error: { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' } };
-        return undefined;
-      };
-      if (code) {
-        const failures = promotionCodeFailureCount(ip);
-        if (failures >= limit.max) return tooMany();
-        if (failures >= PROMOTION_CAPTCHA_AFTER) {
-          await verifyCaptcha(ctx, typeof body.captchaToken === 'string' ? body.captchaToken : undefined, 'order-create');
-        }
-      }
       const cartRow = await carts().resolve(await owner(ctx, serviceCtx), serviceCtx);
-      const { captchaToken: _captcha, ...input } = body;
-      await carts().patch(cartRow, input, serviceCtx);
-      const view = await carts().view(await carts().resolve(await owner(ctx, serviceCtx), serviceCtx), serviceCtx);
-      const rejected = (view.quote as { rejectedPromotions?: Array<{ reason: string }> } | null)?.rejectedPromotions ?? [];
-      if (code && rejected.some((row) => isWrongPromotionCode(row.reason))) {
-        if (notePromotionCodeFailure(ip, limit.windowMs) >= limit.max) return tooMany();
-      }
-      return view;
+      const setsCode = body.promotionCode !== undefined;
+      const code = setsCode ? body.promotionCode : cartRow.promotionCode;
+      return withCartPromotionGuard(strapi, ctx, code, setsCode ? 'set' : 'stored', async () => {
+        const { captchaToken: _captcha, ...input } = body;
+        await carts().patch(cartRow, input, serviceCtx);
+        return carts().view(await carts().resolve(await owner(ctx, serviceCtx), serviceCtx), serviceCtx);
+      });
     }),
 
     /** POST /carts/current/lines — add a line (identical signature tops up quantity). */

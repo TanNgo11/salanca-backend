@@ -115,6 +115,15 @@ export const ALERT_RULE_DEFAULTS: AlertRules = {
     aggregationMinutes: 60,
     recipients: ['ops.read'],
   },
+  // O13: paid channels (zalo/sms) hit the daily cap and deliveries fall back to cheaper
+  // channels. Count-based — one `open` per skipped send, deduped per UTC day.
+  'notification-daily-limit': {
+    enabled: true,
+    threshold: 1,
+    criticalThreshold: 100,
+    aggregationMinutes: 1440,
+    recipients: ['ops.read'],
+  },
   // O8: one alert per order rated at or below `threshold` stars (default 2), for the branch's
   // report readers. Not count-based: `threshold` is the star ceiling, not an occurrence count.
   'low-rating': {

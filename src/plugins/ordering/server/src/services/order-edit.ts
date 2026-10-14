@@ -10,10 +10,11 @@ import type {
   SelectedOptionInput,
   Sellable,
 } from '../contracts';
-import type { PickupSettings } from '../domain/branch-settings';
+import type { DeliverySettings, PickupSettings } from '../domain/branch-settings';
 import { bundleComponentsFromSellable } from '../domain/catalog/bundle-components';
 import { snapshotDeliveryAddress, type DeliveryAddressInput } from '../domain/contact/address';
 import { receiveBusinessDate, stockTargetsForLine, type StockTarget } from '../domain/daily-stock-lines';
+import { CARRIER_PRICING, resolveDeliveryProvider } from '../domain/delivery/carrier';
 import { quoteDelivery } from '../domain/delivery/zones';
 import { OrderingError } from '../domain/errors';
 import { amountFromDb } from '../domain/money';
@@ -408,8 +409,15 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
     });
 
     const merchandise = merchandiseOf(reduced, quoted);
-    const zones = kind === 'delivery' ? branchService.deliverySettings(branch).zones : [];
-    const delivery = await deliveryFee(registry, branch.code, kind, zones, nextAddress, merchandise);
+    const deliverySettings = kind === 'delivery' ? branchService.deliverySettings(branch) : null;
+    const delivery = await deliveryFee(
+      registry,
+      branch.code,
+      kind,
+      deliverySettings,
+      nextAddress,
+      merchandise,
+    );
     const fulfillmentAmount = kind === 'delivery' ? (delivery?.fee ?? 0) : 0;
 
     const requestedTiming = timingRequest(input.timing);
@@ -1012,14 +1020,17 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
     registry: OrderingRegistry,
     locationRef: string,
     kind: 'pickup' | 'delivery' | 'appointment',
-    zones: Parameters<typeof quoteDelivery>[0],
+    deliverySettings: DeliverySettings | null,
     address: AddressSnapshot | null,
     merchandise: number,
   ): Promise<{ fee: number; zoneCode: string; extraLeadTimeMinutes: number; freeFrom: number | null } | null> => {
-    if (kind !== 'delivery') return null;
+    if (kind !== 'delivery' || !deliverySettings) return null;
+    const zones = deliverySettings.zones;
     const communeCode = address?.wardCode ?? '';
-    const provider = registry.fulfillmentProvider('self-delivery');
-    const option = { communeCode, subtotal: merchandise };
+    // O13: the configured carrier prices the leg; a missing carrier falls back to self-delivery.
+    const provider = resolveDeliveryProvider(registry, deliverySettings.carrier);
+    const carrierPriced = provider.capabilities.includes(CARRIER_PRICING);
+    const option = { communeCode, subtotal: merchandise, ...(address ? { address } : {}) };
     const orderRef = { locationRef, subtotalAmount: merchandise } as Order;
     const verdict = await provider.validate({
       order: orderRef,
@@ -1041,25 +1052,39 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
       throw new OrderingError('CURRENCY_MISMATCH', 'delivery fee currency differs from config');
     }
     const quoted = quoteDelivery(zones, { communeCode, subtotal: merchandise });
-    if (!quoted.available) {
-      throw new OrderingError('DELIVERY_UNAVAILABLE', 'delivery is not available for this commune', {
-        details: {
-          communeCode: communeCode.trim().toUpperCase(),
-          reason: quoted.reason,
-          ...(quoted.minOrderAmount !== undefined ? { minOrderAmount: quoted.minOrderAmount } : {}),
-        },
-      });
-    }
-    if (quoted.fee !== money.amount) {
-      throw new OrderingError('TOTALS_MISMATCH', 'delivery fee does not match the provider', {
-        details: { communeCode: communeCode.trim().toUpperCase() },
-      });
+    if (carrierPriced) {
+      // Zones bound the service area only when the branch declares them; else the carrier
+      // estimate decides coverage (same rule as order placement).
+      if (zones.length > 0 && !quoted.available) {
+        throw new OrderingError('DELIVERY_UNAVAILABLE', 'delivery is not available for this commune', {
+          details: {
+            communeCode: communeCode.trim().toUpperCase(),
+            reason: quoted.reason,
+            ...(quoted.minOrderAmount !== undefined ? { minOrderAmount: quoted.minOrderAmount } : {}),
+          },
+        });
+      }
+    } else {
+      if (!quoted.available) {
+        throw new OrderingError('DELIVERY_UNAVAILABLE', 'delivery is not available for this commune', {
+          details: {
+            communeCode: communeCode.trim().toUpperCase(),
+            reason: quoted.reason,
+            ...(quoted.minOrderAmount !== undefined ? { minOrderAmount: quoted.minOrderAmount } : {}),
+          },
+        });
+      }
+      if (quoted.fee !== money.amount) {
+        throw new OrderingError('TOTALS_MISMATCH', 'delivery fee does not match the provider', {
+          details: { communeCode: communeCode.trim().toUpperCase() },
+        });
+      }
     }
     return {
       fee: money.amount,
-      zoneCode: quoted.zoneCode,
-      extraLeadTimeMinutes: quoted.extraLeadTimeMinutes,
-      freeFrom: quoted.freeFrom,
+      zoneCode: quoted.available ? quoted.zoneCode : '',
+      extraLeadTimeMinutes: quoted.available ? quoted.extraLeadTimeMinutes : 0,
+      freeFrom: quoted.available ? quoted.freeFrom : null,
     };
   };
 

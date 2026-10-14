@@ -37,6 +37,7 @@ import giftCardBatch from './gift-card-batch';
 import giftCardLedger from './gift-card-ledger';
 import hold from './hold';
 import idempotencyKey from './idempotency-key';
+import notificationChannelRule from './notification-channel-rule';
 import notificationDelivery from './notification-delivery';
 import notificationTemplate from './notification-template';
 import opsAlert from './ops-alert';
@@ -93,6 +94,7 @@ export default {
   'gift-card-ledger': giftCardLedger,
   hold,
   'idempotency-key': idempotencyKey,
+  'notification-channel-rule': notificationChannelRule,
   'notification-delivery': notificationDelivery,
   'notification-template': notificationTemplate,
   'ops-alert': opsAlert,

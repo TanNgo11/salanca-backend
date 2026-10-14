@@ -14,6 +14,7 @@ export const ALERT_CODES = [
   'cash-closing-mismatch',
   'audit-tampered',
   'notification-template-broken',
+  'notification-daily-limit',
   'low-rating',
   'gift-card-probing',
 ] as const;
@@ -43,6 +44,10 @@ const labels: Record<AlertCode, { vi: string; en: string }> = {
   'notification-template-broken': {
     vi: 'Mẫu email tùy biến lỗi, đã dùng mẫu mặc định',
     en: 'Custom email template failed, the default was used',
+  },
+  'notification-daily-limit': {
+    vi: 'Đã chạm hạn mức tin Zalo/SMS trong ngày, đang dùng kênh dự phòng',
+    en: 'Daily Zalo/SMS message limit reached, falling back to cheaper channels',
   },
   'low-rating': { vi: 'Khách đánh giá thấp', en: 'Low customer rating' },
   'gift-card-probing': { vi: 'Dò mã thẻ quà tặng', en: 'Gift-card code probing' },

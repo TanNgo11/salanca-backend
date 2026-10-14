@@ -17,6 +17,7 @@ export const REVIEW_REASONS = [
   'order-closed',
   'already-paid',
   'account-mismatch',
+  'provider-uncertain',
 ] as const;
 
 export type ReviewReason = (typeof REVIEW_REASONS)[number];

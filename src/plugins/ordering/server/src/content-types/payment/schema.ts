@@ -21,6 +21,11 @@ export default collection(
       default: 'pending',
     },
     providerReference: { type: 'string' },
+    /**
+     * O13 wallet sessions: provider-side display/session data the initiate call returned
+     * (`redirectUrl`, `deeplink`, `qrCodeUrl`, `requestId`, `initiatedAt`). No secrets.
+     */
+    session: { type: 'json' },
     actorRef: { type: 'string' },
     businessDate: { type: 'date' },
     capturedAt: { type: 'datetime' },

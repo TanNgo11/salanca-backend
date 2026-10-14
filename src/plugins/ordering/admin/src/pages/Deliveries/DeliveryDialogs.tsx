@@ -213,6 +213,120 @@ export const FailDialog = ({
   );
 };
 
+/**
+ * O13 "Gọi xe" (screens P2): quotes the carrier on open, shows the carrier fee next to the
+ * customer-paid fee and the COD the courier must collect, then books once. Booking is
+ * idempotent server-side — a double click cannot create two trips.
+ */
+export const CarrierDialog = ({
+  quote,
+  quoteError,
+  quoteLoading,
+  busy,
+  onClose,
+  onSubmit,
+}: {
+  quote: {
+    providerCode: string;
+    quotes: Array<{ serviceId: string; fee: { amount: number } }>;
+    due: number;
+    customerFee: number;
+  } | null;
+  quoteError: boolean;
+  quoteLoading: boolean;
+  busy: boolean;
+  onClose: () => void;
+  onSubmit: (body: { serviceId?: string; note?: string }) => void;
+}) => {
+  const t = useT();
+  const [note, setNote] = useState('');
+  const first = quote?.quotes[0] ?? null;
+  return (
+    <Frame
+      title={t('carrier.title')}
+      onClose={onClose}
+      action={
+        <Button
+          loading={busy}
+          disabled={!first}
+          onClick={() =>
+            onSubmit({
+              ...(first ? { serviceId: first.serviceId } : {}),
+              ...(note.trim() ? { note: note.trim().slice(0, 200) } : {}),
+            })
+          }
+        >
+          {t('carrier.call')}
+        </Button>
+      }
+    >
+      {quoteLoading ? <Typography>{t('carrier.quoteLoading')}</Typography> : null}
+      {quoteError ? (
+        <Typography variant="pi" textColor="danger600">
+          {t('carrier.quoteFailed')}
+        </Typography>
+      ) : null}
+      {first ? (
+        <>
+          <Flex justifyContent="space-between">
+            <Typography>{t('carrier.service')}</Typography>
+            <Typography fontWeight="semiBold">
+              {quote?.providerCode} · {first.serviceId}
+            </Typography>
+          </Flex>
+          <Flex justifyContent="space-between">
+            <Typography>{t('carrier.fee')}</Typography>
+            <Typography variant="beta">{formatMoney(first.fee.amount)}</Typography>
+          </Flex>
+          <Flex justifyContent="space-between">
+            <Typography>{t('carrier.customerFee')}</Typography>
+            <Typography>{formatMoney(quote?.customerFee ?? 0)}</Typography>
+          </Flex>
+          {(quote?.due ?? 0) > 0 ? (
+            <Flex justifyContent="space-between">
+              <Typography>{t('carrier.due')}</Typography>
+              <Typography>{formatMoney(quote?.due ?? 0)}</Typography>
+            </Flex>
+          ) : null}
+          <Field.Root>
+            <Field.Label>{t('dialog.note')}</Field.Label>
+            <Textarea
+              value={note}
+              onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setNote(event.target.value)}
+            />
+          </Field.Root>
+        </>
+      ) : null}
+    </Frame>
+  );
+};
+
+/** Hủy chuyến đối tác while it is still searching for a driver (screens P2). */
+export const CarrierCancelDialog = ({
+  busy,
+  onClose,
+  onSubmit,
+}: {
+  busy: boolean;
+  onClose: () => void;
+  onSubmit: () => void;
+}) => {
+  const t = useT();
+  return (
+    <Frame
+      title={t('carrier.cancel')}
+      onClose={onClose}
+      action={
+        <Button variant="danger" loading={busy} onClick={onSubmit}>
+          {t('carrier.cancel')}
+        </Button>
+      }
+    >
+      <Typography>{t('carrier.cancelConfirm')}</Typography>
+    </Frame>
+  );
+};
+
 /** "Thu tiền và giao" at the door: one confirm, the leg lands `delivered` (screens D2). */
 export const CollectDialog = ({
   due,

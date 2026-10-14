@@ -13,10 +13,12 @@ import categories from './categories';
 import customerAuth from './customer-auth';
 import customer from './customer';
 import cart from './cart';
+import notificationChannels from './notification-channels';
 import notificationTemplates from './notification-templates';
 import openapi from './openapi';
 import ops from './ops';
 import paymentReview from './payment-review';
+import providers from './providers';
 import promotions from './promotions';
 import priceLists from './price-lists';
 import customerGroups from './customer-groups';
@@ -52,7 +54,9 @@ export default {
   'customer-groups': customerGroups,
   'gift-cards': giftCards,
   'audit-log': auditLog,
+  'notification-channels': notificationChannels,
   'notification-templates': notificationTemplates,
+  providers,
   'customer-auth': customerAuth,
   customer,
   cart,

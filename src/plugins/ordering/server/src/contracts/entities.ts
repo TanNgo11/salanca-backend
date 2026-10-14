@@ -78,6 +78,9 @@ export type Fulfillment = {
   canceledAt?: string;
   trackingNumber?: string;
   trackingUrl?: string;
+  /** O13 carrier legs: raw carrier status + the fee the carrier actually charges. */
+  carrierStatus?: string;
+  carrierFee?: number;
   metadata?: JsonObject;
 };
 

@@ -5,7 +5,7 @@ import type { NormalizedPaymentEvent } from '../contracts/payment';
 import type { WorkflowDefinition } from '../contracts/workflow';
 import { OrderingError } from '../domain/errors';
 import { amountFromDb } from '../domain/money';
-import { matchTransfer, type MatchDecision } from '../domain/payments/match';
+import { CLOSED_GROUP_STATUSES, matchTransfer, type MatchDecision } from '../domain/payments/match';
 import { extractOrderCode } from '../domain/payments/memo';
 import type { TransactionClient } from '../migrations/runner';
 import { accountScope, type SepaySettings } from '../providers/sepay/config';
@@ -396,6 +396,183 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
           await confirmManualRow(prior, event.providerTransactionId, ctx);
         }
         return { duplicate: true, decision: { outcome: 'ignored' } };
+      }
+
+      // O13 wallet providers (momo, vnpay): the IPN's `reference` is the session's
+      // providerReference `<orderCode>-<paymentId>` — the payment row already exists, so
+      // matching is a row lookup, not a memo parse. Signature was verified before this runs.
+      const walletProvider = services().registry.hasPaymentProvider(event.providerCode)
+        ? services().registry.paymentProvider(event.providerCode)
+        : null;
+      if (walletProvider?.capabilities.includes('wallet')) {
+        const walletPark = async (
+          reviewStatus: 'needs-review' | 'ignored',
+          reviewReason: string | null,
+          paymentId: number | null = null,
+        ) => {
+          try {
+            await insertEvent({ ...base, paymentId, reviewStatus, reviewReason }, ctx);
+            return {
+              duplicate: false,
+              decision:
+                reviewStatus === 'needs-review'
+                  ? ({
+                      outcome: 'needs-review',
+                      reviewReason: (reviewReason ?? 'no-code') as never,
+                      orderCode: null,
+                      dueAmount: null,
+                    } satisfies MatchDecision)
+                  : ({ outcome: 'ignored' } satisfies MatchDecision),
+            };
+          } catch (error) {
+            if (!isUniqueViolation(error)) throw error;
+            return { duplicate: true, decision: { outcome: 'ignored' } satisfies MatchDecision };
+          }
+        };
+        const walletIngest = async (): Promise<{ duplicate: boolean; decision: MatchDecision }> => {
+          if (event.transferType === 'out') return walletPark('ignored', null);
+          const reference = event.reference?.trim() ?? '';
+          if (reference === '') return walletPark('needs-review', 'no-code');
+          const parked = (await payments().findOne({
+            where: { providerCode: event.providerCode, providerReference: reference },
+          })) as { id: number } | null;
+          if (!parked) return walletPark('needs-review', 'order-not-found');
+          try {
+            return await strapi.db.transaction(async ({ trx }) => {
+              await repo.lockPayment(trx, parked.id);
+              // Under the payment lock, a replay is seen before any write. Catching a unique
+              // violation inside this transaction would leave it aborted and silently roll
+              // back the work (e.g. the `failed` status of a failed-result IPN).
+              const seen = await events().findOne({
+                where: { providerCode: event.providerCode, providerTransactionId: event.providerTransactionId },
+                select: ['id'],
+              });
+              if (seen) return { duplicate: true, decision: { outcome: 'ignored' } satisfies MatchDecision };
+              const locked = (await payments().findOne({
+                where: { id: parked.id },
+                populate: { order: { columns: ['id'] } },
+              })) as {
+                id: number;
+                order: { id: number } | number;
+                status: string;
+                requestedAmount: string | number;
+                currency: string;
+                session: unknown;
+              } | null;
+              if (!locked) return walletPark('needs-review', 'order-not-found');
+              const orderId =
+                typeof locked.order === 'object' ? locked.order.id : locked.order;
+              // `services()` — not a destructure: `ingest` declares `const { order }` later,
+              // which would make a bare `order` binding hit the TDZ here.
+              const first = await services().order.getOrder(orderId, ctx);
+              await lockGroups(trx, first);
+              // Re-read under the group locks: the order may have closed, been paid another way
+              // (SePay, another wallet session) or been edited since the session opened.
+              const aggregate = await services().order.getOrder(orderId, ctx);
+
+              // A terminal-failure event on a still-pending session marks the payment failed —
+              // the order stays awaiting-payment until a new session or the expiry job.
+              if (event.kind === 'failed') {
+                if (locked.status === 'pending') {
+                  await payments().update({
+                    where: { id: locked.id },
+                    data: { status: 'failed', actorRef: actorRefOf(ctx) },
+                  });
+                }
+                return walletPark('ignored', 'result-failed', locked.id);
+              }
+              // The provider says money may have moved but not cleanly (MoMo 9000, VNPay 07):
+              // staff decide; the payment is left as it is.
+              if (event.kind === 'review') {
+                return walletPark('needs-review', 'provider-uncertain', locked.id);
+              }
+              if (locked.status === 'captured') {
+                return walletPark('ignored', 'already-paid', locked.id);
+              }
+              if (locked.status !== 'pending') {
+                return walletPark('needs-review', 'order-closed', locked.id);
+              }
+              const requested = amountFromDb(locked.requestedAmount);
+              if (event.amount.amount !== requested) {
+                return walletPark(
+                  'needs-review',
+                  event.amount.amount > requested ? 'overpaid' : 'underpaid',
+                  locked.id,
+                );
+              }
+              // Same rules as a bank transfer (matchTransfer): money that arrives for a closed
+              // or already-paid order, or more than is still due, goes to staff review instead
+              // of being captured.
+              if (
+                aggregate.groups.length > 0 &&
+                aggregate.groups.every((group) => (CLOSED_GROUP_STATUSES as readonly string[]).includes(group.status))
+              ) {
+                return walletPark('needs-review', 'order-closed', locked.id);
+              }
+              const capturedElsewhere = aggregate.payments
+                .filter((payment) => payment.id !== locked.id)
+                .reduce((sum, payment) => sum + payment.capturedAmount - payment.refundedAmount, 0);
+              const due = aggregate.order.totalAmount - capturedElsewhere;
+              if (due <= 0) return walletPark('needs-review', 'already-paid', locked.id);
+              if (event.amount.amount > due) return walletPark('needs-review', 'overpaid', locked.id);
+              // The provider's transaction id is folded into the session — refund/query APIs
+              // (VNPay refund needs vnp_TransactionNo; querydr derives the transaction date
+              // from session.initiatedAt, which initiate already stored).
+              const session = {
+                ...(locked.session !== null &&
+                typeof locked.session === 'object' &&
+                !Array.isArray(locked.session)
+                  ? (locked.session as Record<string, unknown>)
+                  : {}),
+                transactionNo: event.providerTransactionId,
+                ...(typeof event.metadata?.payDate === 'string'
+                  ? { payDate: event.metadata.payDate }
+                  : {}),
+              };
+              await payments().update({
+                where: { id: locked.id },
+                data: {
+                  capturedAmount: event.amount.amount,
+                  status: 'captured',
+                  capturedAt: nowOf(ctx),
+                  actorRef: actorRefOf(ctx),
+                  session,
+                },
+              });
+              await insertEvent(
+                { ...base, paymentId: locked.id, reviewStatus: 'auto-matched', reviewReason: null },
+                ctx,
+              );
+              await services().order.recomputeProjection(orderId);
+              await services().timeline.record(
+                {
+                  orderId,
+                  type: 'payment.captured',
+                  isPublic: true,
+                  payload: {
+                    providerCode: event.providerCode,
+                    amount: event.amount.amount,
+                    paymentId: locked.id,
+                  },
+                },
+                ctx,
+              );
+              await transitionIfPayable(aggregate, ctx);
+              return {
+                duplicate: false,
+                decision: {
+                  outcome: 'auto-matched',
+                  orderCode: aggregate.order.code,
+                  dueAmount: requested,
+                } satisfies MatchDecision,
+              };
+            });
+          } catch (error) {
+            if (!isUniqueViolation(error)) throw error;
+            return { duplicate: true, decision: { outcome: 'ignored' } };
+          }
+        };
+        return flagUnmatched(await walletIngest());
       }
 
       const bankReference = event.reference;

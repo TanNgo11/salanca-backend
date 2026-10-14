@@ -24,6 +24,10 @@ export default collection(
     attempts: { type: 'integer', required: true, default: 0 },
     lastError: { type: 'text' },
     sentAt: { type: 'datetime' },
+    // O13: provider-side message id (Zalo msg_id / eSMS SMSID) and the configured cost
+    // estimate of the channel actually used — both null for skipped/failed/email.
+    providerMessageId: { type: 'string' },
+    costEstimate: { type: 'integer' },
   },
   { displayName: 'Nhật ký gửi thông báo' },
 );

@@ -404,6 +404,28 @@ const alert = ({ strapi }: { strapi: Core.Strapi }) => {
   };
 
   /**
+   * Rolling 24h sample log for the P4 error rate. Timestamps only — provider payload and
+   * customer data never reach the store.
+   */
+  const noteWebhookSample = async (
+    providerCode: string,
+    ok: boolean,
+    ctx: ServiceContext,
+  ): Promise<void> => {
+    const key = `webhook-events-24h:${providerCode}`;
+    const raw = await store().get({ key });
+    const cutoff = nowOf(ctx).getTime() - 24 * 60 * 60 * 1000;
+    const samples = (Array.isArray(raw) ? raw : [])
+      .filter((entry) => {
+        const at = (entry as { at?: unknown }).at;
+        return typeof at === 'string' && new Date(at).getTime() >= cutoff;
+      })
+      .slice(-499);
+    samples.push({ at: nowOf(ctx).toISOString(), ok });
+    await store().set({ key, value: samples });
+  };
+
+  /**
    * `rule.threshold` bad signatures in a row open `webhook-failing:<provider>`; a good webhook
    * resets it. `webhook-last-failure`/`webhook-last-success` feed the ops screen (O6 step 2).
    */
@@ -411,6 +433,7 @@ const alert = ({ strapi }: { strapi: Core.Strapi }) => {
     providerCode: string,
     ctx: ServiceContext,
   ): Promise<{ failures: number; opened: boolean; escalated: boolean }> => {
+    await noteWebhookSample(providerCode, false, ctx);
     const storeKey = `webhook-failures:${providerCode}`;
     const failures = failureCount(await store().get({ key: storeKey })) + 1;
     await store().set({ key: storeKey, value: String(failures) });
@@ -437,6 +460,7 @@ const alert = ({ strapi }: { strapi: Core.Strapi }) => {
   };
 
   const noteWebhookSuccess = async (providerCode: string, ctx: ServiceContext): Promise<void> => {
+    await noteWebhookSample(providerCode, true, ctx);
     await store().set({ key: `webhook-failures:${providerCode}`, value: '0' });
     await store().set({
       key: `webhook-last-success:${providerCode}`,

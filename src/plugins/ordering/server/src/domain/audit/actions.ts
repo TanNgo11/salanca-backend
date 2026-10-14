@@ -132,6 +132,13 @@ export const AUDIT_ACTIONS: Record<string, ActionDef> = {
   'delivery.dispatch': { category: 'delivery', label: ['Bắt đầu giao', 'Start delivery'] },
   'delivery.fail': { category: 'delivery', label: ['Giao thất bại', 'Delivery failed'] },
   'delivery.retry': { category: 'delivery', label: ['Giao lại', 'Retry delivery'] },
+  // O13: staff-triggered carrier booking on a delivery leg (Ahamove "Gọi xe").
+  'carrier.book': { category: 'delivery', label: ['Gọi xe (đối tác)', 'Book carrier trip'] },
+  'carrier.cancel': { category: 'delivery', label: ['Hủy chuyến đối tác', 'Cancel carrier trip'] },
+  'carrier.cod-conflict': {
+    category: 'delivery',
+    label: ['Có thể thu COD hai lần', 'Possible double COD collection'],
+  },
   // Configuration
   'branch.create': { category: 'config', label: ['Tạo chi nhánh', 'Create branch'] },
   'branch.update': { category: 'config', label: ['Sửa chi nhánh', 'Update branch'] },
@@ -169,6 +176,15 @@ export const AUDIT_ACTIONS: Record<string, ActionDef> = {
   'notification-template.reset': {
     category: 'config',
     label: ['Khôi phục mẫu email', 'Reset email template'],
+  },
+  // O13: per-template channel ordering / ZNS mapping (Settings → Kênh thông báo).
+  'notification-channel.update': {
+    category: 'config',
+    label: ['Sửa quy tắc kênh thông báo', 'Update notification channel rule'],
+  },
+  'notification-channel.test': {
+    category: 'config',
+    label: ['Gửi thử thông báo', 'Send test notification'],
   },
   // Access
   'scope.update': { category: 'access', label: ['Gán chi nhánh cho nhân viên', 'Update staff scope'] },

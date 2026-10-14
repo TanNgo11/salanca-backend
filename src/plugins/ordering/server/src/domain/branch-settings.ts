@@ -130,6 +130,12 @@ export const deliverySettingsSchema = z
     slaMinutes: z.number().int().min(1).max(1440).default(10),
     schedule: scheduleSchema,
     zones: deliveryZoneListSchema.default([]),
+    /**
+     * O13: which fulfillment provider owns delivery legs. `self-delivery` prices from zones and
+     * dispatches in-house staff; a registered carrier (ahamove) books a courier instead — staff
+     * still press "Gọi xe" manually. Legs stay with the provider active at booking time.
+     */
+    carrier: z.string().min(1).max(40).default('self-delivery'),
   })
   .prefault({});
 
@@ -247,6 +253,8 @@ export function validateBranchInput(
     mode: 'create' | 'update';
     knownProviders: string[];
     onlineProviders: string[];
+    /** Enabled fulfillment providers (O13: self-delivery always; ahamove when configured). */
+    carrierProviders?: string[];
     catalogAvailable?: boolean;
     knownCommuneCodes?: ReadonlySet<string>;
   },
@@ -275,6 +283,12 @@ export function validateBranchInput(
   const delivery = value.fulfillment?.delivery;
   if (delivery) {
     issues.push(...receiveIssues('delivery', delivery, options));
+    if (options.carrierProviders && !options.carrierProviders.includes(delivery.carrier)) {
+      issues.push({
+        path: 'fulfillment.delivery.carrier',
+        message: `delivery provider "${delivery.carrier}" is not enabled`,
+      });
+    }
     const wantsDelivery = delivery.enabled || delivery.zones.length > 0;
     if (wantsDelivery && options.catalogAvailable === false) {
       issues.push({

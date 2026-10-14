@@ -1,4 +1,4 @@
-import type { PaymentProvider, WebhookProcessingResult } from '../../contracts/payment';
+import type { PaymentProvider } from '../../contracts/payment';
 import { OrderingError } from '../../domain/errors';
 import type { SepayTransactionClient, SepayTransactionPage } from './client';
 import type { SepaySettings } from './config';
@@ -94,13 +94,4 @@ export const createSepayPaymentProvider = (deps: {
 export const sepaySettingsFromConfig = (paymentProviders: unknown): SepaySettings | null => {
   const sepay = (paymentProviders as { sepay?: unknown } | undefined)?.sepay;
   return parseSepaySettings(sepay);
-};
-
-export const webhookResultForError = (error: unknown): WebhookProcessingResult | null => {
-  if (!(error instanceof OrderingError)) return null;
-  if (error.code === 'WEBHOOK_SIGNATURE_INVALID') return 'invalid-signature';
-  if (error.code === 'VALIDATION_ERROR' && error.details?.reason === 'invalid-payload') {
-    return 'invalid-payload';
-  }
-  return null;
 };

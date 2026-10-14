@@ -24,6 +24,7 @@ import { nowOf } from './context';
 import type giftCardFactory from './gift-card';
 import type orderServiceFactory from './order';
 import type paymentLinkFactory from './payment-link';
+import type paymentFactory from './payment';
 import type pickupSchedulingFactory from './pickup-scheduling';
 import type { OrderingRegistry } from './registry';
 import type timelineFactory from './timeline';
@@ -75,6 +76,30 @@ const receiveConfig = (settings: PickupSettings, timezone: string, now: Date) =>
  * only in `X-Order-Token`; the database keeps its SHA-256. Every view goes through the
  * allowlist serializers in `domain/storefront/serialize`.
  */
+/**
+ * A wallet return URL is kept only when it is https and on a configured storefront origin;
+ * anything else (another site, userinfo tricks, too long) falls back to the server's own
+ * return page.
+ */
+export const allowedReturnUrl = (value: unknown, origins: readonly string[]): string | undefined => {
+  if (typeof value !== 'string' || value.length > 500) return undefined;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return undefined;
+  }
+  if (url.protocol !== 'https:' || url.username !== '' || url.password !== '') return undefined;
+  const allowed = origins.some((origin) => {
+    try {
+      return new URL(origin).origin === url.origin;
+    } catch {
+      return false;
+    }
+  });
+  return allowed ? url.toString() : undefined;
+};
+
 const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
   const plugin = () => strapi.plugin('ordering');
   const branches = () => plugin().service('branch') as ReturnType<typeof branchFactory>;
@@ -86,6 +111,7 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
   const transitions = () => plugin().service('transition') as ReturnType<typeof transitionFactory>;
   const registry = () => plugin().service('registry') as OrderingRegistry;
   const links = () => plugin().service('payment-link') as ReturnType<typeof paymentLinkFactory>;
+  const paymentService = () => plugin().service('payment') as ReturnType<typeof paymentFactory>;
   const config = () => strapi.config.get('plugin::ordering') as OrderingConfig;
   const repo = orderRepository({ strapi });
 
@@ -205,15 +231,27 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
             presentation = null;
           } else {
             const expiresAt = deadline.toISOString();
+            // O13: a pending wallet session for this provider is replayed so the payment page
+            // shows the same payUrl/deeplink it issued earlier (no second session created).
+            const pendingWallet = aggregate.payments.find(
+              (payment) =>
+                payment.providerCode === online &&
+                payment.status === 'pending' &&
+                payment.providerReference,
+            );
             const built = await registry().paymentProvider(online).getPresentation({
               order: {
                 code: aggregate.order.code,
                 locationRef: aggregate.order.locationRef,
               } as never,
               amount: { amount: due, currency: aggregate.order.currency },
-              metadata: { expiresAt },
+              metadata: {
+                expiresAt,
+                ...(pendingWallet?.session ? { session: pendingWallet.session } : {}),
+              },
             });
-            presentation = built.memo || built.qr ? { ...built } : null;
+            const redirect = (built as { redirectUrl?: string }).redirectUrl;
+            presentation = built.memo || built.qr || redirect ? { ...built } : null;
           }
         }
       }
@@ -226,6 +264,94 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
         paymentTiming: digital ? 'prepay' : (settings?.paymentTiming ?? null),
         methods: providers ?? settings?.paymentProviders ?? [],
         presentation,
+      };
+    },
+
+    /**
+     * POST /payments/session (O13) — X-Order-Token (or a staff payment link). Starts a wallet
+     * checkout for the unpaid remainder; an existing live session for the same amount is
+     * returned unchanged. Never exposed: internal payment ids, provider secrets.
+     */
+    async paymentSessionByToken(
+      token: unknown,
+      input: { provider?: unknown; returnUrl?: unknown; ipAddr?: string },
+      ctx: ServiceContext,
+    ) {
+      let aggregate: OrderAggregate;
+      try {
+        aggregate = await service.aggregateByToken(token);
+      } catch (error) {
+        if (!isOrderingError(error) || error.code !== 'ORDER_TOKEN_INVALID') throw error;
+        const orderId = await links().resolve(token, new Date());
+        if (orderId === null) throw error;
+        const loaded = await repo.loadOrderAggregate(orderId);
+        if (!loaded || loaded.order.status === 'draft') throw invalidToken();
+        aggregate = loaded;
+      }
+      const providerCode = typeof input.provider === 'string' ? input.provider.trim() : '';
+      if (
+        !registry().hasPaymentProvider(providerCode) ||
+        !registry().paymentProvider(providerCode).capabilities.includes('wallet')
+      ) {
+        throw new OrderingError('VALIDATION_ERROR', 'unknown wallet provider', {
+          details: { field: 'provider' },
+        });
+      }
+      const receive = aggregate.order.receiveMethod as { kind?: string };
+      const branch = await branches().findByCode(aggregate.order.locationRef);
+      const settings =
+        receive.kind === 'delivery'
+          ? branches().deliverySettings(branch ?? { fulfillment: null })
+          : branches().pickupSettings(branch ?? { fulfillment: null });
+      if (!settings.paymentProviders.includes(providerCode)) {
+        throw new OrderingError('VALIDATION_ERROR', 'this branch does not offer that provider', {
+          details: { field: 'provider' },
+        });
+      }
+      const returnUrl = allowedReturnUrl(input.returnUrl, config().walletReturnOrigins);
+      const { payment, session } = await paymentService().createWalletSession(
+        { orderId: aggregate.order.id, providerCode, returnUrl, ipAddr: input.ipAddr },
+        ctx,
+      );
+      return {
+        provider: providerCode,
+        reference: payment.providerReference,
+        redirectUrl: typeof session.redirectUrl === 'string' ? session.redirectUrl : null,
+        deeplink: typeof session.deeplink === 'string' ? session.deeplink : null,
+        qrCodeUrl: typeof session.qrCodeUrl === 'string' ? session.qrCodeUrl : null,
+      };
+    },
+
+    /**
+     * GET /payments/return/:provider (O13) — the customer lands here after the wallet redirect.
+     * Display only: resolves the session reference the provider echoed back and reports the
+     * payment state. Money never moves off the return URL (IPN/query do that).
+     */
+    async paymentReturn(providerCode: string, query: Record<string, unknown>) {
+      if (
+        !registry().hasPaymentProvider(providerCode) ||
+        !registry().paymentProvider(providerCode).capabilities.includes('wallet')
+      ) {
+        throw new OrderingError('PAYMENT_NOT_FOUND', 'unknown payment provider');
+      }
+      const text = (value: unknown): string =>
+        typeof value === 'string' ? value.trim().slice(0, 120) : '';
+      const reference =
+        text(query.orderId) || text(query.vnp_TxnRef) || text(query.reference);
+      if (reference === '') {
+        throw new OrderingError('PAYMENT_NOT_FOUND', 'no payment reference in the return URL');
+      }
+      const payment = (await strapi.db.query('plugin::ordering.payment').findOne({
+        where: { providerCode, providerReference: reference },
+        populate: { order: { columns: ['id', 'code'] } },
+      })) as { order?: { code: string }; status: string } | null;
+      if (!payment?.order) {
+        throw new OrderingError('PAYMENT_NOT_FOUND', 'no payment matches the return reference');
+      }
+      return {
+        provider: providerCode,
+        orderCode: payment.order.code,
+        status: payment.status,
       };
     },
 

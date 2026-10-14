@@ -1,5 +1,6 @@
 import { normalizeVietnamesePhone } from '../../../shared/contact/phone';
 import { o11Hashing } from '../domain/customers/identity';
+import { newDocumentId } from './document-id';
 import type { OrderingMigration } from './runner';
 
 const CUSTOMER = 'plugins_ordering_customer';
@@ -74,10 +75,10 @@ export const o11CustomersMigration: OrderingMigration = {
       if (cached !== undefined) return cached;
       const phoneHash = hash.phoneHash(phone);
       await trx.raw(
-        `INSERT INTO ${CUSTOMER} (phone, phone_hash, status, order_count, total_spent, created_at, updated_at)
-         VALUES (?, ?, 'unverified', 0, 0, now(), now())
+        `INSERT INTO ${CUSTOMER} (document_id, phone, phone_hash, status, order_count, total_spent, created_at, updated_at)
+         VALUES (?, ?, ?, 'unverified', 0, 0, now(), now())
          ON CONFLICT DO NOTHING`,
-        [phone, phoneHash],
+        [newDocumentId(), phone, phoneHash],
       );
       const row = await trx(CUSTOMER).select('id').where({ phone_hash: phoneHash }).first();
       phonesById.set(phone, row.id as number);

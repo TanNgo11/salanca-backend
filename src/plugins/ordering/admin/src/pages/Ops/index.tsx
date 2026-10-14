@@ -30,6 +30,7 @@ type WebhookRow = {
   lastSuccessAt: string | null;
   lastFailureAt: string | null;
   consecutiveFailures: number;
+  last24h: { total: number; failures: number };
   state: 'ok' | 'slow' | 'failing';
 };
 
@@ -68,6 +69,13 @@ type StatusBody = {
   };
   webhooks: WebhookRow[];
   reconciliation: { lastSuccessAt: string | null; nextRunAt: string | null; enabled: boolean };
+  walletStatus: {
+    lastRunAt: string | null;
+    lastSuccessAt: string | null;
+    lastError: string | null;
+    nextRunAt: string | null;
+    enabled: boolean;
+  };
   alerts: { open: number; critical: number };
   jobs: JobRow[];
   failedOutbox: FailedRow[];
@@ -229,6 +237,9 @@ const OpsPage = () => {
                           {row.lastSuccessAt
                             ? t('ops.webhook.lastSuccess', { at: formatDateTime(row.lastSuccessAt) })
                             : t('ops.webhook.never')}
+                          {row.last24h && row.last24h.total > 0
+                            ? ` · ${t('ops.webhook.stats24h', { total: row.last24h.total, failures: row.last24h.failures })}`
+                            : ''}
                         </Typography>
                       </Flex>
                     ))
@@ -251,6 +262,38 @@ const OpsPage = () => {
                           ? t('ops.reconciliation.next', { at: formatDateTime(body.reconciliation.nextRunAt) })
                           : '—'}
                       </Typography>
+                    </Box>
+                  ) : (
+                    <Box paddingTop={2}>
+                      <Badge>{t('ops.reconciliation.disabled')}</Badge>
+                    </Box>
+                  )}
+                </Box>
+                <Box {...cardBox}>
+                  <Typography variant="sigma" textColor="neutral600">
+                    {t('ops.card.walletStatus')}
+                  </Typography>
+                  {body.walletStatus.enabled ? (
+                    <Box paddingTop={2}>
+                      <Typography variant="pi" textColor="neutral600">
+                        {body.walletStatus.lastSuccessAt
+                          ? t('ops.reconciliation.last', { at: formatDateTime(body.walletStatus.lastSuccessAt) })
+                          : t('ops.reconciliation.never')}
+                      </Typography>
+                      <br />
+                      <Typography variant="pi" textColor="neutral600">
+                        {body.walletStatus.nextRunAt
+                          ? t('ops.reconciliation.next', { at: formatDateTime(body.walletStatus.nextRunAt) })
+                          : '—'}
+                      </Typography>
+                      {body.walletStatus.lastError ? (
+                        <>
+                          <br />
+                          <Typography variant="pi" textColor="danger600">
+                            {body.walletStatus.lastError}
+                          </Typography>
+                        </>
+                      ) : null}
                     </Box>
                   ) : (
                     <Box paddingTop={2}>

@@ -105,6 +105,9 @@ export type OrderingErrorCode =
   | 'GIFT_CARD_NOT_ALLOWED'
   | 'GIFT_CARD_NOT_FOUND'
   | 'GIFT_CARD_BATCH_NOT_FOUND'
+  | 'PROVIDER_UNAVAILABLE'
+  | 'CARRIER_BOOKING_FAILED'
+  | 'CARRIER_NOT_CONFIGURED'
   | 'INTERNAL';
 
 const defaultStatus: Record<OrderingErrorCode, number> = {
@@ -209,6 +212,9 @@ const defaultStatus: Record<OrderingErrorCode, number> = {
   GIFT_CARD_NOT_ALLOWED: 400,
   GIFT_CARD_NOT_FOUND: 404,
   GIFT_CARD_BATCH_NOT_FOUND: 404,
+  PROVIDER_UNAVAILABLE: 503,
+  CARRIER_BOOKING_FAILED: 409,
+  CARRIER_NOT_CONFIGURED: 400,
   INTERNAL: 500,
 };
 

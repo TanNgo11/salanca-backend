@@ -234,6 +234,7 @@ describe('email plugin configuration', () => {
 describe('ordering plugin configuration', () => {
   const baseConfig = {
     orderCode: { prefix: 'SLC' },
+    publicApiUrl: '',
     clientIp: {
       sharedSecret: '',
       secretHeader: 'x-salanca-intake-secret',
