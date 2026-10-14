@@ -109,6 +109,10 @@ export const AUDIT_ACTIONS: Record<string, ActionDef> = {
   // O13: staff-triggered carrier booking on a delivery leg (Ahamove "Gọi xe").
   'carrier.book': { category: 'delivery', label: ['Gọi xe (đối tác)', 'Book carrier trip'] },
   'carrier.cancel': { category: 'delivery', label: ['Hủy chuyến đối tác', 'Cancel carrier trip'] },
+  'carrier.cod-conflict': {
+    category: 'delivery',
+    label: ['Có thể thu COD hai lần', 'Possible double COD collection'],
+  },
   // Configuration
   'branch.create': { category: 'config', label: ['Tạo chi nhánh', 'Create branch'] },
   'branch.update': { category: 'config', label: ['Sửa chi nhánh', 'Update branch'] },
