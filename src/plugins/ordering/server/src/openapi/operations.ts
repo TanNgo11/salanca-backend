@@ -991,7 +991,7 @@ export const OPERATIONS: Operation[] = [
     parameters: [
       { name: 'tab', in: 'query', schema: { ...str, enum: ['active', 'blocked', 'expired', 'zero', 'all'] } },
       { name: 'source', in: 'query', schema: { ...str, enum: ['sold', 'manual'] } },
-      { name: 'q', in: 'query', schema: str, description: 'Last-4 or order code — a full code belongs in POST /search' },
+      { name: 'q', in: 'query', schema: str, description: 'Last-4 or order code. A full card code answers 400 — use POST /search' },
       { name: 'page', in: 'query', schema: int },
     ],
     response: obj({

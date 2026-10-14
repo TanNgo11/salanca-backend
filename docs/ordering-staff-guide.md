@@ -277,7 +277,8 @@ hộ chọn sản phẩm thẻ và quét mã thẻ giấy in sẵn (ô **Mã th�
 
 1. **Danh sách thẻ:** tab trạng thái (đang dùng / hết hạn / bị khóa / chưa bán), lọc nguồn (bán online,
    phát tặng, thẻ giấy), ba thẻ tổng trên đầu trang (đang lưu hành, bán tháng này, đã dùng tháng này).
-   Ô tìm kiếm nhận 4 số cuối hoặc mã đầy đủ — mã đầy đủ đi qua nội dung request, không qua URL.
+   Ô tìm kiếm nhận 4 số cuối hoặc mã đơn; mã đầy đủ dán vào ô **Tìm theo mã** riêng (đi qua nội dung
+   request, không qua URL — ô tìm thường từ chối mã đầy đủ).
    Mọi nơi chỉ hiện `•••• 4 ký tự cuối`; không ai đọc lại mã đầy đủ sau khi phát.
 2. **Phát thẻ tặng:** nút **Phát thẻ**. Có email người nhận → hệ thống gửi mã qua mail, màn hình không
    hiện mã. Không email → mã hiện **một lần duy nhất**, ghi lại ngay cho khách. Lý do bắt buộc.
@@ -291,11 +292,18 @@ hộ chọn sản phẩm thẻ và quét mã thẻ giấy in sẵn (ô **Mã th�
 5. **Lô thẻ giấy:** tab **Lô thẻ** — **Tạo lô** (chọn mệnh giá + số lượng → tải danh sách mã để in, một
    lần duy nhất), **Nhập lô** (dán danh sách mã in sẵn — sai một dòng thì cả lô bị từ chối), **Xuất CSV**
    mã thẻ của lô (cần quyền "Xuất"). Thẻ trong lô bắt đầu "chưa bán", giá trị 0đ, tự có giá trị khi bán
-   tại quầy; hạn dùng tính từ lúc kích hoạt.
+   tại quầy; hạn dùng tính từ lúc kích hoạt. **In thẻ trong 24 giờ sau khi tạo lô:** sau
+   `sealedCodeHours` mã chưa bán bị xóa khỏi hệ thống, Xuất CSV không còn mã. Thẻ đã bán không bao giờ
+   xuất mã. Bán tại quầy: quét mỗi thẻ một lần, đúng mệnh giá món bán; thẻ đang nằm trong đơn khác
+   (kể cả đơn nháp) bị từ chối ngay — hủy/xóa đơn kia để nhả thẻ. Khách đã cầm thẻ, nên nếu bán sau
+   24 giờ thì không có mail mã.
 6. **Trong chi tiết đơn:** thanh toán bằng thẻ hiện `Thẻ quà tặng •••• LAST4` (bấm vào mở đúng thẻ);
    đơn mua thẻ hiện khối **Thẻ đã phát** (mã che + trạng thái email); hoàn tiền về thẻ được đánh dấu
    riêng. Báo cáo tách riêng **bán thẻ** (tiền bán đơn thẻ), **đã dùng thẻ**, **đang lưu hành** và **số
-   dư thẻ hết hạn** — không lẫn vào doanh thu món. Chốt tiền mặt không đổi: thẻ không phải tiền mặt.
+   dư thẻ hết hạn** — không lẫn vào doanh thu món: doanh thu tính lúc thẻ được dùng mua món, không
+   tính lúc bán thẻ. Đơn bán thẻ không nhận giảm giá tay hay khuyến mãi theo đơn. Hoàn tiền đơn bán thẻ:
+   chỉ hoàn phần trả dư, giá trị thẻ đã phát không hoàn ra tiền (khóa thẻ nếu cần). Chốt tiền mặt
+   không đổi: thẻ không phải tiền mặt.
 
 Thẻ hết hạn tự động: job `gift-card-expiry` chạy 03:45 hằng ngày, ghi sổ `expire` phần số dư còn lại
 và đưa số dư về 0. Mã sai quá nhiều từ một IP mở cảnh báo **Dò mã thẻ quà tặng** trên bảng Cảnh báo.

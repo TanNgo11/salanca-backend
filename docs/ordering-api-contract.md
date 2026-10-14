@@ -264,15 +264,25 @@ No name, phone, email, note or actions. Limits: per IP and 5 tries per order cod
 Card orders run the `gift-card` workflow (`awaiting-payment` → `issued`) and require an online
 provider — cards are minted only after the payment captures; the recipient email gets the code(s),
 the purchaser gets a codeless confirmation. Staff counter sales pass `physicalCodes` (scanned
-preprinted stock) — those activate instead of minting. Promotions skip card lines unless the
-promotion's category/receive-kind targeting includes them; a card cannot pay for a card
-(`400 GIFT_CARD_NOT_ALLOWED`).
+preprinted stock) — those activate instead of minting. Every scan is checked at create: one card per
+unit, no card twice, face value equal to the unit sold, and not held by another live order
+(`400 VALIDATION_ERROR` / `400 GIFT_CARD_INVALID`). The order stores the resolved card ids
+(`receiveMethod.physicalCardIds`), never the codes. A promotion applies to a card cart only when it
+declares `digital` and targets the card products or category — order-wide promotions and staff manual
+discounts never do; a card cannot pay for a card (`400 GIFT_CARD_NOT_ALLOWED`).
+
+**Refunds on a card sale.** Issued card value is never refunded to cash: on a card-sale order with
+issued cards a refund may only take money above the cards' face value (an overpaid transfer);
+anything more answers `400 GIFT_CARD_NOT_ALLOWED` with `details.reason: 'card-sale-refund'` and
+`details.refundable`. Before the cards are issued a cancel refunds in full.
 
 **Paying with a card.** `payment.giftCardCode` (on `/quote`, `/orders` and cart checkout) applies the
 card first, the provider settles the remainder. Quote answers `giftCard { applied, balanceAfter,
 dueAfterGiftCard }` — or `{ reason: 'invalid' | 'insufficient' | 'not-allowed' }`. Invalid, blocked
 and expired codes collapse to the same `invalid` answer — no existence oracle. A wrong code at
-create fails `400 GIFT_CARD_INVALID`. The token order view gains
+create fails `400 GIFT_CARD_INVALID`; `POST /orders` and cart checkout share the per-IP wrong-code
+budget below and answer `429 RATE_LIMITED` once it is spent. An invalid quote result carries
+`last4: null` whether or not the card exists. The token order view gains
 `giftCards[] { last4, applied, remaining }`; refunds and cancels return the value to the card.
 
 ### `POST /gift-cards/balance`

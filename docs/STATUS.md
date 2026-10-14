@@ -2,6 +2,24 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
+2026-10-14: **Ordering O9 (thẻ quà tặng) — implemented + automated verification passed, chờ manual UAT**
+trên `TanNgo11/ordering-o9` (đã merge `feat/ordering` có O13 + O12). Bước 1–7 + review fixes theo
+[`plans/ordering-o9-gift-cards.md`](plans/ordering-o9-gift-cards.md) (Completion record có bảng
+bước→commit và lỗi→test→commit):
+
+- **Thẻ**: mã 16 ký tự chỉ lưu HMAC + last4 (seal 24h cho gửi lại), sổ cái append-only, hạn 12 tháng,
+  job `gift-card-expiry`; bán online (`receiveMethod.kind: 'digital'`, workflow `gift-card`, phát sau
+  capture) và bán quầy thẻ giấy (lưu id thẻ, không lưu mã; kiểm quét ngay lúc tạo đơn).
+- **Trả bằng thẻ**: co-payment `payment.giftCardCode`, hoàn/hủy về thẻ trước, chống dò mã theo IP
+  (quote, `/orders`, cart checkout, balance) + alert `gift-card-probing`.
+- **Tiền**: giá trị thẻ đã phát không hoàn ra tiền mặt; đơn bán thẻ không nhận giảm tay/khuyến mãi theo
+  đơn; báo cáo tính doanh thu lúc dùng thẻ, bán thẻ tách riêng `giftCards.sold`.
+- **Admin**: G1–G3 (danh sách che mã, chi tiết + sổ cái, khóa/gia hạn/điều chỉnh, gửi lại, lô thẻ giấy
+  + export chỉ thẻ chưa bán).
+
+**Open:** manual UAT; quyết định chủ dự án (doanh thu deferred, hoàn thẻ chưa dùng, in lô trong 24h);
+merge về `feat/ordering`.
+
 2026-10-14: **Ordering O12 (vận hành nhà hàng: tạm dừng, phí, dị ứng, KDS, in, tại bàn) — implemented +
 automated verification passed, chờ manual UAT** trên `TanNgo11/ordering-o12` (tách từ `feat/ordering`
 `d292229`). 9 commit `a776b76`…`dfa62b3`, merge `fdd55ce`, review fixes `55a0996` `b070335` `45de2d7` theo

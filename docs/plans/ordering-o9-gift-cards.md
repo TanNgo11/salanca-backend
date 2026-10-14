@@ -191,8 +191,8 @@ Admin (`/ordering`):
 
 ## Completion record
 
-Trạng thái: **đang thực hiện — bước 1–6 implemented, targeted gates passed** (2026-10-14). Nhánh
-`TanNgo11/ordering-o9`.
+Trạng thái: **implemented + automated verification passed — chờ UAT tay + duyệt merge** (2026-10-14).
+Nhánh `TanNgo11/ordering-o9`.
 
 | Bước | Commit | Nội dung |
 | --- | --- | --- |
@@ -202,6 +202,10 @@ Trạng thái: **đang thực hiện — bước 1–6 implemented, targeted gat
 | 4 | `43dd031` | Thẻ làm phương thức co-payment: debit ở create, refund/cancel/expiry hoàn về thẻ, race an toàn, balance endpoint + chống dò mã, `gift-card-payment.mjs` |
 | 5 | `a8d3dba` | API Admin G1–G3 + lô thẻ giấy, `gift-card-admin` service, controller/routes/quyền (`gift-card.manage`, `gift-card.adjust`, `export`), sealed code/recipient + resend, Admin pages GiftCards + order-detail hiển thị thẻ, `gift-card-admin.mjs`, OpenAPI 14 op |
 | 6 | `cbbf1d3` | Báo cáo `summary.giftCards` (sold/redeemed/refunded/circulating/expired), cột `Thẻ quà tặng` `•••• last4` trong CSV, job `gift-card-expiry` (lock + heartbeat, expire ledger idempotent), retention xoá `sealedCode` sau `sealedCodeHours`, alert `gift-card-probing` mở 1 lần/IP + escalate, `gift-card-report.mjs` |
+| 7 | `177d8c2` | API contract, staff guide, runbooks, security baseline, UAT seed (2 thẻ dùng được, 1 khóa, lô giấy 5 thẻ) |
+| merge | `5076d2f` | `origin/feat/ordering` (O13): migration 0009b → `0010-o9` → 0012; i18n, alert codes, openapi giữ cả hai |
+| fix | `48a05ac` | P0: mail thẻ dùng `recipient: { email }` của O13 — trước đó typecheck lỗi, mail thẻ không gửi |
+| merge | `6e27cd8` | `origin/feat/ordering` (O12): `0011-o12` giữa 0010 và 0012; workflow gift-card + dine-in; kind `digital` + `dine-in`; `refundHeldForOrder` giữ thứ tự hoàn thẻ trước |
 
 Lệch kế hoạch:
 
@@ -230,3 +234,36 @@ Targeted gates đã chạy (đến hết bước 6, `ORDERING_TEST_DATABASE=sala
 - `node scripts/ordering/openapi.mjs --write` — pass (115 admin paths).
 - `node scripts/ordering/gift-card-report.mjs` — pass (sold/redeemed/circulating/expired tách khỏi doanh thu món; chốt tiền mặt chỉ tính `cash`; CSV `•••• last4` không rò mã; job expire 1 lần, chạy lại no-op; retention xoá seal giữ HMAC; alert dò mã 1 dòng/IP, escalate critical).
 - `node scripts/ordering/reports.mjs`, `cash-closing.mjs`, `order-export.mjs`, `gift-card-payment.mjs`, `jobs.mjs`, `alerts-engine.mjs`, `data-rights.mjs` — pass (regression sau bước 6).
+
+### Review fixes (2026-10-14)
+
+Test đỏ trên code cũ, xanh sau khi sửa (DB test `salanca_ordering_o9`).
+
+| Lỗi | Sửa | Test | Commit |
+| --- | --- | --- | --- |
+| P1 Mã quét ở quầy lưu dạng rõ trên đơn/group, hiện ở chi tiết đơn | Create đổi mã sang id thẻ, lưu `physicalCardIds`; mã không bao giờ được lưu | `gift-card-sale.mjs` (JSON đơn + chi tiết admin không có mã) | `d28b7c7` |
+| P1 Hoàn tiền đơn bán thẻ ra tiền mặt khi thẻ còn giá trị | Đơn `digital` có thẻ đã phát chỉ hoàn phần vượt mệnh giá thẻ; còn lại `GIFT_CARD_NOT_ALLOWED` (`card-sale-refund`) | `gift-card-sale.mjs` (hoàn cả đơn bị chặn, trả dư 50k hoàn được) | `890a5fc` |
+| P1 Hủy món lỗi khi thẻ trả một phần đơn | Chia khoản hoàn theo từng payment (thẻ trước), mỗi phần giới hạn bởi phần còn lại của payment đó | `gift-card-payment.mjs` (thẻ 30k + tiền mặt 80k, hủy 45k → 30k/15k) | `ce6d512` |
+| P1 Seal thẻ giấy chưa bán không bao giờ xóa; export lộ mã thẻ đã bán | Purge theo `created_at` khi `issued_at` NULL; export chỉ giải mã thẻ `inactive` | `gift-card-report.mjs`, `gift-card-admin.mjs` | `73f087e` |
+| P1 Giảm giá áp khi mua thẻ | Khuyến mãi theo đơn không khớp giỏ `digital`; khuyến mãi theo món/danh mục thẻ vẫn áp (đúng plan bước 3); giảm tay bị từ chối | `evaluate.test.ts`, `gift-card-sale.mjs` | `d28b7c7` |
+| P2 Báo cáo đếm tiền thẻ hai lần | Đơn `digital` ra khỏi orders/gross/revenue/refunded; doanh thu tính lúc thẻ được dùng; dòng theo provider vẫn là tiền thực nhận | `gift-card-report.mjs` (doanh thu 130k, không phải 330k) | `8102b9a` |
+| P2 Dò mã: quote trả last4 cho thẻ khóa | `last4: null` cho mọi kết quả `invalid` | `gift-card-payment.mjs` — đỏ chỉ suy luận: script cũ fail ở bước hủy món trước khi tới đây | `2b4e9bb` |
+| P2 Dò mã: cart checkout không đếm mã sai | Dùng chung ngân sách mã sai theo IP, alert, 429 | `cart-checkout.mjs` | `2b4e9bb` |
+| P2 Dò mã: `GET /gift-cards?q=<mã đầy đủ>` | Trả 400, mã đầy đủ chỉ qua `POST /gift-cards/search` | `gift-card-admin.mjs` — đỏ chỉ suy luận, như trên | `73f087e` |
+| P2 Lượt quét lỗi làm kẹt đơn đã trả | Create kiểm quét trùng, mệnh giá theo thứ tự món (consumer `ORDER BY ol.id`), thẻ đang nằm trong đơn sống khác (advisory lock theo thẻ; đơn hủy/hết hạn/xóa nhả thẻ) | `gift-card-sale.mjs` (mệnh giá, trùng, 2 draft tranh 1 thẻ, xóa draft nhả thẻ) — đỏ suy luận từ test cũ (mismatch chỉ lỗi lúc phát) | `d28b7c7` |
+
+Quyết định mặc định trong code (chờ chủ dự án xác nhận):
+
+- Doanh thu thẻ tính lúc dùng (deferred revenue); bán thẻ là `giftCards.sold`, không phải doanh thu món.
+- Thẻ giấy phải in trong `sealedCodeHours` (24h) sau khi tạo lô; bán sau đó thì không có mail mã (khách
+  đã cầm thẻ). Seal của thẻ giấy đã kích hoạt xóa theo `issued_at` như thẻ bán online.
+- `refund-line` của hủy món chia nhiều payment lặp lại số lượng mỗi phần; chỉ số tiền cộng lại đúng
+  (không chỗ nào đọc lại số lượng refund-line).
+
+Gates sau review fixes: targeted — `lint`, `typecheck`, `typecheck:admin`, `vitest run src/plugins/ordering` 769/769,
+`build:ordering`, `ORDERING_ENABLED=true strapi build`, `openapi.mjs --write` (139 path). Script PASS:
+`gift-card-ledger` `gift-card-sale` `gift-card-payment` `gift-card-admin` `gift-card-report` `cart-checkout`
+`reports` `promotions` `cash-closing` `payment-refund` `create-order` `schema` `registry-boot` `data-rights`
+`email-templates` `audit-coverage` `notifications` `sms` `zalo-zns` `momo` `vnpay` `wallet-status`
+`customer-auth` `storefront` `order-edit` `ahamove` `sepay-match` `sepay-manual` `sepay-refund` `dine-in`
+`auto-reject` `fees` `print` `kds` `pause` `allergens` `delivery-assignment` `cart` `cart-promotion`.
