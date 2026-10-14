@@ -346,8 +346,13 @@ const promotionService = ({ strapi }: { strapi: Core.Strapi }) => {
       applied: AppliedPromotion[],
       customerKey: string,
       now: Date,
-    ): Promise<{ dropped: number[] }> {
+    ): Promise<{
+      dropped: number[];
+      /** What was actually reserved (dropped ones excluded); `code` is null for an automatic promotion. */
+      reserved: Array<{ promotionId: number; code: string | null; discountAmount: number }>;
+    }> {
       const dropped: number[] = [];
+      const reserved: Array<{ promotionId: number; code: string | null; discountAmount: number }> = [];
       const ordered = [...applied].sort((a, b) => a.promotionId - b.promotionId);
       const lockedPromos = new Map<
         number,
@@ -445,12 +450,17 @@ const promotionService = ({ strapi }: { strapi: Core.Strapi }) => {
           .where({ id: promo.promotionId })
           .update({ used_count: locked.used_count + 1 });
         locked.used_count += 1;
+        reserved.push({
+          promotionId: promo.promotionId,
+          code: isCode ? promo.code : null,
+          discountAmount: Math.abs(promo.amount),
+        });
         const codeId = codeIds.get(promo.promotionId);
         if (codeId) {
           await trx('plugins_ordering_promotion_code').where({ id: codeId }).increment('used_count', 1);
         }
       }
-      return { dropped };
+      return { dropped, reserved };
     },
 
     async releaseForOrder(trx: TransactionClient, orderId: number, reason: string, now: Date): Promise<void> {

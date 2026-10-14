@@ -32,6 +32,7 @@ const scripts = [
   'variant-order.mjs',
   'consent-policy.mjs',
   'gift-card-counter.mjs',
+  'webhook-new-events.mjs',
   'catalog-categories.mjs',
   'catalog-availability.mjs',
   'catalog-extension.mjs',

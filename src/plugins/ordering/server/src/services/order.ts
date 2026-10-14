@@ -1277,6 +1277,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
             // Create validates the phone first, so this is unreachable; never apply unreserved.
             throw new OrderingError('INTERNAL', 'promotion applied without a customer key');
           }
+          let redeemed: Array<{ promotionId: number; code: string | null; discountAmount: number }> = [];
           if (prepared.promotions.applied.length > 0 && prepared.promotions.customerKey) {
             const promotion = strapi.plugin('ordering').service('promotion') as ReturnType<
               typeof import('./promotion').default
@@ -1288,6 +1289,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
               prepared.promotions.customerKey,
               now,
             );
+            redeemed = reserved.reserved;
             if (reserved.dropped.length > 0) {
               const dropped = new Set(reserved.dropped.map((id) => `promotion:${id}`));
               const kept = pricing.adjustments.filter(
@@ -1641,6 +1643,26 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
             },
             ctx,
           );
+          // One public event per reserved promotion, in the same transaction as the order.
+          for (const promo of redeemed) {
+            await outbox.enqueue(
+              {
+                type: 'promotion.redeemed',
+                aggregateType: 'promotion',
+                aggregateId: String(promo.promotionId),
+                payload: {
+                  orderId,
+                  orderCode: code,
+                  promotionId: promo.promotionId,
+                  code: promo.code,
+                  discountAmount: promo.discountAmount,
+                  locationRef: branch.code,
+                },
+                uniqueKey: `promotion.redeemed:${orderId}:${promo.promotionId}`,
+              },
+              ctx,
+            );
+          }
 
           return {
             result: { orderId, publicToken },

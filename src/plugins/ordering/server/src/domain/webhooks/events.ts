@@ -220,6 +220,49 @@ export const PUBLIC_EVENTS: readonly PublicEventSpec[] = [
     },
   },
   {
+    // Core gaps step 5: a promotion was reserved for a placed order (inside the create
+    // transaction). `code` is the code the customer typed (null for an automatic promotion) — a
+    // marketing token, not a secret. Cancelling the order does not retract the event; subscribers
+    // follow `order.transitioned`.
+    type: 'promotion.redeemed',
+    group: 'promotion',
+    description: {
+      vi: 'Một khuyến mãi đã được áp vào đơn vừa tạo',
+      en: 'A promotion was applied to a newly placed order',
+    },
+    fields: ['orderId', 'orderCode', 'promotionId', 'code', 'discountAmount', 'locationRef'],
+    orderScoped: true,
+    sample: {
+      orderId: 1001,
+      orderCode: 'SLC-20261012-0042',
+      promotionId: 7,
+      code: 'KHAITRUONG',
+      discountAmount: 25000,
+      locationRef: 'Q1',
+    },
+  },
+  {
+    // Core gaps step 5: first rating of an order. The free-text `comment` is deliberately not in
+    // the allowlist — customers type names and phone numbers there; staff read it in Admin.
+    // Editing a rating does not emit again.
+    type: 'rating.created',
+    group: 'rating',
+    description: {
+      vi: 'Khách gửi đánh giá cho đơn (không kèm nội dung bình luận)',
+      en: 'A customer rated an order (the comment text is not included)',
+    },
+    fields: ['orderId', 'orderCode', 'ratingId', 'stars', 'tags', 'locationRef'],
+    orderScoped: true,
+    sample: {
+      orderId: 1001,
+      orderCode: 'SLC-20261012-0042',
+      ratingId: 55,
+      stars: 4,
+      tags: ['tasty', 'fast'],
+      locationRef: 'Q1',
+    },
+  },
+  {
     // O11 step 6: Decree 13 erasure notice. `customerHash` is the irreversible HMAC the
     // profile kept — enough for receivers to forget their own copy of that identity.
     type: 'customer.erased',

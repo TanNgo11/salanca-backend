@@ -275,17 +275,40 @@ const rating = ({ strapi }: { strapi: Core.Strapi }) => {
             details: { reason },
           });
         }
-        const row = (await rows().create({
-          data: {
-            ...data,
-            orderId: order.id,
-            locationRef: order.locationRef,
-            messageLocale: order.placedLocale === 'en' ? 'en' : 'vi',
-            status: 'visible',
-            ratedAt: now,
-            editableUntil: new Date(now.getTime() + current.ratingEditHours * HOUR_MS),
-          },
-        })) as RatingRow;
+        // Row and event commit together (outbox rule); the unique order index makes a racing
+        // second first-submit roll back both, and it is then retried as an edit without an event.
+        const row = await strapi.db.transaction(async () => {
+          const created = (await rows().create({
+            data: {
+              ...data,
+              orderId: order.id,
+              locationRef: order.locationRef,
+              messageLocale: order.placedLocale === 'en' ? 'en' : 'vi',
+              status: 'visible',
+              ratedAt: now,
+              editableUntil: new Date(now.getTime() + current.ratingEditHours * HOUR_MS),
+            },
+          })) as RatingRow;
+          // `comment` is free text and can hold personal data: it never goes into the event.
+          await outbox().enqueue(
+            {
+              type: 'rating.created',
+              aggregateType: 'order',
+              aggregateId: String(order.id),
+              payload: {
+                orderId: order.id,
+                orderCode: order.code,
+                ratingId: created.id,
+                stars: data.stars,
+                tags: data.tags,
+                locationRef: order.locationRef,
+              },
+              uniqueKey: `rating.created:${order.id}`,
+            },
+            ctx,
+          );
+          return created;
+        });
         return { row, previousStars: null };
       };
 

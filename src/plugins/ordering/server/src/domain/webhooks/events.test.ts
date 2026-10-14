@@ -48,6 +48,8 @@ describe('public event catalog', () => {
       'ops-alert.opened',
       'ops-alert.escalated',
       'gift-card.issued',
+      'promotion.redeemed',
+      'rating.created',
       'customer.erased',
     ]);
   });
@@ -137,12 +139,56 @@ describe('publicEventData', () => {
       'ops-alert.escalated',
       { alertId: 1, alertCode: 'webhook-failing', aggregateRef: 'endpoint:2', locationRef: 'Q1', severity: 'critical', count: 9 },
     ],
+    [
+      'promotion.redeemed',
+      {
+        orderId: 7,
+        orderCode: 'SLC-1',
+        promotionId: 3,
+        code: 'KHAITRUONG',
+        discountAmount: 25000,
+        locationRef: 'Q1',
+        phone: '0901234567',
+        customerKey: 'abc',
+      },
+    ],
+    [
+      'rating.created',
+      {
+        orderId: 7,
+        orderCode: 'SLC-1',
+        ratingId: 5,
+        stars: 4,
+        tags: ['tasty'],
+        locationRef: 'Q1',
+        comment: 'Gọi 0901234567 giúp mình',
+        email: 'lan@example.invalid',
+      },
+    ],
   ])('%s drops staff/internal fields', (type, payload) => {
     const data = publicEventData({ type, payload });
     expect(data).not.toBeNull();
     for (const key of FORBIDDEN) {
       expect(occurrences(data, key), `${type} leaked ${key}`).toBe(0);
     }
+  });
+
+  it('never carries the rating comment, even if the payload grows one', () => {
+    const data = publicEventData({
+      type: 'rating.created',
+      payload: { orderId: 7, ratingId: 5, stars: 2, tags: [], comment: 'số điện thoại 0901234567' },
+    });
+    expect(data).toEqual({ orderId: 7, ratingId: 5, stars: 2, tags: [] });
+    expect(JSON.stringify(data)).not.toContain('0901234567');
+  });
+
+  it('keeps the entered promotion code and the amount for promotion.redeemed', () => {
+    expect(
+      publicEventData({
+        type: 'promotion.redeemed',
+        payload: { orderId: 7, orderCode: 'SLC-1', promotionId: 3, code: null, discountAmount: 9000, locationRef: 'Q1' },
+      }),
+    ).toEqual({ orderId: 7, orderCode: 'SLC-1', promotionId: 3, code: null, discountAmount: 9000, locationRef: 'Q1' });
   });
 
   it('returns null for internal event types', () => {

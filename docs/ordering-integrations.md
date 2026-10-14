@@ -31,12 +31,25 @@ mã hóa bằng `ORDERING_ENCRYPTION_KEY`; list/get/response không bao giờ tr
 ### Sự kiện
 
 `GET /ordering/webhooks/events` trả danh mục công khai đầy đủ (sự kiện đơn hàng, giao hàng, thanh
-toán, hoàn tiền, cảnh báo vận hành — `ops-alert.*`, khách hàng — `customer.erased` (O11), và
+toán, hoàn tiền, cảnh báo vận hành — `ops-alert.*`, khuyến mãi — `promotion.redeemed`, đánh giá —
+`rating.created`, khách hàng — `customer.erased` (O11), và
 `ordering.ping` nội bộ cho "Gửi thử"). Endpoint chỉ nhận các loại đã tick trong `events`.
 
 `customer.erased` phát khi một yêu cầu xóa hoàn tất — `data` chỉ mang `customerId` (documentId) và
 `customerHash` (HMAC của SĐT), **không** tên/SĐT/email. `includeCustomer` không thêm gì vào sự kiện
 này — sau xóa không còn PII để gửi.
+
+`promotion.redeemed` phát **một lần cho mỗi khuyến mãi** được giữ chỗ khi đơn được tạo (cùng giao dịch với
+`order.created`, kể cả đơn nháp của nhân viên). `data`: `orderId`, `orderCode`, `promotionId`, `code` (mã khách đã nhập;
+`null` với khuyến mãi tự động), `discountAmount` (đồng, số dương), `locationRef`. Đơn bị hủy sau đó **không** có sự kiện
+đảo — hãy nghe `order.transitioned`.
+
+`rating.created` phát khi khách gửi đánh giá **lần đầu** cho một đơn: `orderId`, `orderCode`, `ratingId`, `stars`,
+`tags` (mã thẻ cấu hình), `locationRef`. Nội dung bình luận **không bao giờ** có trong sự kiện (khách hay gõ tên/SĐT vào
+đó) — nhân viên đọc trong Admin. Sửa đánh giá không phát lại. Hai loại này là `orderScoped`: chỉ khi endpoint bật
+`includeCustomer` mới kèm `customer`.
+
+Hai loại mới chỉ đến endpoint đã tick chúng; endpoint đăng ký tất cả loại sẽ nhận thêm hai loại này.
 
 ### Payload
 
