@@ -172,7 +172,66 @@ withApp(async (app) => {
   const third = await runAutoReject(app, { owner });
   assert.equal(third.rejected, 0);
 
+  // Order E — prepay at Q3, placed 2 minutes ago but paid only now: the wait is measured from
+  // entering awaiting-acceptance, not placedAt, so a late payer is not rejected on arrival.
+  const q3 = await branchRows.findOne({ where: { code: 'Q3' } });
+  await branchRows.update({
+    where: { id: q3.id },
+    data: {
+      fulfillment: {
+        pickup: {
+          enabled: true,
+          paymentTiming: 'prepay',
+          paymentProviders: ['sepay'],
+          autoRejectAfterMinutes: 1,
+          schedule: { openingHours: { mode: '24_7' } },
+        },
+      },
+    },
+  });
+  const e = await order.createOrder(
+    basicOrderInput({
+      placedAt,
+      contact,
+      adjustments: [],
+      locationRef: 'Q3',
+      receiveMethod: { kind: 'pickup', locationRef: 'Q3' },
+      lines: [{ sellableUid: 'tra-dao', quantity: 1 }],
+    }),
+    systemCtx,
+  );
+  const orderE = e.order.order.id;
+  assert.equal(e.order.groups[0].status, 'awaiting-payment');
+  const prepayment = await payment.createPayment({ orderId: orderE, providerCode: 'sepay' }, systemCtx);
+  await payment.capturePayment(
+    { paymentId: prepayment.id, amount: prepayment.requestedAmount, providerTransactionId: 'txn-e' },
+    systemCtx,
+  );
+  // Paid: the group moves on as the SePay matcher does.
+  await transition.transitionGroup(
+    { orderId: orderE, groupId: e.order.groups[0].id, to: 'awaiting-acceptance' },
+    systemCtx,
+  );
+  assert.equal((await order.getOrder(orderE, systemCtx)).groups[0].status, 'awaiting-acceptance');
+  const fourth = await runAutoReject(app, { owner });
+  assert.equal(fourth.rejected, 0, 'a late payer gets the full acceptance window');
+  assert.equal((await order.getOrder(orderE, systemCtx)).groups[0].status, 'awaiting-acceptance');
+  // Backdate the entry into awaiting-acceptance: now the window has passed and the job rejects.
+  const entered = (
+    await app.db.query('plugin::ordering.order-event').findMany({
+      where: { order: orderE, type: 'fulfillment-group.transitioned' },
+    })
+  ).filter((row) => row.payload?.to === 'awaiting-acceptance');
+  assert.equal(entered.length, 1);
+  await app.db.query('plugin::ordering.order-event').update({
+    where: { id: entered[0].id },
+    data: { occurredAt: placedAt },
+  });
+  const fifth = await runAutoReject(app, { owner });
+  assert.equal(fifth.rejected, 1, 'measured from the transition event');
+  assert.equal((await order.getOrder(orderE, systemCtx)).groups[0].status, 'rejected');
+
   console.log(
-    '[ordering-test] auto-reject: timeout reject, cash settle, transfer pending, per-kind scope, email, idempotent re-run verified',
+    '[ordering-test] auto-reject: timeout reject, cash settle, transfer pending, per-kind scope, email, idempotent re-run, late-paid prepay window verified',
   );
 });

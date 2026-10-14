@@ -1,6 +1,7 @@
 import type { Core } from '@strapi/strapi';
 
 import { autoRejectMinutes, receiveKindKey } from '../domain/branch-settings';
+import { stateEnteredAt } from '../domain/payments/deadline';
 import { isTerminal } from '../domain/workflow/transition';
 import type { TransactionClient } from '../migrations/runner';
 import type branchFactory from '../services/branch';
@@ -41,6 +42,7 @@ export const runAutoReject = async (
         },
         limit: 500,
       })) as Array<{
+        id: number;
         order: {
           id: number;
           code: string;
@@ -52,12 +54,28 @@ export const runAutoReject = async (
       }>;
       // One decision per order (an order can hold several awaiting groups); the timeout is
       // cached per branch+kind so a busy branch is resolved once per run.
-      type Pending = { orderId: number; placedAt: string; minutes: number };
+      // `since` is when the order's latest waiting group entered awaiting-acceptance — not
+      // placedAt: a prepay order only starts waiting once it is paid.
+      type Pending = { orderId: number; since: number; minutes: number };
       const pending = new Map<number, Pending>();
       const timeouts = new Map<string, number>();
       for (const group of waiting) {
         const order = group.order;
-        if (!order || order.status !== 'open' || pending.has(order.id)) continue;
+        if (!order || order.status !== 'open') continue;
+        const history = (await strapi.db.query('plugin::ordering.order-event').findMany({
+          where: { order: order.id, type: 'fulfillment-group.transitioned' },
+        })) as Array<{ occurredAt: string; payload: { groupId?: unknown; to?: unknown } | null }>;
+        const since = stateEnteredAt({
+          placedAt: new Date(order.placedAt),
+          groupId: group.id,
+          events: history.map((row) => ({ ...row, type: 'fulfillment-group.transitioned' })),
+          state: 'awaiting-acceptance',
+        }).getTime();
+        const seen = pending.get(order.id);
+        if (seen) {
+          seen.since = Math.max(seen.since, since);
+          continue;
+        }
         const kind = receiveKindKey(order.receiveMethod?.kind ?? 'pickup') ?? 'pickup';
         const cacheKey = `${order.locationRef}:${kind}`;
         let minutes = timeouts.get(cacheKey);
@@ -72,14 +90,14 @@ export const runAutoReject = async (
           minutes = autoRejectMinutes(settings) ?? 0;
           timeouts.set(cacheKey, minutes);
         }
-        pending.set(order.id, { orderId: order.id, placedAt: order.placedAt, minutes });
+        pending.set(order.id, { orderId: order.id, since, minutes });
       }
 
       let rejected = 0;
       let skipped = 0;
       for (const item of pending.values()) {
         if (item.minutes <= 0) continue;
-        if (now.getTime() - new Date(item.placedAt).getTime() <= item.minutes * 60_000) continue;
+        if (now.getTime() - item.since <= item.minutes * 60_000) continue;
         try {
           await strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
             // Re-read inside the transaction: staff may have accepted between the scan and

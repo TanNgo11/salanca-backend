@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { laterDeadline, paymentDeadline, paymentWindowStart } from './deadline';
+import { laterDeadline, paymentDeadline, paymentWindowStart, stateEnteredAt } from './deadline';
 
 const placedAt = new Date('2026-10-11T10:00:00.000Z');
 
@@ -45,6 +45,40 @@ describe('payment window', () => {
     );
     expect(laterDeadline(computed, '2026-10-11T12:00:00.000Z').toISOString()).toBe(
       '2026-10-11T12:00:00.000Z',
+    );
+  });
+});
+
+describe('stateEnteredAt', () => {
+  it('measures awaiting-acceptance from the latest entry of that group, not placement', () => {
+    const at = stateEnteredAt({
+      placedAt,
+      groupId: 4,
+      state: 'awaiting-acceptance',
+      events: [
+        {
+          type: 'fulfillment-group.transitioned',
+          occurredAt: '2026-10-11T10:20:00.000Z',
+          payload: { groupId: 4, to: 'awaiting-acceptance' },
+        },
+        {
+          type: 'fulfillment-group.transitioned',
+          occurredAt: '2026-10-11T10:40:00.000Z',
+          payload: { groupId: 7, to: 'awaiting-acceptance' },
+        },
+        {
+          type: 'fulfillment-group.transitioned',
+          occurredAt: '2026-10-11T10:30:00.000Z',
+          payload: { groupId: 4, to: 'awaiting-payment' },
+        },
+      ],
+    });
+    expect(at.toISOString()).toBe('2026-10-11T10:20:00.000Z');
+  });
+
+  it('falls back to placement when the group was created in that state', () => {
+    expect(stateEnteredAt({ placedAt, groupId: 4, state: 'awaiting-acceptance', events: [] })).toEqual(
+      placedAt,
     );
   });
 });
