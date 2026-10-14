@@ -163,7 +163,16 @@ Làm 2026-10-14 trên `TanNgo11/ordering-core-gaps`, DB test `salanca_ordering_g
   yêu cầu plan) + ghi chú "đang chờ hoàn" — hai chỗ trùng số, bỏ một chỗ nếu thấy thừa khi UAT.
 - **Bước 7:** cảnh báo phủ cả yêu cầu `export` (không chỉ `erase`); chạy trong job `data-request-waiting`.
 - **Bước 5:** `rating.created` tạo hàng đánh giá + outbox trong một transaction (trước đây tạo không transaction).
-- Kiểm repo web (chỉ đọc): không có chỗ nào gọi `/tables/` — đổi route không phá web hiện tại.
+- Kiểm repo web (chỉ đọc): OW = `salanca-web` (roadmap "trong repo web"; cả hai bản sao ở `D:\outsource`, mọi
+  nhánh) chưa có mã gọi API `ordering`, không có `/tables/` — đổi route không phá web hiện tại. Không có repo web
+  khác trong `~/orca/workspaces`.
+- Kiểm "log không chứa token" không bắt stdout của logger: logger ghi `http_path = ctx.url`, nên bất biến được
+  khóa ở bảng route — `routes/index.test.ts` fail nếu route nào có tham số `:token/:secret/:key/:otp` trong path,
+  hoặc còn `GET /tables/:x`.
+- Review sau khi xong (advisor): chạy thêm `order-edit.mjs` và `promotion-race.mjs` (sửa `order-edit.ts` và đổi
+  kiểu trả của `reserveInTransaction`); giỏ hàng có dòng biến thể đã xóa/tạm hết → `variant-order.mjs` chứng minh
+  là `issues` của đúng dòng đó, quote giỏ vẫn chạy; OpenAPI public `cartLine` (cũ `sku/choices`, `locationRef`)
+  sửa thành `sellableUid/variantUid/selected/note`, `branch`, thêm body cho `/drafts` và `/drafts/quote`.
 
 ### Gate (targeted, 2026-10-14)
 

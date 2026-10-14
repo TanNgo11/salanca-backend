@@ -123,13 +123,23 @@ export const ERROR_RESPONSE = {
 };
 
 const cartLine = obj(
-  { sku: str, quantity: int, choices: arr(obj({ group: str, option: str })) },
-  ['sku', 'quantity'],
+  {
+    sellableUid: { ...str, description: 'Catalog product id' },
+    variantUid: {
+      ...str,
+      description:
+        'Optional variant id (size, gift-card denomination). Omit for the default variant. Not a variant of this product → 400 VALIDATION_ERROR (lines.N.variantUid); a tạm hết variant → SELLABLE_UNAVAILABLE.',
+    },
+    quantity: int,
+    selected: arr(obj({ groupUid: str, optionUid: str, quantity: int }, ['groupUid', 'optionUid'])),
+    note: str,
+  },
+  ['sellableUid', 'quantity'],
 );
 
 const cartBody = obj(
   {
-    locationRef: str,
+    branch: str,
     receiveMethod: obj({
       kind: { ...str, enum: ['pickup', 'delivery', 'digital', 'dine-in'] },
       locationRef: str,
@@ -156,7 +166,7 @@ const cartBody = obj(
       },
     }),
   },
-  ['locationRef', 'receiveMethod', 'lines'],
+  ['branch', 'receiveMethod', 'lines'],
 );
 
 export const OPERATIONS: Operation[] = [
@@ -276,11 +286,18 @@ export const OPERATIONS: Operation[] = [
       {
         ...((cartBody.properties ?? {}) as Record<string, JsonSchema>),
         contact: obj({ name: str, phone: str }, ['phone']),
-        consent: obj({ policyVersion: str }),
-        note: str,
+        consent: obj(
+          {
+            policyVersion: { ...str, description: 'Must equal consentPolicyVersion from GET /config' },
+            accepted: bool,
+            marketingOptIn: bool,
+          },
+          ['policyVersion', 'accepted'],
+        ),
+        customerNote: str,
         captchaToken: str,
       },
-      ['locationRef', 'receiveMethod', 'lines', 'contact', 'consent'],
+      ['branch', 'receiveMethod', 'lines', 'contact', 'consent'],
     ),
     response: obj({
       order: generic,
@@ -671,8 +688,27 @@ export const OPERATIONS: Operation[] = [
   }),
 
   // ── Admin: staff drafts ─────────────────────────────────────────────────────
-  adm('post', '/drafts/quote', 'Orders', 'Price a phone-order draft', ['order.create']),
-  adm('post', '/drafts', 'Orders', 'Create a phone-order draft', ['order.create']),
+  adm('post', '/drafts/quote', 'Orders', 'Price a phone-order draft', ['order.create'], {
+    requestBody: obj(
+      { ...((cartBody.properties ?? {}) as Record<string, JsonSchema>) },
+      ['branch', 'receiveMethod', 'lines'],
+    ),
+  }),
+  adm('post', '/drafts', 'Orders', 'Create a phone-order draft (consent version is stamped by the server)', ['order.create'], {
+    requestBody: obj(
+      {
+        ...((cartBody.properties ?? {}) as Record<string, JsonSchema>),
+        contact: obj({ name: str, phone: str, email: str }, ['phone']),
+        consent: obj(
+          { accepted: bool, marketingOptIn: bool },
+          ['accepted'],
+        ),
+        customerNote: str,
+        idempotencyKey: str,
+      },
+      ['branch', 'receiveMethod', 'lines', 'contact', 'consent', 'idempotencyKey'],
+    ),
+  }),
   adm('post', '/drafts/:id/confirm', 'Orders', 'Confirm a draft into an order', ['order.create'], {
     parameters: [pathParam('id')],
   }),

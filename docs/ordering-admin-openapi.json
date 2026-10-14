@@ -4399,7 +4399,169 @@
         },
         "x-ordering-permissions": [
           "plugin::ordering.order.create"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "branch": {
+                    "type": "string"
+                  },
+                  "receiveMethod": {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "pickup",
+                          "delivery",
+                          "digital",
+                          "dine-in"
+                        ]
+                      },
+                      "locationRef": {
+                        "type": "string"
+                      },
+                      "tableToken": {
+                        "type": "string",
+                        "description": "O12 dine-in: the QR secret scanned at the table. The server stores tableId/tableCode, never the token."
+                      },
+                      "address": {
+                        "type": "object",
+                        "properties": {
+                          "street": {
+                            "type": "string"
+                          },
+                          "ward": {
+                            "type": "string"
+                          },
+                          "district": {
+                            "type": "string"
+                          },
+                          "province": {
+                            "type": "string"
+                          },
+                          "note": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "recipientEmail": {
+                        "type": "string"
+                      },
+                      "recipientName": {
+                        "type": "string"
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "Gift message to the recipient (≤ 300 chars)"
+                      }
+                    }
+                  },
+                  "scheduledAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "lines": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "sellableUid": {
+                          "type": "string",
+                          "description": "Catalog product id"
+                        },
+                        "variantUid": {
+                          "type": "string",
+                          "description": "Optional variant id (size, gift-card denomination). Omit for the default variant. Not a variant of this product → 400 VALIDATION_ERROR (lines.N.variantUid); a tạm hết variant → SELLABLE_UNAVAILABLE."
+                        },
+                        "quantity": {
+                          "type": "integer"
+                        },
+                        "selected": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "groupUid": {
+                                "type": "string"
+                              },
+                              "optionUid": {
+                                "type": "string"
+                              },
+                              "quantity": {
+                                "type": "integer"
+                              }
+                            },
+                            "required": [
+                              "groupUid",
+                              "optionUid"
+                            ]
+                          }
+                        },
+                        "note": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "sellableUid",
+                        "quantity"
+                      ]
+                    }
+                  },
+                  "adjustments": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "amount": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  },
+                  "note": {
+                    "type": "string"
+                  },
+                  "promotionCode": {
+                    "type": "string",
+                    "description": "O8: customer-entered code; the server decides the discount"
+                  },
+                  "payment": {
+                    "type": "object",
+                    "properties": {
+                      "providerCode": {
+                        "type": "string",
+                        "description": "The provider covering the remainder after the card"
+                      },
+                      "giftCardCode": {
+                        "type": "string",
+                        "description": "O9: gift-card code applied as a co-payment. Debited at order create; never stored."
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "branch",
+                  "receiveMethod",
+                  "lines"
+                ]
+              }
+            }
+          }
+        }
       }
     },
     "/drafts": {
@@ -4407,7 +4569,7 @@
         "tags": [
           "Orders"
         ],
-        "summary": "Create a phone-order draft",
+        "summary": "Create a phone-order draft (consent version is stamped by the server)",
         "operationId": "admin.post.drafts",
         "responses": {
           "200": {
@@ -4459,7 +4621,209 @@
         },
         "x-ordering-permissions": [
           "plugin::ordering.order.create"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "branch": {
+                    "type": "string"
+                  },
+                  "receiveMethod": {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "pickup",
+                          "delivery",
+                          "digital",
+                          "dine-in"
+                        ]
+                      },
+                      "locationRef": {
+                        "type": "string"
+                      },
+                      "tableToken": {
+                        "type": "string",
+                        "description": "O12 dine-in: the QR secret scanned at the table. The server stores tableId/tableCode, never the token."
+                      },
+                      "address": {
+                        "type": "object",
+                        "properties": {
+                          "street": {
+                            "type": "string"
+                          },
+                          "ward": {
+                            "type": "string"
+                          },
+                          "district": {
+                            "type": "string"
+                          },
+                          "province": {
+                            "type": "string"
+                          },
+                          "note": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "recipientEmail": {
+                        "type": "string"
+                      },
+                      "recipientName": {
+                        "type": "string"
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "Gift message to the recipient (≤ 300 chars)"
+                      }
+                    }
+                  },
+                  "scheduledAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "lines": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "sellableUid": {
+                          "type": "string",
+                          "description": "Catalog product id"
+                        },
+                        "variantUid": {
+                          "type": "string",
+                          "description": "Optional variant id (size, gift-card denomination). Omit for the default variant. Not a variant of this product → 400 VALIDATION_ERROR (lines.N.variantUid); a tạm hết variant → SELLABLE_UNAVAILABLE."
+                        },
+                        "quantity": {
+                          "type": "integer"
+                        },
+                        "selected": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "groupUid": {
+                                "type": "string"
+                              },
+                              "optionUid": {
+                                "type": "string"
+                              },
+                              "quantity": {
+                                "type": "integer"
+                              }
+                            },
+                            "required": [
+                              "groupUid",
+                              "optionUid"
+                            ]
+                          }
+                        },
+                        "note": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "sellableUid",
+                        "quantity"
+                      ]
+                    }
+                  },
+                  "adjustments": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "amount": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  },
+                  "note": {
+                    "type": "string"
+                  },
+                  "promotionCode": {
+                    "type": "string",
+                    "description": "O8: customer-entered code; the server decides the discount"
+                  },
+                  "payment": {
+                    "type": "object",
+                    "properties": {
+                      "providerCode": {
+                        "type": "string",
+                        "description": "The provider covering the remainder after the card"
+                      },
+                      "giftCardCode": {
+                        "type": "string",
+                        "description": "O9: gift-card code applied as a co-payment. Debited at order create; never stored."
+                      }
+                    }
+                  },
+                  "contact": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "phone": {
+                        "type": "string"
+                      },
+                      "email": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "phone"
+                    ]
+                  },
+                  "consent": {
+                    "type": "object",
+                    "properties": {
+                      "accepted": {
+                        "type": "boolean"
+                      },
+                      "marketingOptIn": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "accepted"
+                    ]
+                  },
+                  "customerNote": {
+                    "type": "string"
+                  },
+                  "idempotencyKey": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "branch",
+                  "receiveMethod",
+                  "lines",
+                  "contact",
+                  "consent",
+                  "idempotencyKey"
+                ]
+              }
+            }
+          }
+        }
       }
     },
     "/drafts/{id}/confirm": {

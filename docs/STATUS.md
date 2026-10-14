@@ -7,7 +7,9 @@ Last reviewed against repository documentation: 2026-09-29
 [`plans/ordering-core-gaps.md`](plans/ordering-core-gaps.md) (Completion record có bảng bước→commit):
 
 - **Token bàn**: `GET /tables/:token` → `POST /tables/resolve { token }` (log không còn ghi token; token
-  trong query bị từ chối 400). **Cần kiểm repo web trước khi merge** — web hiện chưa gọi route này.
+  trong query bị từ chối 400). Đã kiểm `salanca-web` (repo OW; cả hai bản sao ở `D:\outsource`, mọi nhánh):
+  chưa có mã nào gọi API `ordering` hay `/tables/` nên đổi route không phá web; web đặt món sau này gọi
+  `POST /tables/resolve`.
 - **Biến thể món**: `/quote`, `/orders`, đơn hộ nay mang `variantUid`; uid sai → 400
   `lines.N.variantUid`, biến thể tạm hết → `SELLABLE_UNAVAILABLE`; dòng đơn lưu sku + tên biến thể đã chọn.
 - **Admin**: dải Cần thu/Đã thu/Đã hoàn/Còn thiếu ở khối Thanh toán; bán thẻ quà tặng tại quầy trên Tạo
@@ -15,7 +17,7 @@ Last reviewed against repository documentation: 2026-09-29
   Cài đặt (server tự ghi phiên bản cho đơn hộ).
 - **Webhook**: `promotion.redeemed`, `rating.created` (không kèm bình luận).
 - **Cảnh báo**: `data-request-overdue` (mở theo yêu cầu quá hạn, tự đóng); Settings liệt kê đủ 16 mã cảnh báo.
-- **Open:** UAT giao diện; kiểm repo web (route bàn); tip/VAT/thời hạn lưu dữ liệu/O16/OP vẫn chờ quyết
+- **Open:** UAT giao diện; tip/VAT/thời hạn lưu dữ liệu/O16/OP vẫn chờ quyết
   định.
 
 2026-10-14: **Ordering O9 (thẻ quà tặng) — implemented + automated verification passed, chờ manual UAT**

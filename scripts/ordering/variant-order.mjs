@@ -154,6 +154,40 @@ withApp(async (app) => {
     (error) => error?.code === 'VALIDATION_ERROR' && error.details?.field === 'lines.0.variantUid',
   );
 
+  // ── A cart line whose variant was removed or went tạm hết is an issue on that line, not a
+  //    cart-wide failure: the rest of the cart still quotes ────────────────────────────────
+  const cartCreated = await call('POST', '/carts', {
+    locationRef: 'Q1',
+    receiveMethod: { kind: 'pickup' },
+    locale: 'vi',
+  });
+  assert.equal(cartCreated.status, 201, JSON.stringify(cartCreated.body));
+  const cartHeaders = { 'x-cart-token': cartCreated.body.cartToken };
+  const addLine = (line) => call('POST', '/carts/current/lines', line, cartHeaders);
+  const lineWithVariant = await addLine({ sellableUid: bunBo.documentId, variantUid: special.documentId, quantity: 1 });
+  assert.equal(lineWithVariant.status, 200, JSON.stringify(lineWithVariant.body));
+  const lineSoldOut = await addLine({ sellableUid: bunBo.documentId, variantUid: large.documentId, quantity: 1 });
+  assert.equal(lineSoldOut.status, 200, JSON.stringify(lineSoldOut.body));
+  await addLine({ sellableUid: traDao.documentId, quantity: 1 });
+  const idOf = (response, variantUid) =>
+    response.body.cart.lines.find((row) => row.variantUid === variantUid).id;
+  const goodId = idOf(lineWithVariant, special.documentId);
+  const soldOutId = idOf(lineSoldOut, large.documentId);
+
+  const mixed = await call('GET', '/carts/current', undefined, cartHeaders);
+  assert.equal(mixed.status, 200, JSON.stringify(mixed.body));
+  assert.equal(mixed.body.quote.totals.grandTotal, 85000 + 45000, 'the chosen variant prices in the cart');
+  assert.equal(mixed.body.issues.length, 1);
+  assert.equal(mixed.body.issues[0].lineId, soldOutId);
+  assert.equal(mixed.body.issues[0].code, 'SELLABLE_UNAVAILABLE');
+
+  await d.variant.delete({ documentId: special.documentId });
+  const stale = await call('GET', '/carts/current', undefined, cartHeaders);
+  assert.equal(stale.status, 200, 'a deleted variant does not fail the whole cart');
+  assert.equal(stale.body.quote.totals.grandTotal, 45000, 'only the live line is quoted');
+  const staleIssue = stale.body.issues.find((issue) => issue.lineId === goodId);
+  assert.equal(staleIssue?.code, 'VALIDATION_ERROR', 'the removed variant surfaces as an issue on its own line');
+
   console.log(
     '[ordering-test] variant-order: quote/create price the chosen variant, bad uid 400, tạm hết variant refused, sku/title snapshot verified',
   );

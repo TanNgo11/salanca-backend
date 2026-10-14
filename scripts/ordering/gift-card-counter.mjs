@@ -82,8 +82,10 @@ withApp(async (app) => {
     const sold = await cardsOf(orderId);
     assert.deepEqual(sold.map((row) => row.id).sort(), stock.map((row) => row.id).sort(), 'the scanned stock itself is sold');
     assert.ok(sold.every((row) => row.status === 'active' && Number(row.balance) === 200000));
-    const line = scanned.body.items?.[0] ?? scanned.body.lines?.[0];
-    if (line) assert.equal(line.sku, 'GC-200', 'the line keeps the denomination variant sku');
+    const savedLine = await app.db.query('plugin::ordering.order-line').findOne({ where: { order: orderId } });
+    assert.equal(savedLine.sku, 'GC-200', 'the line keeps the denomination variant sku');
+    assert.equal(savedLine.variantUid, v200.documentId);
+    assert.equal(savedLine.titleSnapshot, 'Thẻ quà tặng Salanca · 200k');
 
     // Scan count must match the cards sold; a card of another denomination is refused.
     const spare = await issue(200000);
