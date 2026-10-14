@@ -7,6 +7,7 @@ import { normalizeVietnamesePhone } from '../../../shared/contact/phone';
 import { OrderingError, isOrderingError } from '../domain/errors';
 import { paymentWindowStart } from '../domain/payments/deadline';
 import { sha256Hex } from '../domain/hashing';
+import { amountOwed } from '../domain/payable';
 import { activePause, type PickupSettings } from '../domain/branch-settings';
 import { asapReadyAt, bookingWindow, isOpenAt } from '../domain/scheduling/slots';
 import { addDays, toLocalParts } from '../domain/scheduling/zoned-time';
@@ -175,7 +176,7 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
         aggregate = loaded;
       }
       const captured = aggregate.payments.reduce((sum, payment) => sum + payment.capturedAmount, 0);
-      const due = Math.max(0, aggregate.order.totalAmount - captured);
+      const due = amountOwed(aggregate.order.totalAmount, aggregate.lines, captured);
       const receive = aggregate.order.receiveMethod as { kind?: string };
       const branch = await branches().findByCode(aggregate.order.locationRef);
       const fallback = branch ?? { fulfillment: null };

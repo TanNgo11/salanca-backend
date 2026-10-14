@@ -5,6 +5,7 @@ import type { NormalizedPaymentEvent } from '../contracts/payment';
 import type { WorkflowDefinition } from '../contracts/workflow';
 import { OrderingError } from '../domain/errors';
 import { amountFromDb } from '../domain/money';
+import { amountOwed, payableTotal } from '../domain/payable';
 import { CLOSED_GROUP_STATUSES, matchTransfer, type MatchDecision } from '../domain/payments/match';
 import { extractOrderCode } from '../domain/payments/memo';
 import type { TransactionClient } from '../migrations/runner';
@@ -325,7 +326,12 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
         const aggregate = await order.getOrder(orderId, ctx);
         const captured = aggregate.payments.reduce((sum, payment) => sum + payment.capturedAmount, 0);
         // Same tolerance as an auto-match: a transfer short by at most this much settles.
-        if (aggregate.order.totalAmount - captured > (settingsOf()?.amountTolerance ?? 0)) return false;
+        if (
+          amountOwed(aggregate.order.totalAmount, aggregate.lines, captured) >
+          (settingsOf()?.amountTolerance ?? 0)
+        ) {
+          return false;
+        }
         if (!aggregate.groups.some((group) => group.status === 'awaiting-payment')) return false;
         await transitionIfPayable(aggregate, ctx);
         return true;
@@ -512,7 +518,7 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
               const capturedElsewhere = aggregate.payments
                 .filter((payment) => payment.id !== locked.id)
                 .reduce((sum, payment) => sum + payment.capturedAmount - payment.refundedAmount, 0);
-              const due = aggregate.order.totalAmount - capturedElsewhere;
+              const due = payableTotal(aggregate.order.totalAmount, aggregate.lines) - capturedElsewhere;
               if (due <= 0) return walletPark('needs-review', 'already-paid', locked.id);
               if (event.amount.amount > due) return walletPark('needs-review', 'overpaid', locked.id);
               // The provider's transaction id is folded into the session — refund/query APIs
@@ -701,7 +707,7 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
                   code: aggregate.order.code,
                   locationRef: aggregate.order.locationRef,
                   status: payable.status,
-                  totalAmount: aggregate.order.totalAmount,
+                  totalAmount: payableTotal(aggregate.order.totalAmount, aggregate.lines),
                   capturedAmount: captured,
                 }
               : null,
@@ -788,7 +794,7 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
         const aggregate = await order.getOrder(input.orderId, ctx);
         const amount = amountFromDb(locked.amount);
         const capturedBefore = aggregate.payments.reduce((sum, payment) => sum + payment.capturedAmount, 0);
-        const due = Math.max(0, aggregate.order.totalAmount - capturedBefore);
+        const due = amountOwed(aggregate.order.totalAmount, aggregate.lines, capturedBefore);
         const tolerance = settingsOf()?.amountTolerance ?? 0;
         const covers = amount >= due - tolerance && amount <= due + tolerance;
         const over = amount > due + tolerance;
@@ -868,7 +874,7 @@ const paymentMatching = ({ strapi }: { strapi: Core.Strapi }) => {
           });
         }
         const capturedBefore = aggregate.payments.reduce((sum, payment) => sum + payment.capturedAmount, 0);
-        const due = Math.max(0, aggregate.order.totalAmount - capturedBefore);
+        const due = amountOwed(aggregate.order.totalAmount, aggregate.lines, capturedBefore);
         const tolerance = settingsOf()?.amountTolerance ?? 0;
         const covers = input.amount >= due - tolerance && input.amount <= due + tolerance;
         const over = input.amount > due + tolerance;

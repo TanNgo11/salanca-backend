@@ -4,6 +4,7 @@ import type { Core } from '@strapi/strapi';
 
 import { OrderingError } from '../domain/errors';
 import { amountFromDb, sumAmounts } from '../domain/money';
+import { removedLineAmount } from '../domain/payable';
 import { cumulativeRefundedAmount } from '../domain/refund-amount';
 import type { TransactionClient } from '../migrations/runner';
 import orderRepository from '../repositories/order';
@@ -35,12 +36,13 @@ type LineRow = {
 
 /**
  * Cancels units of one order line ("hủy một phần món"). The units land in `canceledQuantity`
- * whether or not money was captured; when captured funds remain, the matching telescoped
- * amount is refunded through the refund core with `countsAs: 'canceled'` (so no quantity
- * column is bumped twice). Pending refunds already reserve captured money, so they shrink
- * the cap; when nothing is left the units still cancel and `refundShortfall` records the gap.
- * Cash settles inside the refund. A bank transfer stays pending until its reference is
- * recorded. The order's `totalAmount` is immutable — the refund is the money-back record.
+ * whether or not money was captured, and their telescoped share leaves what the customer still
+ * owes (`domain/payable`). Only money held above that owed amount goes back, through the refund
+ * core with `countsAs: 'canceled'` (so no quantity column is bumped twice): an unpaid or
+ * part-paid order refunds nothing, a fully paid one gets the share back. Pending refunds already
+ * reserve captured money, so they shrink what can be refunded now; `refundShortfall` records the
+ * part that should go back but is reserved. Cash settles inside the refund. A bank transfer stays
+ * pending until its reference is recorded. The order's `totalAmount` is immutable.
  * The fulfillment group is NOT auto-transitioned: staff close the group explicitly so
  * partially-canceled orders keep moving through the kitchen.
  */
@@ -155,11 +157,33 @@ const lineCancel = ({ strapi }: { strapi: Core.Strapi }) => {
           .sort(
             (a, b) => Number(b.giftCard) - Number(a.giftCard) || b.remaining - a.remaining,
           );
+        // Only money held above what is still owed goes back: an unpaid or part-paid order has
+        // nothing to refund (the canceled share just leaves `due`), a fully paid one gets the
+        // share back. Units already returned or canceled count as gone, settled refunds as given.
+        const orderLines = (await lines().findMany({
+          where: { order: input.orderId },
+          select: ['quantity', 'returnedQuantity', 'canceledQuantity', 'lineTotalAmount'],
+        })) as Array<Pick<LineRow, 'quantity' | 'returnedQuantity' | 'canceledQuantity'> & {
+          lineTotalAmount: string | number;
+        }>;
+        const stillOwed = Math.max(
+          0,
+          aggregate.order.totalAmount -
+            removedLineAmount(
+              orderLines.map((row) => ({ ...row, lineTotalAmount: amountFromDb(row.lineTotalAmount) })),
+            ),
+        );
+        const heldSettled = sumAmounts(
+          orderPayments.map(
+            (payment) => amountFromDb(payment.capturedAmount) - amountFromDb(payment.refundedAmount),
+          ),
+        );
+        const owedBack = Math.min(due, Math.max(0, heldSettled - stillOwed));
         // Split across payments in that order (card first), each slice capped at its own
         // remainder — a card that paid part of the order must not take the whole line refund.
         // Every slice carries the line so its refund-line rows exist; their quantities repeat
         // per slice (nothing reads refund-line quantities, the amounts sum to the refund).
-        let left = Math.min(due, sumAmounts(candidates.map((payment) => payment.remaining)));
+        let left = Math.min(owedBack, sumAmounts(candidates.map((payment) => payment.remaining)));
         let refundAmount = 0;
         for (const candidate of candidates) {
           if (left <= 0) break;
@@ -179,7 +203,8 @@ const lineCancel = ({ strapi }: { strapi: Core.Strapi }) => {
           refundAmount += amount;
           left -= amount;
         }
-        const refundShortfall = due - refundAmount;
+        // Money that should go back but is already reserved by pending refunds.
+        const refundShortfall = owedBack - refundAmount;
 
         await timeline.record(
           {

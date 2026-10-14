@@ -144,7 +144,10 @@ allLocations?, locationRefs? }` (dựng bằng `scope.actorFromAdminUser`).
 - `order.createOrder(input, ctx)` → `{ order: aggregate, publicToken, replayed }` —
   idempotent theo `idempotencyKey`; `getOrder(id, ctx)`, `listOrders(where, ctx)` (cần
   scope), `confirmDraft({orderId}, ctx)`.
-- `transition.transitionGroup({orderId, groupId, to}, ctx)`, `cancelOrder`, `customerCancel`.
+- `transition.transitionGroup({orderId, groupId, to}, ctx)`, `cancelOrder`, `customerCancel` (khóa các group,
+  kiểm tra quyền tự hủy trên trạng thái đã khóa, hủy và hoàn tiền còn giữ trong một transaction).
+  Mọi đường đóng đơn bị hủy/hết hạn (staff, khách, job `payment-expiry`) hoàn tiền còn giữ
+  qua `refund.refundHeldForOrder`.
 - `payment.createPayment({orderId, providerCode}, ctx)`,
   `recordPaymentEvent({providerCode, providerTransactionId, ...}, ctx)`,
   `capturePayment({paymentId, amount, providerTransactionId}, ctx)` — idempotent theo txnId.
@@ -152,8 +155,11 @@ allLocations?, locationRefs? }` (dựng bằng `scope.actorFromAdminUser`).
   theo dòng dùng quy tắc telescoping; `createRefundInTransaction` là lõi trong transaction
   cho service khác dùng (`countsAs: 'canceled'`).
 - `line-cancel.cancelLineQuantity({orderId, lineId, quantity, reason}, ctx)` — hủy một phần
-  món: `canceledQuantity += q`, refund qua payment còn nhiều captured nhất (thiếu thì ghi
-  `refundShortfall` vào timeline), không tự chuyển group.
+  món: `canceledQuantity += q`, không tự chuyển group. Phần tiền của món hủy rời khỏi số còn phải
+  trả (`domain/payable`: `due = totalAmount − phần đã hủy − captured`; `totalAmount` giữ nguyên làm
+  snapshot). Chỉ tiền đang giữ vượt số còn phải trả mới hoàn — đơn chưa trả/trả một phần không hoàn.
+  Khoản hoàn chia qua nhiều payment (lớn nhất trước); `refundShortfall` là phần đáng hoàn nhưng
+  đã bị phiếu hoàn pending giữ chỗ.
 - `scope.loadScope(ctx)`, `assertLocationInScope`, `orderWhere`, `actorFromAdminUser`,
   `condition(user)` (dùng cho permission condition `plugin::ordering.same-location`).
 - `outbox.enqueue(event, ctx)` (trong transaction), `dispatch`, `claimBatch`, `deliver`,

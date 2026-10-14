@@ -1,6 +1,7 @@
 import type { SelectedOptionInput, Sellable } from '../../contracts';
 import type { WorkflowDefinition } from '../../contracts/workflow';
 import type { OrderAggregate } from '../../repositories/types';
+import { amountOwed } from '../payable';
 import { isTerminal } from '../workflow/transition';
 
 /**
@@ -51,7 +52,11 @@ const timingOf = (aggregate: OrderAggregate) => {
 export function paidAmounts(aggregate: OrderAggregate) {
   const captured = aggregate.payments.reduce((sum, payment) => sum + payment.capturedAmount, 0);
   const refunded = aggregate.payments.reduce((sum, payment) => sum + payment.refundedAmount, 0);
-  return { captured, refunded, due: Math.max(0, aggregate.order.totalAmount - captured) };
+  return {
+    captured,
+    refunded,
+    due: amountOwed(aggregate.order.totalAmount, aggregate.lines, captured),
+  };
 }
 
 /** True while every live group sits on a customer-cancellable state (contracts §21.9). */

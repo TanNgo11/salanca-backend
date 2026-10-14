@@ -1,6 +1,7 @@
 import type { Core } from '@strapi/strapi';
 
 import { amountFromDb } from '../domain/money';
+import { payableTotal } from '../domain/payable';
 import type { TransactionClient } from '../migrations/runner';
 import type {
   AdjustmentRow,
@@ -99,6 +100,23 @@ const orderRepository = ({ strapi }: { strapi: Core.Strapi }) => {
         },
       });
       return row ? mapAggregate(row) : null;
+    },
+
+    /** Snapshot total less the share of canceled units: what the customer is actually asked to pay. */
+    async payableTotalOf(orderId: number, totalAmount: number): Promise<number> {
+      const rows = (await strapi.db.query('plugin::ordering.order-line').findMany({
+        where: { order: orderId },
+        select: ['quantity', 'returnedQuantity', 'canceledQuantity', 'lineTotalAmount'],
+      })) as Array<{
+        quantity: number;
+        returnedQuantity: number;
+        canceledQuantity: number;
+        lineTotalAmount: string | number;
+      }>;
+      return payableTotal(
+        totalAmount,
+        rows.map((row) => ({ ...row, lineTotalAmount: amountFromDb(row.lineTotalAmount) })),
+      );
     },
 
     async updateOrder(id: number, data: Record<string, unknown>): Promise<void> {

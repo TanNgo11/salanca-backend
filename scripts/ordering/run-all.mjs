@@ -125,6 +125,8 @@ const scripts = [
   'ahamove.mjs',
   'zalo-zns.mjs',
   'sms.mjs',
+  // Core-sales audit regressions: owed after line cancel, expiry refund, split refunds.
+  'core-sales-fixes.mjs',
 ];
 
 const results = [];

@@ -8,6 +8,8 @@ import { assertSafeAmount } from './money';
  */
 export function projectPaymentStatus(input: {
   totalAmount: number;
+  /** Total owed after canceled units; defaults to `totalAmount`. Overpaid still compares to the snapshot. */
+  payableAmount?: number;
   capturedAmount: number;
   refundedAmount: number;
 }): OrderPaymentStatus {
@@ -16,7 +18,11 @@ export function projectPaymentStatus(input: {
   const refunded = assertSafeAmount(input.refundedAmount, 'refundedAmount');
   if (captured === 0) return 'unpaid';
   if (refunded > 0) return refunded >= captured ? 'refunded' : 'partially-refunded';
-  if (captured < total) return 'partially-paid';
-  if (captured === total) return 'paid';
+  const payable = Math.min(
+    total,
+    input.payableAmount === undefined ? total : assertSafeAmount(input.payableAmount, 'payableAmount'),
+  );
+  if (captured < payable) return 'partially-paid';
+  if (captured <= total) return 'paid';
   return 'overpaid';
 }

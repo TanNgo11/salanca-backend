@@ -5,6 +5,7 @@ import type { OrderingConfig } from '../config';
 import { OrderingError } from '../domain/errors';
 import type { LocationScope } from '../domain/scope';
 import { amountFromDb } from '../domain/money';
+import orderRepository from '../repositories/order';
 import { CLOSED_GROUP_STATUSES } from '../domain/payments/match';
 import { extractOrderCode } from '../domain/payments/memo';
 import type { TransactionClient } from '../migrations/runner';
@@ -75,6 +76,7 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
   const outbox = () => plugin().service('outbox') as ReturnType<typeof outboxFactory>;
   const orderService = () => plugin().service('order') as ReturnType<typeof orderServiceFactory>;
   const events = () => strapi.db.query('plugin::ordering.payment-event');
+  const repo = orderRepository({ strapi });
   const orders = () => strapi.db.query('plugin::ordering.order');
   const groups = () => strapi.db.query('plugin::ordering.fulfillment-group');
   const payments = () => strapi.db.query('plugin::ordering.payment');
@@ -212,12 +214,20 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
         : [];
       const orderIds = orderRows.map((order) => order.id);
       const capturedByOrder = new Map<number, number>();
+      const payableByOrder = new Map<number, number>();
       const statusByOrder = new Map<number, string>();
       await Promise.all(
         orderIds.map(async (id) => {
           const pay = (await payments().findMany({ where: { order: id } })) as Array<{
             capturedAmount: string | number;
           }>;
+          payableByOrder.set(
+            id,
+            await repo.payableTotalOf(
+              id,
+              amountFromDb(orderRows.find((candidate) => candidate.id === id)?.totalAmount ?? 0),
+            ),
+          );
           capturedByOrder.set(
             id,
             pay.reduce((sum, row) => sum + amountFromDb(row.capturedAmount), 0),
@@ -247,7 +257,9 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
       const results = slice.map(({ row, location }) => {
         const code = codeOf(row, settings);
         const order = code ? byCode.get(code) : undefined;
-        const due = order ? Math.max(0, amountFromDb(order.totalAmount) - (capturedByOrder.get(order.id) ?? 0)) : null;
+        const due = order
+          ? Math.max(0, (payableByOrder.get(order.id) ?? 0) - (capturedByOrder.get(order.id) ?? 0))
+          : null;
         const groupStatus = order ? statusByOrder.get(order.id) ?? null : null;
         const closed = groupStatus === 'canceled' || groupStatus === 'expired';
         return {
@@ -301,7 +313,10 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
           code: order.code,
           locationRef: order.locationRef,
           status: order.status,
-          due: Math.max(0, amountFromDb(order.totalAmount) - captured),
+          due: Math.max(
+            0,
+            (await repo.payableTotalOf(order.id, amountFromDb(order.totalAmount))) - captured,
+          ),
         });
       }
       return { results };

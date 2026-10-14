@@ -4,6 +4,7 @@ import type { JsonObject } from '../contracts/common';
 import type { Order } from '../contracts/entities';
 import { OrderingError } from '../domain/errors';
 import { amountFromDb, toMoney } from '../domain/money';
+import { amountOwed } from '../domain/payable';
 import orderRepository from '../repositories/order';
 import type { PaymentRow } from '../repositories/types';
 import type { ServiceContext } from './context';
@@ -92,7 +93,7 @@ const paymentService = ({ strapi }: { strapi: Core.Strapi }) => {
         (sum, payment) => sum + amountFromDb(payment.capturedAmount),
         0,
       );
-      const due = aggregate.order.totalAmount - captured;
+      const due = amountOwed(aggregate.order.totalAmount, aggregate.lines, captured);
       if (!Number.isSafeInteger(due) || due <= 0) {
         throw new OrderingError('PAYMENT_NOT_DUE', 'nothing is due on this order');
       }
@@ -244,7 +245,8 @@ const paymentService = ({ strapi }: { strapi: Core.Strapi }) => {
           (sum, payment) => sum + amountFromDb(payment.capturedAmount),
           0,
         );
-        const amount = input.amount ?? aggregate.order.totalAmount - captured;
+        const amount =
+          input.amount ?? amountOwed(aggregate.order.totalAmount, aggregate.lines, captured);
         if (!Number.isSafeInteger(amount) || amount <= 0) {
           throw new OrderingError('VALIDATION_ERROR', 'payment amount must be a positive integer');
         }

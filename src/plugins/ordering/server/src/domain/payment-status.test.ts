@@ -18,3 +18,38 @@ describe('projectPaymentStatus', () => {
     expect(projectPaymentStatus(input)).toBe(expected);
   });
 });
+
+describe('projectPaymentStatus with canceled units', () => {
+  it('is paid once captured covers the payable total', () => {
+    expect(
+      projectPaymentStatus({
+        totalAmount: 195000,
+        payableAmount: 155114,
+        capturedAmount: 155114,
+        refundedAmount: 0,
+      }),
+    ).toBe('paid');
+  });
+
+  it('stays paid, not overpaid, while a canceled share waits for its refund', () => {
+    expect(
+      projectPaymentStatus({
+        totalAmount: 195000,
+        payableAmount: 155114,
+        capturedAmount: 195000,
+        refundedAmount: 0,
+      }),
+    ).toBe('paid');
+  });
+
+  it('is partially paid below the payable total', () => {
+    expect(
+      projectPaymentStatus({
+        totalAmount: 195000,
+        payableAmount: 155114,
+        capturedAmount: 100000,
+        refundedAmount: 0,
+      }),
+    ).toBe('partially-paid');
+  });
+});

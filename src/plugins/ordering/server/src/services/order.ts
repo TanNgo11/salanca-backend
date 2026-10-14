@@ -473,13 +473,19 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         payments.map((payment) => amountFromDb(payment.refundedAmount)),
       );
       const totalAmount = order.totalAmount;
+      const payableAmount = await repo.payableTotalOf(orderId, totalAmount);
       const fulfillmentStatus = projectFulfillmentStatus(groupInputs);
-      const paymentStatus = projectPaymentStatus({ totalAmount, capturedAmount, refundedAmount });
+      const paymentStatus = projectPaymentStatus({
+        totalAmount,
+        payableAmount,
+        capturedAmount,
+        refundedAmount,
+      });
       const status = projectOrderStatus({
         originKind: order.origin.kind,
         draftConfirmed: order.draftConfirmedAt !== null,
         groups: groupInputs,
-        totalAmount,
+        totalAmount: payableAmount,
         capturedAmount,
       });
       const before = {

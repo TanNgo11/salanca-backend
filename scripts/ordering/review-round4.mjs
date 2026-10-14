@@ -145,7 +145,8 @@ await withApp(async app => {
     const orderId = created.order.order.id;
     const lineId = created.order.lines.find(line => line.quantity >= 2).id;
     const intent = await payment.createPayment({ orderId, providerCode: 'test' }, systemCtx);
-    await payment.capturePayment({ paymentId: intent.id, amount: 130000, providerTransactionId: randomUUID() }, systemCtx);
+    // Paid in full: a line cancel refunds only money held above what is still owed.
+    await payment.capturePayment({ paymentId: intent.id, amount: created.order.order.totalAmount, providerTransactionId: randomUUID() }, systemCtx);
     const cancel = () => lineCancel.cancelLineQuantity({ orderId, lineId, quantity: 1, reason: 'Review' }, systemCtx);
     const returned = () => refund.createRefund({ paymentId: intent.id, lines: [{ lineId, quantity: 1 }], reason: 'Review', idempotencyKey: randomUUID() }, systemCtx);
     await contend(app, [

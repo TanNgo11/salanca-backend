@@ -2,11 +2,13 @@ import type { Core } from '@strapi/strapi';
 
 import { OrderingError } from '../domain/errors';
 import { paymentWindowStart } from '../domain/payments/deadline';
+import orderRepository from '../repositories/order';
 import type branchFactory from '../services/branch';
 import type { ServiceContext } from '../services/context';
 import type jobLockFactory from '../services/job-lock';
 import type paymentLinkFactory from '../services/payment-link';
 import type paymentMatchingFactory from '../services/payment-matching';
+import type refundFactory from '../services/refund';
 import type transitionFactory from '../services/transition';
 
 type WaitingGroup = {
@@ -37,6 +39,8 @@ export const runPaymentExpiry = async (
   const branches = plugin.service('branch') as ReturnType<typeof branchFactory>;
   const links = plugin.service('payment-link') as ReturnType<typeof paymentLinkFactory>;
   const matching = plugin.service('payment-matching') as ReturnType<typeof paymentMatchingFactory>;
+  const refund = plugin.service('refund') as ReturnType<typeof refundFactory>;
+  const repo = orderRepository({ strapi });
   const now = options.now ?? new Date();
   const ctx: ServiceContext = { actor: { kind: 'system', actorRef: 'job:payment-expiry' }, now };
   const events = () => strapi.db.query('plugin::ordering.order-event');
@@ -72,14 +76,21 @@ export const runPaymentExpiry = async (
         });
         const deadline = await links.effectiveDeadline(order.id, start, timeout);
         if (now.getTime() < deadline.getTime()) continue;
-        // Paid in full (e.g. before acceptance): move on instead of expiring a paid order.
-        if (await matching.advanceIfPaid(order.id, ctx)) continue;
         try {
-          await transition.transitionGroup(
-            { orderId: order.id, groupId: group.id, to: 'expired', reason: 'payment-timeout' },
-            ctx,
-          );
-          expired += 1;
+          // One transaction under the group lock: money that arrived since the read above is seen
+          // (a webhook capture takes the same lock), a fully paid order moves on instead of
+          // expiring, and whatever was already received for an expired order goes back.
+          const closed = await strapi.db.transaction(async ({ trx }) => {
+            await repo.lockGroup(trx, group.id);
+            if (await matching.advanceIfPaid(order.id, ctx)) return false;
+            await transition.transitionGroup(
+              { orderId: order.id, groupId: group.id, to: 'expired', reason: 'payment-timeout' },
+              ctx,
+            );
+            await refund.refundHeldForOrder(trx, order.id, 'expired: payment-timeout', ctx);
+            return true;
+          });
+          if (closed) expired += 1;
         } catch (error) {
           if (error instanceof OrderingError && error.code === 'INVALID_TRANSITION') continue;
           throw error;
