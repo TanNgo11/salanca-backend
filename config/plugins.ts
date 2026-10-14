@@ -265,6 +265,11 @@ export const resolveOrderingPluginConfig = (
       orderCode: { prefix: 'SLC' },
       // O13: absolute public base for wallet IPN/return URLs (required when momo/vnpay is on).
       publicApiUrl: env('ORDERING_PUBLIC_API_URL', ''),
+      // Wallet return URLs may only point back to the storefront (same list as CORS).
+      walletReturnOrigins: env('FRONTEND_URLS', 'http://localhost:3000')
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean),
       // Same trusted-forwarding headers and secret the web already sends for form intake.
       clientIp: {
         sharedSecret: env('FORM_INTAKE_SHARED_SECRET', ''),

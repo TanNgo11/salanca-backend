@@ -197,6 +197,11 @@ export const configSchema = z.object({
    * wallet IPN/return URLs. Required when momo/vnpay is enabled — enforced in the validator.
    */
   publicApiUrl: z.string(),
+  /**
+   * Storefront origins (e.g. `https://salanca.vn`) a wallet `returnUrl` may point to. Any other
+   * return URL falls back to this server's own return page — no open redirect.
+   */
+  walletReturnOrigins: z.array(z.string()),
   productTypes: z.record(z.string(), providerSettings),
   providers: z.object({
     payment: z.record(z.string(), providerSettings),
@@ -348,6 +353,7 @@ export default {
     dataRights: { deadlineHours: 72 },
     testing: { builtins: false },
     publicApiUrl: '',
+    walletReturnOrigins: [],
     productTypes: {},
     providers: {
       payment: {},

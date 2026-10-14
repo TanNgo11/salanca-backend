@@ -165,6 +165,30 @@ try {
     });
     assert.equal(payment.status, 'pending');
     assert.ok(payment.session.vnpCreateDate);
+    assert.equal(payParams.vnp_ReturnUrl, `${base}/api/v1/ordering/payments/return/vnpay`);
+
+    // returnUrl: only a configured storefront origin is kept; anything else falls back to the
+    // server's return page (no open redirect).
+    app.config.set('plugin::ordering.walletReturnOrigins', ['https://shop.salanca.test']);
+    const returnFor = async (returnUrl) => {
+      const placed = await order.createOrder(
+        basicOrderInput({ locationRef: 'V1', receiveMethod: { kind: 'pickup', locationRef: 'V1' } }),
+        systemCtx,
+      );
+      const res = await fetch(`${base}/api/v1/ordering/payments/session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Order-Token': placed.publicToken },
+        body: JSON.stringify({ provider: 'vnpay', returnUrl }),
+      });
+      assert.equal(res.status, 200);
+      return new URL((await res.json()).redirectUrl).searchParams.get('vnp_ReturnUrl');
+    };
+    const fallback = `${base}/api/v1/ordering/payments/return/vnpay`;
+    assert.equal(await returnFor('https://shop.salanca.test/thanh-toan?x=1'), 'https://shop.salanca.test/thanh-toan?x=1');
+    assert.equal(await returnFor('https://evil.example/phish'), fallback);
+    assert.equal(await returnFor('https://shop.salanca.test@evil.example/'), fallback);
+    assert.equal(await returnFor('http://shop.salanca.test/'), fallback);
+    console.log('[ordering-test] vnpay returnUrl: storefront origin kept, other sites fall back');
 
     // --- signed IPN via GET ----------------------------------------------------------
     const txnNo = 'VNPTXN-001';

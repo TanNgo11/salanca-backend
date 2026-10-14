@@ -75,6 +75,30 @@ const receiveConfig = (settings: PickupSettings, timezone: string, now: Date) =>
  * only in `X-Order-Token`; the database keeps its SHA-256. Every view goes through the
  * allowlist serializers in `domain/storefront/serialize`.
  */
+/**
+ * A wallet return URL is kept only when it is https and on a configured storefront origin;
+ * anything else (another site, userinfo tricks, too long) falls back to the server's own
+ * return page.
+ */
+export const allowedReturnUrl = (value: unknown, origins: readonly string[]): string | undefined => {
+  if (typeof value !== 'string' || value.length > 500) return undefined;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return undefined;
+  }
+  if (url.protocol !== 'https:' || url.username !== '' || url.password !== '') return undefined;
+  const allowed = origins.some((origin) => {
+    try {
+      return new URL(origin).origin === url.origin;
+    } catch {
+      return false;
+    }
+  });
+  return allowed ? url.toString() : undefined;
+};
+
 const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
   const plugin = () => strapi.plugin('ordering');
   const branches = () => plugin().service('branch') as ReturnType<typeof branchFactory>;
@@ -263,10 +287,7 @@ const storefront = ({ strapi }: { strapi: Core.Strapi }) => {
           details: { field: 'provider' },
         });
       }
-      const returnUrl =
-        typeof input.returnUrl === 'string' && /^https:\/\//i.test(input.returnUrl)
-          ? input.returnUrl.slice(0, 500)
-          : undefined;
+      const returnUrl = allowedReturnUrl(input.returnUrl, config().walletReturnOrigins);
       const { payment, session } = await paymentService().createWalletSession(
         { orderId: aggregate.order.id, providerCode, returnUrl, ipAddr: input.ipAddr },
         ctx,
