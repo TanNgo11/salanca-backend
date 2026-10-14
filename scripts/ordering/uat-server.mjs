@@ -20,6 +20,10 @@
 // O8 extras: code promotion GIAM10 (10% up to 30.000đ, one use per phone) with 20 single-use
 // TET codes, an automatic free delivery from 200.000đ, a first-order 15.000đ off, one completed
 // order rated 2★ (opens low-rating) and one completed order with an email, not rated yet.
+// O12 extras: Q1 dine-in enabled (pay-later, 5% service fee), "Món chính" runs on the Bếp nóng
+// station, bún bò carries allergen/dietary codes, and two dining tables (B1/B2) with QR links —
+// one dine-in order sits served on B1 so "Thanh toán & đóng bàn" has a live session to close.
+// Tips stay out (accounting has not confirmed the flow).
 import { randomUUID } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { hostname } from 'node:os';
@@ -55,6 +59,20 @@ for (const code of ['Q1', 'Q3']) {
     where: { id: row.id },
     data: {
       email: `${code.toLowerCase()}@example.invalid`,
+      // O12 (screens N4): a 5% service charge on dine-in checks at Q1.
+      ...(code === 'Q1'
+        ? {
+            fees: [
+              {
+                code: 'phuc-vu',
+                label: { vi: 'Phí phục vụ', en: 'Service charge' },
+                kind: 'service',
+                percent: 5,
+                receiveKinds: ['dine-in'],
+              },
+            ],
+          }
+        : {}),
       fulfillment: {
         pickup: {
           enabled: true,
@@ -71,6 +89,23 @@ for (const code of ['Q1', 'Q3']) {
             ...(code === 'Q1' ? { businessDayPolicy: uatBusinessDay } : {}),
           },
         },
+        // O12 (screens N6–N7): table QR ordering at Q1 — guests pay when the table closes.
+        ...(code === 'Q1'
+          ? {
+              dineIn: {
+                enabled: true,
+                paymentTiming: 'pay-on-pickup',
+                paymentProviders: ['cash'],
+                sessionPayment: 'at-close',
+                slaMinutes: 10,
+                schedule: {
+                  leadTimeMinutes: 15,
+                  openingHours: { mode: '24_7' },
+                  businessDayPolicy: uatBusinessDay,
+                },
+              },
+            }
+          : {}),
         // Q1 also self-delivers so the delivery board has real legs to drive.
         ...(code === 'Q1'
           ? {
@@ -110,11 +145,14 @@ for (const code of ['Q1', 'Q3']) {
 }
 
 const doc = (uid) => app.documents(`plugin::ordering.${uid}`);
-const mains = await doc('catalog-category').create({ data: { name: { vi: 'Món chính', en: 'Mains' }, rank: 0 } });
+// O12 (screens N5): mains print on the hot-station column of the kitchen board.
+const mains = await doc('catalog-category').create({
+  data: { name: { vi: 'Món chính', en: 'Mains' }, rank: 0, kitchenStation: 'Bếp nóng' },
+});
 const drinks = await doc('catalog-category').create({ data: { name: { vi: 'Đồ uống', en: 'Drinks' }, rank: 1 } });
-const product = async (name, category, amount) => {
+const product = async (name, category, amount, extra = {}) => {
   const created = await doc('catalog-product').create({
-    data: { productType: 'food', status: 'active', sellOnline: true, fulfillmentKinds: ['pickup', 'delivery'], name, categories: [category.documentId] },
+    data: { productType: 'food', status: 'active', sellOnline: true, fulfillmentKinds: ['pickup', 'delivery', 'dine-in'], name, categories: [category.documentId], ...extra },
   });
   const variant = await doc('catalog-variant').create({
     data: { product: created.documentId, isDefault: true, rank: 0, name: { vi: 'Thường' } },
@@ -122,7 +160,11 @@ const product = async (name, category, amount) => {
   await doc('catalog-price').create({ data: { variant: variant.documentId, amount, currency: 'VND' } });
   return created;
 };
-const bunBo = await product({ vi: 'Bún bò Huế', en: 'Hue beef noodle' }, mains, 100000);
+const bunBo = await product({ vi: 'Bún bò Huế', en: 'Hue beef noodle' }, mains, 100000, {
+  // O12: allergen/dietary codes surface on the public catalog + filters.
+  allergens: ['gluten', 'fish'],
+  dietaryTags: ['spicy'],
+});
 await product({ vi: 'Combo trưa 1 người', en: 'Lunch combo' }, mains, 99000);
 const traDao = await product({ vi: 'Trà đào cam sả', en: 'Peach tea' }, drinks, 45000);
 const topping = await doc('catalog-modifier-group').create({ data: { name: { vi: 'Topping', en: 'Toppings' }, selectionType: 'multiple', rank: 0 } });
@@ -138,6 +180,8 @@ const actions = [
   'order.read', 'order.process', 'order.cancel', 'order.create', 'order.edit-lines', 'order.edit', 'payment.record-cash',
   'payment.review', 'refund.manage', 'settings.manage', 'scope.manage', 'catalog.toggle-availability',
   'promotion.manage', 'rating.manage', 'price.manage', 'report.read', 'export',
+  // O12: KDS (N2) and the tables/sessions screens (N6–N7).
+  'kitchen.read', 'table.manage',
 ];
 await app.admin.services.role.assignPermissions(
   role.id,
@@ -487,6 +531,41 @@ await ordering
   .submitByToken(ratedLow.publicToken, { stars: 2, tags: ['late'], comment: 'Trà hơi nhạt, chờ lâu' }, systemCtx);
 const toRate = await completeTea('+84900000202', 'rate-me@example.invalid');
 console.log(`[ordering-uat] O8: rated 2★ ${ratedLow.order.order.code}; unrated completed ${toRate.order.order.code}`);
+
+// ── O12 UAT extras ─────────────────────────────────────────────────────────────
+// Two dining tables at Q1 (B1/B2) created through the real service so their QR links work
+// end-to-end — print them from the Bàn & QR screen. One dine-in order on B1 is walked to
+// `served` so the N7 board opens with a live session ready for "Thanh toán & đóng bàn".
+const tableService = ordering.service('table');
+const tableOf = async (code, name, seats) => {
+  const created = await tableService.create(
+    { locationRef: 'Q1', code, name, seats },
+    lanCtx,
+  );
+  return created.item;
+};
+const tableB1 = await tableOf('B1', 'Bàn 1', 4);
+await tableOf('B2', 'Bàn 2', 2);
+const tableTokenOf = (qrUrl) => qrUrl.match(/[?&]t=([^&]+)/)[1];
+const dineInOrder = await orders.createOrder(
+  input({
+    lines: [
+      { sellableUid: bunBo.documentId, quantity: 2 },
+      { sellableUid: traDao.documentId, quantity: 1 },
+    ],
+    receiveMethod: { kind: 'dine-in', locationRef: 'Q1', tableToken: tableTokenOf(tableB1.qrUrl) },
+    customerNote: 'mang ra từng món một',
+  }),
+  systemCtx,
+);
+await advance(dineInOrder.order.order.id, dineInOrder.order.groups[0].id, [
+  'preparing',
+  'ready',
+  'served',
+]);
+console.log(
+  `[ordering-uat] O12: tables B1/B2 seeded; dine-in order ${dineInOrder.order.order.code} sits served on B1`,
+);
 
 // Credentials stay in a local file outside the repo; never printed.
 const credFile = process.env.UAT_CRED_FILE;

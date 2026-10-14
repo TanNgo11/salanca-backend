@@ -13,9 +13,10 @@ import { o10Messages } from './o10';
 import { o8Messages } from './o8';
 import { o11Messages } from './o11';
 import { o14Messages } from './o14';
+import { o12Messages } from './o12';
 
 const ROOT = join(__dirname, '..');
-const O3_DIRS = ['inbox', 'components/orders', 'pages/Orders', 'pages/Deliveries', 'pages/Courier', 'pages/Branches', 'pages/Staff', 'pages/Settings', 'pages/PaymentReview', 'pages/Ops', 'pages/Alerts', 'pages/CashClosing', 'pages/Reports', 'pages/AuditLog', 'pages/Webhooks', 'pages/CatalogImport', 'pages/ApiDocs', 'pages/Customers', 'pages/DataRequests', 'pages/Promotions', 'pages/Ratings', 'pages/PriceLists', 'pages/CustomerGroups', 'lib'];
+const O3_DIRS = ['inbox', 'components/orders', 'pages/Orders', 'pages/Deliveries', 'pages/Courier', 'pages/Branches', 'pages/Staff', 'pages/Settings', 'pages/PaymentReview', 'pages/Ops', 'pages/Alerts', 'pages/CashClosing', 'pages/Reports', 'pages/AuditLog', 'pages/Webhooks', 'pages/CatalogImport', 'pages/ApiDocs', 'pages/Customers', 'pages/DataRequests', 'pages/Promotions', 'pages/Ratings', 'pages/PriceLists', 'pages/CustomerGroups', 'pages/Kitchen', 'pages/Tables', 'pages/TableSessions', 'pages/Print', 'custom-fields', 'lib'];
 const EXTRA_FILES = ['pages/App.tsx', 'components/OrderExportModal.tsx'];
 
 const files = (dir: string): string[] =>
@@ -97,7 +98,8 @@ describe('O3 admin translations', () => {
           o10Messages[key] ||
           o11Messages[key] ||
           o8Messages[key] ||
-          o14Messages[key],
+          o14Messages[key] ||
+          o12Messages[key],
       );
     const missing = [...used].filter((key) => !known(key));
     expect(missing).toEqual([]);
@@ -112,6 +114,7 @@ describe('O3 admin translations', () => {
       ...o11Messages,
       ...o8Messages,
       ...o14Messages,
+      ...o12Messages,
     })) {
       expect(vi.trim(), key).not.toBe('');
       expect(en.trim(), key).not.toBe('');

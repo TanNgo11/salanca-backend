@@ -1,4 +1,4 @@
-# Ordering storefront API (O3), SePay webhook (O4), self-delivery (O5), ops extras (O7), promotions and ratings (O8)
+# Ordering storefront API (O3), SePay webhook (O4), self-delivery (O5), ops extras (O7), promotions and ratings (O8), restaurant ops (O12)
 
 O7 adds `specialHours` on `GET /config` (pickup, and delivery when that method is on), `dailyLimit` /
 `sold-out-today` on the public catalog, and `ITEM_SOLD_OUT` from quote and create.
@@ -56,7 +56,7 @@ fails on an undocumented route.
 ### `GET /branches`
 
 Active branches that sell online. `items[]`: `code`, `name { vi, en }`, `address`, `phone`, `email`,
-`timezone`, `receiveMethods: [{ kind: 'pickup' | 'delivery', orderTiming: 'asap' | 'scheduled' | 'both' }]`.
+`timezone`, `receiveMethods: [{ kind: 'pickup' | 'delivery' | 'dine-in', orderTiming: 'asap' | 'scheduled' | 'both' }]`.
 
 ### `GET /config?branch=<code>`
 
@@ -69,6 +69,15 @@ null. With a branch that sells online: `code`, `timezone`, `pickup` (null when p
 optional `note`), sorted by date. A row replaces that date's regular hours and holidays. A range may cross
 midnight (`22:00`–`02:00`). Quote and create already accept `kind: 'delivery'` against the branch's delivery
 settings.
+
+**Pause, busy and dine-in (O12).** `branch.pause` maps each receive kind (`pickup`, `delivery`, `dineIn`)
+to `null` or `{ until, by?, reason? }` — a live pause makes quote and create of that kind fail with
+`409 LOCATION_PAUSED` (`details.kind`, `details.resumeAt`). `branch.busy` is `null` or `{ extraMinutes,
+until }` — it only pushes `leadTimeMinutes`/`asapReadyAt` out, ordering stays open. `branch.dineIn` is the
+third receive block (same shape plus `sessionPayment: 'per-order' | 'at-close'`); it is `null` when dine-in
+is off. `branch.fees[]` lists the configured service/packaging fees (`code`, `label`, `kind`, `amount` or
+`percent`, `receiveKinds`, `minSubtotal`) — matching fees appear as `adjustments[]` of kind `fee` in the
+quote and order totals, priced by the server.
 
 ### `GET /slots?branch=<code>&date=YYYY-MM-DD`
 
@@ -93,7 +102,11 @@ value → `400 VALIDATION_ERROR`). Omitted means no channel, so only channel-fre
 branch the clock is `Asia/Ho_Chi_Minh`. A request that resolves `X-Customer-Token` is priced with that
 profile's active groups and answers `Cache-Control: private, no-store`. A missing or dead token stays
 `Cache-Control: public, max-age=30` and pays the regular price — the phone is never used to guess a group.
-`dine-in` is accepted as a price channel only; there is no dine-in order flow yet (O12).
+
+**Allergens and dietary tags (O12).** Products carry `allergens[]` / `dietaryTags[]` (localized
+`{ code, label }` rows resolved per `locale`) and `kitchenStation` (the resolved station label).
+Optional `excludeAllergens=gluten,peanut` drops products carrying any listed allergen code;
+`dietary=vegan,halal` keeps only products carrying every listed tag. Unknown codes are ignored.
 
 `POST /quote` and `POST /orders` answer `409 ITEM_SOLD_OUT` when the requested quantity is above `remaining`
 for the receive business date (ASAP uses the order's business date; a slot uses the business date of
@@ -115,7 +128,9 @@ For delivery send `receiveMethod.kind: 'delivery'`, `providerCode: 'self-deliver
 `{ "communeCode": "XT01002", "line1": "12 Đường Bí Mật", "recipientName": "…", "phone": "0901…" }`
 (`wardCode` is accepted as an alias for older payloads). Commune codes come from the administrative-unit
 catalog; an unknown code or a required field fails `VALIDATION_ERROR` with `details.field`
-(`address.communeCode`, `address.line1`…). No `slot` means ASAP. Any amount, adjustment or fee in the
+(`address.communeCode`, `address.line1`…). For dine-in (O12) send `receiveMethod.kind: 'dine-in'`,
+`locationRef` and `tableToken` — the QR secret from `GET /tables/:token`; a bad or foreign-branch token
+fails `404 TABLE_NOT_FOUND`. No `slot` means ASAP. Any amount, adjustment or fee in the
 body is ignored — the delivery fee always comes from the matched zone, not the request. Response:
 `cartHash`, `lines[] { index, sellableUid, title, quantity, unitAmount, optionAmount, lineTotalAmount }`,
 `adjustments[]`, `totals { subtotal, adjustmentTotal, fulfillmentTotal, taxTotal, grandTotal, … }`
@@ -136,6 +151,14 @@ happy-hour price. The price clock is `placedAt` when the caller sends it, otherw
 Wrong codes are counted per IP: after 3 a quote with a code needs `captchaToken`
 (`CAPTCHA_FAILED` otherwise), after `rateLimits.promotionCode.max` (20 / 10 min) → `429 RATE_LIMITED`.
 Eligibility misses on a real code are not counted.
+
+### `GET /tables/:token` — O12
+
+Public resolve for a scanned table QR. `token` is the QR secret from the printed link
+(`…/ban?t=<token>`); the server only stores its sha256. `200` answers `{ item: { branch, branchName,
+table: { code, name, area, seats }, menuUrl, status } }` where `status` is `open` when the table already
+has a live session, else `available`. Unknown, rotated, disabled and cross-branch secrets all answer the
+same `404 TABLE_NOT_FOUND` — probing learns nothing. `Cache-Control: no-store`.
 
 ### `POST /orders` (`Idempotency-Key` header)
 
@@ -241,6 +264,20 @@ for another attempt. Cash orders stay `unpaid` until the courier collects at the
 `awaiting-payment` delivery order still shows the SePay presentation. Customer emails use delivery
 wording ("Giao lúc" not "Giờ lấy") for `out-for-delivery`, `delivered`, `failed` and a retry back to
 `ready`.
+
+## Order steps (dine-in, O12)
+
+Dine-in orders run `dine-in-pay-later` / `dine-in-prepay` / `dine-in-accept-then-pay` by the branch's
+`dineIn.paymentTiming`. The tail differs from pickup: `ready` → `served` (dishes at the table) →
+`completed`, where `completed` is stamped when staff close the table session, not by the guest.
+The first order on a table opens its **table session**; further scans on the same QR join it, so one
+table can carry several orders at once. A session closes only from the admin "Thanh toán & đóng bàn"
+action, which collects each order's outstanding balance (cash capture or a witnessed counter transfer)
+and moves every `served` group to `completed`; an order still in the kitchen blocks the close.
+Sessions still open when the branch's business day rolls over raise a `table-session-open` ops alert —
+nothing is collected or closed automatically. The stored order carries `tableId`/`tableCode` in
+`receiveMethod`, never the QR secret; rotating a table's QR or disabling the table stops new orders at
+once but does not disturb the open session.
 
 ## SePay webhook
 

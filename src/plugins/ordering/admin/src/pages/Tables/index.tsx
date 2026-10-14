@@ -36,9 +36,6 @@ type TableItem = {
   qrUrl: string | null;
 };
 
-const httpStatusOf = (error: unknown): number | null =>
-  (error as { response?: { status?: number } })?.response?.status ?? null;
-
 const errorCodeOf = (error: unknown): string | null =>
   (error as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code ??
   null;

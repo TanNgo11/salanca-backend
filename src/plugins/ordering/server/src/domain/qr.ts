@@ -73,7 +73,7 @@ const charCountBits = (version: number) => (version <= 9 ? 8 : 16);
 
 const MASKS = [
   (r: number, c: number) => (r + c) % 2 === 0,
-  (r: number, c: number) => r % 2 === 0,
+  (r: number, _c: number) => r % 2 === 0,
   (r: number, c: number) => c % 3 === 0,
   (r: number, c: number) => (r + c) % 3 === 0,
   (r: number, c: number) => (Math.floor(r / 2) + Math.floor(c / 3)) % 2 === 0,

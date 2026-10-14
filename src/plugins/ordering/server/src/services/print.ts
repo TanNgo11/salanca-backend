@@ -11,8 +11,6 @@ import type { ServiceContext } from './context';
 
 export type PrintDoc = 'kitchen' | 'receipt';
 
-type OrderDetail = Awaited<ReturnType<ReturnType<typeof adminOrdersFactory>['detail']>>;
-
 /**
  * Print payloads for the Admin print pages (O12 plan step 5, screens N1). Both docs reuse the
  * scope-checked `admin-orders.detail` projection, then strip by doc:

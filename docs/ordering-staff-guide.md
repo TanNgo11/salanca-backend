@@ -304,6 +304,58 @@ Sửa đơn (O7) giữ khuyến mãi đã áp và tính lại số giảm trên 
   "Quản lý đánh giá" ẩn/hiện đánh giá và ghi chú nội bộ (không gửi khách). Chi tiết đơn có khối đánh giá;
   báo cáo có điểm trung bình. Ghi chú của khách tự xóa sau 365 ngày, số sao giữ lại.
 
+## Tạm dừng nhận đơn / Quán đông (O12)
+
+- Thanh **Tạm dừng** nằm trên đầu trang Đơn hàng và Bếp của chi nhánh bạn được phân.
+- **Tạm dừng**: chọn kênh (Tự lấy · Giao hàng · Tại bàn) và thời lượng (15′–cuối ngày) hoặc hết ngày;
+  khách đặt kênh đó thấy "Chi nhánh đang tạm dừng" kèm giờ mở lại. Hết giờ hệ thống tự mở; nút **Mở lại**
+  mở sớm. Kênh khác vẫn nhận bình thường.
+- **Quán đông**: bật/tắt kèm số phút cộng thêm — khách chỉ thấy giờ lấy xa hơn, đơn vẫn đến.
+- Cả hai đều ghi vào Lịch sử thay đổi.
+
+## Bếp (Bán hàng → Bếp — quyền "Đọc bếp", O12)
+
+- Bảng toàn màn hình tối, tự cập nhật qua stream (có còi báo đơn mới, bật/tắt được). Ba cột:
+  **Mới** (chờ bếp bắt đầu) · **Đang làm** · **Xong** (15 phút gần nhất).
+- **Bắt đầu** trên thẻ Mới: đánh dấu bếp đã nhận đơn (đơn vẫn ở "Đang chuẩn bị" phía khách).
+- Tích từng dòng món khi xong món đó; nút **Xong cả đơn** khi đủ món — đơn tự lấy sang "Sẵn sàng",
+  đơn tại bàn sang "Sẵn sàng" chờ phục vụ ra bàn, đơn giao chờ điều xe.
+- Món được xếp cột theo **trạm bếp** của danh mục (xem hướng dẫn nhập món); bộ lọc trạm ở góc phải
+  chỉ giữ dòng của trạm đó. Đơn quá phút "Báo chậm" của chi nhánh nhấp nháy đỏ.
+
+## In phiếu (O12)
+
+- Trong chi tiết đơn, nút **…** có **In phiếu bếp** và **In tạm tính** — mở trang in riêng (khổ 80mm
+  hoặc 58mm, đổi được ngay trên trang). Phiếu bếp không có giá; tạm tính có đủ tiền, phí, đã thu và
+  địa chỉ giao (nếu là đơn giao). SĐT khách luôn bị che.
+- **Máy in quầy**: ô tick trên thanh Tạm dừng — máy nào tick sẽ tự in phiếu bếp cho mọi đơn mới của
+  chi nhánh đó (cần Chrome kiosk bật `--kiosk-printing` để in không hỏi; chi nhánh phải bật
+  "Tự in phiếu bếp" trong phần In của cài đặt chi nhánh).
+- Số lần in của đơn nằm trong Lịch sử thay đổi của đơn.
+
+## Bàn & QR (Cấu hình → Bàn & QR — quyền "Quản lý bàn", O12)
+
+- Danh sách bàn theo chi nhánh. **Thêm bàn** cho một bàn; **Thêm nhiều bàn** nhập tiền tố + khoảng
+  số (ví dụ B + 1…20 tạo B1…B20) — mỗi bàn có mã QR riêng.
+- **In thẻ bàn** / **Tải QR**: mã QR chứa link menu kèm khóa bàn; dán lên bàn. Khách quét thấy đúng
+  menu của chi nhánh và đặt thẳng không cần chọn bàn.
+- **Đổi QR**: hủy hiệu lực mã cũ ngay khi xác nhận — in thẻ mới trước khi dùng tiếp (dùng khi thẻ bị
+  chụp/lộ). **Tắt bàn** chặn đặt mới nhưng giữ nguyên phiên đang phục vụ.
+- Mã bàn là duy nhất trong chi nhánh; trùng mã báo lỗi ngay trên form.
+
+## Tại bàn (Bán hàng → Tại bàn — quyền "Quản lý bàn", O12)
+
+- Bảng các **phiên bàn** đang phục vụ: bàn, giờ mở, số đơn, tổng tiền, đã thu, còn nợ. Đơn mới của
+  khách cùng bàn tự gom vào một phiên — một bàn chỉ có một phiên mở.
+- Thẻ có **N đơn chờ nhận** khi có đơn chưa xác nhận; thẻ đỏ **Chưa đóng từ hôm trước** khi phiên
+  qua ngày kinh doanh mà chưa đóng (đồng thời mở cảnh báo ở trang Cảnh báo — hệ thống không tự
+  thu tiền, không tự đóng).
+- **In hóa đơn bàn**: tạm tính gộp mọi đơn của phiên (khách xin bill trước khi trả).
+- **Thanh toán & đóng bàn** (cần thêm quyền "Ghi nhận tiền mặt"): chọn Tiền mặt hoặc Chuyển khoản
+  tại quầy (nhập mã giao dịch trên sao kê). Hệ thống thu phần còn nợ của từng đơn, chuyển đơn đã phục vụ sang "Hoàn tất" rồi đóng bàn —
+  phiếu thu ghi tên người bấm. Còn món đang làm/chưa phục vụ thì đóng bị chặn và liệt kê các đơn
+  còn thiếu. Đơn đã thu đủ hoặc đã hủy không bị thu thêm; bấm nhầm lần hai không trừ tiền lần nữa.
+
 ## Giới hạn hiện tại
 
 - Chạy một máy chủ (một instance): báo đơn realtime và giới hạn tần suất nằm trong bộ nhớ của tiến trình.

@@ -34,7 +34,6 @@ const TagChecklist = (props: Props) => {
   const intl = useIntl();
   const [customName, setCustomName] = useState('');
   const value = codesOf(props.value);
-  const known = props.options.map((option) => option.code);
   const customs = value.filter((code) => code.startsWith(CUSTOM_PREFIX));
 
   const emit = (next: string[]) =>

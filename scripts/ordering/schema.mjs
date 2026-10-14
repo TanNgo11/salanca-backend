@@ -30,6 +30,7 @@ const EXPECTED_TABLES = [
   'plugins_ordering_customer_otp',
   'plugins_ordering_customer_session',
   'plugins_ordering_data_request',
+  'plugins_ordering_dining_table',
   'plugins_ordering_fulfillment',
   'plugins_ordering_fulfillment_group',
   'plugins_ordering_fulfillment_line',
@@ -54,6 +55,7 @@ const EXPECTED_TABLES = [
   'plugins_ordering_refund',
   'plugins_ordering_refund_line',
   'plugins_ordering_staff_location_scope',
+  'plugins_ordering_table_session',
   'plugins_ordering_webhook_delivery',
   'plugins_ordering_webhook_endpoint',
 ];
@@ -107,6 +109,12 @@ const EXPECTED_INDEXES = [
   // O14 (migration 0009).
   'plugins_ordering_customer_group_code_uq',
   'plugins_ordering_customer_group_member_pair_uq',
+  // O12 (migration 0011).
+  'plugins_ordering_table_session_open_uq',
+  'plugins_ordering_dining_table_code_uq',
+  'plugins_ordering_dining_table_token_idx',
+  'plugins_ordering_table_session_list_idx',
+  'plugins_ordering_order_table_session_idx',
 ];
 
 // Catalog types staff edit in Content Manager (O2 step 1).
@@ -131,8 +139,8 @@ const CM_HIDDEN_CATALOG_UIDS = [
 
 // Every manyToOne owner side produces one link table (28 pre-O11 + 7 customer-era relations:
 // order.customer, customer-{address,otp,session}.customer, cart.{customer,order}, data-request.customer,
-// plus O14 catalog-price.priceList).
-const MIN_LINK_TABLES = 36;
+// plus O14 catalog-price.priceList, plus O12 table-session.table and order.tableSession).
+const MIN_LINK_TABLES = 38;
 
 await withApp(async (app) => {
   const { rows: tables } = await app.db.connection.raw(
@@ -192,6 +200,7 @@ await withApp(async (app) => {
     '0007-o11-customers',
     '0008-o8-promotions-rating',
     '0009-o14-price-lists',
+    '0011-o12-restaurant',
   ]) {
     assert.ok(
       applied.some((row) => row.name === migration),
