@@ -207,6 +207,8 @@ export const o3Messages: Record<string, [string, string]> = {
   'detail.paid': ['Đã thu', 'Collected'],
   'detail.refunded': ['Đã hoàn', 'Refunded'],
   'detail.due': ['Còn thiếu', 'Due'],
+  'detail.summary.required': ['Cần thu', 'To collect'],
+  'detail.summary.refundPending': ['Đang chờ hoàn {amount} (chưa tính vào Đã hoàn)', '{amount} refund pending (not yet in Refunded)'],
   'detail.payments': ['Thanh toán', 'Payments'],
   'detail.noPayments': ['Chưa có giao dịch', 'No transaction yet'],
   'detail.refundRow': ['Hoàn', 'Refund'],

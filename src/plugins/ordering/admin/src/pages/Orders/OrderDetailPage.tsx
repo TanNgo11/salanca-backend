@@ -72,6 +72,18 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
   </Box>
 );
 
+/** One figure of the payment summary strip (Cần thu / Đã thu / Đã hoàn / Còn thiếu). */
+const Figure = ({ label, value, emphasis }: { label: string; value: string; emphasis?: 'danger' }) => (
+  <Flex direction="column" alignItems="flex-start" gap={1} grow={1}>
+    <Typography variant="pi" textColor="neutral600">
+      {label}
+    </Typography>
+    <Typography fontWeight="bold" textColor={emphasis === 'danger' ? 'danger600' : undefined}>
+      {value}
+    </Typography>
+  </Flex>
+);
+
 const Row = ({ label, value, strong }: { label: string; value: string; strong?: boolean }) => (
   <Flex justifyContent="space-between" paddingBottom={1}>
     <Typography textColor="neutral600">{label}</Typography>
@@ -253,6 +265,9 @@ export const OrderDetailPage = () => {
   }
 
   const { order, group, totals } = detail;
+  const pendingRefundAmount = detail.refunds
+    .filter((refund) => refund.status === 'pending')
+    .reduce((sum, refund) => sum + refund.amount, 0);
   const timezone = order.branch.timezone;
   const timing = order.receiveMethod.timing;
   const cashHeld = detail.payments
@@ -471,6 +486,21 @@ export const OrderDetailPage = () => {
               </Section>
             ) : null}
             <Section title={t('detail.payments')}>
+              <Flex gap={4} wrap="wrap" paddingBottom={3} data-testid="payment-summary">
+                <Figure label={t('detail.summary.required')} value={formatMoney(totals.total)} />
+                <Figure label={t('detail.paid')} value={formatMoney(totals.paid)} />
+                <Figure label={t('detail.refunded')} value={formatMoney(totals.refunded)} />
+                <Figure
+                  label={t('detail.due')}
+                  value={formatMoney(totals.due)}
+                  emphasis={totals.due > 0 ? 'danger' : undefined}
+                />
+              </Flex>
+              {pendingRefundAmount > 0 ? (
+                <Typography variant="pi" textColor="warning600" tag="p" paddingBottom={3}>
+                  {t('detail.summary.refundPending', { amount: formatMoney(pendingRefundAmount) })}
+                </Typography>
+              ) : null}
               {group?.status === 'awaiting-payment' && can.canRead ? (
                 <Box paddingBottom={2}>
                   <Button
