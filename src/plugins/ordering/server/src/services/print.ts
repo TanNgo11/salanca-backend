@@ -139,7 +139,7 @@ const print = ({ strapi }: { strapi: Core.Strapi }) => {
         where: { id: sessionId },
         populate: {
           table: { select: ['id', 'code', 'name', 'area'] },
-          orders: { select: ['id', 'code'], orderBy: { id: 'asc' } },
+          orders: { select: ['id', 'code', 'status'], orderBy: { id: 'asc' } },
         },
       })) as {
         id: number;
@@ -148,7 +148,7 @@ const print = ({ strapi }: { strapi: Core.Strapi }) => {
         closedAt: string | null;
         businessDate: string;
         table: { id: number; code: string; name: string; area: string | null } | null;
-        orders: Array<{ id: number; code: string }>;
+        orders: Array<{ id: number; code: string; status: string }>;
       } | null;
       if (!session) {
         throw new OrderingError('TABLE_SESSION_NOT_FOUND', 'table session not found', {
@@ -188,7 +188,9 @@ const print = ({ strapi }: { strapi: Core.Strapi }) => {
         payments: Array<Record<string, unknown>>;
       };
       const receipts = [] as ReceiptPayload[];
-      for (const order of session.orders ?? []) {
+      // Canceled orders are not on the bill — close skips them too, so the printed total is what
+      // the cashier collects.
+      for (const order of (session.orders ?? []).filter((row) => row.status !== 'canceled')) {
         receipts.push(
           (await this.forOrder(order.id, 'receipt', ctx)) as ReceiptPayload,
         );

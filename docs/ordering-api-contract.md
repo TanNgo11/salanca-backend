@@ -268,7 +268,9 @@ wording ("Giao lúc" not "Giờ lấy") for `out-for-delivery`, `delivered`, `fa
 ## Order steps (dine-in, O12)
 
 Dine-in orders run `dine-in-pay-later` / `dine-in-prepay` / `dine-in-accept-then-pay` by the branch's
-`dineIn.paymentTiming`. The tail differs from pickup: `ready` → `served` (dishes at the table) →
+`dineIn.paymentTiming` when `dineIn.sessionPayment` is `per-order`. With `at-close` (the default) every
+dine-in order runs `dine-in-pay-later` whatever `paymentTiming` says, and `payment.providerCode` may be
+omitted — the table pays once, at session close. The tail differs from pickup: `ready` → `served` (dishes at the table) →
 `completed`, where `completed` is stamped when staff close the table session, not by the guest.
 The first order on a table opens its **table session**; further scans on the same QR join it, so one
 table can carry several orders at once. A session closes only from the admin "Thanh toán & đóng bàn"

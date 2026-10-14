@@ -612,9 +612,15 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
       const branchMethod = branch.fulfillment?.[receiveKindKey(kind) ?? kind] as
         | JsonObject
         | undefined;
-      const paymentTiming =
-        (receiveSettings?.paymentTiming as string | undefined) ??
-        (branchMethod?.paymentTiming as string | undefined);
+      // Dine-in `sessionPayment: 'at-close'` means the table pays once, at session close — every
+      // order takes the pay-later flow whatever `paymentTiming` says; 'per-order' follows it.
+      const atClose =
+        kind === 'dine-in' &&
+        (receiveSettings as { sessionPayment?: string } | undefined)?.sessionPayment === 'at-close';
+      const paymentTiming = atClose
+        ? 'pay-on-pickup'
+        : ((receiveSettings?.paymentTiming as string | undefined) ??
+          (branchMethod?.paymentTiming as string | undefined));
 
       const priced: PricedLine[] = [];
       for (const [index, line] of input.lines.entries()) {
@@ -670,8 +676,12 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
       }
 
       let providerCode = input.payment?.providerCode;
-      if (enforce && receiveSettings) {
-        providerCode ??= receiveSettings.paymentTiming === 'pay-on-pickup' ? 'cash' : undefined;
+      // At-close: the closer picks cash or a counter transfer, so an order placed without a
+      // provider is fine even on a branch that does not list cash.
+      const atCloseUnpicked =
+        atClose && providerCode === undefined && !receiveSettings?.paymentProviders.includes('cash');
+      if (enforce && receiveSettings && !atCloseUnpicked) {
+        providerCode ??= paymentTiming === 'pay-on-pickup' ? 'cash' : undefined;
         if (!providerCode || !receiveSettings.paymentProviders.includes(providerCode)) {
           throw new OrderingError('VALIDATION_ERROR', 'payment method is not offered here', {
             details: { field: 'payment.providerCode', allowed: receiveSettings.paymentProviders },

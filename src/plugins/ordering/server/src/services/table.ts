@@ -115,6 +115,12 @@ const tableService = ({ strapi }: { strapi: Core.Strapi }) => {
     qrUrl: row.qrUrl,
   });
 
+  /** Change-log snapshot: never the QR link — it carries the live table token. */
+  const logged = (row: TableRow) => {
+    const { qrUrl: _qrUrl, ...rest } = serialize(row);
+    return rest;
+  };
+
   const createWithToken = async (
     data: Omit<TableRow, 'id' | 'qrTokenHash' | 'qrUrl'>,
     ctx: ServiceContext,
@@ -130,7 +136,7 @@ const tableService = ({ strapi }: { strapi: Core.Strapi }) => {
         entityId: row.id,
         entityLabel: `${row.code} · ${row.name}`,
         locationRef: row.locationRef,
-        after: serialize(row),
+        after: logged(row),
       },
       ctx,
     );
@@ -299,8 +305,8 @@ const tableService = ({ strapi }: { strapi: Core.Strapi }) => {
           entityId: row.id,
           entityLabel: `${updated.code} · ${updated.name}`,
           locationRef: row.locationRef,
-          before: serialize(row),
-          after: serialize(updated),
+          before: logged(row),
+          after: logged(updated),
         },
         ctx,
       );
@@ -510,8 +516,14 @@ const tableService = ({ strapi }: { strapi: Core.Strapi }) => {
         reference = `tsc${sessionId}-${randomBytes(4).toString('hex')}`;
       }
       return strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
-        // Lock the session row first — two concurrent closes serialize here, so the second
-        // one sees `closed` and returns the recorded summary instead of double-collecting.
+        // Lock the table row first, as order create does (openSessionFor): an order still being
+        // placed on this session commits before the close reads the orders, so it is either
+        // collected here or lands on a new session. Then the session row — two concurrent
+        // closes serialize there, the second sees `closed` and returns the recorded summary.
+        const link = (await trx('plugins_ordering_table_session_table_lnk')
+          .where({ table_session_id: sessionId })
+          .first('dining_table_id')) as { dining_table_id: number } | undefined;
+        if (link) await trx('plugins_ordering_dining_table').where({ id: link.dining_table_id }).forUpdate();
         await trx('plugins_ordering_table_session').where({ id: sessionId }).forUpdate();
         const session = (await sessions().findOne({
           where: { id: sessionId },
@@ -541,6 +553,32 @@ const tableService = ({ strapi }: { strapi: Core.Strapi }) => {
           select: ['id', 'code', 'status'],
           orderBy: { id: 'asc' },
         })) as Array<{ id: number; code: string; status: string }>;
+
+        // One bank reference per close: the first owing order takes it as is, later ones get
+        // `<base>-<orderId>` (base trimmed so it fits 41) — never a suffix on a suffix.
+        const base = reference ?? '';
+        let firstReferenced: number | null = null;
+        const referenceFor = (orderId: number): string => {
+          if (firstReferenced === null || firstReferenced === orderId) {
+            firstReferenced = orderId;
+            return base;
+          }
+          const suffix = `-${orderId}`;
+          return `${base.slice(0, 41 - suffix.length)}${suffix}`;
+        };
+        if (method === 'transfer-at-counter') {
+          // recordManual takes `sepay-ref:<reference>` before the group locks (as webhook ingest
+          // does); take every reference this close may use now, before our group locks, so a
+          // SePay webhook for the same reference cannot deadlock against the close.
+          const candidates = new Set<string>([base]);
+          for (const row of orderRows) {
+            const suffix = `-${row.id}`;
+            candidates.add(`${base.slice(0, 41 - suffix.length)}${suffix}`);
+          }
+          for (const ref of [...candidates].sort()) {
+            await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [`sepay-ref:sepay:${ref}`]);
+          }
+        }
 
         // Lock order groups first (stable id order), then validate every order is out of the
         // kitchen — `served`, or a terminal state when it was canceled mid-meal.
@@ -600,15 +638,13 @@ const tableService = ({ strapi }: { strapi: Core.Strapi }) => {
             await s.matching().recordManual(
               {
                 orderId: row.id,
-                reference: reference as string,
+                reference: referenceFor(row.id),
                 amount: due,
                 currency: aggregate.order.currency,
                 transferredAt: nowOf(ctx).toISOString(),
               },
               ctx,
             );
-            // One bank reference per close; later orders of the same session get suffixes.
-            reference = `${reference}-${row.id}`.slice(0, 41);
           }
           collected.push({ orderId: row.id, code: row.code, amount: due });
         }

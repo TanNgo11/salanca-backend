@@ -320,6 +320,114 @@ withApp(async (app) => {
     const rerun = await runTableSessionAutoclose(app, { owner });
     assert.equal(rerun.resolved, 1, 'the alert resolves once the session closes');
 
+    // ── Session bill: the canceled order is not printed (close did not collect it) ───────
+    const bill = await app.plugin('ordering').service('print').forSession(session1.id, systemCtx);
+    assert.equal(bill.orderCodes.length, 2, 'two live orders on the bill');
+    assert.ok(!bill.orderCodes.includes(canceledCode), 'canceled order is off the bill');
+
+    // ── Change-log never carries the QR link (it holds the live table token) ─────────────
+    const tableLogs = await app.db.query('plugin::ordering.admin-change-log').findMany({
+      where: { entityType: 'dining-table' },
+    });
+    assert.ok(tableLogs.length > 0, 'table changes are logged');
+    const logText = JSON.stringify(tableLogs);
+    assert.ok(!logText.includes('qrUrl'), 'no qrUrl in change-log');
+    for (const token of [b1Token, newToken, t1Token, b2Token]) {
+      assert.ok(!logText.includes(token), 'no table token in change-log');
+    }
+
+    // ── Transfer close: one bank reference, later orders `<ref>-<orderId>`, no stacking ──
+    const b3 = (
+      await lan('POST', '/tables', { locationRef: 'Q1', code: 'B3', name: 'Bàn 3' })
+    ).body.item;
+    const b3Token = tokenOf(b3.qrUrl);
+    for (let i = 0; i < 3; i += 1) assert.equal((await place(b3Token)).status, 201);
+    const b3Orders = await app.db.query('plugin::ordering.order').findMany({
+      where: { tableSession: { table: { code: 'B3' } } },
+      select: ['id', 'code'],
+      orderBy: { id: 'asc' },
+      populate: { tableSession: { select: ['id'] } },
+    });
+    assert.equal(b3Orders.length, 3);
+    for (const row of b3Orders) {
+      const aggregate = await order.getOrder(row.id, systemCtx);
+      for (const group of aggregate.groups) {
+        for (const to of ['preparing', 'ready', 'served']) {
+          await transition.transitionGroup({ orderId: row.id, groupId: group.id, to }, systemCtx);
+        }
+      }
+    }
+    const b3Session = b3Orders[0].tableSession.id;
+    const transferClose = await lan('POST', `/table-sessions/${b3Session}/close`, {
+      method: 'transfer-at-counter',
+      reference: 'CK-BAN3',
+    });
+    assert.equal(transferClose.status, 200, JSON.stringify(transferClose.body));
+    assert.equal(transferClose.body.item.collected.length, 3);
+    const manual = await app.db.query('plugin::ordering.payment-event').findMany({
+      where: { providerCode: 'sepay', kind: 'manual' },
+      orderBy: { id: 'asc' },
+    });
+    assert.deepEqual(
+      manual.map((row) => row.providerTransactionId),
+      ['CK-BAN3', `CK-BAN3-${b3Orders[1].id}`, `CK-BAN3-${b3Orders[2].id}`],
+      'each later order gets one suffix on the base reference',
+    );
+
+    // ── sessionPayment 'at-close': every order goes pay-later, whatever paymentTiming says ──
+    await branchRows.update({
+      where: { id: q3.id },
+      data: {
+        fulfillment: {
+          dineIn: {
+            ...dineInOpen,
+            paymentTiming: 'prepay',
+            // No cash: an at-close order needs no provider, the closer picks the method.
+            paymentProviders: ['sepay'],
+            sessionPayment: 'at-close',
+          },
+        },
+      },
+    });
+    const q3Table = (
+      await other('POST', '/tables', { locationRef: 'Q3', code: 'C1', name: 'Bàn C1' })
+    ).body.item;
+    const atClose = await place(tokenOf(q3Table.qrUrl), 'Q3');
+    assert.equal(atClose.status, 201, JSON.stringify(atClose.body));
+    const atCloseOrder = await app.db.query('plugin::ordering.order').findOne({
+      where: { code: atClose.body.order.code },
+    });
+    const atCloseAgg = await order.getOrder(atCloseOrder.id, systemCtx);
+    assert.equal(atCloseAgg.groups[0].workflowName, 'dine-in-pay-later', 'at-close forces pay-later');
+    assert.equal(atCloseAgg.groups[0].status, 'awaiting-acceptance');
+
+    // ── per-order prepay: the storefront payment step reads dine-in providers, not pickup's ──
+    await branchRows.update({
+      where: { id: q3.id },
+      data: {
+        fulfillment: {
+          dineIn: {
+            ...dineInOpen,
+            paymentTiming: 'prepay',
+            paymentProviders: ['sepay'],
+            sessionPayment: 'per-order',
+          },
+        },
+      },
+    });
+    const prepaid = await api(
+      'POST',
+      '/orders',
+      { ...orderBody(tokenOf(q3Table.qrUrl), 'Q3'), payment: { providerCode: 'sepay' } },
+      key(),
+    );
+    assert.equal(prepaid.status, 201, JSON.stringify(prepaid.body));
+    const prepaidView = await app
+      .plugin('ordering')
+      .service('storefront')
+      .paymentByToken(prepaid.body.token);
+    assert.ok(prepaidView.presentation, 'dine-in sepay shows the transfer QR (Q3 pickup has no sepay)');
+
     // ── QR svg + scope gate (raw fetch — the body is XML, not JSON) ──────────────────────
     const svgRes = await fetch(`${base}/ordering/tables/${b1.id}/qr.svg`, {
       headers: { Authorization: `Bearer ${await http.tokenOf('lan')}` },
@@ -329,7 +437,7 @@ withApp(async (app) => {
     assert.equal((await other('GET', `/tables/${b1.id}/qr.svg`)).status, 404, 'out-of-scope 404');
 
     console.log(
-      '[ordering-test] dine-in: table CRUD + QR rotate, token resolve, 3 orders/1 session, concurrent first-order, invalid/disabled/cross-branch, unfinished-close block, cash close + actor attribution, idempotent close, alert-only autoclose verified',
+      '[ordering-test] dine-in: table CRUD + QR rotate, token resolve, 3 orders/1 session, concurrent first-order, invalid/disabled/cross-branch, unfinished-close block, cash close + actor attribution, idempotent close, alert-only autoclose, bill skips canceled, no token in change-log, transfer-close references, at-close pay-later without cash, dine-in prepay presentation verified',
     );
   } finally {
     await http.cleanup();
