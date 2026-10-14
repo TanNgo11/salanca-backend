@@ -31,10 +31,24 @@ import { createCashPaymentProvider } from './providers/cash';
 import { createSelfDeliveryProvider } from './providers/self-delivery';
 import { createFixtureSepayClient, createSepayTransactionClient } from './providers/sepay/client';
 import { createSepayPaymentProvider, sepaySettingsFromConfig } from './providers/sepay/provider';
+import { createMomoPaymentProvider, momoSettingsFromConfig } from './providers/momo/provider';
+import { createVnpayPaymentProvider, vnpaySettingsFromConfig } from './providers/vnpay/provider';
+import {
+  ahamoveSettingsFromConfig,
+  createAhamoveProvider,
+} from './providers/ahamove/provider';
 import {
   createCaptureNotificationProvider,
   createEmailNotificationProvider,
 } from './providers/email-notification';
+import {
+  createZaloNotificationProvider,
+  zaloSettingsFromConfig,
+} from './providers/zalo-zns/provider';
+import {
+  createEsmsNotificationProvider,
+  esmsSettingsFromConfig,
+} from './providers/esms/provider';
 import { createOrderingCatalogAdapter } from './providers/ordering-catalog/adapter';
 import {
   createTestCaptchaProvider,
@@ -155,11 +169,102 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
       }),
     );
   }
+  // O13 wallets: opt-in providers — registered only when the env config parses, same as SePay.
+  if (momoSettingsFromConfig(config.providers.payment)) {
+    registry.registerPaymentProvider(
+      createMomoPaymentProvider({
+        settings: () =>
+          momoSettingsFromConfig(
+            (strapi.config.get('plugin::ordering') as OrderingConfig).providers.payment,
+          ),
+        publicApiUrl: () =>
+          (strapi.config.get('plugin::ordering') as OrderingConfig).publicApiUrl,
+      }),
+    );
+  }
+  if (vnpaySettingsFromConfig(config.providers.payment)) {
+    registry.registerPaymentProvider(
+      createVnpayPaymentProvider({
+        settings: () =>
+          vnpaySettingsFromConfig(
+            (strapi.config.get('plugin::ordering') as OrderingConfig).providers.payment,
+          ),
+        publicApiUrl: () =>
+          (strapi.config.get('plugin::ordering') as OrderingConfig).publicApiUrl,
+      }),
+    );
+  }
+  // O13 carrier: registered only when the env config parses — the same shape as the wallets.
+  // Branch delivery.carrier may name it; booking itself is always a staff "Gọi xe" action.
+  if (ahamoveSettingsFromConfig(config.providers.fulfillment)) {
+    registry.registerFulfillmentProvider(
+      createAhamoveProvider({
+        settings: () =>
+          ahamoveSettingsFromConfig(
+            (strapi.config.get('plugin::ordering') as OrderingConfig).providers.fulfillment,
+          ),
+        zonesFor: async (locationRef) => {
+          const branches = strapi
+            .plugin('ordering')
+            .service('branch') as ReturnType<typeof branchFactory>;
+          const row = await branches.findByCode(locationRef);
+          return row ? branches.deliverySettings(row).zones : [];
+        },
+      }),
+    );
+  }
   // Tests capture emails in memory; everything else goes through the app's email plugin.
   registry.registerNotificationProvider(
     'email',
     config.testing.builtins ? createCaptureNotificationProvider() : createEmailNotificationProvider(strapi),
   );
+  // O13 paid channels: registered only when their env config parses (same opt-in gate as the
+  // wallet providers). `sms` is the eSMS adapter; `zalo` is ZNS template messaging.
+  if (zaloSettingsFromConfig(config.providers.notification)) {
+    registry.registerNotificationProvider(
+      'zalo',
+      createZaloNotificationProvider({
+        settings: () =>
+          zaloSettingsFromConfig(
+            (strapi.config.get('plugin::ordering') as OrderingConfig).providers.notification,
+          ),
+        // Single-use refresh tokens: refresh under a cross-process lock and keep the rotated
+        // token in the plugin store (env only seeds the first one). Never logged.
+        tokenStore: {
+          refresh: async (initialRefreshToken, exchange, rejectedAccessToken) =>
+            (await strapi.db.transaction(async ({ trx }) => {
+              await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', ['ordering-zalo-oauth']);
+              const store = strapi.store({ type: 'plugin', name: 'ordering', key: 'zalo-oauth' });
+              const saved = (await store.get({})) as
+                | { refreshToken?: string; accessToken?: string; expiresAt?: number; seed?: string }
+                | null;
+              // Another process may have refreshed while this one waited for the lock.
+              if (saved?.accessToken && saved.accessToken !== rejectedAccessToken && typeof saved.expiresAt === 'number' && saved.expiresAt > Date.now() && saved.seed === initialRefreshToken) {
+                return { accessToken: saved.accessToken, expiresAt: saved.expiresAt };
+              }
+              // A new env refresh token (re-authorized app) replaces the stored chain.
+              const current = saved?.refreshToken && saved.seed === initialRefreshToken ? saved.refreshToken : initialRefreshToken;
+              const fresh = await exchange(current);
+              await store.set({
+                value: { refreshToken: fresh.refreshToken, accessToken: fresh.accessToken, expiresAt: fresh.expiresAt, seed: initialRefreshToken },
+              });
+              return { accessToken: fresh.accessToken, expiresAt: fresh.expiresAt };
+            })) as { accessToken: string; expiresAt: number },
+        },
+      }),
+    );
+  }
+  if (esmsSettingsFromConfig(config.providers.notification)) {
+    registry.registerNotificationProvider(
+      'sms',
+      createEsmsNotificationProvider({
+        settings: () =>
+          esmsSettingsFromConfig(
+            (strapi.config.get('plugin::ordering') as OrderingConfig).providers.notification,
+          ),
+      }),
+    );
+  }
   type NotificationService = {
     onOrderPlaced: (event: never) => Promise<void>;
     onOrderTransitioned: (event: never) => Promise<void>;
@@ -182,6 +287,11 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
     customers().onOrderTransitioned(event),
   );
   registry.registerOutboxConsumer('order.edited', (event) => notifications().onOrderEdited(event as never));
+  // O13 review: wallet refunds call MoMo/VNPay after the refund row commits (stable request id).
+  registry.registerOutboxConsumer('refund.wallet-dispatch', (event) =>
+    (strapi.plugin('ordering').service('refund') as { dispatchWalletRefund(id: number): Promise<void> })
+      .dispatchWalletRefund(Number(event.payload.refundId)),
+  );
   registry.registerOutboxConsumer('rating.invite', (event) => notifications().onRatingInvite(event as never));
   registry.registerOutboxConsumer('fulfillment-group.transitioned', (event) =>
     notifications().onGroupTransitioned(event as never),

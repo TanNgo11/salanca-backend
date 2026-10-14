@@ -71,6 +71,7 @@ const REASONS = [
   'order-closed',
   'already-paid',
   'account-mismatch',
+  'provider-uncertain',
   'review-all',
 ] as const;
 
@@ -90,6 +91,8 @@ const reasonLabel = (t: Translate, reason: string | null): string => {
       return t('review.reason.already-paid');
     case 'account-mismatch':
       return t('review.reason.account-mismatch');
+    case 'provider-uncertain':
+      return t('review.reason.provider-uncertain');
     case 'review-all':
       return t('review.reason.review-all');
     default:

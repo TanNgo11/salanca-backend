@@ -13,6 +13,8 @@ export type Payment = {
   currency: Currency;
   status: 'pending' | 'authorized' | 'captured' | 'failed' | 'cancelled';
   providerReference?: string;
+  /** O13 wallet session row (`payment.session`) — initiatedAt, provider txn ids for refunds. */
+  session?: JsonObject;
 };
 
 export type PaymentEvent = {
@@ -43,6 +45,8 @@ export type Refund = {
 export type RawWebhook = {
   headers: Record<string, string>;
   body: string;
+  /** O13: parsed query params for GET IPNs (VNPay signs the param set, there is no body). */
+  params?: Record<string, unknown>;
   receivedAt: string;
 };
 
@@ -78,6 +82,11 @@ export type PaymentInitiationResult = {
   status: Payment['status'];
   providerReference?: string;
   redirectUrl?: string;
+  /**
+   * O13 wallet sessions: provider-side display data (deeplink, qrCodeUrl, requestId) stored on
+   * `payment.session`. Never put secrets or customer PII here — Admin may render it.
+   */
+  session?: JsonObject;
 };
 
 export type PaymentAction = { payment: Payment; amount?: Money; providerReference?: string };
@@ -98,6 +107,8 @@ export interface PaymentProvider {
     bankAccount?: JsonObject;
     memo?: string;
     expiresAt?: string;
+    /** O13 wallets: the stored session's pay URL, replayed for the payment page. */
+    redirectUrl?: string;
   }>;
   initiate(input: PaymentInitiation): Promise<PaymentInitiationResult>;
   authorize?(input: PaymentAction): Promise<PaymentActionResult>;
@@ -110,7 +121,14 @@ export interface PaymentProvider {
     headers?: Record<string, string>;
     body?: JsonObject;
   };
-  queryTransaction?(reference: string): Promise<NormalizedPaymentEvent | null>;
+  /**
+   * Status query by session reference. `context.session` carries the stored wallet session
+   * (initiatedAt, transactionNo) — VNPay querydr signs the original transaction's create date.
+   */
+  queryTransaction?(
+    reference: string,
+    context?: { session?: JsonObject },
+  ): Promise<NormalizedPaymentEvent | null>;
   listTransactions?(input: {
     from: string;
     to: string;

@@ -26,6 +26,9 @@ export default collection(
     canceledAt: { type: 'datetime' },
     trackingNumber: { type: 'string' },
     trackingUrl: { type: 'string' },
+    /** O13 carrier legs: the raw carrier status (e.g. `IN PROCESS`) and the carrier's own fee. */
+    carrierStatus: { type: 'string' },
+    carrierFee: { type: 'integer' },
     metadata: { type: 'json' },
     lines: {
       type: 'relation',

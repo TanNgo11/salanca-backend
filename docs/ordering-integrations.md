@@ -1,11 +1,11 @@
-# Ordering integrations — webhook ra ngoài, OpenAPI, CSV catalog, mẫu email (O10)
+# Ordering integrations — webhook ra ngoài, provider vào, OpenAPI, CSV catalog, mẫu email (O10/O13)
 
 Tài liệu cho hệ thống bên ngoài và người vận hành muốn tích hợp với plugin `ordering` mà không sửa
-code. Bốn khối: **webhook sự kiện ra ngoài** (có ký HMAC, thử lại, tự tắt), **OpenAPI** cho toàn bộ
-API, **nhập/xuất catalog CSV**, và **mẫu email sửa được trong Admin**.
+code. Các khối: **webhook sự kiện ra ngoài** (có ký HMAC, thử lại, tự tắt), **adapter nhà cung cấp
+vào** (O13), **OpenAPI** cho toàn bộ API, **nhập/xuất catalog CSV**, và **mẫu email sửa được trong Admin**.
 
-Phạm vi: chỉ webhook *ra* (plugin → hệ ngoài). Webhook *vào* ngoài phạm vi O10. Anonymous/public API
-vẫn deny-by-default; các route Admin đều chạy qua RBAC plugin.
+Phạm vi: webhook *ra* (plugin → hệ ngoài) ở mục 1; webhook/IPN *vào* của đối tác (O13) ở mục 5.
+Anonymous/public API vẫn deny-by-default; các route Admin đều chạy qua RBAC plugin.
 
 ## 1. Webhook sự kiện ra ngoài
 
@@ -187,3 +187,26 @@ Kiểm chứng tự động: `scripts/ordering/webhooks-out.mjs` (fanout, chữ 
 tự tắt, ping, resend, xoay), `webhooks-admin.mjs` (quyền/SSRF ở route), `openapi.mjs` (coverage +
 3.1), `catalog-csv.mjs` (round-trip, stale, caps), `email-templates.mjs` (lưu/gửi thử/lỗi→mặc định+
 alert/reset). Tất cả chạy trong `pnpm run check:ordering`.
+
+## 5. Adapter nhà cung cấp vào (O13)
+
+Thanh toán (MoMo, VNPay, SePay), giao vận (Ahamove) và thông báo (Zalo ZNS, SMS eSMS) là adapter
+trong `src/plugins/ordering/server/src/providers/*` đi qua registry + contract chung — không bypass
+payment-matching/fulfillment/notification/outbox. Tất cả **tắt mặc định** và bật bằng biến môi
+trường (`MOMO_*`, `VNPAY_*`, `AHAMOVE_*`, `ZALO_*`, `ESMS_*` — xem `.env.example`); cấu hình sai khi
+đang bật → plugin từ chối boot.
+
+| Provider | Webhook/IPN vào | ACK | Đối soát |
+| --- | --- | --- | --- |
+| SePay | `POST …/webhooks/sepay` (Bearer) | 200 | Job `sepay-reconciliation` (pull statement) |
+| MoMo | `POST …/webhooks/momo` (HMAC-SHA256) | 204 | Job `wallet-status-check` (poll `query`) |
+| VNPay | `GET …/webhooks/vnpay` (ký trên query) | `{RspCode,Message}` | Job `wallet-status-check` |
+| Ahamove | `POST …/webhooks/ahamove` (token) | 200 | Webhook đẩy trạng thái chuyến |
+
+Trang Admin **Bán hàng → Cấu hình → Nhà cung cấp** (`settings.manage`) hiển thị trạng thái từng
+provider: badge cấu hình/lỗi, môi trường sandbox/production, mã đối tác che 4 ký tự cuối, URL
+webhook cần cấu cho đối tác, và env var còn thiếu. Không có giá trị bí mật nào hiển thị — cấu hình
+chỉ sửa được qua env.
+
+Viết adapter mới (GHN, thẻ quà tặng…): xem `docs/ordering-writing-providers.md` + từng doc trong
+`docs/providers/`.

@@ -88,7 +88,12 @@ export default {
       publicRoute('PATCH', '/carts/current/lines/:lineId', 'cart.updateLine'),
       publicRoute('DELETE', '/carts/current/lines/:lineId', 'cart.removeLine'),
       publicRoute('POST', '/carts/current/checkout', 'cart.checkout'),
+      // O13: wallet checkout sessions (X-Order-Token) and the display-only return landing.
+      publicRoute('POST', '/payments/session', 'storefront.paymentSession'),
+      publicRoute('GET', '/payments/return/:provider', 'storefront.paymentReturn'),
       publicRoute('POST', '/webhooks/:providerCode', 'webhook.receive'),
+      // VNPay sends its IPN as GET — the signed data is the query-param set itself.
+      publicRoute('GET', '/webhooks/:providerCode', 'webhook.receive'),
       // O10: the public contract, self-served (cached 1h by the controller).
       publicRoute('GET', '/openapi.json', 'openapi.document'),
     ],
@@ -256,6 +261,10 @@ export default {
       adminRoute('POST', '/orders/:id/transition', 'admin-orders.transition', 'order.process'),
       adminRoute('POST', '/orders/:id/notes', 'admin-orders.addNote', 'order.process'),
       adminRoute('POST', '/orders/:id/cash-handover', 'admin-orders.cashHandover', 'payment.record-cash'),
+      // O13 "Gọi xe": staff quotes, books and cancels a carrier trip for the delivery leg.
+      adminRoute('POST', '/orders/:id/carrier/quote', 'admin-orders.carrierQuote', 'order.process'),
+      adminRoute('POST', '/orders/:id/carrier/book', 'admin-orders.carrierBook', 'order.process'),
+      adminRoute('POST', '/orders/:id/carrier/cancel', 'admin-orders.carrierCancel', 'order.process'),
       adminRoute('POST', '/orders/:id/cancel', 'admin-orders.cancel', 'order.cancel'),
       adminRoute(
         'GET',
@@ -419,6 +428,24 @@ export default {
         'DELETE',
         '/notification-templates/:code/:locale',
         'notification-templates.remove',
+        'settings.manage',
+      ),
+      // O13 "Nhà cung cấp" (screens P1): read-only grouped provider overview — masked
+      // identifiers only, secrets stay env-only.
+      adminRoute('GET', '/providers', 'providers.list', 'settings.manage'),
+      // O13 "Kênh thông báo" (screens P3): ordered channel chain + ZNS mapping per template,
+      // plus a staff test-send that writes a `test:*` delivery row.
+      adminRoute('GET', '/notification-channels', 'notification-channels.list', 'settings.manage'),
+      adminRoute(
+        'PUT',
+        '/notification-channels/:template',
+        'notification-channels.put',
+        'settings.manage',
+      ),
+      adminRoute(
+        'POST',
+        '/notification-channels/test',
+        'notification-channels.test',
         'settings.manage',
       ),
     ],

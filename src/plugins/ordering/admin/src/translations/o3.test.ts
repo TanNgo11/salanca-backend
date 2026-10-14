@@ -12,6 +12,7 @@ import { o15Messages } from './o15';
 import { o10Messages } from './o10';
 import { o8Messages } from './o8';
 import { o11Messages } from './o11';
+import { o13Messages } from './o13';
 import { o14Messages } from './o14';
 import { o12Messages } from './o12';
 
@@ -57,7 +58,7 @@ const DYNAMIC: Record<string, string[]> = {
   'settings.rating.sentiment': ['positive', 'negative'],
   'reports.group': ['day', 'category', 'product', 'payment', 'receive', 'promotion'],
   'reports.col': ['promotion', 'discount'],
-  'alert.code': ['low-rating'],
+  'alert.code': ['low-rating', 'notification-daily-limit'],
   'webhook.group': ['order', 'fulfillment', 'payment', 'refund', 'ops', 'promotion', 'gift-card', 'rating'],
   'webhook.deliveries.filter': ['all', 'pending', 'succeeded', 'failed'],
   'error.WEBHOOK_URL_INVALID': ['scheme', 'invalid', 'private-address', 'unresolvable'],
@@ -69,6 +70,11 @@ const DYNAMIC: Record<string, string[]> = {
   'price.adjust': ['percent', 'amount'],
   'price.target': ['all', 'categories', 'products'],
   'group.source': ['manual', 'auto'],
+  'ops.webhook': ['ok', 'slow', 'failing'],
+  'p1.provider': ['cash', 'sepay', 'momo', 'vnpay', 'gift-card', 'self-delivery', 'ahamove', 'ghn', 'email', 'zalo', 'sms'],
+  'p1.group': ['payment', 'fulfillment', 'notification'],
+  'p1.state': ['configured', 'unconfigured', 'error', 'not-implemented'],
+  'p1.env': ['sandbox', 'production'],
 };
 
 describe('O3 admin translations', () => {
@@ -98,6 +104,7 @@ describe('O3 admin translations', () => {
           o10Messages[key] ||
           o11Messages[key] ||
           o8Messages[key] ||
+          o13Messages[key] ||
           o14Messages[key] ||
           o12Messages[key],
       );
@@ -113,6 +120,7 @@ describe('O3 admin translations', () => {
       ...o10Messages,
       ...o11Messages,
       ...o8Messages,
+      ...o13Messages,
       ...o14Messages,
       ...o12Messages,
     })) {

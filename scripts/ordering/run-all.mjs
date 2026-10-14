@@ -78,6 +78,8 @@ const scripts = [
   'cart.mjs',
   'cart-checkout.mjs',
   'cart-promotion.mjs',
+  'review-extra.mjs',
+  'review-round3.mjs',
   // O11 step 5: reorder + abandoned-cart reminder.
   'cart-reminder.mjs',
   // O11 step 6: Decree 13 export/erasure + staff data-request queue.
@@ -100,6 +102,14 @@ const scripts = [
   'kds.mjs',
   // O12 step 7: QR dine-in — tables, sessions, close-and-collect, autoclose alert.
   'dine-in.mjs',
+  'review-round4.mjs',
+  // O13: provider adapters — all fake-server, no real network.
+  'momo.mjs',
+  'vnpay.mjs',
+  'wallet-status.mjs',
+  'ahamove.mjs',
+  'zalo-zns.mjs',
+  'sms.mjs',
 ];
 
 const results = [];

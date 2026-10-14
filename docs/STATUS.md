@@ -32,6 +32,63 @@ Gate: lint, typecheck, typecheck:admin, vitest `src/plugins/ordering`, `build:or
 (`pause` `auto-reject` `fees` `allergens` `print` `kds` `dine-in`) + các script bị ảnh hưởng —
 số liệu trong Completion record. **Open:** manual UAT browser (in nhiệt thật, KDS trên TV/tablet,
 quét QR bằng điện thoại); merge về `feat/ordering` theo quyết định chủ dự án.
+2026-10-14: **Ordering O13 (provider adapters: MoMo, VNPay, Ahamove, Zalo ZNS, eSMS) — implemented + automated verification passed, chờ manual UAT** trên `TanNgo11/ordering-o13` (tách từ `feat/ordering`; chưa merge/push). 8 commit bắt đầu từ `4c223f9` theo [`phases/phase-ordering-13-providers.md`](phases/phase-ordering-13-providers.md) + [`plans/ordering-o13-providers.md`](plans/ordering-o13-providers.md) (Completion record có bảng bước→commit đầy đủ):
+
+- **Review fixes (2026-10-14)**: 12 lỗi review (P0 chữ ký VNPay, P1 capture ví/job/hoàn tiền/Zalo token, P2 hạn mức, mã 9000/07, open redirect, che API key, HTTP cap, Ahamove COD/khóa/tọa độ) — bảng lỗi→commit→test trong Completion record của plan O13. Mã đối tác vẫn che 4 ký tự cuối; API key không còn hiện.
+- **Ví MoMo/VNPay**: `POST /payments/session` (redirect/QR, `payment.session`), IPN `POST|GET
+  /webhooks/:providerCode` ký HMAC/`vnp_SecureHash` trên raw body, ACK theo spec (204 /
+  `{RspCode,Message}`), `queryTransaction` + refund qua `payment.session`; job
+  `wallet-status-check` đối soát session pending (không có list API). Bắt buộc
+  `ORDERING_PUBLIC_API_URL` khi bật.
+- **Ahamove**: quote/book/cancel idempotent (`carrier-assignment`, cột carrier trên
+  fulfillment), webhook trạng thái qua route chung, COD gate trước khi `COMPLETED`, nút
+  **Gọi xe** trên chi tiết đơn/giao.
+- **Thông báo**: Zalo ZNS (OAuth refresh, retry `-124`) + eSMS; `notification-channel-rule`
+  giữ chuỗi kênh `zalo→sms→email`, fallback khi provider chưa cấu hình/lỗi, hạn mức
+  Zalo+SMS/ngày với alert `notification-daily-limit`; OTP kênh `sms`/`zalo` opt-in qua
+  `ORDERING_OTP_CHANNELS`. Delivery row lưu hash recipient; `failureText` lọc lỗi provider.
+- **Trang Admin**: **Nhà cung cấp** (P1, `settings.manage`, chỉ đọc — badge cấu hình/lỗi, môi
+  trường, mã đối tác che 4 ký tự cuối, URL webhook/IPN, env còn thiếu); tab **Kênh thông báo**
+  (P3); Ops (P4) thêm thẻ webhook 24h (`webhook-events-24h:*`) + card `wallet-status-check`.
+  Webhook fulfillment (ahamove) nằm trong hàng sức khỏe webhook.
+- **Migration `0012-o13-providers`** (O9=0010, O12=0011 trên nhánh khác): bảng
+  `notification-channel-rule` + index `provider_reference` cho carrier webhook.
+- **Docs**: `docs/providers/{momo,vnpay,ahamove,zalo-zns,sms-esms}.md` (version, chữ ký,
+  result code, sandbox, rate limit), `docs/ordering-writing-providers.md`, cập nhật
+  integrations/runbook/security-baseline/staff-guide.
+
+Gate (DB `salanca_ordering_o13`): `lint`, `typecheck`, `typecheck:admin`, `vitest` plugin
+713 test / 73 file, `build:ordering`, 15 script tích hợp PASS (`momo`, `vnpay`,
+`wallet-status`, `ahamove`, `zalo-zns`, `sms`, `sepay-webhook`, `sepay-refund`,
+`payment-refund`, `delivery-assignment`, `notifications`, `customer-auth`, `email-templates`,
+`audit-coverage`, `schema` — cập nhật 52 bảng/index/ledger cho 0012), `openapi.mjs --write`
+(110 path), `ORDERING_ENABLED=true strapi build`. **Open:** chưa UAT giao diện Admin
+(P1/P3/P4, Gọi xe); chưa UAT sandbox provider thật — mọi provider tắt mặc định; chờ duyệt
+merge `feat/ordering`.
+2026-10-14: **Ordering fourth review fixes** (`feat/ordering-finish`) — price-list writes
+commit metadata, derived prices and audit together; OTP verification serializes by target;
+session count/revoke/insert serializes by customer. Line refunds lock lines in ascending id
+order before payment, matching cancellation and order editing. All four defects reproduced
+on PostgreSQL before fixes; seven regression cases pass afterwards. Build:ordering, lint,
+typecheck, 62 Vitest files / 660 tests and eight targeted integration scripts passed.
+Changes remain uncommitted; full check:ordering and browser UAT were not run.
+[Fourth review record](plans/ordering-review-fixes-4.md).
+
+2026-10-14: **Ordering third review round** (`feat/ordering-finish`) ? customer/order linking and erasure
+share identity + row locks; finalization recounts open orders and scrubs newly closed orders. Checkout uses
+customer-before-cart locks; erasure records waiting for busy carts. Webhook fanout commits payload + activation
+atomically and repairs old incomplete deliveries on retry. Guest-cart merges consume their source once under
+both cart locks; OTP issuance serializes per email target and sends only after outermost commit. PostgreSQL
+regressions were red before fixes and green afterwards. Compact gates passed (including 62 Vitest files / 660
+tests); full check:ordering and manual UAT were not run. [Third review record](plans/ordering-review-fixes.md).
+
+2026-10-13: **Ordering review fixes** (`feat/ordering-finish`) ? cart checkout now locks/reloads the cart
+and atomically creates the order + converted link; same-key replay remains supported. Customer cancellation
+checks locked fulfillment states. Promotion guessing guards cover cart creation, deferred quotes, reads,
+line mutations and customer reorder. Automated verification: build:ordering, lint, typecheck, typecheck:admin,
+171 Vitest files / 1298 tests, and 9 targeted integration scripts passed on isolated
+`salanca_ordering_review_fixes`. Full check:ordering and browser UAT were not run; existing pg query
+deprecation warning remains. Evidence: [review fix record](plans/ordering-review-fixes.md).
 
 2026-10-13: **Ordering O14 (bảng giá theo kênh, nhóm khách, khung giờ)** trên `feat/ordering-o14`.
 Bảng giá riêng và bảng điều chỉnh, nhóm khách tay/tự động, job `customer-group-refresh` 03:15.

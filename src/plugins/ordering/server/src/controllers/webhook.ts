@@ -14,7 +14,10 @@ const headersOf = (ctx: HttpCtx): Record<string, string> => {
   return headers;
 };
 
-/** `POST /ordering/webhooks/:providerCode` — public, authenticated by the provider signature. */
+/**
+ * `/ordering/webhooks/:providerCode` — public, authenticated by the provider signature.
+ * POST carries a signed body; GET (VNPay IPN) carries the signed params in the query string.
+ */
 export default ({ strapi }: { strapi: Core.Strapi }) => {
   const webhooks = () => strapi.plugin('ordering').service('webhook') as ReturnType<typeof webhookFactory>;
 
@@ -27,11 +30,15 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
             providerCode: ctx.params.providerCode ?? '',
             body: ctx.request.body,
             headers: headersOf(ctx),
+            ...(ctx.method === 'GET'
+              ? { params: (ctx.query ?? {}) as Record<string, unknown> }
+              : {}),
           },
           { actor: { kind: 'system', actorRef: 'webhook' }, requestId },
         );
         ctx.status = response.status;
-        ctx.body = response.body ?? null;
+        // `body = null` would reset the status to 204 in Koa — only set it when defined.
+        if (response.body !== undefined) ctx.body = response.body;
       } catch (error) {
         sendError(ctx, error, requestId);
       }

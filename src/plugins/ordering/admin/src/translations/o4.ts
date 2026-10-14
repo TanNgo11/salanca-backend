@@ -46,6 +46,7 @@ export const o4Messages: Record<string, [string, string]> = {
   'review.reason.order-closed': ['Đơn đã hủy', 'Order closed'],
   'review.reason.already-paid': ['Đã trả rồi', 'Already paid'],
   'review.reason.account-mismatch': ['Sai tài khoản', 'Wrong account'],
+  'review.reason.provider-uncertain': ['Ví báo bất thường', 'Wallet flagged'],
   'review.reason.review-all': ['Duyệt hết', 'Review all'],
   'review.outcome.matched-manually': ['Đã gán', 'Assigned'],
   'review.outcome.refund-due': ['Cần hoàn', 'Refund due'],

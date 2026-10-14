@@ -7,6 +7,7 @@ import idempotency from './idempotency';
 import kitchen from './kitchen';
 import order from './order';
 import deliveryAssignment from './delivery-assignment';
+import carrierAssignment from './carrier-assignment';
 import courier from './courier';
 import transition from './transition';
 import payment from './payment';
@@ -32,12 +33,14 @@ import storefront from './storefront';
 import adminOrders from './admin-orders';
 import orderingSettings from './ordering-settings';
 import notification from './notification';
+import notificationChannel from './notification-channel';
 import notificationTemplate from './notification-template';
 import adminUnits from './admin-units';
 import alert from './alert';
 import alertRules from './alert-rules';
 import alertRecipients from './alert-recipients';
 import opsStatus from './ops-status';
+import providerStatus from './provider-status';
 import auditLog from './audit-log';
 import orderStream from './order-stream';
 import staffScope from './staff-scope';
@@ -86,15 +89,18 @@ export default {
   storefront,
   'admin-orders': adminOrders,
   'delivery-assignment': deliveryAssignment,
+  'carrier-assignment': carrierAssignment,
   courier,
   'ordering-settings': orderingSettings,
   notification,
+  'notification-channel': notificationChannel,
   'notification-template': notificationTemplate,
   'admin-units': adminUnits,
   alert,
   'alert-rules': alertRules,
   'alert-recipients': alertRecipients,
   'ops-status': opsStatus,
+  'provider-status': providerStatus,
   'audit-log': auditLog,
   'cash-closing': cashClosing,
   'order-export': orderExport,

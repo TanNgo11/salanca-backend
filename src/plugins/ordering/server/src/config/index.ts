@@ -1,6 +1,11 @@
 import { z } from '@strapi/utils';
 
+import { parseAhamoveSettings } from '../providers/ahamove/config';
+import { parseEsmsSettings } from '../providers/esms/config';
+import { parseMomoSettings } from '../providers/momo/config';
 import { parseSepaySettings } from '../providers/sepay/config';
+import { parseVnpaySettings } from '../providers/vnpay/config';
+import { parseZaloSettings } from '../providers/zalo-zns/config';
 
 /** Settings of one registered provider. Provider-specific keys are validated by the provider itself. */
 const providerSettings = z.looseObject({ enabled: z.boolean() });
@@ -57,6 +62,8 @@ export const configSchema = z.object({
     reconciliationCron: z.string().min(1),
     paymentExpiryCron: z.string().min(1),
     manualConfirmCron: z.string().min(1),
+    /** O13: polls wallet providers for pending payments when the IPN never arrives. */
+    walletStatusCron: z.string().min(1),
     opsCheckCron: z.string().min(1),
     retentionCron: z.string().min(1),
     auditChainCron: z.string().min(1),
@@ -128,6 +135,10 @@ export const configSchema = z.object({
     email: z.object({ enabled: z.boolean() }),
     /** Customer order link; `{token}` is replaced (put it after `#`, contracts §11). */
     orderLinkTemplate: z.string(),
+    /** O13: paid-channel cap per UTC day; deliveries beyond it fall to the next channel. */
+    dailyLimit: z.number().int().positive(),
+    /** Estimated per-message cost (VND) by channel — shown on P3, never a billing value. */
+    costEstimates: z.record(z.string(), z.number().int().min(0)),
   }),
   /** O12: table QR links. `{token}` is replaced by the table's raw secret. */
   tables: z.object({
@@ -189,6 +200,16 @@ export const configSchema = z.object({
     (value) => !value.builtins || process.env.NODE_ENV !== 'production',
     'testing.builtins is forbidden when NODE_ENV=production',
   ),
+  /**
+   * O13: absolute public base of THIS server (e.g. `https://cms.salanca.vn`), used to build
+   * wallet IPN/return URLs. Required when momo/vnpay is enabled — enforced in the validator.
+   */
+  publicApiUrl: z.string(),
+  /**
+   * Storefront origins (e.g. `https://salanca.vn`) a wallet `returnUrl` may point to. Any other
+   * return URL falls back to this server's own return page — no open redirect.
+   */
+  walletReturnOrigins: z.array(z.string()),
   productTypes: z.record(z.string(), providerSettings),
   providers: z.object({
     payment: z.record(z.string(), providerSettings),
@@ -196,6 +217,8 @@ export const configSchema = z.object({
     scheduling: z.record(z.string(), providerSettings),
     voucher: z.record(z.string(), providerSettings),
     captcha: z.record(z.string(), providerSettings),
+    /** O13: keyed by channel ('zalo', 'sms'); the entry carries the provider's own settings. */
+    notification: z.record(z.string(), providerSettings),
   }),
 });
 
@@ -234,6 +257,7 @@ export default {
       reconciliationCron: '0 0 * * * *',
       paymentExpiryCron: '*/30 * * * * *',
       manualConfirmCron: '0 15 * * * *',
+      walletStatusCron: '0 */2 * * * *',
       opsCheckCron: '0 * * * * *',
       retentionCron: '0 30 3 * * *',
       auditChainCron: '0 */5 * * * *',
@@ -252,6 +276,7 @@ export default {
         'idempotency-cleanup': 45,
         'sepay-reconciliation': 150,
         'manual-payment-check': 150,
+        'wallet-status-check': 8,
         retention: 1500,
         'audit-chain': 15,
         'webhook-dispatcher': 2,
@@ -296,7 +321,12 @@ export default {
       maxBatchesPerRun: 5,
     },
     clientIp: { secretHeader: 'x-ordering-client-secret', ipHeader: 'x-ordering-client-ip' },
-    notifications: { email: { enabled: false }, orderLinkTemplate: '' },
+    notifications: {
+      email: { enabled: false },
+      orderLinkTemplate: '',
+      dailyLimit: 2000,
+      costEstimates: { sms: 900, zalo: 300 },
+    },
     tables: { menuUrlTemplate: '' },
     storefront: {
       captchaProvider: '',
@@ -335,8 +365,17 @@ export default {
     },
     dataRights: { deadlineHours: 72 },
     testing: { builtins: false },
+    publicApiUrl: '',
+    walletReturnOrigins: [],
     productTypes: {},
-    providers: { payment: {}, fulfillment: {}, scheduling: {}, voucher: {}, captcha: {} },
+    providers: {
+      payment: {},
+      fulfillment: {},
+      scheduling: {},
+      voucher: {},
+      captcha: {},
+      notification: {},
+    },
   },
   /** Strapi ignores the return value; it only reacts to a thrown error. */
   validator(config: unknown) {
@@ -348,5 +387,17 @@ export default {
     }
     // SePay is optional. When it is enabled the provider schema is strict (secret, accounts).
     parseSepaySettings(result.data.providers.payment.sepay);
+    // O13 providers are disabled by default; enabled ones must pass their strict schema.
+    const momo = parseMomoSettings(result.data.providers.payment.momo);
+    const vnpay = parseVnpaySettings(result.data.providers.payment.vnpay);
+    parseAhamoveSettings(result.data.providers.fulfillment.ahamove);
+    parseZaloSettings(result.data.providers.notification.zalo);
+    parseEsmsSettings(result.data.providers.notification.sms);
+    // Wallet IPN/return URLs need the public base of this server — boot fails without it.
+    if ((momo || vnpay) && result.data.publicApiUrl.trim() === '') {
+      throw new Error(
+        'publicApiUrl is required when a wallet provider (momo/vnpay) is enabled: set ORDERING_PUBLIC_API_URL',
+      );
+    }
   },
 };

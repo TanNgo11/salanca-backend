@@ -368,7 +368,8 @@ const deliveryAssignment = ({ strapi }: { strapi: Core.Strapi }) => {
         );
         const fulfillment = await fulfillmentOf(group.id);
         if (fulfillment) {
-          const metadata = fulfillment.metadata ?? {};
+          const metadata = { ...(fulfillment.metadata ?? {}) };
+          delete metadata.carrierDriver;
           await fulfillments().update({
             where: { id: fulfillment.id },
             data: {
@@ -377,7 +378,12 @@ const deliveryAssignment = ({ strapi }: { strapi: Core.Strapi }) => {
               trackingNumber: null,
               trackingUrl: null,
               shippedAt: null,
-              metadata: { ...metadata, attempts: Number(metadata.attempts ?? 0) + 1 },
+              // O13: a dead carrier trip must not block "Gọi lại" — the ref is history now
+              // (metadata.carrierTrips), so booking a fresh trip can write a new one.
+              providerReference: null,
+              carrierStatus: null,
+              carrierFee: null,
+              metadata: { ...metadata, carrier: null, attempts: Number(metadata.attempts ?? 0) + 1 },
             },
           });
         }

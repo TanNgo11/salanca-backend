@@ -148,4 +148,56 @@ Lỗi mới: `PROVIDER_UNAVAILABLE` 503 (provider lỗi tạm), `CARRIER_BOOKING
 
 ## Completion record
 
-- Chưa bắt đầu.
+Trạng thái: **implemented + automated verification passed — chờ UAT tay + duyệt merge/push** của
+chủ dự án (nhánh `TanNgo11/ordering-o13`, tách từ `feat/ordering`).
+
+| Bước | Nội dung | Commit |
+| --- | --- | --- |
+| 0 | Môi trường, recon, đọc tài liệu chính thức | — (không code) |
+| 1 | `docs/providers/*.md` ×5, `providers/_http.ts` + `_config.ts` (strict, tắt mặc định), env loaders, `publicApiUrl`, `notification.dailyLimit`, `OTP_CHANNELS` | `4c223f9` |
+| 2 | MoMo: create/query/refund, IPN HMAC-SHA256 (204 ACK), `payment.session`, `walletIngest` trong payment-matching, storefront `paymentSession`/`paymentReturn`, `momo.mjs` | `f3e9cf8` |
+| 3 | VNPay: ký `vnp_SecureHash` trên query IPN (GET), `RspCode` ACK, `vnpay.mjs` | `bf02262` |
+| 4 | Job `wallet-status-check` (poll `queryTransaction` trên session pending, ingest qua payment-matching), `wallet-status.mjs` | `bbd8a34` |
+| 5 | Ahamove: quote/book/cancel/webhook + cột carrier trên fulfillment + `carrier-assignment` + routes Admin + panel "Gọi xe" + `ahamove.mjs` | `b597fc6` |
+| 6 | Zalo ZNS (OAuth refresh, retry `-124`), eSMS, `notification-channel-rule` + chuỗi kênh + hạn mức ngày + alert `notification-daily-limit`, OTP kênh sms/zalo, màn P3, `zalo-zns.mjs`/`sms.mjs`, migration đổi tên `0012-o13-providers` (O9=0010, O12=0011) | `7ae278d` |
+| 7 | Trang **Nhà cung cấp** P1 (`GET /ordering/providers`, `settings.manage`, chỉ metadata đã che) + thẻ webhook 24h & wallet-status trên Ops (P4) + `docs/ordering-writing-providers.md` + bổ sung openapi còn thiếu | `bdaf373` |
+| 8 | Tài liệu/runbook/security-baseline/STATUS + gate cuối + merge/push | commit này |
+
+Gates cuối (DB test `salanca_ordering_o13`): `lint`, `typecheck`, `typecheck:admin`,
+`vitest run src/plugins/ordering` (≥ 1375 test), `build:ordering`, các script tích hợp
+`momo`/`vnpay`/`wallet-status`/`ahamove`/`zalo-zns`/`sms` + lượt bị ảnh hưởng
+(`sepay-webhook`, `sepay-refund`, `payment-refund`, `delivery-assignment`, `notifications`,
+`customer-auth`, `email-templates`, `audit-coverage`, `schema`), `openapi.mjs --write`,
+`ORDERING_ENABLED=true pnpm exec strapi build`. Kết quả ghi trong `docs/STATUS.md` mục O13.
+
+Còn lại (chủ dự án): UAT giao diện Admin (P1/P3/P4 + nút Gọi xe), UAT sandbox từng provider
+thật, quyết định bật `*_ENVIRONMENT=production`, merge/push `feat/ordering-o13` → `feat/ordering`.
+
+### Review fixes (2026-10-14)
+
+Theo `docs/plans/ordering-o13-review-fixes-handoff.md`. Mỗi lỗi có test tái hiện: đỏ trên code cũ,
+xanh sau khi sửa (DB test `salanca_ordering_o13`).
+
+| Lỗi | Sửa | Test | Commit |
+| --- | --- | --- | --- |
+| P0-1 VNPay ký trên giá trị decode | Ký chuỗi đã encode (`encodeURIComponent`, `%20`→`+`) như `sortObject` của mã mẫu; pay URL dùng đúng chuỗi đã ký; IPN/return encode lại rồi băm | `providers/vnpay/signature.test.ts` (so với bản cài lại mã mẫu), `vnpay.mjs` | `e3f10ad` |
+| P1-2 Capture ví bỏ qua trạng thái đơn | Kiểm trùng dưới khóa payment, đọc lại aggregate sau `lockGroups`; đơn đóng / đã trả / trả dư → `needs-review`; `createWalletSession` khóa theo đơn, hủy phiên ví khác, từ chối đơn đóng; đóng đơn hủy phiên ví `pending` | `momo.mjs` (đơn hủy, trả nơi khác) | `40ef9d5` |
+| P1-3 Trùng khóa trong transaction | Kiểm `seen` trước khi ghi; `TransactionNo` rỗng/`0` → `vnpay-failed-<txnRef>`, MoMo → `momo-failed-<orderId>` | `momo.mjs` (2 IPN lỗi không transId) | `40ef9d5` |
+| P1-4 Job kẹt dòng cũ | Phiên quá 2h: hỏi lần cuối rồi `cancelled`; phiên sống xoay vòng theo `updatedAt` | `wallet-status.mjs` (55 phiên bỏ dở) | `eb9b49c` |
+| P1-5 Hoàn tiền hai lần | Ghi refund `pending` với `providerReference` = `RF`+18 ký tự trước, gửi qua outbox `refund.wallet-dispatch`, thử lại dùng đúng id; MoMo refund dùng id đó làm `orderId` mới; VNPay `94` giữ `pending` | `momo.mjs`, `vnpay.mjs` | `846e8a3` |
+| P1-6 Zalo refresh token không xoay | `ZaloTokenStore` lưu cặp token trong plugin store `zalo-oauth` dưới advisory lock; env chỉ là giá trị khởi tạo | `zalo-zns.mjs` (fake từ chối token cũ) | `5c5be42` |
+| P2 Hạn mức tin/ngày | `reservePaidSend()` đếm theo ngày dưới advisory lock, áp cho notification, OTP, gửi thử | `sms.mjs` (12 song song, 5 slot) | `a1efe35` |
+| P2 Mã "tiền có thể đã chuyển" | MoMo `9000`, VNPay `07` (IPN + querydr) → kind `review`, hàng duyệt lý do `provider-uncertain`, payment giữ nguyên, IPN VNPay trả `00` | `momo.mjs`, `vnpay.mjs` | `c2a9fe9` |
+| P2 Open redirect | `returnUrl` chỉ giữ khi https + origin thuộc `walletReturnOrigins` (= `FRONTEND_URLS`), không userinfo; còn lại về trang return của server | `vnpay.mjs` (evil, `@`, http) | `965222a` |
+| P2 Trang Nhà cung cấp | Ahamove/eSMS không còn fallback 4 ký tự cuối API key | `provider-status.test.ts` | `5bf4d82` |
+| P2 HTTP client | Đọc body theo chunk, hủy stream khi vượt cap; kiểm `content-length` trước | `_http.test.ts` (body vô tận) | `67afb52` |
+| P2 Ahamove | Ghi `codAmount` lúc gọi xe; đã có chuyến COD thì chặn phiên ví (`cod-trip-booked`), hủy phiên ví đang chờ; chuyển khoản sau khi gọi xe → `codConflict` + change-log `carrier.cod-conflict`; webhook trạng thái trong transaction, khóa group rồi leg; bỏ `lat/lng` khi không biết | `ahamove.mjs` | `2562edc`, `c92daeb` |
+
+Kết quả: `lint`, `typecheck`, `typecheck:admin` PASS; `vitest run src/plugins/ordering` 718/718;
+`build:ordering` PASS; script PASS: `vnpay`, `momo`, `wallet-status`, `ahamove`, `payment-refund`,
+`sepay-webhook`, `sepay-match`, `sepay-review`, `sepay-refund`, `review-round4`, `audit-coverage`,
+`notifications`, `sms`, `zalo-zns`, `customer-auth`.
+
+**Chưa kiểm sandbox:** chuỗi ký VNPay; MoMo `9000`/VNPay `07` trong thực tế; độ dài/ký tự
+`vnp_RequestId` và `orderId` hoàn MoMo; xoay refresh token Zalo; Ahamove chấp nhận path không
+`lat/lng` (tài liệu tự mâu thuẫn).

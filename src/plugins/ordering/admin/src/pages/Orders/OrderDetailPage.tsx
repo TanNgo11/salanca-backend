@@ -34,7 +34,7 @@ import { useLocale, useT, type Translate } from '../../lib/i18n';
 import { RBAC_AUDIT, RBAC_DETAIL } from '../../lib/permissions';
 import type { DeliveryStaff, InboxSettings, NextTransition, OrderDetail } from '../../lib/types';
 import { useOrderActions } from '../../lib/useOrderActions';
-import { AssignDialog, FailDialog } from '../Deliveries/DeliveryDialogs';
+import { AssignDialog, CarrierCancelDialog, CarrierDialog, FailDialog } from '../Deliveries/DeliveryDialogs';
 import {
   BankRefundDialog,
   CancelDialog,
@@ -52,6 +52,8 @@ type Dialog =
   | { kind: 'reject'; to: string }
   | { kind: 'assign' }
   | { kind: 'fail' }
+  | { kind: 'carrier' }
+  | { kind: 'carrier-cancel' }
   | { kind: 'cancel' }
   | { kind: 'cash' }
   | { kind: 'line'; lineId: number }
@@ -101,6 +103,12 @@ export const OrderDetailPage = () => {
   const [reasons, setReasons] = useState<InboxSettings['rejectReasons']>(inbox?.settings?.rejectReasons ?? []);
   const [couriers, setCouriers] = useState<DeliveryStaff[] | null>(null);
   const [couriersLoading, setCouriersLoading] = useState(false);
+  // O13 "Gọi xe": the carrier quote loads when the dialog opens (POST carrier/quote).
+  const [carrierQuote, setCarrierQuote] = useState<{
+    loading: boolean;
+    error: boolean;
+    data: Awaited<ReturnType<ReturnType<typeof useOrderActions>['carrierQuote']>> | null;
+  }>({ loading: false, error: false, data: null });
 
   const load = useCallback(async () => {
     try {
@@ -187,6 +195,24 @@ export const OrderDetailPage = () => {
     if (next) setDetail(next);
     else void load();
   });
+
+  // Carrier quote loads on dialog open; a stale dialog after reload simply re-opens.
+  useEffect(() => {
+    if (dialog?.kind !== 'carrier') {
+      setCarrierQuote({ loading: false, error: false, data: null });
+      return;
+    }
+    let alive = true;
+    setCarrierQuote({ loading: true, error: false, data: null });
+    void actions
+      .carrierQuote(orderId)
+      .then((data) => alive && setCarrierQuote({ loading: false, error: false, data }))
+      .catch(() => alive && setCarrierQuote({ loading: false, error: true, data: null }));
+    return () => {
+      alive = false;
+    };
+  }, [dialog?.kind, orderId]);
+
   const [manualBusy, setManualBusy] = useState(false);
   const recordManual = async (body: { reference: string; amount: number; transferredAt?: string; note?: string }) => {
     setManualBusy(true);
@@ -602,6 +628,70 @@ export const OrderDetailPage = () => {
                 {detail.delivery.attempts > 0 ? (
                   <Row label={t('deliveries.detail.attempts')} value={String(detail.delivery.attempts)} />
                 ) : null}
+                {detail.delivery.providerCode && detail.delivery.providerCode !== 'self-delivery' ? (
+                  <>
+                    <Box paddingTop={3} paddingBottom={2}>
+                      <Divider />
+                    </Box>
+                    <Row
+                      label={t('carrier.title')}
+                      value={detail.delivery.providerCode}
+                    />
+                    {detail.delivery.carrierRef ? (
+                      <>
+                        <Row label={t('carrier.trip')} value={detail.delivery.carrierRef} />
+                        {detail.delivery.carrierStatus ? (
+                          <Row
+                            label={t('carrier.status')}
+                            value={detail.delivery.carrierStatus}
+                          />
+                        ) : null}
+                        {detail.delivery.carrierFee !== null ? (
+                          <Row label={t('carrier.fee')} value={formatMoney(detail.delivery.carrierFee)} />
+                        ) : null}
+                        {detail.delivery.carrierDriver ? (
+                          <Row
+                            label={t('carrier.driver')}
+                            value={[detail.delivery.carrierDriver.name, detail.delivery.carrierDriver.phoneMasked]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          />
+                        ) : null}
+                        {detail.delivery.trackingUrl ? (
+                          <Row label={t('carrier.tracking')} value={detail.delivery.trackingUrl} />
+                        ) : null}
+                      </>
+                    ) : null}
+                    {detail.delivery.awaitingCollection ? (
+                      <Box paddingTop={2}>
+                        <Alert variant="warning" closeLabel={t('common.close')} title={t('carrier.awaitingCollect')}>
+                          {t('carrier.awaitingCollect')}
+                        </Alert>
+                      </Box>
+                    ) : null}
+                    {can.canProcess && detail.group?.status === 'ready' ? (
+                      <Flex gap={2} paddingTop={2}>
+                        {detail.delivery.carrierRef ? (
+                          <Button
+                            size="S"
+                            variant="danger-light"
+                            loading={actions.busy === 'carrier-cancel'}
+                            onClick={() => setDialog({ kind: 'carrier-cancel' })}
+                          >
+                            {t('carrier.cancel')}
+                          </Button>
+                        ) : (
+                          <Button
+                            size="S"
+                            onClick={() => setDialog({ kind: 'carrier' })}
+                          >
+                            {detail.delivery.attempts > 0 ? t('carrier.again') : t('carrier.call')}
+                          </Button>
+                        )}
+                      </Flex>
+                    ) : null}
+                  </>
+                ) : null}
               </Section>
             ) : null}
             <Section title={t('detail.history')}>
@@ -687,6 +777,23 @@ export const OrderDetailPage = () => {
             busy={actions.busy !== null}
             onClose={() => setDialog(null)}
             onSubmit={(body) => void actions.transition(order.id, body)}
+          />
+        ) : null}
+        {dialog?.kind === 'carrier' ? (
+          <CarrierDialog
+            quote={carrierQuote.data}
+            quoteError={carrierQuote.error}
+            quoteLoading={carrierQuote.loading}
+            busy={actions.busy === 'carrier-book'}
+            onClose={() => setDialog(null)}
+            onSubmit={(body) => void actions.carrierBook(order.id, body)}
+          />
+        ) : null}
+        {dialog?.kind === 'carrier-cancel' ? (
+          <CarrierCancelDialog
+            busy={actions.busy === 'carrier-cancel'}
+            onClose={() => setDialog(null)}
+            onSubmit={() => void actions.carrierCancel(order.id)}
           />
         ) : null}
         {dialog?.kind === 'cancel' ? (

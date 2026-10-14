@@ -87,10 +87,15 @@ export type NextTransition = {
 type FulfillmentLeg = {
   id: number;
   status: string;
+  providerCode: string | null;
+  providerReference: string | null;
   assigneeRef: string | null;
   addressSnapshot: unknown;
   trackingNumber: string | null;
   trackingUrl: string | null;
+  /** O13: raw carrier status + the carrier's own fee on a booked carrier leg. */
+  carrierStatus: string | null;
+  carrierFee: number | null;
   shippedAt: string | null;
   deliveredAt: string | null;
   canceledAt: string | null;
@@ -103,6 +108,7 @@ type DeliveryRow = {
   assigneeRef: string | null;
   assigneeName: string | null;
   carrier: string | null;
+  carrierStatus: string | null;
   trackingNumber: string | null;
   address: unknown;
   shippedAt: string | null;
@@ -392,7 +398,13 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
             status: leg?.status ?? null,
             assigneeRef: leg?.assigneeRef ?? null,
             assigneeName: leg?.assigneeRef ? (nameOf.get(leg.assigneeRef) ?? null) : null,
-            carrier: (leg?.metadata as { carrier?: string } | null)?.carrier ?? null,
+            // A booked carrier leg shows the provider code; a free-text external vehicle
+            // still reads metadata.carrier (dispatch dialog).
+            carrier:
+              leg?.providerReference && leg?.providerCode && leg.providerCode !== 'self-delivery'
+                ? leg.providerCode
+                : ((leg?.metadata as { carrier?: string } | null)?.carrier ?? null),
+            carrierStatus: leg?.carrierStatus ?? null,
             trackingNumber: leg?.trackingNumber ?? null,
             address: leg?.addressSnapshot ?? null,
             shippedAt: leg?.shippedAt ?? null,
@@ -644,9 +656,22 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
               assigneeRef: leg.assigneeRef,
               assigneeName: leg.assigneeRef ? (nameOf.get(leg.assigneeRef) ?? null) : null,
               address: leg.addressSnapshot ?? null,
-              carrier: (leg.metadata as { carrier?: string } | null)?.carrier ?? null,
+              providerCode: leg.providerCode,
+              carrier:
+                leg.providerReference && leg.providerCode && leg.providerCode !== 'self-delivery'
+                  ? leg.providerCode
+                  : ((leg.metadata as { carrier?: string } | null)?.carrier ?? null),
               trackingNumber: leg.trackingNumber,
               trackingUrl: leg.trackingUrl,
+              // O13 carrier trip state (booked provider reference, raw status, carrier fee).
+              carrierRef: leg.providerReference,
+              carrierStatus: leg.carrierStatus,
+              carrierFee: leg.carrierFee,
+              carrierDriver:
+                (leg.metadata as { carrierDriver?: unknown } | null)?.carrierDriver ?? null,
+              awaitingCollection:
+                (leg.metadata as { awaitingCollection?: string } | null)?.awaitingCollection ??
+                null,
               shippedAt: leg.shippedAt,
               deliveredAt: leg.deliveredAt,
               canceledAt: leg.canceledAt,
@@ -894,6 +919,15 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
         const refunds = await refundHeld(trx, orderId, `cancel: ${reason}`, ctx);
         return { ...refunds, detail: await service.detail(orderId, ctx) };
       });
+    },
+
+    /**
+     * Refunds the money still held on an order that was just canceled, inside the caller's
+     * transaction. The customer self-cancel uses it so a paid order is never canceled without
+     * its refund (cash refunded now, a transfer as a pending refund for staff to settle).
+     */
+    async refundHeldInTransaction(trx: TransactionClient, orderId: number, reason: string, ctx: ServiceContext) {
+      return refundHeld(trx, orderId, reason, ctx);
     },
 
     /** POST /orders/:id/notes — internal note, never public (screens S4b). */

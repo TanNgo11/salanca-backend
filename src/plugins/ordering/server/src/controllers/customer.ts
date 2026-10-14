@@ -8,6 +8,7 @@ import type cartFactory from '../services/cart';
 import type customerFactory from '../services/customer';
 import type dataRightsFactory from '../services/data-rights';
 import type { ServiceContext } from '../services/context';
+import { withCartPromotionGuard } from './cart-promotion-guard';
 import { requireCustomer } from './customer-auth';
 import type { HttpCtx } from './http';
 import { positiveInt, sendError } from './http';
@@ -120,8 +121,10 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
         ctx.params.code ?? '',
         serviceCtx,
       );
-      const view = await carts().view(row, serviceCtx);
-      return { ...view, unavailable };
+      return withCartPromotionGuard(strapi, ctx, row.promotionCode, 'stored', async () => {
+        const view = await carts().view(row, serviceCtx);
+        return { ...view, unavailable };
+      });
     }),
 
     /** GET /me/data-export — the customer's own data as JSON (Decree 13 access right). */

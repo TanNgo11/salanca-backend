@@ -154,6 +154,7 @@ const branch = ({ strapi }: { strapi: Core.Strapi }) => {
       mode,
       knownProviders: providers.known,
       onlineProviders: providers.online,
+      carrierProviders: registry().fulfillmentProviderCodes(),
       ...catalogGate(),
     });
     if (!result.valid) {

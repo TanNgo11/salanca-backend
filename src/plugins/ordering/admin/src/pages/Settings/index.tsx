@@ -28,6 +28,7 @@ import { useT, type Translate } from '../../lib/i18n';
 import { PERMISSIONS } from '../../lib/permissions';
 import type { InboxSettings } from '../../lib/types';
 import EmailTemplatesBlock from './EmailTemplates';
+import NotificationChannelsBlock from './NotificationChannels';
 
 type AlertRule = {
   enabled: boolean;
@@ -338,6 +339,7 @@ const SettingsPage = () => {
               <Tabs.List aria-label={t('settings.title')}>
                 <Tabs.Trigger value="general">{t('settings.tab.general')}</Tabs.Trigger>
                 <Tabs.Trigger value="templates">{t('settings.tab.templates')}</Tabs.Trigger>
+                <Tabs.Trigger value="channels">{t('settings.tab.channels')}</Tabs.Trigger>
               </Tabs.List>
               <Tabs.Content value="general">
             <Flex direction="column" alignItems="stretch" gap={5} paddingTop={4}>
@@ -479,6 +481,11 @@ const SettingsPage = () => {
               <Tabs.Content value="templates">
                 <Box paddingTop={4}>
                   <EmailTemplatesBlock t={t} />
+                </Box>
+              </Tabs.Content>
+              <Tabs.Content value="channels">
+                <Box paddingTop={4}>
+                  <NotificationChannelsBlock t={t} />
                 </Box>
               </Tabs.Content>
             </Tabs.Root>

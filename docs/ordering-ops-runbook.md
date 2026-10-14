@@ -190,6 +190,19 @@ Checklist — mỗi mục tick xong mới bật bán:
 - [ ] **Mọi gate O1–O6** ghi trong `docs/STATUS.md` — repo chưa có CI nên đây là bằng chứng
   duy nhất.
 
+## Bật nhà cung cấp O13 (MoMo, VNPay, Ahamove, Zalo ZNS, eSMS)
+
+Các provider O13 **mặc định tắt**. Chỉ bật khi đã UAT sandbox và có duyệt của chủ dự án:
+
+1. UAT sandbox xong (đúng luồng trong `docs/providers/<name>.md` + script tích hợp tương ứng).
+2. Điền env theo `.env.example`; bắt buộc `ORDERING_PUBLIC_API_URL` khi bật ví (IPN/return URL).
+3. `MOMO_ENVIRONMENT`/`VNPAY_ENVIRONMENT`/`AHAMOVE_ENVIRONMENT` để `sandbox|staging` cho tới khi
+   được duyệt production; VNPay production còn cần đối tác duyệt IPN URL.
+4. Mở trang **Bán hàng → Cấu hình → Nhà cung cấp** kiểm badge "Đã cấu hình" + URL webhook hiển thị
+   đúng domain public, rồi đăng URL đó trong portal đối tác.
+5. Sau bật: theo dõi thẻ webhook trên **Tình trạng vận hành** (tỉ lệ lỗi 24h, alert
+   `webhook-failing:<code>`) và job `wallet-status-check` trước khi nhận traffic thật.
+
 ## Một instance (§21.9)
 
 SSE đẩy đơn realtime và giới hạn tần suất storefront đều giữ trạng thái **trong bộ nhớ

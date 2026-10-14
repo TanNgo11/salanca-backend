@@ -322,10 +322,16 @@ export const DeliveriesList = () => {
                       </Td>
                       <Td onClick={(event: React.MouseEvent) => event.stopPropagation()}>
                         {row.delivery?.carrier ? (
-                          <Typography>
-                            {row.delivery.carrier}
-                            {row.delivery.trackingNumber ? ` · ${row.delivery.trackingNumber}` : ''}
-                          </Typography>
+                          <Flex direction="column" alignItems="flex-start" gap={1}>
+                            <Typography>
+                              {row.delivery.carrier}
+                              {row.delivery.trackingNumber ? ` · ${row.delivery.trackingNumber}` : ''}
+                            </Typography>
+                            {/* O13: the carrier's raw trip state under the provider chip. */}
+                            {row.delivery.carrierStatus ? (
+                              <Badge>{row.delivery.carrierStatus}</Badge>
+                            ) : null}
+                          </Flex>
                         ) : row.delivery?.assigneeName ? (
                           <Typography>{row.delivery.assigneeName}</Typography>
                         ) : (

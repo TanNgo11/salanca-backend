@@ -14,6 +14,7 @@ import { runOpsCheck } from './ops-check';
 import { runOutboxDispatcher } from './outbox-dispatcher';
 import { runPaymentExpiry } from './payment-expiry';
 import { runSepayReconciliation } from './reconciliation';
+import { runWalletStatusCheck } from './wallet-status';
 import { runRetention } from './retention';
 import { runSlaCheck } from './sla-check';
 import { runTableSessionAutoclose } from './table-session-autoclose';
@@ -61,6 +62,13 @@ export const ORDERING_JOBS: OrderingJob[] = [
     runnable: true,
   },
   { name: 'payment-expiry', cronKey: 'paymentExpiryCron', run: runPaymentExpiry, runnable: true },
+  // O13: wallet catch-up — MoMo/VNPay have no list API; pending sessions are queried one by one.
+  {
+    name: 'wallet-status-check',
+    cronKey: 'walletStatusCron',
+    run: runWalletStatusCheck,
+    runnable: true,
+  },
   {
     name: 'manual-payment-check',
     cronKey: 'manualConfirmCron',

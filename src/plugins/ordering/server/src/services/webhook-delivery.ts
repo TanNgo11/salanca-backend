@@ -360,9 +360,9 @@ const webhookDelivery = ({ strapi }: { strapi: Core.Strapi }) => {
   return {
     /**
      * Outbox consumer `webhooks.fanout`: writes one pending delivery per subscribed active
-     * endpoint. The insert is claim-invisible (`next_attempt_at` stays NULL) until the payload
-     * update lands, so the dispatcher can never read an empty body; ON CONFLICT makes replays
-     * of the same outbox event idempotent.
+     * endpoint. Insert, payload and activation commit together, so a failed fanout leaves
+     * no claim-invisible row. Retry repairs incomplete pending rows from older versions;
+     * scheduled and completed deliveries remain unchanged.
      */
     async fanout(event: OutboxEvent): Promise<void> {
       if (!PUBLIC_EVENT_TYPES.includes(event.type)) return;
@@ -372,35 +372,45 @@ const webhookDelivery = ({ strapi }: { strapi: Core.Strapi }) => {
       })) as WebhookEndpointRow[];
       for (const endpoint of active) {
         if (!Array.isArray(endpoint.events) || !endpoint.events.includes(event.type)) continue;
-        const { rows: inserted } = await strapi.db.connection.raw(
-          `INSERT INTO ${TABLE}
-             (endpoint_id, event_id, event_type, payload, status, attempts,
-              document_id, created_at, updated_at)
-           VALUES (?, ?, ?, '{}', 'pending', 0, ?, ?, ?)
-           ON CONFLICT (endpoint_id, event_id) DO NOTHING
-           RETURNING id`,
-          [endpoint.id, String(event.id), event.type, documentId(), now, now],
-        );
-        const id = (inserted as Array<{ id: number }>)[0]?.id;
-        if (id === undefined) continue; // already fanned out for this endpoint+event
-        const customer =
-          endpoint.includeCustomer && event.payload?.orderId != null
-            ? await customerFor(Number(event.payload.orderId))
-            : undefined;
-        const envelope = publicPayload(String(id), event, {
-          includeCustomer: endpoint.includeCustomer,
-          customer,
+        await strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
+          const { rows: inserted } = await trx.raw(
+            `INSERT INTO ${TABLE}
+               (endpoint_id, event_id, event_type, payload, status, attempts,
+                document_id, created_at, updated_at)
+             VALUES (?, ?, ?, '{}', 'pending', 0, ?, ?, ?)
+             ON CONFLICT (endpoint_id, event_id) DO NOTHING
+             RETURNING id`,
+            [endpoint.id, String(event.id), event.type, documentId(), now, now],
+          );
+          let id = (inserted as Array<{ id: number }>)[0]?.id;
+          if (id === undefined) {
+            // Old fanout could leave a claim-invisible placeholder. Repair only that state;
+            // never reactivate a completed, failed, leased or already scheduled delivery.
+            const existing = await trx(TABLE)
+              .where({ endpoint_id: endpoint.id, event_id: String(event.id) }).forUpdate()
+              .first('id', 'status', 'next_attempt_at', 'locked_by');
+            if (!existing || existing.status !== 'pending' || existing.next_attempt_at !== null || existing.locked_by !== null) return;
+            id = existing.id as number;
+          }
+          const customer =
+            endpoint.includeCustomer && event.payload?.orderId != null
+              ? await customerFor(Number(event.payload.orderId))
+              : undefined;
+          const envelope = publicPayload(String(id), event, {
+            includeCustomer: endpoint.includeCustomer,
+            customer,
+          });
+          if (envelope === null) {
+            // Unknown to the catalog (should be unreachable — fanout filters PUBLIC_EVENT_TYPES):
+            // drop the just-inserted row so nothing claim-invisible is left behind.
+            await trx.raw(`DELETE FROM ${TABLE} WHERE id = ?`, [id]);
+            return;
+          }
+          await trx.raw(
+            `UPDATE ${TABLE} SET payload = ?, next_attempt_at = ?, updated_at = ? WHERE id = ?`,
+            [JSON.stringify(envelope), now, now, id],
+          );
         });
-        if (envelope === null) {
-          // Unknown to the catalog (should be unreachable — fanout filters PUBLIC_EVENT_TYPES):
-          // drop the just-inserted row so nothing claim-invisible is left behind.
-          await strapi.db.connection.raw(`DELETE FROM ${TABLE} WHERE id = ?`, [id]);
-          continue;
-        }
-        await strapi.db.connection.raw(
-          `UPDATE ${TABLE} SET payload = ?, next_attempt_at = ?, updated_at = ? WHERE id = ?`,
-          [JSON.stringify(envelope), now, now, id],
-        );
       }
     },
 

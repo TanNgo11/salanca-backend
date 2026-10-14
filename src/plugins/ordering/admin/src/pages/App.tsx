@@ -48,6 +48,7 @@ const CashClosingPage = lazy(() => import('./CashClosing'));
 const ReportsPage = lazy(() => import('./Reports'));
 const AuditLogPage = lazy(() => import('./AuditLog'));
 const WebhooksPage = lazy(() => import('./Webhooks'));
+const ProvidersPage = lazy(() => import('./Providers'));
 const ApiDocsPage = lazy(() => import('./ApiDocs'));
 const PromotionsPage = lazy(() => import('./Promotions'));
 const PriceListsPage = lazy(() => import('./PriceLists'));
@@ -79,6 +80,7 @@ type Section =
   | 'staff'
   | 'audit-log'
   | 'webhooks'
+  | 'providers'
   | 'api-docs';
 
 /**
@@ -180,13 +182,14 @@ const SideNav = ({
             {visible.availability ? link('availability', t('nav.availability')) : null}
           </SubNavSection>
         ) : null}
-        {visible.branches || visible.tables || visible.staff || visible.settings || visible['audit-log'] || visible.webhooks || visible['api-docs'] || visible['data-requests'] ? (
+        {visible.branches || visible.tables || visible.staff || visible.settings || visible['audit-log'] || visible.webhooks || visible.providers || visible['api-docs'] || visible['data-requests'] ? (
           <SubNavSection label={t('nav.setup')}>
             {visible.branches ? link('branches', t('nav.branches')) : null}
             {visible.tables ? link('tables', t('nav.tables')) : null}
             {visible.staff ? link('staff', t('nav.staff')) : null}
             {visible['data-requests'] ? link('data-requests', t('nav.dataRequests')) : null}
             {visible.webhooks ? link('webhooks', t('nav.webhooks')) : null}
+            {visible.providers ? link('providers', t('nav.providers')) : null}
             {visible['api-docs'] ? link('api-docs', t('nav.apiDocs')) : null}
             {visible['audit-log'] ? link('audit-log', t('nav.auditLog')) : null}
             {visible.settings ? (
@@ -275,6 +278,7 @@ const OrderingApp = () => {
     staff: any(scope.allowedActions),
     'audit-log': any(audit.allowedActions),
     webhooks: any(webhook.allowedActions),
+    providers: any(settings.allowedActions),
     'api-docs': any(settings.allowedActions),
     settings: any(settings.allowedActions),
   };
@@ -304,6 +308,7 @@ const OrderingApp = () => {
       'data-requests',
       'audit-log',
       'webhooks',
+      'providers',
       'api-docs',
     ] as Section[]
   ).find((key) => visible[key]);
@@ -362,6 +367,7 @@ const OrderingApp = () => {
             <Route path="staff/*" element={<StaffPage />} />
             <Route path="audit-log/*" element={<AuditLogPage />} />
             <Route path="webhooks/*" element={<WebhooksPage />} />
+            <Route path="providers/*" element={<ProvidersPage />} />
             <Route path="api-docs/*" element={<ApiDocsPage />} />
             <Route path="promotions/*" element={<PromotionsPage />} />
             <Route path="price-lists/*" element={<PriceListsPage />} />

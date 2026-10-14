@@ -36,6 +36,7 @@ const EXPECTED_TABLES = [
   'plugins_ordering_fulfillment_line',
   'plugins_ordering_hold',
   'plugins_ordering_idempotency_key',
+  'plugins_ordering_notification_channel_rule',
   'plugins_ordering_notification_delivery',
   'plugins_ordering_notification_template',
   'plugins_ordering_ops_alert',
@@ -115,6 +116,9 @@ const EXPECTED_INDEXES = [
   'plugins_ordering_dining_table_token_idx',
   'plugins_ordering_table_session_list_idx',
   'plugins_ordering_order_table_session_idx',
+  // O13 (migration 0012).
+  'plugins_ordering_fulfillment_provider_ref_idx',
+  'plugins_ordering_notification_channel_rule_uq',
 ];
 
 // Catalog types staff edit in Content Manager (O2 step 1).
@@ -200,7 +204,9 @@ await withApp(async (app) => {
     '0007-o11-customers',
     '0008-o8-promotions-rating',
     '0009-o14-price-lists',
+    '0009b-o11-customer-document-ids',
     '0011-o12-restaurant',
+    '0012-o13-providers',
   ]) {
     assert.ok(
       applied.some((row) => row.name === migration),
