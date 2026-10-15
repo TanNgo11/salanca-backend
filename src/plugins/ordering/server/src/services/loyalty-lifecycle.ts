@@ -1,19 +1,23 @@
 import type { Core } from '@strapi/strapi';
 
 import type { OrderingConfig } from '../config';
+import { OrderingError } from '../domain/errors';
 import { sha256Hex } from '../domain/hashing';
-import { addDays } from '../domain/loyalty/lots';
+import { addDays, addMonths, lotRemainingAfterDebt, takeFromLots } from '../domain/loyalty/lots';
 import { decideTier } from '../domain/loyalty/tier';
 import { amountFromDb } from '../domain/money';
 import { formatLocalDate, type LoyaltyMailData } from '../domain/notifications/templates';
 import type { TransactionClient } from '../migrations/runner';
 import orderRepository from '../repositories/order';
-import type { ServiceContext } from './context';
+import type adminCustomersFactory from './admin-customers';
+import type changeLogFactory from './change-log';
+import { actorRefOf, nowOf, type ServiceContext } from './context';
 import type loyaltyFactory from './loyalty';
 import type loyaltySettingsFactory from './loyalty-settings';
 import type loyaltyTierFactory from './loyalty-tier';
 import type notificationTemplateFactory from './notification-template';
 import type { OrderingRegistry } from './registry';
+import type scopeFactory from './scope';
 
 const LOT_TABLE = 'plugins_ordering_loyalty_lot';
 const LEDGER_TABLE = 'plugins_ordering_loyalty_ledger';
@@ -489,6 +493,171 @@ const loyaltyLifecycle = ({ strapi }: { strapi: Core.Strapi }) => {
         total,
         page: Math.max(1, page),
         pageSize,
+      };
+    },
+
+    /** Y3: the customer's points for staff — balance, tier, lots and the full ledger (staff refs included). */
+    async adminDetail(documentId: string, ctx: ServiceContext) {
+      const customerId = await (plugin().service('admin-customers') as ReturnType<typeof adminCustomersFactory>).visibleCustomerId(documentId, ctx);
+      const config$ = await settings().get();
+      const knex = strapi.db.connection;
+      const summary = await service.summaryFor(customerId, nowOf(ctx));
+      const lotRows = (await knex(LOT_TABLE).where({ customer_id: customerId }).orderBy('id', 'desc').limit(50).select('id', 'source', 'points', 'remaining', 'expires_at')) as Array<Record<string, unknown>>;
+      const ledgerRows = (await knex(`${LEDGER_TABLE} as g`)
+        .leftJoin('plugins_ordering_order as o', 'o.id', 'g.order_id')
+        .where('g.customer_id', customerId)
+        .orderBy('g.id', 'desc')
+        .limit(100)
+        .select('g.at', 'g.kind', 'g.points', 'g.balance_after', 'g.actor_ref', 'g.reason', 'o.code as order_code')) as Array<Record<string, unknown>>;
+      return {
+        ...summary,
+        enabled: config$.enabled,
+        lots: lotRows.map((row) => ({
+          id: row.id,
+          source: row.source,
+          points: row.points,
+          remaining: row.remaining,
+          expiresAt: row.expires_at,
+        })),
+        ledger: ledgerRows.map((row) => ({
+          at: row.at,
+          kind: row.kind,
+          points: row.points,
+          balanceAfter: row.balance_after,
+          orderCode: row.order_code ?? null,
+          actor: row.actor_ref ?? null,
+          reason: row.reason ?? null,
+        })),
+      };
+    },
+
+    /**
+     * Y3 "Điều chỉnh điểm": `points` ± with a required reason. A gain opens an `adjust` lot (default expiry like
+     * an earn); a loss is taken from the soonest-expiring lots and cannot exceed the balance. Customer lock first.
+     */
+    async adjust(documentId: string, raw: unknown, ctx: ServiceContext) {
+      const body = (raw ?? {}) as { points?: unknown; reason?: unknown; expiresAt?: unknown };
+      const points = body.points;
+      const reason = typeof body.reason === 'string' ? body.reason.trim() : '';
+      if (typeof points !== 'number' || !Number.isInteger(points) || points === 0 || Math.abs(points) > 1_000_000) {
+        throw new OrderingError('VALIDATION_ERROR', 'points must be a non-zero whole number', { details: { field: 'points' } });
+      }
+      if (reason.length < 3 || reason.length > 500) {
+        throw new OrderingError('VALIDATION_ERROR', 'a reason of 3-500 characters is required', { details: { field: 'reason' } });
+      }
+      const config$ = await settings().get();
+      const now = nowOf(ctx);
+      let expiresAt = addMonths(now, config$.expiryMonths);
+      if (body.expiresAt !== undefined && body.expiresAt !== null && body.expiresAt !== '') {
+        expiresAt = new Date(String(body.expiresAt));
+        if (points < 0 || !Number.isFinite(expiresAt.getTime()) || expiresAt <= now) {
+          throw new OrderingError('VALIDATION_ERROR', 'expiresAt must be a future date and only applies to added points', { details: { field: 'expiresAt' } });
+        }
+      }
+      const customerId = await (plugin().service('admin-customers') as ReturnType<typeof adminCustomersFactory>).visibleCustomerId(documentId, ctx);
+      const result = await strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
+        const customer = await loyalty().lockCustomerById(trx, customerId);
+        if (!customer || customer.status === 'erased') throw new OrderingError('CUSTOMER_NOT_FOUND', 'customer not found');
+        const before = await loyalty().balanceOf(trx, customerId);
+        if (points > 0) {
+          const lot = (await strapi.db.query('plugin::ordering.loyalty-lot').create({
+            data: {
+              customerId,
+              source: 'adjust',
+              points,
+              remaining: lotRemainingAfterDebt(before, points),
+              expiresAt,
+            },
+          })) as { id: number };
+          await loyalty().post(trx, { customerId, kind: 'adjust', points, lotId: lot.id, actorRef: actorRefOf(ctx), reason, at: now });
+          return { before, after: before + points };
+        }
+        const open = await loyalty().lockLots(trx, customerId);
+        const { takes, shortfall } = takeFromLots(open, -points);
+        if (shortfall > 0 || before + points < 0) {
+          throw new OrderingError('LOYALTY_INSUFFICIENT', 'the customer does not hold that many points', { details: { balance: Math.max(0, before) } });
+        }
+        for (const take of takes) {
+          await loyalty().takeLot(trx, take.lotId, take.points, now);
+          await loyalty().post(trx, { customerId, kind: 'adjust', points: -take.points, lotId: take.lotId, actorRef: actorRefOf(ctx), reason, at: now });
+        }
+        return { before, after: before + points };
+      });
+      await (plugin().service('change-log') as ReturnType<typeof changeLogFactory>).record(
+        {
+          action: 'loyalty.adjust',
+          entityType: 'customer',
+          entityId: documentId,
+          before: { points: result.before },
+          after: { points: result.after, change: points },
+        },
+        ctx,
+      );
+      return service.adminDetail(documentId, ctx);
+    },
+
+    /**
+     * Y4 report: points issued/used/expired/reversed in a period, points in circulation (liability = points x value)
+     * and customers per tier. A branch filter, or a branch-scoped caller, counts only ledger rows that belong to an
+     * order at those branches; expire/adjust/forfeit rows and the circulation figures are all-branch only.
+     */
+    async report(query: { from?: string; to?: string; branch?: string }, ctx: ServiceContext) {
+      const dayPattern = /^\d{4}-\d{2}-\d{2}$/;
+      const now = nowOf(ctx);
+      const to = query.to ?? now.toISOString().slice(0, 10);
+      const from = query.from ?? new Date(Date.parse(`${to}T00:00:00Z`) - 29 * 86_400_000).toISOString().slice(0, 10);
+      if (!dayPattern.test(from) || !dayPattern.test(to) || from > to) {
+        throw new OrderingError('VALIDATION_ERROR', 'from/to must be YYYY-MM-DD with from <= to', { details: { field: 'from' } });
+      }
+      const staffScope = await (plugin().service('scope') as ReturnType<typeof scopeFactory>).loadScope(ctx);
+      if (!staffScope) throw new OrderingError('SCOPE_REQUIRED', 'staff member has no location scope');
+      let refs: string[] | null = staffScope.allLocations ? null : staffScope.locationRefs;
+      if (query.branch) {
+        if (refs && !refs.includes(query.branch)) throw new OrderingError('SCOPE_REQUIRED', 'branch is outside your scope');
+        refs = [query.branch];
+      }
+      const config$ = await settings().get();
+      const knex = strapi.db.connection;
+      const start = new Date(`${from}T00:00:00+07:00`);
+      const end = new Date(new Date(`${to}T00:00:00+07:00`).getTime() + 86_400_000);
+      const builder = knex(`${LEDGER_TABLE} as g`).where('g.at', '>=', start).where('g.at', '<', end);
+      if (refs) {
+        builder.join('plugins_ordering_order as o', 'o.id', 'g.order_id').whereIn('o.location_ref', refs);
+      }
+      const rows = (await builder
+        .groupBy('g.kind')
+        .select(
+          'g.kind',
+          knex.raw('COALESCE(SUM(g.points), 0)::bigint AS points'),
+          knex.raw('COALESCE(SUM(g.points) FILTER (WHERE g.points > 0), 0)::bigint AS gained'),
+          knex.raw('COALESCE(SUM(g.points) FILTER (WHERE g.points < 0), 0)::bigint AS lost'),
+        )) as Array<{ kind: string; points: string | number; gained: string | number; lost: string | number }>;
+      const byKind = Object.fromEntries(rows.map((row) => [row.kind, Number(row.points)]));
+      const gained = Object.fromEntries(rows.map((row) => [row.kind, Number(row.gained)]));
+      const lost = Object.fromEntries(rows.map((row) => [row.kind, Number(row.lost)]));
+      let circulation: { points: number; value: number } | null = null;
+      let tiers: Array<{ code: string; name: unknown; customers: number }> = [];
+      if (refs === null) {
+        const sum = (await knex(LOT_TABLE).where('remaining', '>', 0).sum({ value: 'remaining' }).first()) as { value: string | number | null };
+        const points = Number(sum.value ?? 0);
+        circulation = { points, value: points * config$.pointValue };
+        tiers = (await tierService().list()).items.map((tier) => ({ code: tier.code, name: tier.name, customers: tier.customerCount }));
+      }
+      return {
+        from,
+        to,
+        scope: refs === null ? 'all' : 'branch',
+        enabled: config$.enabled,
+        pointValue: config$.pointValue,
+        issued: (byKind.earn ?? 0) + (gained.adjust ?? 0),
+        adjustedDown: -(lost.adjust ?? 0),
+        redeemed: -(byKind.redeem ?? 0),
+        released: byKind.release ?? 0,
+        expired: -(byKind.expire ?? 0),
+        reversed: -(byKind.reverse ?? 0),
+        forfeited: -(byKind.forfeit ?? 0),
+        circulation,
+        tiers,
       };
     },
 

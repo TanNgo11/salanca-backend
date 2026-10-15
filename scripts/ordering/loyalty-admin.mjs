@@ -1,13 +1,19 @@
 // O16 step 2 — loyalty program admin surface over HTTP: `loyalty.manage` gates settings and
 // tiers; the first save that opens the program stamps `startsAt` and seeds the default tiers and
 // their O14 groups; tier writes keep the set valid (one lowest tier at 0, unique thresholds, a
-// group follows one tier, manual groups only). Every write lands in the change log.
+// group follows one tier, manual groups only). Every write lands in the change log. Step 6 adds the
+// customer points tab (`customer.read`, branch-scoped like the profile), the logged adjustment
+// (`loyalty.adjust`, reason required, cannot go below zero) and the report (`report.read`).
 // Run: ORDERING_TEST_DATABASE=salanca_ordering_o16 node scripts/ordering/loyalty-admin.mjs
 import assert from 'node:assert/strict';
 
-import { seedAdminHttpStaff, withApp } from './_harness.mjs';
+import { randomUUID } from 'node:crypto';
+
+import { basicOrderInput, seedAdminHttpStaff, seedBranches, seedMenu, services, systemCtx, withApp } from './_harness.mjs';
 
 withApp(async (app) => {
+  await seedBranches(app);
+  seedMenu(app);
   await app.listen();
   const changeLogs = () => app.db.query('plugin::ordering.admin-change-log');
   const groups = () => app.db.query('plugin::ordering.customer-group');
@@ -188,6 +194,83 @@ withApp(async (app) => {
     const actions = (await changeLogs().findMany({})).map((row) => row.action);
     for (const expected of ['loyalty.settings.update', 'loyalty.tier.create', 'loyalty.tier.update']) {
       assert.ok(actions.includes(expected), `change log has ${expected}`);
+    }
+    // ── Y3/Y4: customer points, adjustment, report ───────────────────────────────────────────
+    const { order } = services(app);
+    const placed = await order.createOrder(
+      basicOrderInput({ adjustments: [], idempotencyKey: randomUUID(), contact: { name: 'Khách Y3', phone: '+84906000001' } }),
+      systemCtx,
+    );
+    const customerRow = await app.db.query('plugin::ordering.customer').findOne({ where: { phone: '+84906000001' } });
+    const documentId = customerRow.documentId;
+    await app.db.query('plugin::ordering.customer').update({ where: { id: customerRow.id }, data: { status: 'active' } });
+    const pointsStaff = await seedAdminHttpStaff(app, {
+      actions: ['customer.read', 'loyalty.adjust', 'report.read'],
+      scopes: { all: { allLocations: true, locationRefs: [] }, q3: { allLocations: false, locationRefs: ['Q3'] } },
+    });
+    const readOnly = await seedAdminHttpStaff(app, {
+      actions: ['customer.read', 'report.read'],
+      scopes: { all: { allLocations: true, locationRefs: [] } },
+    });
+    try {
+      const all = pointsStaff.as.all;
+      const q3 = pointsStaff.as.q3;
+      assert.equal((await readOnly.as.all('GET', `/customers/${documentId}/loyalty`)).status, 200);
+      assert.equal(
+        (await readOnly.as.all('POST', `/customers/${documentId}/loyalty/adjust`, { points: 10, reason: 'x y z' })).status,
+        403,
+        'adjust needs loyalty.adjust',
+      );
+      assert.equal((await asXem('GET', `/customers/${documentId}/loyalty`)).status, 403);
+      assert.equal((await asXem('GET', '/reports/loyalty')).status, 403);
+      assert.equal((await q3('GET', `/customers/${documentId}/loyalty`)).status, 404, 'a Q3-only staff cannot see a Q1 customer');
+      assert.equal((await q3('POST', `/customers/${documentId}/loyalty/adjust`, { points: 10, reason: 'x y z' })).status, 404);
+      assert.equal((await all('GET', '/customers/does-not-exist/loyalty')).status, 404);
+
+      for (const bad of [{ reason: 'có lý do' }, { points: 0, reason: 'có lý do' }, { points: 1.5, reason: 'có lý do' }, { points: 5 }, { points: 5, reason: 'ab' }]) {
+        assert.equal((await all('POST', `/customers/${documentId}/loyalty/adjust`, bad)).status, 400, JSON.stringify(bad));
+      }
+      const plus = await all('POST', `/customers/${documentId}/loyalty/adjust`, { points: 100, reason: 'Đền bù đơn chậm' });
+      assert.equal(plus.status, 200, JSON.stringify(plus.body));
+      assert.equal(plus.body.balance, 100);
+      assert.equal(plus.body.lots.length, 1);
+      assert.equal(plus.body.lots[0].source, 'adjust');
+      assert.equal(plus.body.ledger[0].reason, 'Đền bù đơn chậm');
+      assert.match(plus.body.ledger[0].actor, /^admin:/);
+      const minus = await all('POST', `/customers/${documentId}/loyalty/adjust`, { points: -30, reason: 'Sửa nhầm' });
+      assert.equal(minus.body.balance, 70);
+      assert.equal(
+        (await all('POST', `/customers/${documentId}/loyalty/adjust`, { points: -71, reason: 'Quá số dư' })).status,
+        409,
+        'cannot remove more than the balance',
+      );
+      assert.equal((await all('GET', `/customers/${documentId}/loyalty`)).body.balance, 70);
+      const logged = (await changeLogs().findMany({ where: { action: 'loyalty.adjust' } })).length;
+      assert.equal(logged, 2, 'both adjustments are in the change log; the refused one is not');
+      assert.equal(
+        (await q3('POST', `/customers/${documentId}/loyalty/adjust`, { points: 5, reason: 'Ngoài phạm vi' })).status,
+        404,
+      );
+
+      // Report: all branches see circulation and tiers; a scoped caller counts only rows with orders.
+      const report = await all('GET', '/reports/loyalty');
+      assert.equal(report.status, 200, JSON.stringify(report.body));
+      assert.equal(report.body.scope, 'all');
+      assert.equal(report.body.issued, 100);
+      assert.deepEqual(report.body.circulation, { points: 70, value: 70 * 100 });
+      assert.ok(Array.isArray(report.body.tiers));
+      const scoped = await q3('GET', '/reports/loyalty');
+      assert.equal(scoped.status, 200);
+      assert.equal(scoped.body.scope, 'branch');
+      assert.equal(scoped.body.circulation, null);
+      assert.equal(scoped.body.issued, 0, 'adjustments have no order, so a branch view does not count them');
+      assert.equal((await q3('GET', '/reports/loyalty?branch=Q1')).status, 403, 'a branch outside the scope is refused');
+      assert.equal((await all('GET', '/reports/loyalty?from=2026-13-01')).status, 400);
+      assert.ok(placed.order.order.id);
+      console.log('[ordering-test] customer points tab, adjustment and report: scope, validation, change log');
+    } finally {
+      await pointsStaff.cleanup();
+      await readOnly.cleanup();
     }
     console.log('[ordering-test] loyalty-admin OK');
   } finally {

@@ -4,7 +4,7 @@ import type changeLogFactory from '../services/change-log';
 import type loyaltyLifecycleFactory from '../services/loyalty-lifecycle';
 import type loyaltySettingsFactory from '../services/loyalty-settings';
 import type loyaltyTierFactory from '../services/loyalty-tier';
-import { adminAction, positiveInt } from './http';
+import { adminAction, positiveInt, text } from './http';
 
 type Settings = ReturnType<typeof loyaltySettingsFactory>;
 type Tiers = ReturnType<typeof loyaltyTierFactory>;
@@ -44,6 +44,19 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       );
       return result;
     }),
+    /** GET /customers/:id/loyalty — Y3, same scope rule as the customer profile. */
+    customer: adminAction(strapi, async (ctx, serviceCtx) => lifecycle().adminDetail(String(ctx.params.id ?? ''), serviceCtx)),
+    /** POST /customers/:id/loyalty/adjust — `{ points (+/-), reason, expiresAt? }`. */
+    adjust: adminAction(strapi, async (ctx, serviceCtx) =>
+      lifecycle().adjust(String(ctx.params.id ?? ''), ctx.request.body, serviceCtx),
+    ),
+    /** GET /reports/loyalty?from=&to=&branch= — Y4. */
+    report: adminAction(strapi, async (ctx, serviceCtx) =>
+      lifecycle().report(
+        { from: text(ctx.query.from), to: text(ctx.query.to), branch: text(ctx.query.branch) },
+        serviceCtx,
+      ),
+    ),
     updateTier: adminAction(strapi, async (ctx, serviceCtx) => tiers().update(id(ctx), ctx.request.body, serviceCtx)),
   };
 };

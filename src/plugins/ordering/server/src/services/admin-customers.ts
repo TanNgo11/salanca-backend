@@ -122,6 +122,11 @@ const adminCustomers = ({ strapi }: { strapi: Core.Strapi }) => {
   });
 
   const service = {
+    /** The customer's internal id for a documentId, after the same scope check as `detail` (404 when hidden). */
+    async visibleCustomerId(documentId: string, ctx: ServiceContext): Promise<number> {
+      return (await loadCustomer(documentId, ctx)).id;
+    },
+
     /**
      * GET /customers?q=&status=&marketing=&page= — the staff directory. A phone-shaped `q`
      * matches by HMAC (the lookup never scans raw numbers); anything else ilikes name/email.

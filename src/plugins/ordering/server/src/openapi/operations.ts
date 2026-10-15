@@ -1168,6 +1168,19 @@ export const OPERATIONS: Operation[] = [
     requestBody: generic,
     response: obj({ item: generic }),
   }),
+  adm('get', '/customers/:id/loyalty', 'Loyalty', 'A customer points: balance, tier, lots and ledger (branch-scoped like the profile)', ['customer.read'], {
+    parameters: [pathParam('id')],
+    response: generic,
+  }),
+  adm('post', '/customers/:id/loyalty/adjust', 'Loyalty', 'Add or remove points with a required reason (logged)', ['customer.read', 'loyalty.adjust'], {
+    parameters: [pathParam('id')],
+    requestBody: obj({ points: int, reason: str, expiresAt: isoDate }, ['points', 'reason']),
+    response: generic,
+  }),
+  adm('get', '/reports/loyalty', 'Loyalty', 'Points issued, used, expired and reversed; points in circulation and customers per tier', ['report.read'], {
+    parameters: ['from', 'to', 'branch'].map((name) => ({ name, in: 'query' as const, schema: str })),
+    response: generic,
+  }),
   adm('post', '/loyalty/tiers/recalculate', 'Loyalty', 'Import 12-month order history into tier spend and review tiers (idempotent)', ['loyalty.manage'], {
     response: obj({ orders: int, customers: int }),
   }),

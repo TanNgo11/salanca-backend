@@ -386,6 +386,10 @@ export default {
       adminRoute('GET', '/loyalty/tiers/:id', 'loyalty.getTier', 'loyalty.manage'),
       adminRoute('PUT', '/loyalty/tiers/:id', 'loyalty.updateTier', 'loyalty.manage'),
       adminRoute('POST', '/loyalty/tiers/recalculate', 'loyalty.recalculate', 'loyalty.manage'),
+      // Y3 (customer points; same branch scope as the profile) and Y4 (report).
+      adminRoute('GET', '/customers/:id/loyalty', 'loyalty.customer', 'customer.read'),
+      adminRoute('POST', '/customers/:id/loyalty/adjust', 'loyalty.adjust', 'customer.read', 'loyalty.adjust'),
+      adminRoute('GET', '/reports/loyalty', 'loyalty.report', 'report.read'),
       // O8 "Đánh giá" (screens R1–R2): reading follows order scope, changes need `rating.manage`.
       adminRoute('GET', '/ratings', 'ratings.list', 'order.read'),
       adminRoute('GET', '/ratings/:id', 'ratings.detail', 'order.read'),
