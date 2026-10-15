@@ -43,6 +43,13 @@ const orderInput = (locationRef, lines, overrides = {}) => ({
   ...overrides,
 });
 
+/** Two-phase barrier: `await promise` in one flow, `resolve()` in the other. */
+const gate = () => {
+  let resolve;
+  const promise = new Promise((done) => { resolve = done; });
+  return { promise, resolve };
+};
+
 const move = async (call, orderId, to, extra = {}) => {
   const res = await call('POST', `/orders/${orderId}/transition`, { to, ...extra });
   assert.equal(res.status, 200, `transition ${to} must succeed (${JSON.stringify(res.body)})`);
@@ -355,6 +362,154 @@ withApp(async (app) => {
       'a refund after close raises the mismatch alert',
     );
     console.log('[ordering-test] refund attribution: courier 20.000 + late-close alert, manager unchanged 30.000');
+
+    // ── 10. A cash capture racing the close: never a silent gap ──────────────────
+    // Every cash posting and every `close` take the same bucket advisory lock, so exactly two
+    // outcomes are legal when they overlap: the closing contains the capture, or the closing was
+    // sealed first and the capture opens the mismatch alert. Both orders are pinned with a
+    // barrier here — a closing that silently misses the money is the defect (audit L-01).
+    const racers = await seedAdminHttpStaff(app, {
+      actions: ['order.read', 'order.process', 'payment.record-cash', 'report.read'],
+      scopes: {
+        race1: { allLocations: false, locationRefs: ['Q1'] },
+        race2: { allLocations: false, locationRefs: ['Q1'] },
+        race3: { allLocations: false, locationRefs: ['Q1'] },
+      },
+    });
+    const race1Ref = `admin:${racers.users.race1.id}`;
+    const race2Ref = `admin:${racers.users.race2.id}`;
+    const race3Ref = `admin:${racers.users.race3.id}`;
+    const cashClosing = plugin.service('cash-closing');
+    const originalNote = cashClosing.noteCashPosting.bind(cashClosing);
+    const readyOrder = async (call) => {
+      const id = (await order.createOrder(
+        orderInput('Q1', [{ sellableUid: 'tra-dao', quantity: 1 }]),
+        systemCtx,
+      )).order.order.id;
+      await move(call, id, 'preparing');
+      await move(call, id, 'ready');
+      return id;
+    };
+    try {
+      // 10a. The capture is inside its transaction holding the bucket lock when `close` starts.
+      const lockedOrder = await readyOrder(racers.as.race1);
+      const tookLock = gate();
+      const releaseCapture = gate();
+      cashClosing.noteCashPosting = async (...args) => {
+        await originalNote(...args); // this is what takes the bucket lock
+        tookLock.resolve();
+        await releaseCapture.promise;
+      };
+      const capturing = handover(racers.as.race1, lockedOrder);
+      await tookLock.promise;
+      const closingWhileHeld = racers.as.race1('POST', '/cash-closing', {
+        branch: 'Q1', businessDate: today, collectorRef: race1Ref, countedAmount: 45000,
+      });
+      releaseCapture.resolve();
+      await capturing;
+      const sealed = await closingWhileHeld;
+      cashClosing.noteCashPosting = originalNote;
+      assert.equal(sealed.status, 200, JSON.stringify(sealed.body));
+      assert.equal(sealed.body.closing.orderCount, 1, 'the closing must include the capture');
+      assert.equal(sealed.body.closing.systemAmount, 45000);
+      assert.equal(sealed.body.closing.differenceAmount, 0, 'no silent gap: the count matches');
+      assert.equal(
+        (await alertRows().findMany({
+          where: { dedupeKey: `cash-closing-mismatch:Q1:${today}:${race1Ref}` },
+        })).length,
+        0,
+        'a closing that includes the capture opens no alert',
+      );
+      console.log('[ordering-test] race close↔capture: capture held the lock → closing includes it');
+
+      // 10b. The close finishes first: the capture must not land silently, it opens the alert.
+      const lateOrder = await readyOrder(racers.as.race2);
+      const beforeLock = gate();
+      const releaseLate = gate();
+      cashClosing.noteCashPosting = async (...args) => {
+        beforeLock.resolve();
+        await releaseLate.promise; // stopped before the lock, exactly like a late capture
+        return originalNote(...args);
+      };
+      const lateCapture = handover(racers.as.race2, lateOrder);
+      await beforeLock.promise;
+      const sealedFirst = await racers.as.race2('POST', '/cash-closing', {
+        branch: 'Q1', businessDate: today, collectorRef: race2Ref, countedAmount: 0,
+      });
+      assert.equal(sealedFirst.status, 200, JSON.stringify(sealedFirst.body));
+      assert.equal(sealedFirst.body.closing.systemAmount, 0, 'the closing was sealed before the cash');
+      releaseLate.resolve();
+      await lateCapture;
+      cashClosing.noteCashPosting = originalNote;
+      const race2Key = `cash-closing-mismatch:Q1:${today}:${race2Ref}`;
+      const lateAlert = await alertRows().findMany({ where: { dedupeKey: race2Key } });
+      const sealedRow = await closingRows().findOne({
+        where: { locationRef: 'Q1', businessDate: today, collectorRef: race2Ref, status: 'current' },
+      });
+      assert.equal(lateAlert.length, 1, 'cash after the seal must open exactly one alert');
+      assert.equal(lateAlert[0].status, 'open');
+      assert.equal(Number(sealedRow.systemAmount), 0, 'the snapshot itself is not rewritten');
+      assert.equal(Number(sealedRow.expectedAmount), 0, 'the sealed row keeps its own numbers');
+      console.log('[ordering-test] race close↔capture: cash after the seal → alert, never silent');
+
+      // 11. `adjust` while a cash capture is in flight must stay non-silent (round-7 audit).
+      // `adjust` recomputes the same bucket, so a capture parked inside its own transaction (bucket
+      // lock held, not committed) is invisible to it and the new revision can exclude money that is
+      // about to land — the round-7 record shows closing 45.000 against a ledger of 90.000. What
+      // must never happen is a stale revision with no signal: the capture opens the mismatch alert
+      // inside that same transaction, and `adjust` cannot clear a row it cannot see.
+      const race3Order = await readyOrder(racers.as.race3);
+      await handover(racers.as.race3, race3Order);
+      const sealedRace3 = await racers.as.race3('POST', '/cash-closing', {
+        branch: 'Q1', businessDate: today, collectorRef: race3Ref, countedAmount: 45000,
+      });
+      assert.equal(sealedRace3.status, 200, JSON.stringify(sealedRace3.body));
+      const parked = gate();
+      const releaseParked = gate();
+      cashClosing.noteCashPosting = async (...args) => {
+        await originalNote(...args);
+        parked.resolve();
+        await releaseParked.promise;
+      };
+      const parkedOrder = await readyOrder(racers.as.race3);
+      const parkedCapture = handover(racers.as.race3, parkedOrder);
+      await parked.promise;
+      const adjusting = racers.as.race3('POST', `/cash-closing/${sealedRace3.body.closing.id}/adjust`, {
+        countedAmount: 45000,
+        note: 'đếm lại quỹ',
+        reason: 'đếm lại quỹ giữa lúc thu tiền',
+      });
+      await new Promise((done) => setTimeout(done, 1500));
+      releaseParked.resolve();
+      await parkedCapture;
+      const adjustedRace3 = await adjusting;
+      cashClosing.noteCashPosting = originalNote;
+      const race3Closing = await closingRows().findOne({
+        where: { locationRef: 'Q1', businessDate: today, collectorRef: race3Ref, status: 'current' },
+      });
+      const race3Alerts = await alertRows().findMany({
+        where: { dedupeKey: `cash-closing-mismatch:Q1:${today}:${race3Ref}` },
+      });
+      const race3Ledger = await app.db
+        .connection('plugins_ordering_payment')
+        .sum('captured_amount as total')
+        .where({ provider_code: 'cash', status: 'captured', business_date: today, actor_ref: race3Ref })
+        .first();
+      const race3Closed = Number(race3Closing.systemAmount);
+      const race3Held = Number(race3Ledger.total);
+      const race3Signal = race3Alerts.some((row) => row.status === 'open' || row.status === 'acknowledged');
+      console.log(
+        `[ordering-test] race adjust↔capture: adjust=${adjustedRace3.status} closing=${race3Closed} ledger=${race3Held} alerts=${race3Alerts.map((row) => row.status).join(',') || 'none'}`,
+      );
+      assert.equal(adjustedRace3.status, 200, JSON.stringify(adjustedRace3.body));
+      assert.ok(
+        race3Closed === race3Held || race3Signal,
+        'a current closing either matches the ledger or carries an open mismatch alert',
+      );
+    } finally {
+      cashClosing.noteCashPosting = originalNote;
+      await racers.cleanup();
+    }
 
     // Change-log records exist for close + adjust.
     const logs = await app.db.query('plugin::ordering.admin-change-log').findMany({

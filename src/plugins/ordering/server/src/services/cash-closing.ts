@@ -590,10 +590,17 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
         if (previous.status !== 'current') {
           throw new OrderingError('INVALID_TRANSITION', 'only the current closing can be adjusted');
         }
+        // Same bucket lock as `close` and every cash posting: the recomputed ledger either
+        // includes an in-flight capture or that capture lands after this revision and opens the
+        // alert — never a revision computed from a ledger a parked capture is about to change.
+        await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [
+          cashBucketLockKey(previous.locationRef, previous.businessDate, previous.collectorRef),
+        ]);
         const bucket = await collectorBucket(
           previous.locationRef,
           previous.businessDate,
           previous.collectorRef,
+          trx,
         );
         const expectedAmount = bucket.systemAmount - bucket.refundAmount;
         const differenceAmount = counted - expectedAmount;
