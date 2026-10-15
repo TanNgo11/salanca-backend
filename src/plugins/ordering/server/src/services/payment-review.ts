@@ -22,6 +22,7 @@ import type { OrderingRegistry } from './registry';
 import type outboxFactory from './outbox';
 import type paymentMatchingFactory from './payment-matching';
 import type pickupSchedulingFactory from './pickup-scheduling';
+import type promotionServiceFactory from './promotion';
 import type scopeFactory from './scope';
 import type timelineFactory from './timeline';
 
@@ -94,6 +95,7 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
   const outbox = () => plugin().service('outbox') as ReturnType<typeof outboxFactory>;
   const orderService = () => plugin().service('order') as ReturnType<typeof orderServiceFactory>;
   const dailyStock = () => plugin().service('daily-stock') as ReturnType<typeof dailyStockFactory>;
+  const promotion = () => plugin().service('promotion') as ReturnType<typeof promotionServiceFactory>;
   const registry = () => plugin().service('registry') as OrderingRegistry;
   const repo = orderRepository({ strapi });
   const events = () => strapi.db.query('plugin::ordering.payment-event');
@@ -502,6 +504,23 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
         } catch (error) {
           if (error instanceof OrderingError && error.code === 'ITEM_SOLD_OUT') {
             throw new OrderingError('REOPEN_UNAVAILABLE', 'the daily stock for this order was resold');
+          }
+          throw error;
+        }
+        // Take back the promotion uses the cancellation gave back (audit O-08 remainder). The
+        // reopened order keeps its discount, so it must hold the uses again — a promotion whose
+        // limit is full refuses the reopen instead of silently keeping a discount nobody counts.
+        try {
+          await promotion().restoreForOrder(trx, orderId, nowOf(ctx));
+        } catch (error) {
+          if (
+            error instanceof OrderingError &&
+            (error.code === 'PROMOTION_EXHAUSTED' || error.code === 'PROMOTION_NOT_ELIGIBLE')
+          ) {
+            throw new OrderingError(
+              'REOPEN_UNAVAILABLE',
+              'the promotion use this order gave back was taken',
+            );
           }
           throw error;
         }

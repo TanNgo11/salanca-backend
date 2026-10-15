@@ -498,6 +498,123 @@ const promotionService = ({ strapi }: { strapi: Core.Strapi }) => {
       }
     },
 
+    /**
+     * Inverse of `releaseForOrder` (audit O-08 remainder): a reopened order must hold the
+     * promotion uses its cancellation gave back, or it would keep the discount with nothing
+     * counting against the promotion's limits. Locks promotions then codes in id order, the same
+     * order as `reserveInTransaction`, and throws `PROMOTION_EXHAUSTED` /
+     * `PROMOTION_NOT_ELIGIBLE` when a limit no longer has room — the caller rolls the reopen back
+     * rather than open an order whose discount is unaccounted for.
+     */
+    async restoreForOrder(trx: TransactionClient, orderId: number, now: Date): Promise<{ restored: number }> {
+      const rows = (await trx('plugins_ordering_promotion_redemption')
+        .where({ order_id: orderId, status: 'released' })
+        .whereIn('release_reason', ['order-canceled', 'group-canceled'])
+        .orderBy('id')
+        .forUpdate()) as Array<{
+        id: number;
+        promotion_id: number;
+        promotion_code_id: number | null;
+        customer_key: string;
+      }>;
+      if (rows.length === 0) return { restored: 0 };
+
+      const byPromotion = new Map<number, typeof rows>();
+      for (const row of rows) {
+        const current = byPromotion.get(row.promotion_id);
+        if (current) current.push(row);
+        else byPromotion.set(row.promotion_id, [row]);
+      }
+
+      const lockedPromos = new Map<
+        number,
+        { kind: string; used_count: number; usage_limit: number | null; per_customer_limit: number | null }
+      >();
+      for (const promotionId of [...byPromotion.keys()].sort((a, b) => a - b)) {
+        const row = await trx('plugins_ordering_promotion').where({ id: promotionId }).forUpdate().first();
+        if (!row) {
+          throw new OrderingError('PROMOTION_EXHAUSTED', 'the promotion this order used is gone', {
+            details: { reason: 'usage-limit' },
+          });
+        }
+        lockedPromos.set(promotionId, {
+          kind: String(row.kind),
+          used_count: Number(row.used_count ?? 0),
+          usage_limit: row.usage_limit == null ? null : Number(row.usage_limit),
+          per_customer_limit:
+            row.first_order_only === true
+              ? Math.min(1, row.per_customer_limit == null ? 1 : Number(row.per_customer_limit))
+              : row.per_customer_limit == null
+                ? null
+                : Number(row.per_customer_limit),
+        });
+      }
+
+      const codeIds = [...new Set(rows.map((row) => row.promotion_code_id).filter((id): id is number => id !== null))]
+        .sort((a, b) => a - b);
+      for (const codeId of codeIds) {
+        const codeRow = await trx('plugins_ordering_promotion_code').where({ id: codeId }).forUpdate().first();
+        if (!codeRow) {
+          throw new OrderingError('PROMOTION_EXHAUSTED', 'promotion code has no uses left', {
+            details: { reason: 'code-used' },
+          });
+        }
+        if (codeRow.usage_limit != null && Number(codeRow.used_count ?? 0) >= Number(codeRow.usage_limit)) {
+          throw new OrderingError('PROMOTION_EXHAUSTED', 'promotion code has no uses left', {
+            details: { reason: 'code-used' },
+          });
+        }
+      }
+
+      for (const [promotionId, promotionRows] of byPromotion) {
+        const locked = lockedPromos.get(promotionId);
+        if (!locked) continue;
+        if (locked.usage_limit != null && locked.used_count + promotionRows.length > locked.usage_limit) {
+          throw new OrderingError('PROMOTION_EXHAUSTED', 'promotion code has no uses left', {
+            details: { reason: 'usage-limit' },
+          });
+        }
+        if (locked.per_customer_limit != null) {
+          // Redemptions being restored are excluded: they are the uses coming back.
+          const countResult = await trx.raw(
+            `SELECT count(*)::int AS used
+             FROM plugins_ordering_promotion_redemption
+             WHERE promotion_id = ? AND customer_key = ? AND status IN ('reserved', 'applied')
+               AND order_id <> ?`,
+            [promotionId, promotionRows[0].customer_key, orderId],
+          );
+          const used = Number((countResult.rows?.[0] as { used?: number } | undefined)?.used ?? 0);
+          if (used + promotionRows.length > locked.per_customer_limit) {
+            throw new OrderingError('PROMOTION_NOT_ELIGIBLE', 'promotion code does not apply to this order', {
+              details: { reason: 'per-customer' },
+            });
+          }
+        }
+        locked.used_count += promotionRows.length;
+        await trx('plugins_ordering_promotion')
+          .where({ id: promotionId })
+          .update({ used_count: locked.used_count });
+      }
+      for (const row of rows) {
+        await trx('plugins_ordering_promotion_redemption').where({ id: row.id }).update({
+          status: 'reserved',
+          reserved_at: now,
+          released_at: null,
+          release_reason: null,
+        });
+      }
+      for (const promotionRows of byPromotion.values()) {
+        for (const row of promotionRows) {
+          if (row.promotion_code_id) {
+            await trx('plugins_ordering_promotion_code')
+              .where({ id: row.promotion_code_id })
+              .increment('used_count', 1);
+          }
+        }
+      }
+      return { restored: rows.length };
+    },
+
     async markApplied(trx: TransactionClient, orderId: number, now: Date): Promise<void> {
       await trx('plugins_ordering_promotion_redemption')
         .where({ order_id: orderId, status: 'reserved' })

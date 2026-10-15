@@ -9,6 +9,8 @@ import { basicOrderInput, seedAdminHttpStaff, seedBranches, seedMenu, services, 
 const sign = (secret, timestamp, rawBody) =>
   createHmac('sha256', secret).update(`${timestamp}.${rawBody}`).digest('hex');
 
+const evidence = (name, data) => console.log(`EVIDENCE ${name} ${JSON.stringify(data)}`);
+
 withApp(async (app) => {
   await seedBranches(app);
   seedMenu(app);
@@ -323,6 +325,115 @@ withApp(async (app) => {
     const shortAgg = await load(shortOrder.order.order.id);
     assert.equal(shortAgg.groups[0].status, 'awaiting-payment', 'a short transfer keeps waiting');
     assert.notEqual(shortAgg.order.paymentStatus, 'paid');
+
+    // Reopen and promotion uses (audit O-08 remainder). Cancelling an order releases its promotion
+    // redemption, so a reopen must win that use back. When another order took the last one the
+    // reopen is refused — reopening would keep the discount with no use behind it.
+    const promotionFor = async (name, code, usageLimit) => {
+      const row = await app.db.query('plugin::ordering.promotion').create({
+        data: {
+          name: { vi: name, en: name },
+          kind: 'code',
+          discountType: 'percent',
+          value: 10,
+          maxDiscount: null,
+          target: { kind: 'order', refs: [] },
+          minSubtotal: 0,
+          locationRefs: ['Q1'],
+          receiveKinds: ['pickup'],
+          startsAt: '2026-10-01T00:00:00.000Z',
+          endsAt: null,
+          weekdays: [],
+          timeRanges: [],
+          firstOrderOnly: false,
+          usageLimit,
+          perCustomerLimit: null,
+          stackable: true,
+          priority: 1,
+          active: true,
+          usedCount: 0,
+        },
+      });
+      await app.db.query('plugin::ordering.promotion-code').create({
+        data: { promotionId: row.id, code, usageLimit: null, usedCount: 0, active: true },
+      });
+      return row;
+    };
+    const usesOf = async (promotionId) =>
+      Number(
+        (await app.db.query('plugin::ordering.promotion').findOne({ where: { id: promotionId } }))
+          .usedCount,
+      );
+    const redemptionOf = async (orderId) =>
+      app.db.query('plugin::ordering.promotion-redemption').findOne({ where: { orderId } });
+    const withCode = (code) =>
+      basicOrderInput({ adjustments: [], promotionCode: code, contact: { name: 'Khách test', phone: '+84901110999' } });
+    const lateTransferFor = async (orderId) => {
+      const aggregate = await load(orderId);
+      const txn = seq + 1;
+      await transfer('0123456789', aggregate.order.totalAmount, `SLC${aggregate.order.code}`);
+      const event = await eventOf(txn);
+      assert.equal(event.reviewReason, 'order-closed');
+      return event;
+    };
+
+    const oneUse = await promotionFor('Một lượt', 'MOTLAN', 1);
+    const firstUser = await order.createOrder(withCode('MOTLAN'), systemCtx);
+    assert.equal(await usesOf(oneUse.id), 1);
+    await transition.cancelOrder({ orderId: firstUser.order.order.id, reason: 'khách hủy' }, systemCtx);
+    assert.equal(await usesOf(oneUse.id), 0, 'cancelling gives the use back');
+    const secondUser = await order.createOrder(withCode('MOTLAN'), systemCtx);
+    assert.equal(await usesOf(oneUse.id), 1, 'the second order takes the last use');
+
+    const oneUseEvent = await lateTransferFor(firstUser.order.order.id);
+    const refusedReopen = await http.as.lan('POST', `/payment-reviews/${oneUseEvent.id}/reopen`, {
+      orderId: firstUser.order.order.id,
+      reason: 'khách chuyển muộn nhưng hết lượt',
+    });
+    const refusedAgg = await load(firstUser.order.order.id);
+    const refusedUseCount = await usesOf(oneUse.id);
+    const secondStillLive = await load(secondUser.order.order.id);
+    evidence('reopen-refused-when-promotion-use-was-taken', {
+      status: refusedReopen.status,
+      code: refusedReopen.body?.error?.code ?? null,
+      promotionUsedCount: refusedUseCount,
+      reopenedStatus: refusedAgg.order.status,
+      secondOrderStatus: secondStillLive.order.status,
+      eventReviewStatus: (await eventOf(oneUseEvent.providerTransactionId)).reviewStatus,
+    });
+    assert.equal(refusedReopen.status, 409, JSON.stringify(refusedReopen.body));
+    assert.equal(refusedReopen.body.error.code, 'REOPEN_UNAVAILABLE');
+    assert.equal(refusedUseCount, 1, 'the use stays with the order that holds it');
+    assert.equal(refusedAgg.order.status, 'canceled');
+    assert.equal(secondStillLive.order.status !== 'canceled', true);
+    assert.equal(
+      (await eventOf(oneUseEvent.providerTransactionId)).reviewStatus,
+      'needs-review',
+      'a refused reopen leaves the transfer in the review queue',
+    );
+
+    // With a use still available the reopen restores it, so the reopened order holds its discount.
+    const spare = await promotionFor('Còn lượt', 'CONLUOT', null);
+    const spareOrder = await order.createOrder(withCode('CONLUOT'), systemCtx);
+    assert.equal(await usesOf(spare.id), 1);
+    await transition.cancelOrder({ orderId: spareOrder.order.order.id, reason: 'khách hủy' }, systemCtx);
+    assert.equal(await usesOf(spare.id), 0);
+    const spareEvent = await lateTransferFor(spareOrder.order.order.id);
+    const spareReopen = await http.as.lan('POST', `/payment-reviews/${spareEvent.id}/reopen`, {
+      orderId: spareOrder.order.order.id,
+      reason: 'khách chuyển sau khi hủy còn lượt',
+    });
+    const spareAgg = await load(spareOrder.order.order.id);
+    const spareRedemption = await redemptionOf(spareOrder.order.order.id);
+    evidence('reopen-restores-the-promotion-use', {
+      status: spareReopen.status,
+      promotionUsedCount: await usesOf(spare.id),
+      redemptionStatus: spareRedemption?.status ?? null,
+      reopenedStatus: spareAgg.order.status,
+    });
+    assert.equal(spareReopen.status, 200, JSON.stringify(spareReopen.body));
+    assert.equal(await usesOf(spare.id), 1, 'the use is held again');
+    assert.equal(spareRedemption.status, 'reserved');
 
     console.log('[ordering-test] sepay review: scope, race, ignore, refund-due, closed assign, reopen');
   } finally {
