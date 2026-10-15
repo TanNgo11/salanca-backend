@@ -25,6 +25,12 @@ export default collection(
     totalSpent: { type: 'biginteger', required: true, default: '0' },
     lastOrderAt: { type: 'datetime' },
     erasedAt: { type: 'datetime' },
+    /** O16: Σ of the loyalty ledger (negative only after a reversal); `spend12m` is the tier's cache. */
+    pointsBalance: { type: 'integer', required: true, default: 0 },
+    tierCode: { type: 'string' },
+    tierSince: { type: 'datetime' },
+    tierBelowSince: { type: 'datetime' },
+    spend12m: { type: 'biginteger', required: true, default: 0 },
     staffNote: { type: 'text' },
     orders: {
       type: 'relation',

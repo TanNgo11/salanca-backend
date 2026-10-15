@@ -38,6 +38,9 @@ import giftCardBatch from './gift-card-batch';
 import giftCardLedger from './gift-card-ledger';
 import hold from './hold';
 import idempotencyKey from './idempotency-key';
+import loyaltyLedger from './loyalty-ledger';
+import loyaltyLot from './loyalty-lot';
+import loyaltyTier from './loyalty-tier';
 import notificationChannelRule from './notification-channel-rule';
 import notificationDelivery from './notification-delivery';
 import notificationTemplate from './notification-template';
@@ -97,6 +100,9 @@ export default {
   'gift-card-ledger': giftCardLedger,
   hold,
   'idempotency-key': idempotencyKey,
+  'loyalty-ledger': loyaltyLedger,
+  'loyalty-lot': loyaltyLot,
+  'loyalty-tier': loyaltyTier,
   'notification-channel-rule': notificationChannelRule,
   'notification-delivery': notificationDelivery,
   'notification-template': notificationTemplate,

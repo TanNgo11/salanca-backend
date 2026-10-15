@@ -26,6 +26,8 @@ export default collection(
     endsAt: { type: 'datetime' },
     weekdays: { type: 'json', required: true },
     timeRanges: { type: 'json', required: true },
+    /** O16: O14 group codes the customer must belong to (empty = no condition). */
+    customerGroups: { type: 'json' },
     firstOrderOnly: { type: 'boolean', required: true, default: false },
     usageLimit: { type: 'integer' },
     perCustomerLimit: { type: 'integer' },

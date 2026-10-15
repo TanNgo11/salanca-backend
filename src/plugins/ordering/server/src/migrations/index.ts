@@ -12,6 +12,7 @@ import { o11CustomerDocumentIdsMigration } from './0009b-o11-customer-document-i
 import { o9GiftCardsMigration } from './0010-o9-gift-cards';
 import { o12RestaurantMigration } from './0011-o12-restaurant';
 import { o13ProvidersMigration } from './0012-o13-providers';
+import { o16LoyaltyMigration } from './0013-o16-loyalty';
 import type { OrderingMigration } from './runner';
 
 /** Production migrations, in order. */
@@ -30,4 +31,5 @@ export const orderingMigrations: OrderingMigration[] = [
   o9GiftCardsMigration,
   o12RestaurantMigration,
   o13ProvidersMigration,
+  o16LoyaltyMigration,
 ];

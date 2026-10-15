@@ -39,6 +39,9 @@ const EXPECTED_TABLES = [
   'plugins_ordering_gift_card_ledger',
   'plugins_ordering_hold',
   'plugins_ordering_idempotency_key',
+  'plugins_ordering_loyalty_ledger',
+  'plugins_ordering_loyalty_lot',
+  'plugins_ordering_loyalty_tier',
   'plugins_ordering_notification_channel_rule',
   'plugins_ordering_notification_delivery',
   'plugins_ordering_notification_template',
@@ -132,6 +135,16 @@ const EXPECTED_INDEXES = [
   // O13 (migration 0012).
   'plugins_ordering_fulfillment_provider_ref_idx',
   'plugins_ordering_notification_channel_rule_uq',
+  // O16 (migration 0013).
+  'plugins_ordering_loyalty_tier_code_uq',
+  'plugins_ordering_loyalty_ledger_earn_uq',
+  'plugins_ordering_loyalty_ledger_redeem_uq',
+  'plugins_ordering_loyalty_lot_earn_uq',
+  'plugins_ordering_loyalty_lot_customer_expiry_idx',
+  'plugins_ordering_loyalty_lot_expiry_idx',
+  'plugins_ordering_loyalty_ledger_customer_at_idx',
+  'plugins_ordering_loyalty_ledger_kind_at_idx',
+  'plugins_ordering_loyalty_ledger_order_idx',
 ];
 
 // Catalog types staff edit in Content Manager (O2 step 1).
@@ -223,6 +236,7 @@ await withApp(async (app) => {
     '0010-o9-gift-cards',
     '0011-o12-restaurant',
     '0012-o13-providers',
+    '0013-o16-loyalty',
   ]) {
     assert.ok(
       applied.some((row) => row.name === migration),
