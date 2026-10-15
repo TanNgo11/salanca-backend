@@ -15,6 +15,7 @@ import type { PaymentRow, RefundRow } from '../repositories/types';
 import type branchFactory from './branch';
 import type changeLogFactory from './change-log';
 import type giftCardFactory from './gift-card';
+import type loyaltyFactory from './loyalty';
 import type { ServiceContext } from './context';
 import { actorRefOf, nowOf } from './context';
 import type idempotencyFactory from './idempotency';
@@ -129,6 +130,7 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
   const lines = () => strapi.db.query('plugin::ordering.order-line');
   const refunds = () => strapi.db.query('plugin::ordering.refund');
   const refundLines = () => strapi.db.query('plugin::ordering.refund-line');
+  const loyaltyService = () => strapi.plugin('ordering').service('loyalty') as ReturnType<typeof loyaltyFactory>;
 
   /**
    * Business date of a settlement in the order's branch (O6 cash closing sums refunds per
@@ -425,6 +427,8 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
         where: { id: input.paymentId },
         data: { refundedAmount: refunded + total },
       });
+      // O16: money back on an earning order claws back points (lock order: mutex → payment → customer).
+      if (orderId !== null) await loyaltyService().reverseForOrder(trx, orderId, nowOf(ctx));
     }
     // Refunds only move paymentStatus; the order status itself is unchanged.
     await order.recomputeProjection(orderId);
@@ -571,6 +575,7 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
         },
       })) as RefundRow;
       if (orderId !== null) {
+        await loyaltyService().reverseForOrder(trx, orderId, nowOf(ctx));
         await order.recomputeProjection(orderId);
         await timeline.record(
           {

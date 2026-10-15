@@ -43,3 +43,15 @@ export function capDailyEarn(args: { points: number; earnedToday: number; dailyC
   const room = Math.max(0, args.dailyCap - Math.max(0, args.earnedToday));
   return Math.max(0, Math.min(args.points, room));
 }
+
+/**
+ * [start, end) of the Vietnam calendar day containing `at`, as UTC instants. The daily earn cap
+ * counts local days; Vietnam is UTC+7 all year (no daylight saving).
+ */
+export function localDayBounds(at: Date): { start: Date; end: Date } {
+  const offset = 7 * 3_600_000;
+  const day = 86_400_000;
+  const startShifted = Math.floor((at.getTime() + offset) / day) * day;
+  const start = new Date(startShifted - offset);
+  return { start, end: new Date(start.getTime() + day) };
+}

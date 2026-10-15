@@ -10,6 +10,7 @@ import { runDataRequestWaiting } from './data-request-waiting';
 import { runGiftCardExpiry } from './gift-card-expiry';
 import { runHoldExpiry } from './hold-expiry';
 import { runIdempotencyCleanup } from './idempotency-cleanup';
+import { runLoyaltyEarnSweep } from './loyalty-earn-sweep';
 import { runManualPaymentCheck } from './manual-confirmation';
 import { runOpsCheck } from './ops-check';
 import { runOutboxDispatcher } from './outbox-dispatcher';
@@ -102,6 +103,14 @@ export const ORDERING_JOBS: OrderingJob[] = [
   },
   // O9: daily write-off of expired card balances (`expire` ledger rows).
   { name: 'gift-card-expiry', cronKey: 'giftCardExpiryCron', run: runGiftCardExpiry, runnable: true },
+  // O16: earns points for completed orders no outbox event reached (line-cancel / refund paths,
+  // or a customer verified after the order completed). Idempotent: an order with an `earn` row is skipped.
+  {
+    name: 'loyalty-earn-sweep',
+    cronKey: 'loyaltyEarnSweepCron',
+    run: runLoyaltyEarnSweep,
+    runnable: true,
+  },
   // O12 (plan step 7): flags dine-in table sessions still open after the business day rolled
   // over — alerts only, never collects payment or closes the session.
   {

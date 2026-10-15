@@ -73,6 +73,7 @@ export const configSchema = z.object({
     dataRequestWaitingCron: z.string().min(1),
     customerGroupRefreshCron: z.string().min(1),
     giftCardExpiryCron: z.string().min(1),
+    loyaltyEarnSweepCron: z.string().min(1),
     /** O12: open sessions past business-day end get a `table-session-open` alert. */
     tableSessionAutocloseCron: z.string().min(1),
     /** Expected run period in minutes per job for `job-heartbeat-missed` (ops-check). */
@@ -292,6 +293,7 @@ export default {
       dataRequestWaitingCron: '0 */30 * * * *',
       customerGroupRefreshCron: '0 15 3 * * *',
       giftCardExpiryCron: '0 45 3 * * *',
+      loyaltyEarnSweepCron: '0 */10 * * * *',
       tableSessionAutocloseCron: '0 */15 * * * *',
       heartbeatMinutes: {
         outbox: 2,
@@ -311,6 +313,7 @@ export default {
         'data-request-waiting': 35,
         'customer-group-refresh': 1500,
         'gift-card-expiry': 1500,
+        'loyalty-earn-sweep': 15,
         'table-session-autoclose': 20,
       },
     },

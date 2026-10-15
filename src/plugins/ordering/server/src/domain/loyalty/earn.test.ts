@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { priceCart } from '../pricing/pipeline';
 import type { TaxContext } from '../pricing/tax';
-import { capDailyEarn, earnBase, earnPoints } from './earn';
+import { capDailyEarn, earnBase, earnPoints, localDayBounds } from './earn';
 
 const line = (over: Partial<Parameters<typeof earnBase>[0][number]> = {}) => ({
   quantity: 1,
@@ -81,5 +81,14 @@ describe('capDailyEarn', () => {
     expect(capDailyEarn({ points: 50, earnedToday: 1_800, dailyCap: 2_000 })).toBe(50);
     expect(capDailyEarn({ points: 50, earnedToday: 2_000, dailyCap: 2_000 })).toBe(0);
     expect(capDailyEarn({ points: 50, earnedToday: 2_500, dailyCap: 2_000 })).toBe(0);
+  });
+});
+
+describe('localDayBounds', () => {
+  it('cuts the day at local midnight (UTC+7)', () => {
+    const { start, end } = localDayBounds(new Date('2026-10-15T16:59:59Z'));
+    expect(start.toISOString()).toBe('2026-10-14T17:00:00.000Z');
+    expect(end.toISOString()).toBe('2026-10-15T17:00:00.000Z');
+    expect(localDayBounds(new Date('2026-10-15T17:00:00Z')).start.toISOString()).toBe('2026-10-15T17:00:00.000Z');
   });
 });
