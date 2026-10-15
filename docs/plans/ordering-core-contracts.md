@@ -1873,6 +1873,45 @@ type ConsentSnapshot = {
   (earn/history cộng, reverse trừ nếu earn còn trong cửa sổ 12 tháng).
 - **Dữ liệu cá nhân**: sổ chỉ chứa id và số; xóa dữ liệu ghi `forfeit`; webhook chỉ mang `customerDocumentId`.
 
+## 23. Core bán hàng — sửa lỗi audit và vòng 7 (2026-10-15)
+
+- **Thứ tự khóa (bắt buộc cho mọi đường mới)**: mutex đơn (`repo.lockOrder`, advisory `ordering-order:<id>`) →
+  hàng group → hàng fulfillment/payment. `lockGroup`/`lockLine`/`lockPayment` tự lấy mutex đơn; nhiều đơn thì khóa theo
+  id tăng dần. **Lấy khóa trước khi đọc** số dư/trạng thái dùng để quyết định (`lockOrderAndLoad`), hoặc đọc lại dưới khóa —
+  đọc aggregate rồi khóa sau là vô nghĩa. Provider ngoài (ví) không được gọi trong lúc transaction đang giữ khóa.
+- **`payment-review.reopen`** (O-08/O-11 + tồn đọng 2026-10-15): mở lại đơn đã hủy phải **giành lại mọi tài nguyên mà hủy đã trả**,
+  trong **cùng transaction**, trước khi mở group: tồn theo ngày (`dailyStock.restoreForOrder`), suất nhận hàng, và **lượt
+  khuyến mãi** (`promotion.restoreForOrder`). Không đủ bất kỳ thứ nào → `REOPEN_UNAVAILABLE` và rollback (chuyển khoản nằm lại
+  hàng chờ duyệt để hoàn/xử lý tay). Không bao giờ bỏ giảm giá âm thầm: đơn mở lại vẫn giữ giá trị giảm giá cũ, nên lượt dùng
+  phải được giữ lại tương ứng (`used_count` + redemption về `reserved`).
+- **Hold**: chỉ được tạo qua `holds[]` lúc tạo đơn (khả năng chung của plugin, dòng đơn hàng có giới hạn không dùng), mang
+  `expiresAt` và `resourceRef` tự do. Hủy đơn trả hold (`hold.releaseForGroup`/`releaseForOrder`) và reopen **không** đặt lại:
+  hold là giữ chỗ tạm do bên gọi tự quản, không có tài nguyên hữu hạn nào đứng sau trong các workflow dựng sẵn.
+- **Phát thẻ quà tặng = cam kết bằng tiền** (`giftCard.onGroupIssued`): giá trị sắp phát (Σ đơn vị còn sống × đơn giá dòng)
+  phải ≤ tiền đơn **thực giữ** (captured − refunded − refund `pending`). Thiếu tiền → **không phát thẻ**, **không ghi sổ thẻ**,
+  mở alert `gift-card-underfunded` (critical, `report.read`); group vẫn `issued` để nhân viên xử lý tay/hoàn tiền. Khi tiền về
+  đủ, event được phát lại sẽ phát thẻ bình thường. Đây là chốt thứ hai, bù cho khoảng trống giữa lúc group sang `issued` và
+  lúc consumer chạy (hoàn tiền qua kênh khác, phiếu `refund-due`).
+- **Hủy món: tiền về ≠ suất về** (O-06, quyết định chủ dự án 2026-10-15). Group đã rời bếp (`out-for-delivery`, dine-in
+  `served`, giao `failed`) vẫn hủy dòng và hoàn tiền theo luật cũ, nhưng **không** trả suất bán theo ngày; kết quả trả
+  `restocked: false` (và `cancel-preview` báo trước để màn hủy dòng hiện chú thích "Món đã rời bếp, suất không được trả lại").
+  Trạng thái kết thúc thành công (`completed`/`delivered`) vẫn bị từ chối `INVALID_TRANSITION` như trước.
+- **Chốt quỹ tiền mặt**: mọi lần ghi tiền mặt (capture/refund) và `close` lấy khóa bucket
+  `cash-closing:<location>:<day>:<collector>` trước khi đọc/ghi sổ của bucket đó. Tiền mặt đến sau khi chốt vẫn được ghi (không
+  chặn cứng) nhưng mở alert `cash-closing-mismatch`; `adjust` tính lại expected từ sổ, và chỉ resolve alert khi số đếm khớp.
+  **`adjust` chưa lấy khóa bucket** (chỉ khóa hàng closing) — vòng 7 tái hiện được hệ quả: chốt lại giữa lúc có capture đang
+  chờ commit thì bản sửa mới **lệch số** (chốt ghi 45.000 trong khi sổ 90.000). Nhưng race đó **không tạo khoảng lặng**: hàng
+  alert do chính capture mở nằm trong transaction chưa commit nên `adjust` không thấy và không xóa được → luôn còn tín hiệu.
+  Vì chủ dự án đã chốt "alert là đủ" (nhãn "stale" trên màn chốt quỹ vẫn hoãn), vòng 7 **không sửa** `adjust`; regression
+  `cash-closing.mjs` §11 giữ bất biến "khớp sổ **hoặc** có alert mở".
+- **Vòng 7 (các đường soi thêm)**: `manual-payment.record` và `order-edit` đều quyết định từ **đọc lại dưới khóa** (matching
+  lấy khóa `sepay-ref:<provider>:<ref>` rồi khóa group/đơn; edit lấy mutex đơn trước khi đọc) — phiếu ghi tay 130.000 trên đơn
+  vừa hủy món vẫn ra `paid`, trên đơn vừa sửa xuống 110.000 ra `overpaid` (không "im lặng" thành paid). Hai lượt tiêu cùng một
+  thẻ quà tặng đã có test (`gift-card-payment.mjs`), lượt khuyến mãi cuối đã có test 2 process (`promotion-race.mjs`). Link/QR
+  thanh toán (`#p=`) **không mang số tiền** — chỉ mang id đơn, số tiền tính lại lúc trả. `payment-expiry` và `wallet-status`
+  xếp hàng trên cùng mutex đơn. Bàn chỉ có `closeSession` (không có chuyển/gộp bàn). Gọi provider trong transaction (Ahamove)
+  vẫn là nợ đã hoãn (item carrier intent/outbox).
+
 ## Nguồn chính
 
 - [Strapi server API](https://docs.strapi.io/cms/plugins-development/server-api), [cron](https://docs.strapi.io/cms/configurations/cron),

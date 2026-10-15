@@ -26,6 +26,26 @@ Last reviewed against repository documentation: 2026-09-29
 - **Còn mở:** UAT tay (danh sách ở spec); **chặn mở cho khách thật**: điều khoản chương trình (pháp lý) và hạch toán điểm lưu
   hành (kế toán); màn hình khách (OW) làm ở phase web.
 
+2026-10-15: **Ordering core-sales audit vòng 2–7 — 22 đường lỗi đã có bản sửa, automated verification passed, chờ UAT tay**
+trên `feat/ordering` (báo cáo `artifacts/core-sales-audit-20261015*/`, bàn giao `plans/core-sales-audit-fix-handoff.md`,
+kế hoạch `plans/core-sales-audit-next-plan.md`). Gốc lỗi lặp lại là đọc số dư/trạng thái trước khi khóa rồi dùng lại số cũ;
+quy ước mới: khóa order trước (`repo.lockOrder` / `lockOrderAndLoad`), đọc lại dưới khóa, thứ tự order → group → payment/fulfillment.
+
+- **Thu tiền theo số dư mới**: đóng bàn, "Thu tiền và giao", wallet checkout.
+- **Chốt quỹ**: `close` và `adjust` chụp sổ cái dưới khóa `(chi nhánh, ngày, người thu)`; thu/hoàn tiền mặt sau khi chốt vẫn ghi
+  nhưng mở cảnh báo `cash-closing-mismatch` (`adjust` tính lại và đóng cảnh báo). Không chặn cứng vì sẽ khóa thu tiền cả ngày.
+- **Hoàn tiền / mở lại đơn**: hoàn tiền mặt chia qua mọi payment; `reopen` giữ lại suất bán, slot, lượt khuyến mãi (hết thì
+  `REOPEN_UNAVAILABLE`) và chọn state theo workflow (chuyển khoản thiếu vẫn chờ ở `awaiting-payment`); auto-reject không hoàn
+  tiền đơn đã được nhận; hủy món không trả suất khi món đã rời bếp (`restocked:false`, vẫn hoàn tiền); đơn đã giao không hủy món.
+- **Thẻ quà tặng**: hoàn tiền chặn theo giá trị đã cam kết khi group ở `issued`; consumer không phát thẻ khi đơn không còn giữ
+  đủ tiền, mở cảnh báo `gift-card-underfunded`.
+- **Carrier**: book/cancel khóa group rồi leg và đọc lại dưới khóa. **Còn mở (hoãn):** gọi provider vẫn nằm trong transaction
+  (chưa có intent/outbox); nhãn "stale" trên màn chốt quỹ cần migration.
+- Gate đã chạy: `build:ordering`, `typecheck`, `typecheck:admin`, lint phần source, các script `cash-closing`, `sepay-review`,
+  `admin-orders`, `daily-stock`, `gift-card-*`, `payment-refund`, `core-sales-fixes`, `promotions*`, `dine-in`, `jobs`,
+  `auto-reject`, `wallet-status`, `loyalty-*` và các `reproduce.mjs` vòng 1–6 — exit 0. Chưa chạy: full `check:ordering`, UAT tay
+  (chốt quỹ, hoàn tiền mặt, đóng bàn, reopen đơn), provider thật. **Core chưa được gọi là release-ready** đến khi UAT xong.
+
 2026-10-14: **Ordering core-sales audit — 6 lỗi đã đóng, targeted verification passed, chờ review/UAT** trên
 `feat/ordering` (báo cáo `artifacts/core-sales-audit/report.md`). 4 lỗi (khách tự hủy không hoàn tiền,
 hủy sai quyền khi đồng thời, deadline giao hàng, hoàn qua nhiều payment) đã được các phase sau sửa sẵn;
