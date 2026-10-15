@@ -300,7 +300,7 @@ Nhánh `TanNgo11/ordering-o16` (tách từ `origin/feat/ordering` `5930344`); ch
 **Gate cuối (targeted, một lần, DB `salanca_ordering_o16`):**
 
 Tất cả exit 0 (DB `salanca_ordering_o16`): `pnpm run lint`, `pnpm run typecheck`, `pnpm run typecheck:admin`,
-`pnpm exec vitest run src/plugins/ordering config` (), `pnpm run build:ordering`; script `loyalty-earn`, `loyalty-redeem`,
+`pnpm exec vitest run src/plugins/ordering config` (943/943 test), `pnpm run build:ordering`; script `loyalty-earn`, `loyalty-redeem`,
 `loyalty-race`, `loyalty-expiry`, `loyalty-tiers`, `loyalty-admin`, `create-order`, `storefront`, `cart-checkout`,
 `cart-promotion`, `order-edit`, `payment-refund`, `sepay-refund`, `core-sales-fixes`, `customers`, `customer-auth`,
 `data-rights`, `reports`, `price-lists`, `promotions`, `promotion-money`, `promotion-race`, `promotions-admin`,
