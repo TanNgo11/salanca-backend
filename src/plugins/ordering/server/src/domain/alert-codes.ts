@@ -17,6 +17,7 @@ export const ALERT_CODES = [
   'notification-daily-limit',
   'low-rating',
   'gift-card-probing',
+  'gift-card-underfunded',
   'table-session-open',
   'data-request-overdue',
 ] as const;
@@ -53,6 +54,10 @@ const labels: Record<AlertCode, { vi: string; en: string }> = {
   },
   'low-rating': { vi: 'Khách đánh giá thấp', en: 'Low customer rating' },
   'gift-card-probing': { vi: 'Dò mã thẻ quà tặng', en: 'Gift-card code probing' },
+  'gift-card-underfunded': {
+    vi: 'Đơn bán thẻ quà tặng không còn đủ tiền để phát thẻ',
+    en: 'Gift-card order no longer holds the money for its cards',
+  },
   'table-session-open': {
     vi: 'Phiên bàn chưa đóng sau giờ cuối ngày',
     en: 'Table session left open after business day end',

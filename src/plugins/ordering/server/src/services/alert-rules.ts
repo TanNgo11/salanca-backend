@@ -140,6 +140,16 @@ export const ALERT_RULE_DEFAULTS: AlertRules = {
     aggregationMinutes: 60,
     recipients: ['ops.read'],
   },
+  // Core-sales audit (O-04 remainder): a gift-card group reached `issued` but the order no longer
+  // holds the value the cards would carry, so nothing was issued. Always critical — the customer
+  // paid and is owed cards or a refund, and only staff can settle that by hand.
+  'gift-card-underfunded': {
+    enabled: true,
+    threshold: 1,
+    criticalThreshold: 1,
+    aggregationMinutes: 1440,
+    recipients: ['report.read'],
+  },
   // O12: a table session still open after the business day rolled over (plan step 7).
   // Warning — someone has to close it by hand; the job never collects money by itself.
   'table-session-open': {

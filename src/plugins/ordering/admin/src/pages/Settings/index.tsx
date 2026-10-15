@@ -56,6 +56,7 @@ const ALERT_CODES = [
   'notification-daily-limit',
   'low-rating',
   'gift-card-probing',
+  'gift-card-underfunded',
   'table-session-open',
   'data-request-overdue',
 ] as const;

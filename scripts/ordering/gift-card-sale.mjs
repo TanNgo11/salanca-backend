@@ -433,5 +433,86 @@ withApp(async (app) => {
   assert.equal(retry.order.order.status, 'draft', 'a deleted draft no longer holds its cards');
   console.log('[ordering-test] scans: denomination, duplicate and reservation checked at create');
 
+  // --- money can leave between `issued` and the consumer (audit O-04 remainder) ----------
+  // A refund taken through another channel (a wallet/transfer refund on another payment, or a
+  // `refund-due` row) shrinks what the order holds while the issuance event is still queued. The
+  // consumer must refuse to mint cards the order cannot back, raise one alert, and issue once the
+  // money is back — never mint an active card against a refunded order. Runs last: it issues a
+  // card and mails the recipient, and the counter-sale checks above count those globally.
+  {
+    const drained = await order.createOrder(
+      digitalInput({ lines: [{ sellableUid: 'card-200k', quantity: 1 }] }),
+      systemCtx,
+    );
+    const drainedId = drained.order.order.id;
+    const drainedPay = await payment.createPayment({
+      orderId: drainedId,
+      providerCode: 'test',
+      amount: 200000,
+    }, systemCtx);
+    await payment.capturePayment(
+      { paymentId: drainedPay.id, amount: 200000, providerTransactionId: randomUUID() },
+      systemCtx,
+    );
+    await matching.advanceIfPaid(drainedId, systemCtx);
+    assert.equal((await order.getOrder(drainedId, systemCtx)).groups[0].status, 'issued');
+
+    const knex = app.db.connection;
+    const pendingRefund = await app.db.query('plugin::ordering.refund').create({
+      data: {
+        amount: 200000,
+        currency: 'VND',
+        reason: 'refund through another channel',
+        actorRef: 'audit',
+        status: 'pending',
+      },
+    });
+    await knex('plugins_ordering_refund_order_lnk').insert({
+      refund_id: pendingRefund.id,
+      order_id: drainedId,
+    });
+    await knex('plugins_ordering_refund_payment_lnk').insert({
+      refund_id: pendingRefund.id,
+      payment_id: drainedPay.id,
+    });
+
+    const issuedEvents = await app.db.query('plugin::ordering.outbox').findMany({
+      where: { type: 'fulfillment-group.transitioned' },
+    });
+    const issuedEvent = issuedEvents.find(
+      (row) => row.payload?.orderId === drainedId && row.payload?.to === 'issued',
+    );
+    assert.ok(issuedEvent, 'the group-issued event exists');
+
+    await giftCard.onGroupIssued(issuedEvent);
+    const refusedCards = await cardsOf(drainedId);
+    const alerts = await app.db.query('plugin::ordering.ops-alert').findMany({
+      where: { alertCode: 'gift-card-underfunded' },
+    });
+    console.log(
+      `[ordering-test] underfunded issuance: cards=${refusedCards.length} alerts=${alerts.length}`,
+    );
+    assert.equal(refusedCards.length, 0, 'no card is minted without the money behind it');
+    assert.equal(alerts.length, 1);
+    assert.equal(alerts[0].status, 'open');
+    assert.equal(alerts[0].severity, 'critical');
+    assert.equal(alerts[0].dedupeKey, `gift-card-underfunded:${drainedId}`);
+    assert.equal(alerts[0].aggregateRef, `order:${drainedId}`);
+    assert.equal(
+      (await app.db.query('plugin::ordering.gift-card-ledger').count({ where: { order: drainedId } })),
+      0,
+      'no ledger row either',
+    );
+
+    // The money is available again (the refund was withdrawn): a redelivered event issues.
+    await knex('plugins_ordering_refund').where({ id: pendingRefund.id }).update({ status: 'settled' });
+    await giftCard.onGroupIssued(issuedEvent);
+    const retried = await cardsOf(drainedId);
+    console.log(`[ordering-test] underfunded retry: cards=${retried.length}`);
+    assert.equal(retried.length, 1, 'the card is issued once the money is back');
+    assert.equal(Number(retried[0].initialAmount), 200000);
+    assert.equal(retried[0].status, 'active');
+  }
+
   console.log('[ordering-test] done');
 });

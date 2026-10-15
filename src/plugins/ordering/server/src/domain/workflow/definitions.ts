@@ -245,12 +245,18 @@ export const dineInAcceptThenPayWorkflow: WorkflowDefinition = {
 };
 
 /**
+ * Name of the gift-card sale workflow. The issuance consumer and the gift-card refund guard both
+ * key on it, so they share this constant instead of a string literal each.
+ */
+export const GIFT_CARD_WORKFLOW_NAME = 'gift-card';
+
+/**
  * O9 gift-card sale (plan step 3): a digital order pays first, then the outbox consumer issues
  * one card per line unit. `awaiting-payment` ends at `issued` on capture — the only success
  * terminal — and the payment-expiry job (or a staff cancel) lands on `expired`/`canceled`.
  */
 export const giftCardWorkflow: WorkflowDefinition = {
-  name: 'gift-card',
+  name: GIFT_CARD_WORKFLOW_NAME,
   version: '1',
   initial: 'awaiting-payment',
   cancelState: 'canceled',

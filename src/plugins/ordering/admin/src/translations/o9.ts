@@ -194,6 +194,10 @@ export const o9Messages: Record<string, [string, string]> = {
 
   'ops.job.gift-card-expiry': ['Hết hạn thẻ quà tặng', 'Gift-card expiry'],
   'alert.code.gift-card-probing': ['Dò mã thẻ quà tặng', 'Gift-card code probing'],
+  'alert.code.gift-card-underfunded': [
+    'Đơn bán thẻ quà tặng không còn đủ tiền để phát thẻ',
+    'Gift-card order no longer holds the money for its cards',
+  ],
 
   // errors surfaced through the admin toast
   'error.GIFT_CARD_NOT_FOUND': ['Không tìm thấy thẻ.', 'Gift card not found.'],

@@ -12,10 +12,13 @@ import {
   last4Of,
   normalizeGiftCardCode,
 } from '../domain/gift-cards/code';
+import { payableTotal } from '../domain/payable';
 import { decryptSecret, encryptSecret, parseEncryptionKey } from '../domain/token-cipher';
+import { GIFT_CARD_WORKFLOW_NAME } from '../domain/workflow/definitions';
 import { isTerminal } from '../domain/workflow/transition';
 import type { TransactionClient } from '../migrations/runner';
 import orderRepository from '../repositories/order';
+import type alertFactory from './alert';
 import { actorRefOf, nowOf, type ServiceContext } from './context';
 import type { OrderingRegistry } from './registry';
 
@@ -120,6 +123,7 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
       ): Promise<void>;
     };
   const registry = () => plugin().service('registry') as OrderingRegistry;
+  const alert = () => plugin().service('alert') as ReturnType<typeof alertFactory>;
   const refund = () =>
     plugin().service('refund') as {
       createRefundInTransaction(
@@ -229,6 +233,33 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
     const out = new Date(at.getTime());
     out.setUTCMonth(out.getUTCMonth() + months);
     return out;
+  };
+
+  /**
+   * Money the order really holds: captured minus refunded, minus refunds still pending. Value can
+   * leave an order after its gift-card group reached `issued` but before this consumer ran (a
+   * wallet/transfer refund on another payment, a `refund-due` row on the review queue), and a
+   * card must never be issued against money that is no longer there (audit O-04 remainder).
+   */
+  const heldForOrder = async (trx: TransactionClient, orderId: number): Promise<number> => {
+    const paymentRows = (await trx('plugins_ordering_payment as p')
+      .join('plugins_ordering_payment_order_lnk as link', 'link.payment_id', 'p.id')
+      .where('link.order_id', orderId)
+      .select('p.captured_amount', 'p.refunded_amount')) as Array<{
+      captured_amount: string | number;
+      refunded_amount: string | number;
+    }>;
+    const held = paymentRows.reduce(
+      (sum, row) => sum + asInt(row.captured_amount) - asInt(row.refunded_amount),
+      0,
+    );
+    const pending = (await trx('plugins_ordering_refund as refund')
+      .join('plugins_ordering_refund_order_lnk as link', 'link.refund_id', 'refund.id')
+      .where('link.order_id', orderId)
+      .where('refund.status', 'pending')
+      .sum({ value: 'refund.amount' })
+      .first()) as { value: string | number | null } | undefined;
+    return held - asInt(pending?.value ?? 0);
   };
 
   const service = {
@@ -668,7 +699,7 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
      */
     async onGroupIssued(event: OutboxEvent): Promise<void> {
       if (String(event.payload?.to ?? '') !== 'issued') return;
-      if (String(event.payload?.workflowName ?? '') !== 'gift-card') return;
+      if (String(event.payload?.workflowName ?? '') !== GIFT_CARD_WORKFLOW_NAME) return;
       const orderId = Number(event.payload.orderId);
       const groupId = Number(event.payload.groupId);
       if (!Number.isSafeInteger(orderId) || !Number.isSafeInteger(groupId)) return;
@@ -676,7 +707,9 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
       const aggregate = await orderRepository({ strapi }).loadOrderAggregate(orderId);
       if (!aggregate) return;
       const group = aggregate.groups.find((item) => item.id === groupId);
-      if (!group || group.workflowName !== 'gift-card' || group.status !== 'issued') return;
+      if (!group || group.workflowName !== GIFT_CARD_WORKFLOW_NAME || group.status !== 'issued') {
+        return;
+      }
       const receive = aggregate.order.receiveMethod as {
         kind?: string;
         recipientEmail?: string;
@@ -697,6 +730,7 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
       const ctx: ServiceContext = { actor: { kind: 'system' } };
 
       const freshCodes = new Map<number, string>();
+      let underfunded = false;
       await strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
         // Lock this group's lines so two dispatches of the same event can never double-issue.
         const { rows: locked } = (await trx.raw(
@@ -733,6 +767,34 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
             break;
           }
           physicalQueue.shift();
+        }
+        // The value about to be handed over must be backed by money the order still holds. When
+        // it is not, issuing would create cards the customer can spend against a refunded order:
+        // nothing is issued, one alert opens, and staff settle that order by hand. The group stays
+        // `issued` — a redelivered event is refused the same way until the money is back.
+        const issueValue = locked.reduce(
+          (sum, line) =>
+            sum +
+            (asInt(line.quantity) - asInt(line.canceled_quantity)) *
+              (asInt(line.unit_amount) + asInt(line.option_amount)),
+          0,
+        );
+        // A discounted sale pays less than the face value, so the bar is what the order was
+        // supposed to collect (its payable total), never more than the face value being issued.
+        const mustHold = Math.min(issueValue, payableTotal(aggregate.order));
+        if (mustHold > 0 && (await heldForOrder(trx, orderId)) < mustHold) {
+          underfunded = true;
+          await alert().open(
+            {
+              alertCode: 'gift-card-underfunded',
+              dedupeKey: `gift-card-underfunded:${orderId}`,
+              severity: 'critical',
+              locationRef: aggregate.order.locationRef,
+              aggregateRef: `order:${orderId}`,
+            },
+            ctx,
+          );
+          return;
         }
         for (const line of locked) {
           const live = asInt(line.quantity) - asInt(line.canceled_quantity);
@@ -824,6 +886,9 @@ const giftCard = ({ strapi }: { strapi: Core.Strapi }) => {
         }
       });
 
+      // Short of money: no cards were issued, so there is nothing to mail (the alert is the
+      // signal). Waiting for the money to come back is the staff action, not a retry of this send.
+      if (underfunded) return;
       // After commit: mail the codes we can reveal — fresh ones from this run, or the sealed
       // copies while retention holds. No recipient mailbox means a counter sale: staff hands
       // the codes over through the admin reveal instead.

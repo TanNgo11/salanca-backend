@@ -10,6 +10,7 @@ import { amountFromDb, toMoney } from '../domain/money';
 import { payableTotal } from '../domain/payable';
 import { allocateLargestRemainder } from '../domain/pricing/allocation';
 import { lineRemovalAmount } from '../domain/refund-amount';
+import { GIFT_CARD_WORKFLOW_NAME } from '../domain/workflow/definitions';
 import type { TransactionClient } from '../migrations/runner';
 import orderRepository from '../repositories/order';
 import type { PaymentRow, RefundRow } from '../repositories/types';
@@ -322,7 +323,7 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
       // issuance consumer has created the cards. Count that commitment so a refund taken in the
       // gap cannot leave active cards with no money behind them.
       const issuedGroup = aggregate.groups.some(
-        (group) => group.workflowName === 'gift-card' && group.status === 'issued',
+        (group) => group.workflowName === GIFT_CARD_WORKFLOW_NAME && group.status === 'issued',
       );
       const committedValue = issuedGroup
         ? Math.max(issuedValue, payableTotal(aggregate.order))
