@@ -1,6 +1,6 @@
 # Phase O16 — Tích điểm và hạng thành viên
 
-Trạng thái: spec chờ duyệt (2026-10-12). Roadmap: [`plans/ordering-roadmap.md`](../plans/ordering-roadmap.md).
+Trạng thái: spec chờ duyệt (2026-10-12); điều kiện bắt đầu (O8, O11, O14) đã merge vào `feat/ordering`; kế hoạch thực hiện đã đối chiếu code 2026-10-15. Roadmap: [`plans/ordering-roadmap.md`](../plans/ordering-roadmap.md).
 Mockup: [`plans/mockups/ordering-o16-loyalty.html`](../plans/mockups/ordering-o16-loyalty.html).
 Kế hoạch thực hiện (gồm đặc tả màn hình Y1–Y4): [`plans/ordering-o16-loyalty.md`](../plans/ordering-o16-loyalty.md).
 
@@ -25,7 +25,7 @@ Chủ dự án chọn tính năng này sau review 2026-10-12.
 - **Tích điểm:** khi đơn `completed`, điểm = floor(cơ sở / đơn vị tích) × hệ số hạng; cơ sở = tiền món sau giảm giá (không tính
   phí giao, phí dịch vụ, tip, thẻ quà tặng mua, phần trả bằng điểm). Chỉ khách đã xác minh (OTP). Đơn hoàn tiền → trừ lại điểm
   tương ứng (có thể âm tạm thời → bù ở lần tích sau, không cho đổi khi âm).
-- **Dùng điểm:** khách đăng nhập chọn dùng điểm ở checkout; 1 điểm = X đồng; tối đa Y% tạm tính; tối thiểu Z điểm; là adjustment
+- **Dùng điểm:** khách đăng nhập chọn dùng điểm ở checkout; 1 điểm = X đồng; tối đa Y% tiền món sau khuyến mãi; tối thiểu Z điểm; là adjustment
   giảm giá `loyalty` áp **sau** khuyến mãi O8, chia xuống dòng (hoàn đúng khi hủy món); giữ điểm khi tạo đơn, trả lại khi đơn
   hủy/từ chối/hết hạn.
 - **Hạn điểm:** điểm tích có hạn N tháng (theo lô, dùng lô cũ trước); job hằng ngày hết hạn + email nhắc trước 14 ngày (nếu
