@@ -128,6 +128,18 @@ export const AUDIT_ACTIONS: Record<string, ActionDef> = {
     category: 'money',
     label: ['Kích hoạt thẻ in sẵn', 'Activate preprinted gift cards'],
   },
+  // O16: loyalty program — settings and tiers sit with promotions; point adjustments move value.
+  'loyalty.settings.update': {
+    category: 'promotion',
+    label: ['Sửa chương trình điểm', 'Update loyalty program'],
+  },
+  'loyalty.tier.create': { category: 'promotion', label: ['Tạo hạng thành viên', 'Create loyalty tier'] },
+  'loyalty.tier.update': { category: 'promotion', label: ['Sửa hạng thành viên', 'Update loyalty tier'] },
+  'loyalty.recalculate': {
+    category: 'promotion',
+    label: ['Tính lại hạng theo lịch sử', 'Recalculate tiers from history'],
+  },
+  'loyalty.adjust': { category: 'money', label: ['Điều chỉnh điểm khách', 'Adjust customer points'] },
   // Delivery
   'delivery.dispatch': { category: 'delivery', label: ['Bắt đầu giao', 'Start delivery'] },
   'delivery.fail': { category: 'delivery', label: ['Giao thất bại', 'Delivery failed'] },

@@ -65,6 +65,8 @@ import table from './table';
 import customerGroup from './customer-group';
 import giftCard from './gift-card';
 import giftCardAdmin from './gift-card-admin';
+import loyaltySettings from './loyalty-settings';
+import loyaltyTier from './loyalty-tier';
 
 export default {
   registry,
@@ -128,6 +130,9 @@ export default {
   'customer-group': customerGroup,
   'gift-card': giftCard,
   'gift-card-admin': giftCardAdmin,
+  // O16: loyalty program settings (core store) and tiers.
+  'loyalty-settings': loyaltySettings,
+  'loyalty-tier': loyaltyTier,
   // O12 (plan step 5): kitchen-ticket / provisional-receipt print payloads.
   print,
   // O12 (plan step 6): kitchen display board + line prepared state.

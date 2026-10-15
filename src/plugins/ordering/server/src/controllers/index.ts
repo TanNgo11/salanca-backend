@@ -25,6 +25,7 @@ import promotions from './promotions';
 import priceLists from './price-lists';
 import customerGroups from './customer-groups';
 import giftCards from './gift-cards';
+import loyalty from './loyalty';
 import ratings from './ratings';
 import reports from './reports';
 import storefront from './storefront';
@@ -58,6 +59,7 @@ export default {
   'price-lists': priceLists,
   'customer-groups': customerGroups,
   'gift-cards': giftCards,
+  loyalty,
   'audit-log': auditLog,
   'notification-channels': notificationChannels,
   'notification-templates': notificationTemplates,

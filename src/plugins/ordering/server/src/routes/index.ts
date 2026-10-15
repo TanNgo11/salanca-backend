@@ -375,6 +375,13 @@ export default {
       adminRoute('POST', '/gift-card-batches', 'gift-cards.createBatch', 'gift-card.manage'),
       adminRoute('GET', '/gift-card-batches/:id', 'gift-cards.getBatch', 'gift-card.manage'),
       adminRoute('GET', '/gift-card-batches/:id/export', 'gift-cards.exportBatch', 'gift-card.manage', 'export'),
+      // O16 "Điểm và hạng" (screens Y1–Y2): program settings and tiers; `loyalty.manage` guards both.
+      adminRoute('GET', '/loyalty/settings', 'loyalty.getSettings', 'loyalty.manage'),
+      adminRoute('PUT', '/loyalty/settings', 'loyalty.putSettings', 'loyalty.manage'),
+      adminRoute('GET', '/loyalty/tiers', 'loyalty.listTiers', 'loyalty.manage'),
+      adminRoute('POST', '/loyalty/tiers', 'loyalty.createTier', 'loyalty.manage'),
+      adminRoute('GET', '/loyalty/tiers/:id', 'loyalty.getTier', 'loyalty.manage'),
+      adminRoute('PUT', '/loyalty/tiers/:id', 'loyalty.updateTier', 'loyalty.manage'),
       // O8 "Đánh giá" (screens R1–R2): reading follows order scope, changes need `rating.manage`.
       adminRoute('GET', '/ratings', 'ratings.list', 'order.read'),
       adminRoute('GET', '/ratings/:id', 'ratings.detail', 'order.read'),

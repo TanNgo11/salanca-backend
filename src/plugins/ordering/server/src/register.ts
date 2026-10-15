@@ -136,6 +136,9 @@ const adminActions = [
   // O9: gift cards — balance adjust is a separate, tighter action than manage.
   { uid: 'gift-card.manage', displayName: 'Quản lý thẻ quà tặng' },
   { uid: 'gift-card.adjust', displayName: 'Điều chỉnh số dư thẻ quà tặng' },
+  // O16: loyalty program — point adjustment is a separate, tighter action than manage.
+  { uid: 'loyalty.manage', displayName: 'Quản lý chương trình điểm và hạng' },
+  { uid: 'loyalty.adjust', displayName: 'Điều chỉnh điểm khách' },
   // O12 (screens N2 kitchen display, N7 table board).
   { uid: 'kitchen.read', displayName: 'Màn hình bếp' },
   { uid: 'table.manage', displayName: 'Quản lý bàn và QR' },

@@ -1114,6 +1114,29 @@ export const OPERATIONS: Operation[] = [
   adm('get', '/gift-card-batches/:id/export', 'Gift cards', 'Batch codes as CSV — the sealed plaintext hand-off', ['gift-card.manage', 'export'], {
     parameters: [pathParam('id')],
   }),
+  adm('get', '/loyalty/settings', 'Loyalty', 'Loyalty program settings', ['loyalty.manage'], {
+    response: obj({ settings: generic }),
+  }),
+  adm('put', '/loyalty/settings', 'Loyalty', 'Save loyalty program settings (first enable stamps startsAt and seeds tiers)', ['loyalty.manage'], {
+    requestBody: generic,
+    response: obj({ settings: generic }),
+  }),
+  adm('get', '/loyalty/tiers', 'Loyalty', 'Tiers with customer counts', ['loyalty.manage'], {
+    response: obj({ items: arr(generic) }),
+  }),
+  adm('post', '/loyalty/tiers', 'Loyalty', 'Create a tier', ['loyalty.manage'], {
+    requestBody: generic,
+    response: obj({ item: generic }),
+  }),
+  adm('get', '/loyalty/tiers/:id', 'Loyalty', 'One tier', ['loyalty.manage'], {
+    parameters: [pathParam('id')],
+    response: obj({ item: generic }),
+  }),
+  adm('put', '/loyalty/tiers/:id', 'Loyalty', 'Update a tier (code is immutable; switch off instead of delete)', ['loyalty.manage'], {
+    parameters: [pathParam('id')],
+    requestBody: generic,
+    response: obj({ item: generic }),
+  }),
   adm('get', '/ratings', 'Ratings', 'Ratings in scope with summary', ['order.read'], {
     parameters: ['branch', 'stars', 'from', 'to', 'hasComment', 'status', 'page'].map((name) => ({
       name,

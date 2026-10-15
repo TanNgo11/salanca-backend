@@ -213,6 +213,8 @@ export const services = (app) => {
     lineCancel: plugin.service('line-cancel'),
     dailyStock: plugin.service('daily-stock'),
     giftCard: plugin.service('gift-card'),
+    loyaltySettings: plugin.service('loyalty-settings'),
+    loyaltyTier: plugin.service('loyalty-tier'),
   };
 };
 
@@ -385,6 +387,7 @@ export const ORDERING_ACTIONS = [
   'customer.read', 'customer.manage', 'customer.erase',
   'promotion.manage', 'rating.manage', 'price.manage',
   'gift-card.manage', 'gift-card.adjust',
+  'loyalty.manage', 'loyalty.adjust',
   'kitchen.read', 'table.manage',
 ];
 
