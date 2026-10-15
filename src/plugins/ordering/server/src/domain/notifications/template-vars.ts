@@ -1,10 +1,12 @@
 import {
   formatVnd,
   giftCardWords,
+
   opsAlertWords,
   templateWords,
   type CartReminderData,
   type GiftCardMailData,
+  type LoyaltyMailData,
   type OpsAlertData,
   type OtpMailData,
   type TemplateCode,
@@ -17,7 +19,8 @@ export type AnyMailData =
   | OpsAlertData
   | OtpMailData
   | CartReminderData
-  | GiftCardMailData;
+  | GiftCardMailData
+  | LoyaltyMailData;
 
 /**
  * O10 editable email templates — the allowlisted `{{var}}` names each template may use plus the
@@ -52,6 +55,8 @@ export const TEMPLATE_CODES: TemplateCode[] = [
   'customer.otp',
   'customer.cart-reminder',
   'customer.gift-card-issued',
+  'customer.points-expiring',
+  'customer.tier-up',
 ];
 
 // Compile-time exhaustiveness: a new TemplateCode without a list entry fails typecheck.
@@ -75,6 +80,8 @@ const _allCodes: Record<TemplateCode, true> = {
   'customer.otp': true,
   'customer.cart-reminder': true,
   'customer.gift-card-issued': true,
+  'customer.points-expiring': true,
+  'customer.tier-up': true,
 };
 void _allCodes;
 
@@ -107,6 +114,8 @@ export const TEMPLATE_NAMES: Record<TemplateCode, [vi: string, en: string]> = {
   'customer.otp': ['Mã đăng nhập OTP (khách)', 'Sign-in OTP code (customer)'],
   'customer.cart-reminder': ['Nhắc giỏ bỏ dở (khách)', 'Abandoned-cart reminder (customer)'],
   'customer.gift-card-issued': ['Thẻ quà tặng đã phát hành (khách)', 'Gift card issued (customer)'],
+  'customer.points-expiring': ['Điểm sắp hết hạn (khách)', 'Points expiring (customer)'],
+  'customer.tier-up': ['Lên hạng thành viên (khách)', 'Tier up (customer)'],
 };
 
 export const templateAudience = (code: TemplateCode): 'staff' | 'customer' =>
@@ -257,6 +266,14 @@ const GIFT_CARD_VARS: TemplateVar[] = [
   },
 ];
 
+const LOYALTY_VARS: TemplateVar[] = [
+  { name: 'points', description: ['Số điểm sắp hết hạn', 'Points about to expire'] },
+  { name: 'expiry', description: ['Ngày hết hạn (12/11/2026)', 'Expiry date (12/11/2026)'] },
+  { name: 'balance', description: ['Số dư điểm hiện tại', 'Current points balance'] },
+  { name: 'tier', description: ['Tên hạng mới', 'New tier name'] },
+  { name: 'multiplier', description: ['Hệ số điểm của hạng (1,2)', 'Tier points multiplier (1.2)'] },
+];
+
 /** Allowed `{{var}}` names for a template — used by the editor, validation and preview. */
 export const variablesFor = (code: TemplateCode): TemplateVar[] =>
   code === 'staff.ops-alert'
@@ -267,7 +284,9 @@ export const variablesFor = (code: TemplateCode): TemplateVar[] =>
         ? REMINDER_VARS
         : code === 'customer.gift-card-issued'
           ? GIFT_CARD_VARS
-          : ORDER_VARS;
+          : code === 'customer.points-expiring' || code === 'customer.tier-up'
+            ? LOYALTY_VARS
+            : ORDER_VARS;
 
 const mdEscape = (value: string): string => value.replace(/([\\[\]()*])/g, '\\$1');
 
@@ -289,6 +308,17 @@ export const buildVars = (
       branch: d.branch,
       items: d.items.map((item) => `- ${item.quantity} × ${mdEscape(item.title)}`).join('\n'),
       total: typeof d.total === 'number' ? `- ${label}: ${formatVnd(d.total)}` : '',
+    };
+  }
+  if (code === 'customer.points-expiring' || code === 'customer.tier-up') {
+    const d = data as LoyaltyMailData;
+
+    return {
+      points: String(d.points ?? 0),
+      expiry: d.expiresAt ?? '',
+      balance: String(d.balance),
+      tier: d.tierName ?? '',
+      multiplier: d.multiplier ?? '1',
     };
   }
   if (code === 'customer.gift-card-issued') {
@@ -370,7 +400,9 @@ export const sampleDataFor = (code: TemplateCode): AnyMailData =>
             message: 'Chúc mừng sinh nhật!',
             link: 'https://example.invalid/don-hang#t=demo',
           }
-        : code === 'staff.ops-alert'
+        : code === 'customer.points-expiring' || code === 'customer.tier-up'
+          ? { points: 120, expiresAt: '12/11/2026', balance: 480, tierName: 'Bạc', multiplier: '1,2' }
+          : code === 'staff.ops-alert'
     ? {
         label: 'Endpoint webhook tự tắt sau 50 lỗi liên tiếp',
         severity: 'warning',

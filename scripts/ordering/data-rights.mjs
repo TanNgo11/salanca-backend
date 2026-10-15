@@ -215,6 +215,17 @@ withApp(async (app) => {
   }
   console.log('[ordering-test] permission gates: data-requests need customer.erase');
 
+  // O16: the customer holds 120 points in one lot — the export lists them, the erase forfeits them.
+  await app.plugin('ordering').service('loyalty-settings').put({ enabled: true }, { actor: { kind: 'system' } });
+  const pointsLot = await app.db.query('plugin::ordering.loyalty-lot').create({
+    data: { customerId: customer.id, source: 'adjust', points: 120, remaining: 120, expiresAt: new Date(Date.now() + 30 * 86_400_000) },
+  });
+  await app.db.connection.transaction((trx) =>
+    app.plugin('ordering').service('loyalty').post(trx, {
+      customerId: customer.id, kind: 'adjust', points: 120, lotId: pointsLot.id, actorRef: 'test', at: new Date(),
+    }),
+  );
+
   // ── Self export: own profile/addresses/orders; staff refs stripped ───────────────────
   const exp = await call('GET', '/me/data-export', { headers: auth });
   assert.equal(exp.status, 200, JSON.stringify(exp.body));
@@ -224,6 +235,10 @@ withApp(async (app) => {
   assert.equal(exp.body.orders.length, 2, 'both orders listed');
   assert.equal(exp.body.orders[0].consent.actorRef, undefined, 'no staff ref in consent');
   assert.equal(exp.body.orders[0].contact.phone, '+84912345678');
+  assert.equal(exp.body.loyalty.balance, 120, 'export carries the points balance');
+  assert.equal(exp.body.loyalty.lots.length, 1);
+  assert.ok(exp.body.loyalty.ledger.some((row) => row.kind === 'adjust' && row.points === 120));
+  assert.ok(!JSON.stringify(exp.body.loyalty).includes('+84912345678'), 'no contact data in the points section');
   const foreign = await login('foreign@example.com');
   const exp2 = await call('GET', '/me/data-export', {
     headers: { 'x-customer-token': foreign.token },
@@ -309,6 +324,10 @@ withApp(async (app) => {
   assert.equal(gone.email, null);
   assert.equal(gone.name, null);
   assert.ok(gone.erasedAt, 'erasedAt stamped');
+  assert.equal(gone.pointsBalance, 0, 'points forfeited on erase');
+  assert.equal((await app.db.query('plugin::ordering.loyalty-lot').findOne({ where: { id: pointsLot.id } })).remaining, 0);
+  const forfeit = await app.db.query('plugin::ordering.loyalty-ledger').findOne({ where: { customerId: customer.id, kind: 'forfeit' } });
+  assert.equal(forfeit.points, -120);
   assert.equal(await addresses().count({ where: { customer: customer.id } }), 0);
   assert.equal(await carts().count({ where: { customer: customer.id } }), 0);
   assert.equal(await sessions().count({ where: { customer: customer.id } }), 0);

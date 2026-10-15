@@ -51,6 +51,8 @@ describe('public event catalog', () => {
       'promotion.redeemed',
       'rating.created',
       'customer.erased',
+      'loyalty.points.earned',
+      'loyalty.tier.changed',
     ]);
   });
 

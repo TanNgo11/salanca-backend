@@ -18,6 +18,8 @@ import {
   renderCartReminder,
   renderGiftCardIssued,
   renderOpsAlert,
+  renderPointsExpiring,
+  renderTierUp,
   renderOtp,
   renderTemplate,
   type TemplateCode,
@@ -89,7 +91,11 @@ const notificationTemplate = ({ strapi }: { strapi: Core.Strapi }) => {
           ? renderCartReminder(locale, data as Parameters<typeof renderCartReminder>[1])
           : code === 'customer.gift-card-issued'
             ? renderGiftCardIssued(locale, data as Parameters<typeof renderGiftCardIssued>[1])
-            : renderTemplate(code, locale, data as TemplateData);
+            : code === 'customer.points-expiring'
+              ? renderPointsExpiring(locale, data as Parameters<typeof renderPointsExpiring>[1])
+              : code === 'customer.tier-up'
+                ? renderTierUp(locale, data as Parameters<typeof renderTierUp>[1])
+                : renderTemplate(code, locale, data as TemplateData);
 
   const describe = async (code: TemplateCode, locale: TemplateLocale) => {
     const row = await findRow(code, locale);

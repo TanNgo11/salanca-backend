@@ -275,6 +275,29 @@ export const PUBLIC_EVENTS: readonly PublicEventSpec[] = [
     orderScoped: false,
     sample: { customerId: 42, customerHash: 'f2b9…c41d' },
   },
+  {
+    // O16: no contact data — receivers look the customer up through their own link to the documentId.
+    type: 'loyalty.points.earned',
+    group: 'customer',
+    description: {
+      vi: 'Khách được cộng điểm sau khi đơn hoàn tất',
+      en: 'A customer earned loyalty points for a completed order',
+    },
+    fields: ['customerDocumentId', 'points'],
+    orderScoped: false,
+    sample: { customerDocumentId: 'k2m9x4qz7c1d', points: 19 },
+  },
+  {
+    type: 'loyalty.tier.changed',
+    group: 'customer',
+    description: {
+      vi: 'Hạng thành viên của khách thay đổi',
+      en: 'A customer loyalty tier changed',
+    },
+    fields: ['customerDocumentId', 'tierCode', 'previousTierCode'],
+    orderScoped: false,
+    sample: { customerDocumentId: 'k2m9x4qz7c1d', tierCode: 'bac', previousTierCode: 'thanh-vien' },
+  },
 ];
 
 export const PUBLIC_EVENT_TYPES: readonly string[] = PUBLIC_EVENTS.map((spec) => spec.type);

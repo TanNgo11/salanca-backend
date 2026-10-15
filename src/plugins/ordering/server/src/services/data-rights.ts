@@ -343,6 +343,12 @@ const dataRights = ({ strapi }: { strapi: Core.Strapi }) => {
             where: { customerId: customer.id },
           })).count ?? 0,
       };
+      // O16: remaining points are forfeited under the same customer lock (lots emptied, tier cleared).
+      await (
+        strapi.plugin('ordering').service('loyalty-lifecycle') as {
+          forfeitInTransaction(trx: unknown, customerId: number, now: Date): Promise<void>;
+        }
+      ).forfeitInTransaction(trx, customer.id, now);
       await customers().update({
         where: { id: customer.id },
         data: {
@@ -471,6 +477,12 @@ const dataRights = ({ strapi }: { strapi: Core.Strapi }) => {
         isDefault: row.isDefault === true,
       })),
       orders: exported,
+      // O16: points balance, tier, lots and the ledger (ids and numbers only).
+      loyalty: await (
+        strapi.plugin('ordering').service('loyalty-lifecycle') as {
+          exportForCustomer(customerId: number): Promise<unknown>;
+        }
+      ).exportForCustomer(customer.id),
     };
   };
 

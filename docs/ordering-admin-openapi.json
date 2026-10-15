@@ -11966,6 +11966,74 @@
         }
       }
     },
+    "/loyalty/tiers/recalculate": {
+      "post": {
+        "tags": [
+          "Loyalty"
+        ],
+        "summary": "Import 12-month order history into tier spend and review tiers (idempotent)",
+        "operationId": "admin.post.loyalty.tiers.recalculate",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "orders": {
+                      "type": "integer"
+                    },
+                    "customers": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing admin authentication or plugin permission"
+          },
+          "default": {
+            "description": "Ordering error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "requestId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "x-ordering-permissions": [
+          "plugin::ordering.loyalty.manage"
+        ]
+      }
+    },
     "/loyalty/tiers/{id}": {
       "get": {
         "tags": [

@@ -79,6 +79,9 @@ export default {
       publicRoute('GET', '/me/orders/:code', 'customer.myOrder'),
       publicRoute('POST', '/me/orders/:code/reorder', 'customer.reorder'),
       // O11 step 6: Decree 13 self-service — export everything, then erase it.
+      // O16: the signed-in customer's points (X-Customer-Token; scoped to that customer).
+      publicRoute('GET', '/me/loyalty', 'customer.loyalty'),
+      publicRoute('GET', '/me/loyalty/history', 'customer.loyaltyHistory'),
       publicRoute('GET', '/me/data-export', 'customer.dataExport'),
       publicRoute('POST', '/me/erase', 'customer.erase'),
       // O11 step 4: server-side carts — X-Cart-Token for guests, X-Customer-Token for
@@ -382,6 +385,7 @@ export default {
       adminRoute('POST', '/loyalty/tiers', 'loyalty.createTier', 'loyalty.manage'),
       adminRoute('GET', '/loyalty/tiers/:id', 'loyalty.getTier', 'loyalty.manage'),
       adminRoute('PUT', '/loyalty/tiers/:id', 'loyalty.updateTier', 'loyalty.manage'),
+      adminRoute('POST', '/loyalty/tiers/recalculate', 'loyalty.recalculate', 'loyalty.manage'),
       // O8 "Đánh giá" (screens R1–R2): reading follows order scope, changes need `rating.manage`.
       adminRoute('GET', '/ratings', 'ratings.list', 'order.read'),
       adminRoute('GET', '/ratings/:id', 'ratings.detail', 'order.read'),

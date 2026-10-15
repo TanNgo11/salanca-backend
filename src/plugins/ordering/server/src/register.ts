@@ -307,6 +307,14 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
   registry.registerOutboxConsumer('order.transitioned', (event) =>
     loyaltyService().onOrderTransitioned(event),
   );
+  // O16: a tier move up mails the congratulation (consented customers only).
+  registry.registerOutboxConsumer('loyalty.tier.changed', (event) =>
+    (
+      strapi.plugin('ordering').service('loyalty-lifecycle') as {
+        onTierChanged: (event: OutboxEvent) => Promise<void>;
+      }
+    ).onTierChanged(event),
+  );
   registry.registerOutboxConsumer('loyalty.reconcile', (event) => loyaltyService().onReconcile(event));
   registry.registerOutboxConsumer('order.edited', (event) => notifications().onOrderEdited(event as never));
   // O13 review: wallet refunds call MoMo/VNPay after the refund row commits (stable request id).

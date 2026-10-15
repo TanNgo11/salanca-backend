@@ -11,6 +11,8 @@ import { runGiftCardExpiry } from './gift-card-expiry';
 import { runHoldExpiry } from './hold-expiry';
 import { runIdempotencyCleanup } from './idempotency-cleanup';
 import { runLoyaltyEarnSweep } from './loyalty-earn-sweep';
+import { runLoyaltyExpiry } from './loyalty-expiry';
+import { runLoyaltyTiers } from './loyalty-tiers';
 import { runManualPaymentCheck } from './manual-confirmation';
 import { runOpsCheck } from './ops-check';
 import { runOutboxDispatcher } from './outbox-dispatcher';
@@ -111,6 +113,9 @@ export const ORDERING_JOBS: OrderingJob[] = [
     run: runLoyaltyEarnSweep,
     runnable: true,
   },
+  // O16: daily lot expiry + one-time reminder, and the daily tier review.
+  { name: 'loyalty-expiry', cronKey: 'loyaltyExpiryCron', run: runLoyaltyExpiry, runnable: true },
+  { name: 'loyalty-tiers', cronKey: 'loyaltyTiersCron', run: runLoyaltyTiers, runnable: true },
   // O12 (plan step 7): flags dine-in table sessions still open after the business day rolled
   // over — alerts only, never collects payment or closes the session.
   {

@@ -66,6 +66,7 @@ import customerGroup from './customer-group';
 import giftCard from './gift-card';
 import giftCardAdmin from './gift-card-admin';
 import loyalty from './loyalty';
+import loyaltyLifecycle from './loyalty-lifecycle';
 import loyaltySettings from './loyalty-settings';
 import loyaltyTier from './loyalty-tier';
 
@@ -133,6 +134,7 @@ export default {
   'gift-card-admin': giftCardAdmin,
   // O16: loyalty program settings (core store) and tiers.
   loyalty,
+  'loyalty-lifecycle': loyaltyLifecycle,
   'loyalty-settings': loyaltySettings,
   'loyalty-tier': loyaltyTier,
   // O12 (plan step 5): kitchen-ticket / provisional-receipt print payloads.

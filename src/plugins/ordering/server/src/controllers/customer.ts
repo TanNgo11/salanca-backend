@@ -7,6 +7,7 @@ import { LIMITS } from '../domain/storefront/parse';
 import type cartFactory from '../services/cart';
 import type customerFactory from '../services/customer';
 import type dataRightsFactory from '../services/data-rights';
+import type loyaltyLifecycleFactory from '../services/loyalty-lifecycle';
 import type { ServiceContext } from '../services/context';
 import { withCartPromotionGuard } from './cart-promotion-guard';
 import { requireCustomer } from './customer-auth';
@@ -17,6 +18,7 @@ import { rateLimited } from './storefront-guard';
 type CustomerService = ReturnType<typeof customerFactory>;
 type CartService = ReturnType<typeof cartFactory>;
 type DataRightsService = ReturnType<typeof dataRightsFactory>;
+type LifecycleService = ReturnType<typeof loyaltyLifecycleFactory>;
 
 /**
  * Public `/me*` (O11 step 3): every action needs a live `X-Customer-Token` — an absent or dead
@@ -126,6 +128,19 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
         return { ...view, unavailable };
       });
     }),
+
+    /** GET /me/loyalty — balance, tier, next tier and points expiring within 30 days. */
+    loyalty: action(async (_ctx, _serviceCtx, customerId) => ({
+      loyalty: await (strapi.plugin('ordering').service('loyalty-lifecycle') as LifecycleService).summaryFor(customerId),
+    })),
+
+    /** GET /me/loyalty/history?page= — the customer's ledger without staff notes. */
+    loyaltyHistory: action(async (ctx, _serviceCtx, customerId) =>
+      (strapi.plugin('ordering').service('loyalty-lifecycle') as LifecycleService).historyFor(
+        customerId,
+        positiveInt(ctx.query.page) ?? 1,
+      ),
+    ),
 
     /** GET /me/data-export — the customer's own data as JSON (Decree 13 access right). */
     dataExport: action(async (_ctx, _serviceCtx, customerId) =>

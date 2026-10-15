@@ -22,7 +22,9 @@ export type TemplateCode =
   | 'customer.delivery-retry'
   | 'customer.otp'
   | 'customer.cart-reminder'
-  | 'customer.gift-card-issued';
+  | 'customer.gift-card-issued'
+  | 'customer.points-expiring'
+  | 'customer.tier-up';
 
 export type TemplateData = {
   code: string;
@@ -98,6 +100,15 @@ const copy: Record<TemplateCode, Record<Locale, { subject: string; lead: string 
   },
   // `customer.gift-card-issued` renders through `renderGiftCardIssued` (O9).
   'customer.gift-card-issued': {
+    vi: { subject: '', lead: '' },
+    en: { subject: '', lead: '' },
+  },
+  // O16 loyalty mails render through `renderPointsExpiring` / `renderTierUp`.
+  'customer.points-expiring': {
+    vi: { subject: '', lead: '' },
+    en: { subject: '', lead: '' },
+  },
+  'customer.tier-up': {
     vi: { subject: '', lead: '' },
     en: { subject: '', lead: '' },
   },
@@ -420,6 +431,73 @@ export function renderGiftCardIssued(
   return { subject, text, html };
 }
 
+/** O16 loyalty mail data: counts and names of the program only — no contact data. */
+export type LoyaltyMailData = {
+  /** Points expiring (points-expiring) or the new tier's name (tier-up) is in `tierName`. */
+  points?: number;
+  /** `12/11/2026` in the program timezone. */
+  expiresAt?: string;
+  balance: number;
+  tierName?: string;
+  /** Display multiplier such as `1,2`. */
+  multiplier?: string;
+};
+
+const loyaltyLabels: Record<Locale, Record<string, string>> = {
+  vi: {
+    expiringSubject: '{points} điểm của bạn sắp hết hạn',
+    expiringLead: 'Bạn có {points} điểm sẽ hết hạn vào {expiry}. Dùng điểm cho đơn tiếp theo để không bỏ lỡ nhé!',
+    balance: 'Số dư điểm',
+    tierSubject: 'Chúc mừng! Bạn đã lên hạng {tier}',
+    tierLead: 'Bạn vừa lên hạng {tier}. Từ nay mỗi đơn hoàn tất được nhân {multiplier} điểm.',
+    action: 'Đăng nhập website để xem điểm và hạng của bạn.',
+  },
+  en: {
+    expiringSubject: '{points} of your points are about to expire',
+    expiringLead: 'You have {points} points expiring on {expiry}. Use them on your next order so they do not go to waste!',
+    balance: 'Points balance',
+    tierSubject: 'Congratulations! You reached {tier}',
+    tierLead: 'You just reached {tier}. Every completed order now earns ×{multiplier} points.',
+    action: 'Sign in on the website to see your points and tier.',
+  },
+};
+
+export const loyaltyWords = (localeInput: string | null | undefined): Record<string, string> =>
+  loyaltyLabels[localeInput === 'en' ? 'en' : 'vi'];
+
+const fillLoyalty = (value: string, data: LoyaltyMailData): string =>
+  value
+    .replaceAll('{points}', String(data.points ?? 0))
+    .replaceAll('{expiry}', data.expiresAt ?? '')
+    .replaceAll('{tier}', data.tierName ?? '')
+    .replaceAll('{multiplier}', data.multiplier ?? '1');
+
+const renderLoyalty = (
+  kind: 'expiring' | 'tier',
+  localeInput: string | null | undefined,
+  data: LoyaltyMailData,
+): { subject: string; text: string; html: string } => {
+  const words = loyaltyLabels[localeInput === 'en' ? 'en' : 'vi'];
+  const subject = fillLoyalty(kind === 'expiring' ? words.expiringSubject : words.tierSubject, data);
+  const lead = fillLoyalty(kind === 'expiring' ? words.expiringLead : words.tierLead, data);
+  const balance = `${words.balance}: ${data.balance}`;
+  const text = [lead, '', balance, '', words.action].join('\n');
+  const html = [
+    `<p>${escapeHtml(lead)}</p>`,
+    `<p>${escapeHtml(words.balance)}: <strong>${escapeHtml(String(data.balance))}</strong></p>`,
+    `<p>${escapeHtml(words.action)}</p>`,
+  ].join('\n');
+  return { subject, text, html };
+};
+
+/** Renders `customer.points-expiring` — marketing mail, once per lot before it expires (O16). */
+export const renderPointsExpiring = (localeInput: string | null | undefined, data: LoyaltyMailData) =>
+  renderLoyalty('expiring', localeInput, data);
+
+/** Renders `customer.tier-up` — sent when the tier job moves a customer up (O16). */
+export const renderTierUp = (localeInput: string | null | undefined, data: LoyaltyMailData) =>
+  renderLoyalty('tier', localeInput, data);
+
 /** Ops-alert mail data: refs and counts only, never PII (contracts §12). */
 export type OpsAlertData = {
   label: string;
@@ -553,6 +631,20 @@ export function defaultTemplateSource(
         '',
         '{{link}}',
       ].join('\n'),
+    };
+  }
+  if (template === 'customer.points-expiring' || template === 'customer.tier-up') {
+    const w = loyaltyLabels[locale];
+    const expiring = template === 'customer.points-expiring';
+    const fillVars = (value: string) =>
+      value
+        .replaceAll('{points}', '{{points}}')
+        .replaceAll('{expiry}', '{{expiry}}')
+        .replaceAll('{tier}', '{{tier}}')
+        .replaceAll('{multiplier}', '{{multiplier}}');
+    return {
+      subject: fillVars(expiring ? w.expiringSubject : w.tierSubject),
+      body: [fillVars(expiring ? w.expiringLead : w.tierLead), '', `- ${w.balance}: {{balance}}`, '', w.action].join('\n'),
     };
   }
   if (template === 'staff.ops-alert') {

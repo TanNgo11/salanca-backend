@@ -425,8 +425,31 @@ export const OPERATIONS: Operation[] = [
       ['cart', 'unavailable'],
     ),
   }),
+  // O16 — the signed-in customer's points.
+  pub('get', '/me/loyalty', 'Customer', 'Points balance, tier, next tier and points expiring within 30 days', {
+    parameters: [customerToken],
+    response: obj({
+      loyalty: obj({
+        enabled: bool,
+        balance: int,
+        value: money,
+        tier: { ...obj({ code: str, name: generic, multiplier: int }), nullable: true },
+        nextTier: { ...obj({ name: generic, missing: money }), nullable: true },
+        expiringSoon: arr(obj({ points: int, expiresAt: isoDate })),
+      }),
+    }),
+  }),
+  pub('get', '/me/loyalty/history', 'Customer', 'Points ledger (no staff notes), newest first', {
+    parameters: [customerToken, { name: 'page', in: 'query', schema: int }],
+    response: obj({
+      items: arr(obj({ at: isoDate, kind: str, points: int, balanceAfter: int, orderCode: { ...str, nullable: true } })),
+      total: int,
+      page: int,
+      pageSize: int,
+    }),
+  }),
   // O11 step 6 — Decree 13 self-service data rights.
-  pub('get', '/me/data-export', 'Customer', 'Own data as JSON (profile, addresses, orders)', {
+  pub('get', '/me/data-export', 'Customer', 'Own data as JSON (profile, addresses, orders, loyalty)', {
     parameters: [customerToken],
     response: obj({ generatedAt: str, profile: generic, addresses: arr(generic), orders: arr(generic) }, [
       'generatedAt',
@@ -1144,6 +1167,9 @@ export const OPERATIONS: Operation[] = [
   adm('post', '/loyalty/tiers', 'Loyalty', 'Create a tier', ['loyalty.manage'], {
     requestBody: generic,
     response: obj({ item: generic }),
+  }),
+  adm('post', '/loyalty/tiers/recalculate', 'Loyalty', 'Import 12-month order history into tier spend and review tiers (idempotent)', ['loyalty.manage'], {
+    response: obj({ orders: int, customers: int }),
   }),
   adm('get', '/loyalty/tiers/:id', 'Loyalty', 'One tier', ['loyalty.manage'], {
     parameters: [pathParam('id')],

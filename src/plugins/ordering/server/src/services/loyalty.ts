@@ -20,6 +20,9 @@ import orderRepository from '../repositories/order';
 import { lockCustomer } from './customer-lock';
 import type loyaltySettingsFactory from './loyalty-settings';
 import type loyaltyTierFactory from './loyalty-tier';
+import type outboxFactory from './outbox';
+
+type OutboxService = ReturnType<typeof outboxFactory>;
 
 const LOT = 'plugin::ordering.loyalty-lot';
 const LEDGER = 'plugin::ordering.loyalty-ledger';
@@ -163,6 +166,37 @@ const loyalty = ({ strapi }: { strapi: Core.Strapi }) => {
     return balance;
   };
 
+  /** Earn base of an order now: live lines (base + discount) less what gift cards paid. */
+  const orderEarnBase = async (trx: TransactionClient, orderId: number): Promise<number> => {
+    const lineRows = (await trx('plugins_ordering_order_line as ln')
+      .join('plugins_ordering_order_line_order_lnk as l', 'l.order_line_id', 'ln.id')
+      .where('l.order_id', orderId)
+      .select('ln.quantity', 'ln.priced_quantity', 'ln.canceled_quantity', 'ln.base_amount', 'ln.discount_amount')) as Array<{
+      quantity: number;
+      priced_quantity: number | null;
+      canceled_quantity: number;
+      base_amount: string | number;
+      discount_amount: string | number;
+    }>;
+    const cardRow = (await trx('plugins_ordering_payment as p')
+      .join('plugins_ordering_payment_order_lnk as l', 'l.payment_id', 'p.id')
+      .where('l.order_id', orderId)
+      .where('p.provider_code', 'gift-card')
+      .select(trx.raw('COALESCE(SUM(p.captured_amount - p.refunded_amount), 0) AS paid'))
+      .first()) as { paid: string | number } | undefined;
+    const base = earnBase(
+      lineRows.map((row) => ({
+        quantity: Number(row.quantity),
+        pricedQuantity: row.priced_quantity === null ? null : Number(row.priced_quantity),
+        canceledQuantity: Number(row.canceled_quantity),
+        baseAmount: amountFromDb(row.base_amount),
+        discountAmount: amountFromDb(row.discount_amount),
+      })),
+      amountFromDb(cardRow?.paid ?? 0),
+    );
+    return base;
+  };
+
   const balanceOf = async (trx: TransactionClient, customerId: number): Promise<number> =>
     Number(
       ((await trx(CUSTOMER_TABLE).where({ id: customerId }).first('points_balance')) as
@@ -192,8 +226,69 @@ const loyalty = ({ strapi }: { strapi: Core.Strapi }) => {
   };
 
   /**
+   * Puts the customer in `tier`: updates the customer row, moves the O14 group membership (the tier
+   * job owns `source = 'auto'` rows of tier groups; manual rows are never touched) and enqueues
+   * `loyalty.tier.changed` (webhook + congratulation mail). Runs in the caller's transaction.
+   */
+  const applyTier = async (
+    trx: TransactionClient,
+    customerId: number,
+    tier: { code: string },
+    previousCode: string | null,
+    at: Date,
+  ): Promise<void> => {
+    await trx(CUSTOMER_TABLE)
+      .where({ id: customerId })
+      .update({ tier_code: tier.code, tier_since: at, tier_below_since: null, updated_at: at });
+    const all = await tierService().allTiers();
+    const tierGroupCodes = all.map((row) => row.customerGroupCode).filter((code): code is string => !!code);
+    const target = all.find((row) => row.code === tier.code)?.customerGroupCode ?? null;
+    if (tierGroupCodes.length > 0) {
+      const groups = (await trx('plugins_ordering_customer_group')
+        .whereIn(trx.raw('upper(code)'), tierGroupCodes.map((code) => code.toUpperCase()))
+        .select('document_id', 'code')) as Array<{ document_id: string; code: string }>;
+      const targetGroup = target ? groups.find((group) => group.code.toUpperCase() === target.toUpperCase()) : undefined;
+      await trx('plugins_ordering_customer_group_member')
+        .where({ customer_id: customerId, source: 'auto' })
+        .whereIn(
+          'group_document_id',
+          groups.map((group) => group.document_id),
+        )
+        .whereNot('group_document_id', targetGroup?.document_id ?? '')
+        .del();
+      if (targetGroup) {
+        const customer = (await trx(CUSTOMER_TABLE).where({ id: customerId }).first('document_id')) as { document_id: string };
+        await trx('plugins_ordering_customer_group_member')
+          .insert({
+            customer_id: customerId,
+            customer_document_id: customer.document_id,
+            group_document_id: targetGroup.document_id,
+            source: 'auto',
+            created_at: at,
+            updated_at: at,
+          })
+          .onConflict(['customer_id', 'group_document_id'])
+          .ignore();
+      }
+    }
+    if (previousCode !== tier.code) {
+      const customer = (await trx(CUSTOMER_TABLE).where({ id: customerId }).first('document_id')) as { document_id: string };
+      await (strapi.plugin('ordering').service('outbox') as OutboxService).enqueue(
+        {
+          type: 'loyalty.tier.changed',
+          aggregateType: 'customer',
+          aggregateId: String(customerId),
+          payload: { customerId, customerDocumentId: customer.document_id, tierCode: tier.code, previousTierCode: previousCode },
+          uniqueKey: `loyalty.tier.changed:${customerId}:${tier.code}:${at.getTime()}`,
+        },
+        { actor: { kind: 'system' } },
+      );
+    }
+  };
+
+  /**
    * Moves the customer up when the spend cache reaches a higher tier. Down-moves belong to the
-   * daily tier job (step 5), which owns the grace period.
+   * daily tier job, which owns the grace period.
    */
   const settleTierUp = async (trx: TransactionClient, customerId: number, at: Date): Promise<void> => {
     const tiers = await tierService().activeTiers();
@@ -213,9 +308,7 @@ const loyalty = ({ strapi }: { strapi: Core.Strapi }) => {
       graceDays: 0,
     });
     if (decision.action !== 'up') return;
-    await trx(CUSTOMER_TABLE)
-      .where({ id: customerId })
-      .update({ tier_code: decision.to.code, tier_since: at, tier_below_since: null, updated_at: at });
+    await applyTier(trx, customerId, decision.to, row.tier_code, at);
   };
 
   /**
@@ -236,6 +329,12 @@ const loyalty = ({ strapi }: { strapi: Core.Strapi }) => {
 
   const service = {
     post,
+    lockCustomerById,
+    lockLots,
+    takeLot,
+    balanceOf,
+    orderEarnBase,
+    applyTier,
 
     /**
      * Earns points for a completed order. Idempotent: under the order mutex it checks for an
@@ -268,32 +367,7 @@ const loyalty = ({ strapi }: { strapi: Core.Strapi }) => {
         const customer = await lockCustomerById(trx, customerId);
         if (!customer || customer.status !== 'active') return { status: 'skipped', reason: 'customer-not-active' };
 
-        const lineRows = (await trx('plugins_ordering_order_line as ln')
-          .join('plugins_ordering_order_line_order_lnk as l', 'l.order_line_id', 'ln.id')
-          .where('l.order_id', orderId)
-          .select('ln.quantity', 'ln.priced_quantity', 'ln.canceled_quantity', 'ln.base_amount', 'ln.discount_amount')) as Array<{
-          quantity: number;
-          priced_quantity: number | null;
-          canceled_quantity: number;
-          base_amount: string | number;
-          discount_amount: string | number;
-        }>;
-        const cardRow = (await trx('plugins_ordering_payment as p')
-          .join('plugins_ordering_payment_order_lnk as l', 'l.payment_id', 'p.id')
-          .where('l.order_id', orderId)
-          .where('p.provider_code', 'gift-card')
-          .select(trx.raw('COALESCE(SUM(p.captured_amount - p.refunded_amount), 0) AS paid'))
-          .first()) as { paid: string | number } | undefined;
-        const base = earnBase(
-          lineRows.map((row) => ({
-            quantity: Number(row.quantity),
-            pricedQuantity: row.priced_quantity === null ? null : Number(row.priced_quantity),
-            canceledQuantity: Number(row.canceled_quantity),
-            baseAmount: amountFromDb(row.base_amount),
-            discountAmount: amountFromDb(row.discount_amount),
-          })),
-          amountFromDb(cardRow?.paid ?? 0),
-        );
+        const base = await orderEarnBase(trx, orderId);
 
         const tiers = await tierService().activeTiers();
         const spendRow = (await trx(CUSTOMER_TABLE).where({ id: customerId }).first('spend_12_m')) as
@@ -335,6 +409,19 @@ const loyalty = ({ strapi }: { strapi: Core.Strapi }) => {
           lotId = lot.id;
         }
         await post(trx, { customerId, kind: 'earn', points, baseAmount: base, orderId, lotId, at: now });
+        if (points > 0) {
+          const owner = (await trx(CUSTOMER_TABLE).where({ id: customerId }).first('document_id')) as { document_id: string };
+          await (strapi.plugin('ordering').service('outbox') as OutboxService).enqueue(
+            {
+              type: 'loyalty.points.earned',
+              aggregateType: 'customer',
+              aggregateId: String(customerId),
+              payload: { customerId, customerDocumentId: owner.document_id, points, orderId },
+              uniqueKey: `loyalty.points.earned:${orderId}`,
+            },
+            { actor: { kind: 'system' } },
+          );
+        }
         await settleTierUp(trx, customerId, now);
         await service.reverseForOrder(trx, orderId, now);
         return { status: 'earned', points, base, capped: points < raw };
