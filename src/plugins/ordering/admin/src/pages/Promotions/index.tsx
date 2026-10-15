@@ -47,6 +47,7 @@ export type PromotionRow = {
   weekdays: string[];
   timeRanges: Array<{ start: string; end: string }>;
   firstOrderOnly: boolean;
+  customerGroups?: string[];
   usageLimit: number | null;
   perCustomerLimit: number | null;
   stackable: boolean;
@@ -74,7 +75,7 @@ export const discountText = (row: Pick<PromotionRow, 'discountType' | 'value' | 
 
 /** "Đơn từ 100.000đ · Q1 · Giao" */
 export const conditionText = (
-  row: Pick<PromotionRow, 'minSubtotal' | 'locationRefs' | 'receiveKinds' | 'firstOrderOnly'>,
+  row: Pick<PromotionRow, 'minSubtotal' | 'locationRefs' | 'receiveKinds' | 'firstOrderOnly' | 'customerGroups'>,
   t: Translate,
 ): string => {
   const parts: string[] = [];
@@ -82,6 +83,7 @@ export const conditionText = (
   if (row.locationRefs && row.locationRefs.length > 0) parts.push(row.locationRefs.join(', '));
   if (row.receiveKinds.length === 1) parts.push(t(`promo.receive.${row.receiveKinds[0]}`));
   if (row.firstOrderOnly) parts.push(t('promo.cond.firstOrder'));
+  if (row.customerGroups && row.customerGroups.length > 0) parts.push(t('promo.cond.groups', { groups: row.customerGroups.join(', ') }));
   return parts.length > 0 ? parts.join(' · ') : t('promo.cond.none');
 };
 

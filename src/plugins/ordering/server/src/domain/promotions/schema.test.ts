@@ -104,3 +104,17 @@ describe('PromotionInput', () => {
     expect(parsed.kind).toBe('code');
   });
 });
+
+describe('customer groups (O16)', () => {
+  it('defaults to no condition and accepts a list of group codes', () => {
+    expect(parsePromotionInput(base()).customerGroups).toEqual([]);
+    expect(parsePromotionInput(base({ customerGroups: ['hang-bac', 'hang-vang'] })).customerGroups).toEqual([
+      'hang-bac',
+      'hang-vang',
+    ]);
+  });
+
+  it('rejects duplicate codes regardless of case', () => {
+    invalid(base({ customerGroups: ['hang-bac', 'HANG-BAC'] }), 'customerGroups');
+  });
+});

@@ -28,6 +28,7 @@ import { httpStatusOf, useErrorToast } from '../../lib/api';
 import { formatDateTime, formatMoney } from '../../lib/format';
 import { useT } from '../../lib/i18n';
 import { PERMISSIONS } from '../../lib/permissions';
+import CustomerLoyalty from '../Loyalty/CustomerLoyalty';
 
 type Customer = {
   id: string;
@@ -89,7 +90,7 @@ type DetailBody = {
   requests: RequestRow[];
 };
 
-type Tab = 'orders' | 'addresses' | 'consent' | 'requests';
+type Tab = 'orders' | 'addresses' | 'consent' | 'requests' | 'loyalty';
 
 const statusTone = (status: string): Record<string, string> =>
   status === 'active'
@@ -304,7 +305,7 @@ export const CustomerDetailPage = () => {
           </Grid.Root>
           <Tabs.Root value={tab} onValueChange={(next: string) => setTab(next as Tab)}>
             <Tabs.List>
-              {(['orders', 'addresses', 'consent', 'requests'] as Tab[]).map((item) => (
+              {(['orders', 'loyalty', 'addresses', 'consent', 'requests'] as Tab[]).map((item) => (
                 <Tabs.Trigger key={item} value={item}>
                   {t(`customers.detail.tab.${item}`)}
                 </Tabs.Trigger>
@@ -415,6 +416,7 @@ export const CustomerDetailPage = () => {
               </Table>
             )
           ) : null}
+          {tab === 'loyalty' && id ? <CustomerLoyalty customerId={id} /> : null}
           {tab === 'requests' ? (
             requests.length === 0 ? (
               <Typography variant="pi">{t('customers.detail.noRequests')}</Typography>

@@ -15,6 +15,7 @@ import {
   RBAC_DATA_REQUESTS,
   RBAC_GIFT_CARD,
   RBAC_KITCHEN,
+  RBAC_LOYALTY,
   RBAC_OPS,
   RBAC_ORDERS_READ,
   RBAC_PAYMENT_REVIEW,
@@ -56,6 +57,7 @@ const PriceListsPage = lazy(() => import('./PriceLists'));
 const CustomerGroupsPage = lazy(() => import('./CustomerGroups'));
 const RatingsPage = lazy(() => import('./Ratings'));
 const GiftCardsPage = lazy(() => import('./GiftCards'));
+const LoyaltyPage = lazy(() => import('./Loyalty'));
 
 type Section =
   | 'orders'
@@ -73,6 +75,7 @@ type Section =
   | 'cash-closing'
   | 'promotions'
   | 'gift-cards'
+  | 'loyalty'
   | 'price-lists'
   | 'customer-groups'
   | 'categories'
@@ -174,10 +177,11 @@ const SideNav = ({
             {visible['cash-closing'] ? link('cash-closing', t('nav.cashClosing')) : null}
           </SubNavSection>
         ) : null}
-        {visible.promotions || visible['gift-cards'] ? (
+        {visible.promotions || visible['gift-cards'] || visible.loyalty ? (
           <SubNavSection label={t('nav.promotionsGroup')}>
             {visible.promotions ? link('promotions', t('nav.promotions')) : null}
             {visible['gift-cards'] ? link('gift-cards', t('nav.giftCards')) : null}
+            {visible.loyalty ? link('loyalty', t('nav.loyalty')) : null}
           </SubNavSection>
         ) : null}
         {visible.categories || visible['catalog-import'] || visible.availability || visible['price-lists'] ? (
@@ -246,10 +250,11 @@ const OrderingApp = () => {
   const webhook = useRBAC(RBAC_WEBHOOK);
   const promotion = useRBAC(RBAC_PROMOTION);
   const giftCards = useRBAC(RBAC_GIFT_CARD);
+  const loyalty = useRBAC(RBAC_LOYALTY);
   const price = useRBAC(RBAC_PRICE);
   const customers = useRBAC(RBAC_CUSTOMERS);
   const dataRequests = useRBAC(RBAC_DATA_REQUESTS);
-  const loading = [orders, kitchen, tables, process, recordCash, reviews, alerts, ops, report, catalogManage, catalogAccess, settings, scope, audit, webhook, customers, dataRequests, promotion, giftCards, price].some(
+  const loading = [orders, kitchen, tables, process, recordCash, reviews, alerts, ops, report, catalogManage, catalogAccess, settings, scope, audit, webhook, customers, dataRequests, promotion, giftCards, loyalty, price].some(
     (item) => item.isLoading,
   );
   if (loading) {
@@ -278,6 +283,7 @@ const OrderingApp = () => {
     'cash-closing': any(report.allowedActions),
     promotions: any(promotion.allowedActions),
     'gift-cards': any(giftCards.allowedActions),
+    loyalty: any(loyalty.allowedActions),
     'price-lists': any(price.allowedActions),
     categories: any(catalogManage.allowedActions),
     'catalog-import': any(catalogManage.allowedActions),
@@ -307,6 +313,7 @@ const OrderingApp = () => {
       'cash-closing',
       'promotions',
       'gift-cards',
+      'loyalty',
       'price-lists',
       'categories',
       'catalog-import',
@@ -380,6 +387,7 @@ const OrderingApp = () => {
             <Route path="api-docs/*" element={<ApiDocsPage />} />
             <Route path="promotions/*" element={<PromotionsPage />} />
             <Route path="gift-cards/*" element={<GiftCardsPage />} />
+            <Route path="loyalty/*" element={<LoyaltyPage />} />
             <Route path="price-lists/*" element={<PriceListsPage />} />
             <Route path="ratings/*" element={<RatingsPage />} />
           </Routes>

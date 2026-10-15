@@ -27,6 +27,7 @@ import { OrderExportModal } from '../../components/OrderExportModal';
 import { formatMoney, localized } from '../../lib/format';
 import { useLocale, useT } from '../../lib/i18n';
 import { PERMISSIONS, RBAC_EXPORT } from '../../lib/permissions';
+import LoyaltyReport from '../Loyalty/LoyaltyReport';
 
 type BranchOption = {
   code: string;
@@ -377,6 +378,7 @@ const ReportsPage = () => {
                     ))}
                   </Tbody>
                 </Table>
+                {applied ? <LoyaltyReport from={applied.from} to={applied.to} branch={report.branch} /> : null}
                 <Typography variant="pi" textColor="neutral600">
                   {t('reports.hint')}
                 </Typography>

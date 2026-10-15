@@ -81,6 +81,7 @@ type Form = {
   locationRefs: string[];
   receiveKinds: Array<'pickup' | 'delivery'>;
   firstOrderOnly: boolean;
+  customerGroups: string;
   startsAt: string;
   endsAt: string;
   weekdays: string[];
@@ -101,6 +102,9 @@ const toLocalInput = (iso: string | null): string => {
 };
 const fromLocalInput = (value: string): string | null => (value ? new Date(value).toISOString() : null);
 
+/** O16: comma/space separated O14 group codes -> unique list (the server checks the shape). */
+const groupCodes = (value: string): string[] => [...new Set(value.split(/[\s,;]+/).map((code) => code.trim()).filter(Boolean))];
+
 const blank = (): Form => ({
   kind: 'code',
   nameVi: '',
@@ -116,6 +120,7 @@ const blank = (): Form => ({
   locationRefs: [],
   receiveKinds: ['pickup', 'delivery'],
   firstOrderOnly: false,
+  customerGroups: '',
   startsAt: toLocalInput(new Date().toISOString()),
   endsAt: '',
   weekdays: [],
@@ -142,6 +147,7 @@ const formOf = (row: PromotionRow): Form => ({
   locationRefs: row.locationRefs ?? [],
   receiveKinds: row.receiveKinds,
   firstOrderOnly: row.firstOrderOnly,
+  customerGroups: (row.customerGroups ?? []).join(', '),
   startsAt: toLocalInput(row.startsAt),
   endsAt: toLocalInput(row.endsAt),
   weekdays: row.weekdays,
@@ -620,6 +626,7 @@ export const PromotionEditor = () => {
     weekdays: form.weekdays,
     timeRanges: form.timeRanges,
     firstOrderOnly: form.firstOrderOnly,
+    customerGroups: groupCodes(form.customerGroups),
     usageLimit: form.usageLimit ?? null,
     perCustomerLimit: form.perCustomerLimit ?? null,
     stackable: form.stackable,
@@ -861,6 +868,12 @@ export const PromotionEditor = () => {
                 <Checkbox checked={form.firstOrderOnly} onCheckedChange={(value: boolean) => set('firstOrderOnly', value)} aria-label={t('promo.field.firstOrder')} />
                 <Typography>{t('promo.field.firstOrder')}</Typography>
               </Flex>
+              <Field.Root error={errors.customerGroups} hint={t('promo.field.customerGroupsHint')}>
+                <Field.Label>{t('promo.field.customerGroups')}</Field.Label>
+                <TextInput value={form.customerGroups} onChange={(event: { target: { value: string } }) => set('customerGroups', event.target.value)} />
+                <Field.Hint />
+                <Field.Error />
+              </Field.Root>
             </Flex>
           </Section>
           <Section title={t('promo.section.time')}>

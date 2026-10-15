@@ -28,6 +28,9 @@ export const PERMISSIONS = {
   // O9 (screens G1–G3): adjust is the tighter action beyond day-to-day card management.
   giftCardManage: action('gift-card.manage'),
   giftCardAdjust: action('gift-card.adjust'),
+  // O16 (screens Y1-Y4): manage the program and tiers; adjust is the tighter action on a customer.
+  loyaltyManage: action('loyalty.manage'),
+  loyaltyAdjust: action('loyalty.adjust'),
   // O12 (screens N2, N7).
   kitchenRead: action('kitchen.read'),
   tableManage: action('table.manage'),
@@ -74,6 +77,7 @@ export const RBAC_PRICE = [...PERMISSIONS.price];
 /** O9: the cards tab + batch tools need manage; the ± balance correction checks adjust too. */
 export const RBAC_GIFT_CARD = [...PERMISSIONS.giftCardManage];
 export const RBAC_GIFT_CARD_FULL = [...PERMISSIONS.giftCardManage, ...PERMISSIONS.giftCardAdjust];
+export const RBAC_LOYALTY = [...PERMISSIONS.loyaltyManage];
 /** O12: kitchen display is read+process (prepared/done buttons share order.process). */
 export const RBAC_KITCHEN = [...PERMISSIONS.kitchenRead, ...PERMISSIONS.process];
 export const RBAC_TABLES = [...PERMISSIONS.tableManage];
@@ -103,6 +107,7 @@ export const RBAC_ANY_ORDERING = [
   ...RBAC_RATING,
   ...RBAC_PRICE,
   ...RBAC_GIFT_CARD_FULL,
+  ...RBAC_LOYALTY,
   ...RBAC_KITCHEN,
   ...RBAC_TABLES,
 ];

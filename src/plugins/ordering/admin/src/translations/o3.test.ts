@@ -16,9 +16,10 @@ import { o11Messages } from './o11';
 import { o13Messages } from './o13';
 import { o14Messages } from './o14';
 import { o12Messages } from './o12';
+import { o16Messages } from './o16';
 
 const ROOT = join(__dirname, '..');
-const O3_DIRS = ['inbox', 'components/orders', 'pages/Orders', 'pages/Deliveries', 'pages/Courier', 'pages/Branches', 'pages/Staff', 'pages/Settings', 'pages/PaymentReview', 'pages/Ops', 'pages/Alerts', 'pages/CashClosing', 'pages/Reports', 'pages/AuditLog', 'pages/Webhooks', 'pages/CatalogImport', 'pages/ApiDocs', 'pages/Customers', 'pages/DataRequests', 'pages/Promotions', 'pages/Ratings', 'pages/PriceLists', 'pages/CustomerGroups', 'pages/GiftCards', 'pages/Kitchen', 'pages/Tables', 'pages/TableSessions', 'pages/Print', 'custom-fields', 'lib'];
+const O3_DIRS = ['inbox', 'components/orders', 'pages/Orders', 'pages/Deliveries', 'pages/Courier', 'pages/Branches', 'pages/Staff', 'pages/Settings', 'pages/PaymentReview', 'pages/Ops', 'pages/Alerts', 'pages/CashClosing', 'pages/Reports', 'pages/AuditLog', 'pages/Webhooks', 'pages/CatalogImport', 'pages/ApiDocs', 'pages/Customers', 'pages/DataRequests', 'pages/Promotions', 'pages/Ratings', 'pages/PriceLists', 'pages/CustomerGroups', 'pages/GiftCards', 'pages/Loyalty', 'pages/Kitchen', 'pages/Tables', 'pages/TableSessions', 'pages/Print', 'custom-fields', 'lib'];
 const EXTRA_FILES = ['pages/App.tsx', 'components/OrderExportModal.tsx'];
 
 const files = (dir: string): string[] =>
@@ -87,6 +88,11 @@ const DYNAMIC: Record<string, string[]> = {
   'p1.group': ['payment', 'fulfillment', 'notification'],
   'p1.state': ['configured', 'unconfigured', 'error', 'not-implemented'],
   'p1.env': ['sandbox', 'production'],
+  'loyalty.tiers.col': ['name', 'spend', 'multiplier', 'group', 'customers', 'active'],
+  'loyalty.customer.col': ['points', 'remaining', 'expires', 'source', 'at', 'kind', 'balanceAfter', 'order', 'actor', 'reason'],
+  'loyalty.channel': ['pickup', 'delivery', 'dine-in'],
+  'loyalty.kind': ['earn', 'redeem', 'release', 'reverse', 'expire', 'adjust', 'history', 'forfeit'],
+  'loyalty.source': ['earn', 'adjust', 'restore'],
 };
 
 describe('O3 admin translations', () => {
@@ -119,7 +125,8 @@ describe('O3 admin translations', () => {
           o9Messages[key] ||
           o13Messages[key] ||
           o14Messages[key] ||
-          o12Messages[key],
+          o12Messages[key] ||
+          o16Messages[key],
       );
     const missing = [...used].filter((key) => !known(key));
     expect(missing).toEqual([]);
@@ -137,6 +144,7 @@ describe('O3 admin translations', () => {
       ...o13Messages,
       ...o14Messages,
       ...o12Messages,
+      ...o16Messages,
     })) {
       expect(vi.trim(), key).not.toBe('');
       expect(en.trim(), key).not.toBe('');
