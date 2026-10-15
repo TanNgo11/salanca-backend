@@ -21,6 +21,7 @@ const promo = (overrides: Partial<PromotionSnapshot> = {}): PromotionSnapshot =>
   weekdays: [],
   timeRanges: [],
   firstOrderOnly: false,
+  customerGroups: [],
   perCustomerLimit: null,
   stackable: false,
   priority: 0,
@@ -45,6 +46,26 @@ const input = (overrides: Partial<EvaluateInput> = {}): EvaluateInput => ({
 });
 
 const reasons = (result: ReturnType<typeof evaluate>) => result.rejected.map((row) => row.reason);
+
+describe('evaluate customer groups (O16)', () => {
+  const grouped = promo({ customerGroups: ['hang-bac', 'hang-vang'] });
+  const withGroups = (groups?: string[]) =>
+    input({ candidates: [grouped], customer: { isFirstOrder: true, usedByPromotion: {}, groups } });
+
+  it('applies for a member of any listed group, ignoring case', () => {
+    expect(evaluate(withGroups(['HANG-VANG'])).applied).toHaveLength(1);
+    expect(evaluate(withGroups(['khac', 'hang-bac'])).applied).toHaveLength(1);
+  });
+
+  it('rejects a guest and a customer outside the groups with reason group', () => {
+    expect(reasons(evaluate(withGroups(undefined)))).toEqual(['group']);
+    expect(reasons(evaluate(withGroups(['khac'])))).toEqual(['group']);
+  });
+
+  it('an empty list is no condition at all', () => {
+    expect(evaluate(input({ candidates: [promo({ customerGroups: [] })] })).applied).toHaveLength(1);
+  });
+});
 
 describe('evaluate conditions', () => {
   it('applies a code that meets every condition', () => {

@@ -41,6 +41,8 @@ export const promotionInputSchema = z
       .max(8)
       .default([]),
     firstOrderOnly: z.boolean().default(false),
+    /** O16: O14 group codes (any one); empty = everyone. A guest never holds a group. */
+    customerGroups: z.array(z.string().trim().min(1).max(64)).max(30).default([]),
     usageLimit: z.number().int().positive().nullable().optional(),
     perCustomerLimit: z.number().int().positive().nullable().optional(),
     stackable: z.boolean().default(false),
@@ -80,6 +82,9 @@ export const parsePromotionInput = (raw: unknown): PromotionInput => {
   }
   if (new Set(input.target.refs).size !== input.target.refs.length) {
     fail('target.refs', 'refs must be unique');
+  }
+  if (new Set(input.customerGroups.map((code) => code.toUpperCase())).size !== input.customerGroups.length) {
+    fail('customerGroups', 'customer groups must be unique');
   }
   if (new Set(input.weekdays).size !== input.weekdays.length) {
     fail('weekdays', 'weekdays must be unique');

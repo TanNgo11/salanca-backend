@@ -40,6 +40,8 @@ export type CartRequest = {
   pickup: { asap?: boolean; slot?: { startsAt: string } };
   payment?: { providerCode: string; giftCardCode?: string };
   promotionCode?: string;
+  /** O16: loyalty points to spend (whole points; the server checks balance and ceiling). */
+  redeemPoints?: number;
 };
 
 export type OrderRequest = CartRequest & {
@@ -194,6 +196,7 @@ export function parseCartRequest(body: unknown): CartRequest {
       }
     : undefined;
   const promotionCode = str(body.promotionCode, 'promotionCode', 32);
+  const redeemPoints = parseRedeemPoints(body.redeemPoints);
   return {
     locationRef,
     locale,
@@ -202,7 +205,17 @@ export function parseCartRequest(body: unknown): CartRequest {
     pickup,
     ...(payment ? { payment } : {}),
     ...(promotionCode ? { promotionCode } : {}),
+    ...(redeemPoints > 0 ? { redeemPoints } : {}),
   };
+}
+
+/** `redeemPoints`: absent/0 = none; otherwise a whole number of points (bounded so it can never overflow money math). */
+export function parseRedeemPoints(value: unknown): number {
+  if (value === undefined || value === null || value === 0) return 0;
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > 10_000_000) {
+    throw invalid('redeemPoints', 'redeemPoints must be a whole number of points');
+  }
+  return value;
 }
 
 export function parseOrderRequest(body: unknown): OrderRequest {

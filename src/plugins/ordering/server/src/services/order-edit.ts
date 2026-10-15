@@ -39,6 +39,8 @@ import {
 import { pricePromotion, type PromotionSnapshot } from '../domain/promotions/evaluate';
 import { appliesCashRounding } from '../domain/pricing/cash-rounding';
 import { branchFeeAmount, type BranchFeeSnapshot } from '../domain/pricing/branch-fees';
+import { redeemPointsCeiling } from '../domain/loyalty/redeem';
+import type { LoyaltySettings } from '../domain/loyalty/settings';
 import type { PricedLine, PricingAdjustmentInput } from '../domain/pricing/pipeline';
 import type { TaxContext } from '../domain/pricing/tax';
 import { describeSelectedOptions } from '../domain/storefront/serialize';
@@ -527,6 +529,7 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
             weekdays: [],
             timeRanges: [],
             firstOrderOnly: false,
+            customerGroups: [],
             perCustomerLimit: null,
             stackable: false,
             priority: row.priority,
@@ -536,15 +539,41 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
         amount = repriced?.amount ?? 0;
         target = repriced?.target ?? { kind: 'order' };
       }
-      return { row, amount, target };
+      return { row, amount, target, ruleSnapshot: row.ruleSnapshot as Record<string, unknown> | null };
     });
+    // O16: points are a fixed-amount discount that survives the edit, so it can exceed the share of
+    // the (now smaller) food total. Pull it down to the ceiling; the points above it are handed back
+    // by the `loyalty.reconcile` event enqueued with `order.edited`.
+    const loyaltyEntry = resolvedAdjustments.find(({ row }) => row.sourceRef === 'loyalty');
+    if (loyaltyEntry) {
+      const loyaltySettings = await (
+        strapi.plugin('ordering').service('loyalty-settings') as { get(): Promise<LoyaltySettings> }
+      ).get();
+      const otherDiscounts = resolvedAdjustments
+        .filter((entry) => entry !== loyaltyEntry && entry.row.kind === 'discount' && entry.target?.kind !== 'fulfillment')
+        .reduce((sum, entry) => sum + entry.amount, 0);
+      const ceilingPoints = redeemPointsCeiling({
+        merchandiseAfterPromotions: merchandise + otherDiscounts,
+        maxRedeemShare: loyaltySettings.maxRedeemShare,
+        pointValue: loyaltySettings.pointValue,
+      });
+      const keptPoints = Number((loyaltyEntry.ruleSnapshot as { loyalty?: { points?: number } } | null)?.loyalty?.points ?? 0);
+      const nextPoints = Math.min(keptPoints, ceilingPoints);
+      if (nextPoints !== keptPoints) {
+        loyaltyEntry.amount = -nextPoints * loyaltySettings.pointValue;
+        loyaltyEntry.ruleSnapshot = {
+          ...(loyaltyEntry.ruleSnapshot ?? {}),
+          loyalty: { ...((loyaltyEntry.ruleSnapshot as { loyalty?: object } | null)?.loyalty ?? {}), points: nextPoints },
+        };
+      }
+    }
     const editedDiscounted =
       merchandise +
       resolvedAdjustments
         .filter(({ row, target }) => row.kind === 'discount' && target?.kind !== 'fulfillment')
         .reduce((sum, { amount }) => sum + amount, 0);
     const adjustmentInputs: PricingAdjustmentInput[] = resolvedAdjustments.flatMap(
-      ({ row, amount, target }) => {
+      ({ row, amount, target, ruleSnapshot }) => {
         const feeSnap = (row.ruleSnapshot as BranchFeeSnapshot | null)?.branchFee;
         let finalAmount = amount;
         if (feeSnap) {
@@ -565,7 +594,7 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
             taxable: row.taxable,
             priority: row.priority,
             ...(row.sourceRef ? { sourceRef: row.sourceRef } : {}),
-            ...(row.ruleSnapshot ? { ruleSnapshot: row.ruleSnapshot } : {}),
+            ...(ruleSnapshot ? { ruleSnapshot } : {}),
             ...(target ? { target } : {}),
           },
         ];
@@ -939,6 +968,17 @@ const orderEdit = ({ strapi }: { strapi: Core.Strapi }) => {
           notifyCustomer,
         },
         uniqueKey: `order.edited:${orderId}:${nextRevision}`,
+      },
+      ctx,
+    );
+    // O16: hand back points the edit could no longer use (idempotent; a no-op without a redemption).
+    await outbox.enqueue(
+      {
+        type: 'loyalty.reconcile',
+        aggregateType: 'order',
+        aggregateId: String(orderId),
+        payload: { orderId },
+        uniqueKey: `loyalty.reconcile:${orderId}:${nextRevision}`,
       },
       ctx,
     );

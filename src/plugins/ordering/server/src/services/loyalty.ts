@@ -1,15 +1,20 @@
 import type { Core } from '@strapi/strapi';
 
+import { OrderingError } from '../domain/errors';
 import { amountFromDb } from '../domain/money';
 import { capDailyEarn, earnBase, earnPoints, localDayBounds } from '../domain/loyalty/earn';
 import {
   addMonths,
   lotRemainingAfterDebt,
+  planRelease,
   takeFromLots,
+  trimByDebt,
   type Lot,
 } from '../domain/loyalty/lots';
+import { checkRedeem, redeemableRange, redeemPointsCeiling, type RedeemRejection } from '../domain/loyalty/redeem';
 import { reversalTarget } from '../domain/loyalty/reverse';
 import { decideTier, pickTier } from '../domain/loyalty/tier';
+import type { PricingAdjustmentInput } from '../domain/pricing/pipeline';
 import type { TransactionClient } from '../migrations/runner';
 import orderRepository from '../repositories/order';
 import { lockCustomer } from './customer-lock';
@@ -21,6 +26,11 @@ const LEDGER = 'plugin::ordering.loyalty-ledger';
 const LEDGER_TABLE = 'plugins_ordering_loyalty_ledger';
 const LOT_TABLE = 'plugins_ordering_loyalty_lot';
 const CUSTOMER_TABLE = 'plugins_ordering_customer';
+
+/** The loyalty discount sorts after every promotion and before branch fees (priority 1000). */
+export const LOYALTY_PRIORITY = 900;
+/** A redeemed lot that expired before the order was canceled is replaced by a lot with this much life. */
+const RESTORE_DAYS = 30;
 
 export type LedgerKind =
   | 'earn'
@@ -39,6 +49,7 @@ export type LedgerEntry = {
   baseAmount?: number | null;
   orderId?: number | null;
   lotId?: number | null;
+  originLotId?: number | null;
   actorRef?: string | null;
   reason?: string | null;
   at: Date;
@@ -47,6 +58,20 @@ export type LedgerEntry = {
 export type EarnOutcome =
   | { status: 'earned'; points: number; base: number; capped: boolean }
   | { status: 'skipped'; reason: string };
+
+/** What a quote or create learns about points for this cart (read-only; no locks). */
+export type RedeemPlan = {
+  enabled: boolean;
+  /** The program is on but the caller has no signed-in customer. */
+  loginRequired?: boolean;
+  balance?: number;
+  redeemable?: { min: number; max: number; value: number };
+  requested: number;
+  applied: { points: number; amount: number } | null;
+  /** Why a requested redemption does not apply (quote reports it, create throws it). */
+  reason?: RedeemRejection | 'disabled' | 'channel' | 'not-logged-in';
+  adjustment?: PricingAdjustmentInput;
+};
 
 type OrderHead = {
   id: number;
@@ -129,6 +154,7 @@ const loyalty = ({ strapi }: { strapi: Core.Strapi }) => {
         balanceAfter: balance,
         orderId: entry.orderId ?? null,
         lotId: entry.lotId ?? null,
+        originLotId: entry.originLotId ?? null,
         actorRef: entry.actorRef ?? null,
         reason: entry.reason ?? null,
         at: entry.at,
@@ -144,11 +170,15 @@ const loyalty = ({ strapi }: { strapi: Core.Strapi }) => {
         | undefined)?.points_balance ?? 0,
     );
 
-  /** Open lots of a customer, locked FOR UPDATE in the order they are spent (expiry, then id). */
-  const lockLots = async (trx: TransactionClient, customerId: number): Promise<Lot[]> => {
-    const rows = (await trx(LOT_TABLE)
-      .where({ customer_id: customerId })
-      .where('remaining', '>', 0)
+  /**
+   * Open lots of a customer, locked FOR UPDATE in the order they are spent (expiry, then id).
+   * `liveAt` keeps only lots that have not expired at that instant (a lot past its date is not
+   * spendable even before the expiry job has written it off).
+   */
+  const lockLots = async (trx: TransactionClient, customerId: number, liveAt?: Date): Promise<Lot[]> => {
+    const query = trx(LOT_TABLE).where({ customer_id: customerId }).where('remaining', '>', 0);
+    if (liveAt) query.where('expires_at', '>', liveAt);
+    const rows = (await query
       .orderBy([{ column: 'expires_at' }, { column: 'id' }])
       .forUpdate()
       .select('id', 'remaining', 'expires_at')) as LotRow[];
@@ -362,6 +392,297 @@ const loyalty = ({ strapi }: { strapi: Core.Strapi }) => {
       return Math.max(0, pointsDelta);
     },
 
+    /**
+     * What points do for this cart: whether the program applies, what the signed-in customer may
+     * redeem (`redeemable`) and, when `requested` > 0, whether that amount is allowed. Read-only and
+     * lock-free — `redeemInTransaction` re-checks under the locks. Spendable points exclude lots past
+     * their date even if the expiry job has not written them off yet.
+     */
+    async planRedeem(args: {
+      customerId?: number | null;
+      receiveKind: string;
+      merchandiseAfterPromotions: number;
+      requested?: number;
+      at: Date;
+      locale: string;
+    }): Promise<RedeemPlan> {
+      const requested = Math.max(0, Math.trunc(args.requested ?? 0));
+      const config = await settings().get();
+      const refuse = (reason: NonNullable<RedeemPlan['reason']>) => (requested > 0 ? { reason } : {});
+      if (!config.enabled) return { enabled: false, requested, applied: null, ...refuse('disabled') };
+      if (args.receiveKind === 'digital') return { enabled: false, requested, applied: null, ...refuse('channel') };
+      if (!args.customerId) {
+        return { enabled: true, loginRequired: true, requested, applied: null, ...refuse('not-logged-in') };
+      }
+      const row = (await strapi.db
+        .connection(CUSTOMER_TABLE)
+        .where({ id: args.customerId })
+        .first('status', 'points_balance')) as { status: string; points_balance: number } | undefined;
+      if (!row) return { enabled: true, loginRequired: true, requested, applied: null, ...refuse('not-logged-in') };
+      const spendableRow = (await strapi.db
+        .connection(LOT_TABLE)
+        .where({ customer_id: args.customerId })
+        .where('remaining', '>', 0)
+        .where('expires_at', '>', args.at)
+        .sum({ value: 'remaining' })
+        .first()) as { value: string | number | null } | undefined;
+      const balance = Number(row.points_balance);
+      const spendable = balance < 0 ? balance : Number(spendableRow?.value ?? 0);
+      const maxPoints = redeemPointsCeiling({
+        merchandiseAfterPromotions: args.merchandiseAfterPromotions,
+        maxRedeemShare: config.maxRedeemShare,
+        pointValue: config.pointValue,
+      });
+      const redeemable = redeemableRange({
+        balance: spendable,
+        minRedeemPoints: config.minRedeemPoints,
+        maxPoints,
+        pointValue: config.pointValue,
+      });
+      const base = { enabled: true, balance, redeemable, requested };
+      if (requested === 0) return { ...base, applied: null };
+      const check = checkRedeem({
+        points: requested,
+        balance: spendable,
+        verified: row.status === 'active',
+        minRedeemPoints: config.minRedeemPoints,
+        maxPoints,
+        pointValue: config.pointValue,
+      });
+      if (!check.ok) return { ...base, applied: null, reason: check.reason };
+      return {
+        ...base,
+        applied: { points: check.points, amount: check.amount },
+        adjustment: {
+          kind: 'discount',
+          code: 'loyalty',
+          label: args.locale === 'en' ? 'Loyalty points' : 'Dùng điểm tích lũy',
+          amount: -check.amount,
+          taxable: true,
+          priority: LOYALTY_PRIORITY,
+          sourceRef: 'loyalty',
+          ruleSnapshot: { loyalty: { points: check.points, pointValue: config.pointValue } },
+          target: { kind: 'order' },
+        },
+      };
+    },
+
+    /** Points the order would earn at today's tier — the quote's `earnPreview` (no cap, no history). */
+    async previewEarn(args: {
+      customerId?: number | null;
+      lines: Array<{ baseAmount: number; discountAmount: number }>;
+      giftCardApplied?: number;
+    }): Promise<number> {
+      const config = await settings().get();
+      if (!config.enabled || !args.customerId) return 0;
+      const base = earnBase(
+        args.lines.map((line) => ({ ...line, quantity: 1, canceledQuantity: 0 })),
+        args.giftCardApplied ?? 0,
+      );
+      const customer = (await strapi.db
+        .connection(CUSTOMER_TABLE)
+        .where({ id: args.customerId })
+        .first('tier_code', 'spend_12_m')) as { tier_code: string | null; spend_12_m: string | number } | undefined;
+      const tiers = await tierService().activeTiers();
+      const tier =
+        (customer?.tier_code ? tiers.find((entry) => entry.code === customer.tier_code) : undefined) ??
+        pickTier(tiers, amountFromDb(customer?.spend_12_m ?? 0));
+      return earnPoints({ base, earnPerAmount: config.earnPerAmount, multiplier: tier?.multiplier ?? 100 });
+    },
+
+    /**
+     * Spends points on a new order, oldest-expiring lot first, one ledger row per lot touched. Runs in
+     * the order-create transaction under the customer lock (taken when the order was linked; taking it
+     * again is re-entrant). The unlocked plan can be stale, so everything is re-checked here: two
+     * orders racing the same points end with one `LOYALTY_INSUFFICIENT`.
+     */
+    async redeemInTransaction(
+      trx: TransactionClient,
+      args: { customerId: number; orderId: number; points: number; now: Date },
+    ): Promise<void> {
+      const customer = await lockCustomerById(trx, args.customerId);
+      if (!customer || customer.status !== 'active') {
+        throw new OrderingError('LOYALTY_REDEEM_INVALID', 'points can only be used by a verified customer', {
+          details: { reason: 'not-verified' },
+        });
+      }
+      if ((await balanceOf(trx, args.customerId)) < 0) {
+        throw new OrderingError('LOYALTY_REDEEM_INVALID', 'points cannot be used while the balance is negative', {
+          details: { reason: 'negative-balance' },
+        });
+      }
+      const open = await lockLots(trx, args.customerId, args.now);
+      const { takes, shortfall } = takeFromLots(open, args.points);
+      if (shortfall > 0) {
+        throw new OrderingError('LOYALTY_INSUFFICIENT', 'not enough points', {
+          details: { balance: args.points - shortfall },
+        });
+      }
+      for (const take of takes) {
+        await takeLot(trx, take.lotId, take.points, args.now);
+        await post(trx, {
+          customerId: args.customerId,
+          kind: 'redeem',
+          points: -take.points,
+          orderId: args.orderId,
+          lotId: take.lotId,
+          at: args.now,
+        });
+      }
+    },
+
+    /**
+     * Hands redeemed points back so that `redeemed − released` equals what the order still uses: 0 for
+     * a canceled order, the loyalty adjustment's points otherwise (a staff edit can lower it). Points
+     * return to the lots they came from (latest redeem first); a lot that expired meanwhile is replaced
+     * by a `restore` lot with 30 days. Idempotent — it derives the outstanding amount from the ledger.
+     * Deliberately NOT part of the cancel/edit transactions: it takes only mutex → customer → lots, so
+     * it can never close a lock cycle with order creation (customer → promotion/stock/card rows).
+     */
+    async reconcileForOrder(orderId: number, options: { now?: Date } = {}): Promise<{ released: number }> {
+      const now = options.now ?? new Date();
+      return strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
+        await repo.lockOrder(trx, orderId);
+        const rows = (await trx(LEDGER_TABLE)
+          .where({ order_id: orderId })
+          .whereIn('kind', ['redeem', 'release'])
+          .orderBy('id')
+          .select('id', 'customer_id', 'kind', 'points', 'lot_id', 'origin_lot_id')) as Array<{
+          id: number;
+          customer_id: number;
+          kind: string;
+          points: number;
+          lot_id: number | null;
+          origin_lot_id: number | null;
+        }>;
+        if (rows.length === 0) return { released: 0 };
+        const net = -rows.reduce((sum, row) => sum + Number(row.points), 0);
+        if (net <= 0) return { released: 0 };
+        const head = (await trx('plugins_ordering_order').where({ id: orderId }).first('status')) as
+          | { status: string }
+          | undefined;
+        const canceled = head?.status === 'canceled';
+        let applied = 0;
+        if (head && !canceled) {
+          const adjustment = (await trx('plugins_ordering_order_adjustment as a')
+            .join('plugins_ordering_order_adjustment_order_lnk as l', 'l.order_adjustment_id', 'a.id')
+            .where('l.order_id', orderId)
+            .where('a.source_ref', 'loyalty')
+            .first('a.rule_snapshot')) as { rule_snapshot: unknown } | undefined;
+          applied = Number(
+            parseJson<{ loyalty?: { points?: number } }>(adjustment?.rule_snapshot, {}).loyalty?.points ?? 0,
+          );
+        }
+        const toRelease = net - applied;
+        if (toRelease <= 0) return { released: 0 };
+        const customerId = Number(rows[0].customer_id);
+        const customer = await lockCustomerById(trx, customerId);
+        if (!customer || customer.status === 'erased') return { released: 0 };
+
+        // Outstanding per original lot; the latest redeem comes back first.
+        const outstanding = new Map<number, number>();
+        const recency: number[] = [];
+        for (const row of rows) {
+          if (row.kind === 'redeem' && row.lot_id !== null) {
+            const lotId = Number(row.lot_id);
+            outstanding.set(lotId, (outstanding.get(lotId) ?? 0) - Number(row.points));
+            recency.push(lotId);
+          } else if (row.kind === 'release' && row.origin_lot_id !== null) {
+            const lotId = Number(row.origin_lot_id);
+            outstanding.set(lotId, (outstanding.get(lotId) ?? 0) - Number(row.points));
+          }
+        }
+        const takes: Array<{ lotId: number; points: number }> = [];
+        let left = toRelease;
+        for (const lotId of [...new Set(recency.reverse())]) {
+          if (left <= 0) break;
+          const give = Math.min(outstanding.get(lotId) ?? 0, left);
+          if (give > 0) {
+            takes.push({ lotId, points: give });
+            left -= give;
+          }
+        }
+        if (takes.length === 0) return { released: 0 };
+        const lotRows = (await trx(LOT_TABLE)
+          .whereIn(
+            'id',
+            takes.map((take) => take.lotId),
+          )
+          .orderBy('id')
+          .forUpdate()
+          .select('id', 'expires_at')) as Array<{ id: number; expires_at: Date | string }>;
+        const plan = planRelease({
+          takes,
+          lots: new Map(lotRows.map((row) => [Number(row.id), { expiresAt: new Date(row.expires_at) }])),
+          now,
+          restoreDays: RESTORE_DAYS,
+        });
+        const balanceBefore = await balanceOf(trx, customerId);
+        const credits = [...plan.restores.map((restore) => restore.points), ...plan.newLots.map((lot) => lot.points)];
+        const kept = trimByDebt(credits, Math.max(0, -balanceBefore));
+        const reason = canceled ? 'order-canceled' : 'order-edited';
+        let index = 0;
+        let released = 0;
+        for (const restore of plan.restores) {
+          const keep = kept[index++];
+          if (keep > 0) {
+            await trx(LOT_TABLE)
+              .where({ id: restore.lotId })
+              .update({ remaining: trx.raw('remaining + ?', [keep]), updated_at: now });
+          }
+          await post(trx, {
+            customerId,
+            kind: 'release',
+            points: restore.points,
+            orderId,
+            lotId: restore.lotId,
+            originLotId: restore.lotId,
+            reason,
+            at: now,
+          });
+          released += restore.points;
+        }
+        for (const fresh of plan.newLots) {
+          const keep = kept[index++];
+          const lot = (await lots().create({
+            data: {
+              customerId,
+              orderId,
+              source: 'restore',
+              points: fresh.points,
+              remaining: keep,
+              expiresAt: fresh.expiresAt,
+            },
+          })) as { id: number };
+          await post(trx, {
+            customerId,
+            kind: 'release',
+            points: fresh.points,
+            orderId,
+            lotId: lot.id,
+            originLotId: fresh.fromLotId,
+            reason,
+            at: now,
+          });
+          released += fresh.points;
+        }
+        return { released };
+      });
+    },
+
+    /** Canceled orders that still hold redeemed points — the sweep's release worklist. */
+    async pendingReleaseOrderIds(limit: number): Promise<number[]> {
+      const { rows } = (await strapi.db.connection.raw(
+        `SELECT g.order_id FROM ${LEDGER_TABLE} g
+         JOIN plugins_ordering_order o ON o.id = g.order_id
+         WHERE o.status = 'canceled' AND g.kind IN ('redeem', 'release')
+         GROUP BY g.order_id HAVING SUM(g.points) < 0
+         ORDER BY g.order_id LIMIT ?`,
+        [limit],
+      )) as { rows: Array<{ order_id: number }> };
+      return rows.map((row) => Number(row.order_id));
+    },
+
     /** Orders that completed, belong to an active customer and have no `earn` row yet — the sweep's worklist. */
     async pendingEarnOrderIds(limit: number, now: Date = new Date()): Promise<number[]> {
       const config = await settings().get();
@@ -382,11 +703,18 @@ const loyalty = ({ strapi }: { strapi: Core.Strapi }) => {
       return rows.map((row) => Number(row.id));
     },
 
-    /** Outbox consumer for `order.transitioned`: a completed order earns. */
+    /** Outbox consumer for `order.transitioned`: a completed order earns, a canceled one gives its points back. */
     async onOrderTransitioned(event: { payload: Record<string, unknown> }): Promise<void> {
       const payload = event.payload as { orderId?: unknown; to?: unknown };
-      if (payload.to !== 'completed' || typeof payload.orderId !== 'number') return;
-      await service.earnForOrder(payload.orderId);
+      if (typeof payload.orderId !== 'number') return;
+      if (payload.to === 'completed') await service.earnForOrder(payload.orderId);
+      if (payload.to === 'canceled') await service.reconcileForOrder(payload.orderId);
+    },
+
+    /** Outbox consumer for `loyalty.reconcile` (a staff edit changed what the order uses). */
+    async onReconcile(event: { payload: Record<string, unknown> }): Promise<void> {
+      const orderId = (event.payload as { orderId?: unknown }).orderId;
+      if (typeof orderId === 'number') await service.reconcileForOrder(orderId);
     },
   };
   return service;

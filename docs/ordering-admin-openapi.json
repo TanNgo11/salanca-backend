@@ -4542,6 +4542,10 @@
                     "type": "string",
                     "description": "O8: customer-entered code; the server decides the discount"
                   },
+                  "redeemPoints": {
+                    "type": "integer",
+                    "description": "O16: loyalty points to spend (signed-in customer, X-Customer-Token); quote answers loyalty.reason instead of failing"
+                  },
                   "payment": {
                     "type": "object",
                     "properties": {
@@ -4763,6 +4767,10 @@
                   "promotionCode": {
                     "type": "string",
                     "description": "O8: customer-entered code; the server decides the discount"
+                  },
+                  "redeemPoints": {
+                    "type": "integer",
+                    "description": "O16: loyalty points to spend (signed-in customer, X-Customer-Token); quote answers loyalty.reason instead of failing"
                   },
                   "payment": {
                     "type": "object",

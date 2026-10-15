@@ -594,6 +594,8 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
       input: {
         consent: { policyVersion: string; marketingOptIn?: boolean };
         payment?: { providerCode: string; giftCardCode?: string };
+        /** O16: points to spend on the converted order. */
+        redeemPoints?: number;
         idempotencyKey: string;
         customerId: number | null;
       },
@@ -670,6 +672,7 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
             ...(input.customerId ? { customerId: input.customerId } : {}),
             ...(row.pickup ? { pickup: row.pickup as never } : {}),
             ...(row.promotionCode ? { promotionCode: row.promotionCode } : {}),
+            ...(input.redeemPoints && input.redeemPoints > 0 ? { redeemPoints: input.redeemPoints } : {}),
           },
           ctx,
         );

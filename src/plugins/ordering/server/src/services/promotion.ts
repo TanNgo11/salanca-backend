@@ -33,6 +33,7 @@ type PromotionRow = {
   weekdays: string[] | string;
   timeRanges: PromotionSnapshot['timeRanges'] | string;
   firstOrderOnly: boolean;
+  customerGroups?: string[] | string | null;
   usageLimit: number | null;
   perCustomerLimit: number | null;
   stackable: boolean;
@@ -111,6 +112,7 @@ const snapshotOf = (row: PromotionRow, code: string, locale: string): PromotionS
   weekdays: asObject(row.weekdays, []),
   timeRanges: asObject(row.timeRanges, []),
   firstOrderOnly: row.firstOrderOnly,
+  customerGroups: asObject<string[]>(row.customerGroups, []),
   perCustomerLimit: row.perCustomerLimit,
   stackable: row.stackable,
   priority: row.priority ?? 0,
@@ -200,6 +202,8 @@ const promotionService = ({ strapi }: { strapi: Core.Strapi }) => {
       locale: string;
       phoneE164?: string;
       code?: string;
+      /** O14 group codes of the signed-in customer (O16 promotion condition). */
+      customerGroups?: string[];
     }): Promise<ResolvedPromotions> {
       const normalized = input.code ? normalizePromotionCode(input.code) : null;
       if (input.code && !normalized) {
@@ -245,7 +249,11 @@ const promotionService = ({ strapi }: { strapi: Core.Strapi }) => {
 
       const phone = input.phoneE164 && input.phoneE164.startsWith('+') ? input.phoneE164 : '';
       const customerKey = phone ? customerKeyFor(hmacKey(), phone) : null;
-      const customer = { isFirstOrder: true, usedByPromotion: {} as Record<number, number> };
+      const customer = {
+        isFirstOrder: true,
+        usedByPromotion: {} as Record<number, number>,
+        groups: input.customerGroups ?? [],
+      };
       if (phone) {
         await strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
           const prior = await trx.raw(
@@ -290,7 +298,11 @@ const promotionService = ({ strapi }: { strapi: Core.Strapi }) => {
 
       // Quote view: no phone history at all. Phone-dependent promotions are listed as pending
       // when everything else about them holds; create decides them with the real history.
-      const guest = { isFirstOrder: true, usedByPromotion: {} as Record<number, number> };
+      const guest = {
+        isFirstOrder: true,
+        usedByPromotion: {} as Record<number, number>,
+        groups: input.customerGroups ?? [],
+      };
       const enteredPending = entered !== undefined && phoneDependent(entered);
       const quoteDecision = evaluate({
         ...base,

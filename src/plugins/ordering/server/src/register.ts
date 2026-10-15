@@ -302,10 +302,12 @@ const register = ({ strapi }: { strapi: Core.Strapi }) => {
   const loyaltyService = () =>
     strapi.plugin('ordering').service('loyalty') as {
       onOrderTransitioned: (event: OutboxEvent) => Promise<void>;
+      onReconcile: (event: OutboxEvent) => Promise<void>;
     };
   registry.registerOutboxConsumer('order.transitioned', (event) =>
     loyaltyService().onOrderTransitioned(event),
   );
+  registry.registerOutboxConsumer('loyalty.reconcile', (event) => loyaltyService().onReconcile(event));
   registry.registerOutboxConsumer('order.edited', (event) => notifications().onOrderEdited(event as never));
   // O13 review: wallet refunds call MoMo/VNPay after the refund row commits (stable request id).
   registry.registerOutboxConsumer('refund.wallet-dispatch', (event) =>

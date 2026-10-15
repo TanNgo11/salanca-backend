@@ -91,6 +91,7 @@ const promotionAdmin = ({ strapi }: { strapi: Core.Strapi }) => {
     weekdays: parseJson(row.weekdays, []),
     timeRanges: parseJson(row.timeRanges, []),
     firstOrderOnly: row.firstOrderOnly,
+    customerGroups: parseJson<string[]>(row.customerGroups, []),
     usageLimit: row.usageLimit ?? null,
     perCustomerLimit: row.perCustomerLimit ?? null,
     stackable: row.stackable,
@@ -154,6 +155,7 @@ const promotionAdmin = ({ strapi }: { strapi: Core.Strapi }) => {
     weekdays: input.weekdays,
     timeRanges: input.timeRanges,
     firstOrderOnly: input.firstOrderOnly,
+    customerGroups: input.customerGroups,
     usageLimit: input.usageLimit ?? null,
     perCustomerLimit: input.perCustomerLimit ?? null,
     stackable: input.stackable,
@@ -631,7 +633,7 @@ const storedData = (row: Record<string, unknown>) =>
     [
       'name', 'internalNote', 'discountType', 'value', 'maxDiscount', 'target', 'minSubtotal',
       'locationRefs', 'receiveKinds', 'startsAt', 'endsAt', 'weekdays', 'timeRanges',
-      'firstOrderOnly', 'usageLimit', 'perCustomerLimit', 'stackable', 'priority', 'active',
+      'firstOrderOnly', 'customerGroups', 'usageLimit', 'perCustomerLimit', 'stackable', 'priority', 'active',
     ].map((key) => [key, row[key]]),
   );
 

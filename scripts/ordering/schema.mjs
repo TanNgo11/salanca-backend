@@ -145,6 +145,7 @@ const EXPECTED_INDEXES = [
   'plugins_ordering_loyalty_ledger_customer_at_idx',
   'plugins_ordering_loyalty_ledger_kind_at_idx',
   'plugins_ordering_loyalty_ledger_order_idx',
+  'plugins_ordering_loyalty_ledger_redeem_order_idx',
 ];
 
 // Catalog types staff edit in Content Manager (O2 step 1).

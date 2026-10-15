@@ -158,6 +158,7 @@ const cartBody = obj(
     adjustments: arr(obj({ kind: str, code: str, label: str, amount: num })),
     note: str,
     promotionCode: { ...str, description: 'O8: customer-entered code; the server decides the discount' },
+    redeemPoints: { ...int, description: 'O16: loyalty points to spend (signed-in customer, X-Customer-Token); quote answers loyalty.reason instead of failing' },
     payment: obj({
       providerCode: { ...str, description: 'The provider covering the remainder after the card' },
       giftCardCode: {
@@ -251,6 +252,21 @@ export const OPERATIONS: Operation[] = [
         }),
         description:
           'O9: card application preview — reason flags an unusable code, applied = min(balance, due)',
+      },
+      loyalty: {
+        ...obj({
+          enabled: bool,
+          loginRequired: bool,
+          balance: int,
+          redeemable: obj({ min: int, max: int, value: money }),
+          applied: { ...obj({ points: int, amount: money }), nullable: true },
+          reason: {
+            ...str,
+            enum: ['disabled', 'channel', 'not-logged-in', 'not-verified', 'negative-balance', 'below-minimum', 'insufficient', 'over-cap'],
+          },
+          earnPreview: obj({ points: int }),
+        }),
+        description: 'O16: points view for the signed-in customer; a refused redeemPoints is reported here, never as an error',
       },
     }),
   }),
@@ -477,6 +493,7 @@ export const OPERATIONS: Operation[] = [
       {
         consent: obj({ policyVersion: str, accepted: bool, marketingOptIn: bool }, ['policyVersion', 'accepted']),
         payment: obj({ providerCode: str }, ['providerCode']),
+        redeemPoints: { ...int, description: 'O16: loyalty points to spend; refused with LOYALTY_* errors at checkout' },
         captchaToken: str,
         idempotencyKey: str,
       },

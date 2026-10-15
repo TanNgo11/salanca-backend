@@ -14,7 +14,7 @@ describe('promotion code guessing guard', () => {
     for (const reason of ['invalid', 'not-started', 'ended', 'code-used', 'usage-limit']) {
       expect(isWrongPromotionCode(reason)).toBe(true);
     }
-    for (const reason of ['not-best', 'min-subtotal', 'per-customer', 'receive-kind', 'first-order', 'time']) {
+    for (const reason of ['not-best', 'min-subtotal', 'per-customer', 'receive-kind', 'first-order', 'time', 'group']) {
       expect(isWrongPromotionCode(reason)).toBe(false);
     }
   });

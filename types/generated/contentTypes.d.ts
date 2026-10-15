@@ -4894,6 +4894,7 @@ export interface PluginOrderingLoyaltyLedger
       Schema.Attribute.Private;
     lotId: Schema.Attribute.Integer;
     orderId: Schema.Attribute.Integer;
+    originLotId: Schema.Attribute.Integer;
     points: Schema.Attribute.Integer &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<0>;

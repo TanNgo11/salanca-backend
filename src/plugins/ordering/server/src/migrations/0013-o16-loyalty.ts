@@ -50,6 +50,11 @@ export const o16LoyaltyMigration: OrderingMigration = {
       `CREATE INDEX IF NOT EXISTS plugins_ordering_loyalty_ledger_order_idx
        ON plugins_ordering_loyalty_ledger (order_id)`,
     );
+    // The release sweep looks for canceled orders whose redeemed points were never handed back.
+    await trx.raw(
+      `CREATE INDEX IF NOT EXISTS plugins_ordering_loyalty_ledger_redeem_order_idx
+       ON plugins_ordering_loyalty_ledger (order_id) WHERE kind IN ('redeem', 'release')`,
+    );
     await trx.raw(`
       DO $$
       BEGIN

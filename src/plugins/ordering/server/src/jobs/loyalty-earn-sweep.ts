@@ -7,7 +7,7 @@ const BATCH = 200;
 const MAX_BATCHES = 10;
 
 /**
- * Loyalty earn sweep (O16 step 3). Completed orders that no `order.transitioned` event reached —
+ * Loyalty earn/release sweep (O16 steps 3–4). Completed orders that no `order.transitioned` event reached —
  * `line-cancel` and the refund paths recompute the projection without enqueueing — and orders whose
  * customer verified after completion still need their points. Each order earns under its own
  * transaction, so one failure never blocks the batch; reruns are no-ops because an order with an
@@ -37,6 +37,15 @@ export const runLoyaltyEarnSweep = async (
           failed += 1;
           strapi.log.warn(`[ordering] loyalty-earn-sweep order ${orderId} failed: ${(error as Error).message}`);
         }
+      }
+    }
+    // Canceled orders whose redeemed points were never handed back (a cancel path without an event).
+    for (const orderId of await loyalty.pendingReleaseOrderIds(BATCH)) {
+      try {
+        await loyalty.reconcileForOrder(orderId, { now });
+      } catch (error) {
+        failed += 1;
+        strapi.log.warn(`[ordering] loyalty-earn-sweep release ${orderId} failed: ${(error as Error).message}`);
       }
     }
     return { earned, failed };

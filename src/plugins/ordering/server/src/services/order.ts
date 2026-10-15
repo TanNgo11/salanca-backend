@@ -69,6 +69,7 @@ import type branchFactory from './branch';
 import type customerFactory from './customer';
 import type dailyStockFactory from './daily-stock';
 import type giftCardFactory from './gift-card';
+import type loyaltyFactory from './loyalty';
 import type holdFactory from './hold';
 import type tableFactory from './table';
 import type pickupSchedulingFactory from './pickup-scheduling';
@@ -124,6 +125,8 @@ export type CreateOrderInput = {
   pickup?: PickupTimingInput;
   /** Customer-entered code. The server decides whether it applies. */
   promotionCode?: string;
+  /** O16: loyalty points to spend on this order (signed-in customers only; the server decides). */
+  redeemPoints?: number;
 };
 
 export type OrderDraftInput = Omit<CreateOrderInput, 'idempotencyKey'>;
@@ -181,6 +184,33 @@ export type PreparedOrder = {
    * `expectedCartHash` is checked against. `pricing` adds the history-dependent ones for create.
    */
   quotePricing: ReturnType<typeof priceCart>;
+  /**
+   * O16: points for this cart. `real` is what create applies (it sees the phone-history promotions),
+   * `quote` what the public quote shows; `earnPreview` is the points a completed order would earn.
+   */
+  loyalty: {
+    real: import('./loyalty').RedeemPlan;
+    quote: import('./loyalty').RedeemPlan;
+    earnPreview: number;
+  };
+};
+
+/** The named error for a redemption the plan refused (create path). */
+const loyaltyRefusal = (plan: import('./loyalty').RedeemPlan): OrderingError => {
+  switch (plan.reason) {
+    case 'disabled':
+      return new OrderingError('LOYALTY_DISABLED', 'the loyalty program is not open');
+    case 'not-logged-in':
+      return new OrderingError('LOYALTY_NOT_LOGGED_IN', 'sign in to use points');
+    case 'insufficient':
+      return new OrderingError('LOYALTY_INSUFFICIENT', 'not enough points', {
+        details: { balance: plan.redeemable?.max ?? 0 },
+      });
+    default:
+      return new OrderingError('LOYALTY_REDEEM_INVALID', 'these points cannot be used on this order', {
+        details: { reason: plan.reason ?? 'over-cap' },
+      });
+  }
 };
 
 /** Stored on order/group `receiveMethod.timing`; UTC instants. */
@@ -833,6 +863,7 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         fulfillmentAmount,
         subtotal: merchandise,
         locale,
+        customerGroups,
         ...(() => {
           const normalized = input.contact.phone ? normalizeVietnamesePhone(input.contact.phone) : null;
           return normalized?.valid ? { phoneE164: normalized.e164 } : {};
@@ -844,19 +875,37 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
       // sau giảm giá món), so it is resolved here — not left to the pipeline's own percent.
       const fees = branchService.branchFees(branch);
       const lineBases = priced.map((line) => (line.unitAmount + line.optionAmount) * line.quantity);
-      const feeFor = (promotionAdjustments: PricingAdjustmentInput[]): PricingAdjustmentInput[] => {
+      const feeFor = (discounts: PricingAdjustmentInput[]): PricingAdjustmentInput[] => {
         if (fees.length === 0) return [];
         return branchFeeAdjustments(fees, {
           receiveKind: kind,
           merchandiseSubtotal: merchandise,
           discountedSubtotal: discountedMerchandise(lineBases, [
             ...(input.adjustments ?? []),
-            ...promotionAdjustments,
+            ...discounts,
           ]),
           labelFor: (fee) => fee.label[locale] ?? fee.label.vi ?? fee.code,
         });
       };
-      const priceWith = (promotionAdjustments: PricingAdjustmentInput[]) =>
+      // O16: points come off after promotions (priority 900, before the fees at 1000) and, like any
+      // discount, shrink the base percent fees price on. The ceiling is the merchandise after
+      // promotions, so a redemption never discounts more than the configured share of the food.
+      const loyaltyService = strapi.plugin('ordering').service('loyalty') as ReturnType<typeof loyaltyFactory>;
+      const planFor = (promotionAdjustments: PricingAdjustmentInput[]) =>
+        loyaltyService.planRedeem({
+          customerId: input.customerId ?? null,
+          receiveKind: kind,
+          merchandiseAfterPromotions: discountedMerchandise(lineBases, [
+            ...(input.adjustments ?? []),
+            ...promotionAdjustments,
+          ]),
+          requested: input.redeemPoints,
+          at: placedAt,
+          locale,
+        });
+      const loyaltyReal = await planFor(promotions.adjustments);
+      const loyaltyQuote = await planFor(promotions.quote.adjustments);
+      const priceWith = (promotionAdjustments: PricingAdjustmentInput[], points: PricingAdjustmentInput[]) =>
         priceCart({
           currency: cfg.currency,
           lines: priced.map((line) => ({
@@ -869,15 +918,19 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
           adjustments: [
             ...(input.adjustments ?? []),
             ...promotionAdjustments,
-            ...feeFor(promotionAdjustments),
+            ...points,
+            ...feeFor([...promotionAdjustments, ...points]),
           ],
           fulfillmentAmount,
           tax: { ...cfg.tax, ...(branch.tax ?? {}) },
           at: placedAt.toISOString(),
           cashRounding,
         });
-      const pricing = priceWith(promotions.adjustments);
-      const quotePricing = priceWith(promotions.quote.adjustments);
+      const pricing = priceWith(promotions.adjustments, loyaltyReal.adjustment ? [loyaltyReal.adjustment] : []);
+      const quotePricing = priceWith(
+        promotions.quote.adjustments,
+        loyaltyQuote.adjustment ? [loyaltyQuote.adjustment] : [],
+      );
 
       // O9 step 4: a gift-card code is a co-payment — applied = min(balance, due). The
       // quote reports an unusable code like an ineligible promotion (no throw); create
@@ -975,6 +1028,18 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         giftCard,
         promotions,
         quotePricing,
+        loyalty: {
+          real: loyaltyReal,
+          quote: loyaltyQuote,
+          earnPreview: await loyaltyService.previewEarn({
+            customerId: input.customerId ?? null,
+            lines: quotePricing.lines.map((line) => ({
+              baseAmount: line.baseAmount,
+              discountAmount: line.discountAmount,
+            })),
+            giftCardApplied: giftCard?.applied ?? 0,
+          }),
+        },
       };
     },
 
@@ -1019,6 +1084,19 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         pendingPromotions: prepared.promotions.quote.pending,
         payment: { providerCode: prepared.providerCode ?? null },
         giftCard: prepared.giftCard,
+        // O16: the points view — never throws; a refused request comes back as `reason`.
+        loyalty: (() => {
+          const plan = prepared.loyalty.quote;
+          return {
+            enabled: plan.enabled,
+            ...(plan.loginRequired ? { loginRequired: true } : {}),
+            ...(plan.balance !== undefined ? { balance: plan.balance } : {}),
+            ...(plan.redeemable ? { redeemable: plan.redeemable } : {}),
+            applied: plan.applied,
+            ...(plan.reason ? { reason: plan.reason } : {}),
+            earnPreview: { points: prepared.loyalty.earnPreview },
+          };
+        })(),
         timing: timingSnapshot(prepared.timing),
         delivery: prepared.delivery,
       };
@@ -1087,6 +1165,10 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
         async (trx) => {
           const { timeline, hold, outbox, scheduling, customer } = services();
           const prepared = await service.prepareOrder(payload, ctx);
+          // O16: quote reports a refused redemption, create refuses the order with a named error.
+          if (Math.trunc(payload.redeemPoints ?? 0) > 0 && !prepared.loyalty.real.applied) {
+            throw loyaltyRefusal(prepared.loyalty.real);
+          }
           // Counter sale: fail the scan while the staff member is still at the counter, so a
           // paid order can never get stuck in issuance — one card per unit sold, no card twice,
           // each card sellable stock of the unit's face value (units in line order, the order
@@ -1485,6 +1567,18 @@ const orderService = ({ strapi }: { strapi: Core.Strapi }) => {
                 },
               });
             }
+          }
+
+          // O16: spend the points (customer lock was taken when the order was linked; lots lock last).
+          const redeemPlan = prepared.loyalty.real;
+          if (redeemPlan.applied && input.customerId) {
+            await (strapi.plugin('ordering').service('loyalty') as ReturnType<typeof loyaltyFactory>)
+              .redeemInTransaction(trx as TransactionClient, {
+                customerId: input.customerId,
+                orderId,
+                points: redeemPlan.applied.points,
+                now,
+              });
           }
 
           // O9 step 4: a gift-card code is a co-payment debited inside this transaction —

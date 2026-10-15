@@ -4,7 +4,7 @@ import type { Core } from '@strapi/strapi';
 
 import type { OrderingConfig } from '../config';
 import { OrderingError } from '../domain/errors';
-import { LIMITS, parseIdempotencyKey } from '../domain/storefront/parse';
+import { LIMITS, parseIdempotencyKey, parseRedeemPoints } from '../domain/storefront/parse';
 import type cartFactory from '../services/cart';
 import type { ServiceContext } from '../services/context';
 import type { OrderingRegistry } from '../services/registry';
@@ -208,6 +208,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
                 : {}),
             }
           : undefined;
+      const redeemPoints = parseRedeemPoints(body.redeemPoints);
       // O9: a card code at checkout is the same guessing surface as POST /orders — same IP
       // budget, 429 once spent, every wrong code counted and alerted.
       const ip = clientIpOf(strapi, ctx);
@@ -230,6 +231,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
               marketingOptIn: consent.marketingOptIn === true,
             },
             ...(payment ? { payment } : {}),
+            ...(redeemPoints > 0 ? { redeemPoints } : {}),
             idempotencyKey,
             customerId: (await owner(ctx, serviceCtx)).customerId,
           },

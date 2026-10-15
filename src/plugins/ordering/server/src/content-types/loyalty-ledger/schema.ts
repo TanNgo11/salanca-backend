@@ -21,6 +21,8 @@ export default collection(
     balanceAfter: { type: 'integer', required: true },
     orderId: { type: 'integer' },
     lotId: { type: 'integer' },
+    /** `release` rows: the lot the points were originally redeemed from (the receiving lot can be a new `restore` lot). */
+    originLotId: { type: 'integer' },
     actorRef: { type: 'string' },
     reason: { type: 'text' },
     at: { type: 'datetime', required: true },

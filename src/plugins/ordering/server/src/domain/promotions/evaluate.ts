@@ -39,6 +39,8 @@ export type PromotionSnapshot = {
   /** Empty means all day. `end` < `start` wraps past midnight. */
   timeRanges: Array<{ start: string; end: string }>;
   firstOrderOnly: boolean;
+  /** O16: O14 group codes, any one of which the signed-in customer must hold. Empty = no condition. */
+  customerGroups: string[];
   perCustomerLimit: number | null;
   stackable: boolean;
   priority: number;
@@ -54,7 +56,12 @@ export type EvaluateInput = {
   subtotal: number;
   candidates: PromotionSnapshot[];
   code?: string;
-  customer: { isFirstOrder: boolean; usedByPromotion: Record<number, number> };
+  customer: {
+    isFirstOrder: boolean;
+    usedByPromotion: Record<number, number>;
+    /** O14 group codes of the signed-in customer; a guest has none. */
+    groups?: string[];
+  };
 };
 
 export type AppliedPromotion = {
@@ -113,6 +120,10 @@ export const rejectionReason = (promo: PromotionSnapshot, input: EvaluateInput):
   if (promo.timeRanges.length > 0) {
     const minute = minutesOf(local.time);
     if (!promo.timeRanges.some((range) => inTimeRange(minute, range))) return 'time';
+  }
+  if (promo.customerGroups.length > 0) {
+    const held = new Set((input.customer.groups ?? []).map((code) => code.toUpperCase()));
+    if (!promo.customerGroups.some((code) => held.has(code.toUpperCase()))) return 'group';
   }
   if (promo.firstOrderOnly && !input.customer.isFirstOrder) return 'first-order';
   if (
