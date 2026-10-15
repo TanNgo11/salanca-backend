@@ -269,14 +269,14 @@ export const LineCancelDialog = ({
   line: OrderDetail['lines'][number];
   busy: boolean;
   onClose: () => void;
-  onPreview: (quantity: number) => Promise<{ refundAmount: number; refundShortfall: number }>;
+  onPreview: (quantity: number) => Promise<{ refundAmount: number; refundShortfall: number; restocked: boolean }>;
   onSubmit: (quantity: number, reason: string) => void;
 }) => {
   const t = useT();
   const remaining = line.quantity - line.canceledQuantity;
   const [quantity, setQuantity] = useState(1);
   const [reason, setReason] = useState('');
-  const [preview, setPreview] = useState<{ refundAmount: number; refundShortfall: number } | null>(null);
+  const [preview, setPreview] = useState<{ refundAmount: number; refundShortfall: number; restocked: boolean } | null>(null);
   // The parent passes a fresh callback each render; keep the latest in a ref so the preview only
   // refetches when the quantity changes (depending on the callback looped forever).
   const previewRef = useRef(onPreview);
@@ -324,6 +324,12 @@ export const LineCancelDialog = ({
               : t('dialog.line.noRefund')
             : t('common.loading')}
         </Typography>
+        {/* O-06: the money still goes back after hand-off, the daily portion does not. */}
+        {preview && !preview.restocked ? (
+          <Typography variant="pi" textColor="danger600">
+            {t('dialog.line.notRestocked')}
+          </Typography>
+        ) : null}
       </Box>
     </Frame>
   );

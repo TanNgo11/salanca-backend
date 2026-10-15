@@ -171,6 +171,10 @@ export const o3Messages: Record<string, [string, string]> = {
   'dialog.line.of': ['Còn lại {remaining}', '{remaining} remaining'],
   'dialog.line.refund': ['Hoàn lại (theo số đã chia giảm giá lúc đặt): {amount}', 'Refund (using the discount split at ordering): {amount}'],
   'dialog.line.noRefund': ['Đơn chưa thu tiền, không cần hoàn', 'Not paid yet, nothing to refund'],
+  'dialog.line.notRestocked': [
+    'Món đã rời bếp, suất không được trả lại',
+    'The item already left the kitchen; its daily portion is not returned',
+  ],
   'dialog.line.confirm': ['Hủy món', 'Cancel item'],
   'dialog.refund.title': ['Hoàn tiền mặt', 'Cash refund'],
   'dialog.refund.amount': ['Số tiền', 'Amount'],

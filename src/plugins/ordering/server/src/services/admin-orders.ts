@@ -1039,20 +1039,28 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
      */
     async lineCancelPreview(orderId: number, lineId: number, quantity: number, ctx: ServiceContext) {
       const rollback = new Error('ordering-preview-rollback');
-      let preview: { refundAmount: number; refundShortfall: number } | null = null;
+      let preview: { refundAmount: number; refundShortfall: number; restocked: boolean } | null = null;
       try {
         await strapi.db.transaction(async () => {
           const result = await s.lineCancel().cancelLineQuantity(
             { orderId, lineId, quantity, reason: 'preview' },
             ctx,
           );
-          preview = { refundAmount: result.refundAmount, refundShortfall: result.refundShortfall };
+          preview = {
+            refundAmount: result.refundAmount,
+            refundShortfall: result.refundShortfall,
+            restocked: result.restocked,
+          };
           throw rollback;
         });
       } catch (error) {
         if (error !== rollback) throw error;
       }
-      return preview as unknown as { refundAmount: number; refundShortfall: number };
+      return preview as unknown as {
+        refundAmount: number;
+        refundShortfall: number;
+        restocked: boolean;
+      };
     },
 
     /** POST /orders/:id/lines/:lineId/cancel — partial cancel. Cash settles now; a transfer stays pending. */
@@ -1069,6 +1077,7 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
       return {
         refundAmount: result.refundAmount,
         refundShortfall: result.refundShortfall,
+        restocked: result.restocked,
         detail: await service.detail(orderId, ctx),
       };
     },

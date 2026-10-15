@@ -197,6 +197,117 @@ withApp(async (app) => {
     assert.equal(refunded.status, 200, JSON.stringify(refunded.body));
     assert.equal(refunded.body.totals.refunded, 89000);
 
+    // --- O-06 after hand-off: refund yes, restock no --------------------------------------------
+    // A group that already left the kitchen (`out-for-delivery`) is sold stock. The line cancel
+    // still refunds what the order holds, but reports `restocked: false` and keeps the daily
+    // portion gone, so the next customer cannot buy stock that was already cooked and delivered.
+    catalog.seed([
+      {
+        ...base,
+        ref: { uid: 'bun-bo-giao' },
+        title: 'Bún bò giao',
+        listPrice: { amount: 100000, currency: 'VND' },
+        fulfillmentKinds: ['pickup', 'delivery'],
+      },
+    ]);
+    const q1Delivery = await branchRows.findOne({ where: { code: 'Q1' } });
+    await branchRows.update({
+      where: { id: q1Delivery.id },
+      data: {
+        fulfillment: {
+          ...q1Delivery.fulfillment,
+          delivery: {
+            enabled: true,
+            orderTiming: 'both',
+            paymentTiming: 'pay-on-pickup',
+            paymentProviders: ['cash'],
+            minOrderAmount: 0,
+            schedule: {
+              leadTimeMinutes: 60,
+              slotLengthMinutes: 15,
+              capacity: 8,
+              openingHours: { mode: '24_7' },
+            },
+            zones: [
+              {
+                code: 'near',
+                label: 'Gần',
+                priority: 10,
+                match: { kind: 'commune', communeCodes: ['XT01002'] },
+                rules: [{ when: 'any', fee: 0 }],
+              },
+            ],
+          },
+        },
+      },
+    });
+    await app.db.query('plugin::ordering.catalog-daily-limit').create({
+      data: {
+        entityType: 'product',
+        entityDocumentId: 'bun-bo-giao',
+        locationRef: 'Q1',
+        dailyLimit: 2,
+        updatedByRef: 'ordering-test',
+      },
+    });
+    const shipped = await place('Q1', {
+      lines: [{ sellableUid: 'bun-bo-giao', quantity: 2 }],
+      adjustments: [],
+      receiveMethod: {
+        kind: 'delivery',
+        address: {
+          communeCode: 'XT01002',
+          line1: '12 Đường Thử',
+          recipientName: 'Ngọc',
+          phone: '0901234567',
+        },
+      },
+    });
+    const shippedPay = await paymentService.createPayment({ orderId: shipped.id, providerCode: 'cash' }, systemCtx);
+    await paymentService.capturePayment(
+      { paymentId: shippedPay.id, amount: shipped.totalAmount, providerTransactionId: randomUUID() },
+      systemCtx,
+    );
+    for (const to of ['preparing', 'ready']) {
+      const moved = await lan('POST', `/orders/${shipped.id}/transition`, { to });
+      assert.equal(moved.status, 200, `delivery ${to}: ${JSON.stringify(moved.body)}`);
+    }
+    const shippedLeg = await lan('POST', `/orders/${shipped.id}/transition`, {
+      to: 'out-for-delivery',
+      assigneeRef: `admin:${http.users.lan.id}`,
+    });
+    assert.equal(shippedLeg.status, 200, `delivery out-for-delivery: ${JSON.stringify(shippedLeg.body)}`);
+    const shippedLine = (await lan('GET', `/orders/${shipped.id}`)).body.lines[0].id;
+    const handOffPreview = await lan(
+      'GET',
+      `/orders/${shipped.id}/lines/${shippedLine}/cancel-preview?quantity=1`,
+    );
+    assert.equal(handOffPreview.status, 200, JSON.stringify(handOffPreview.body));
+    assert.equal(handOffPreview.body.refundAmount, 100000, 'one of the two 100.000 units');
+    assert.equal(handOffPreview.body.restocked, false, 'the dialog warns before the write');
+    const handOffCancel = await lan('POST', `/orders/${shipped.id}/lines/${shippedLine}/cancel`, {
+      quantity: 1,
+      reason: 'giao thiếu một phần',
+    });
+    assert.equal(handOffCancel.status, 200, JSON.stringify(handOffCancel.body));
+    assert.equal(handOffCancel.body.refundAmount, 100000, 'the money still goes back');
+    assert.equal(handOffCancel.body.restocked, false);
+    const shippedDetail = handOffCancel.body.detail;
+    assert.equal(shippedDetail.lines[0].canceledQuantity, 1);
+    assert.equal(shippedDetail.totals.refunded, 100000);
+    const dailyStock = app.plugin('ordering').service('daily-stock');
+    const shippedDate = String(shippedDetail.order.businessDate).slice(0, 10);
+    const left = [
+      ...(await dailyStock.remaining('Q1', shippedDate, [
+        { entityType: 'product', entityDocumentId: 'bun-bo-giao' },
+      ])).values(),
+    ][0];
+    assert.equal(left.remaining, 0, 'the cooked portion is not back on sale');
+    const lineStep = await app.db.query('plugin::ordering.order-event').findOne({
+      where: { order: shipped.id, type: 'order.line.canceled' },
+    });
+    assert.equal(lineStep.payload.restocked, false, 'the timeline records the restock decision');
+
     // --- Reject needs a reason; "Nhận và lùi" adds the delay ---------------------------------
     const second = await place('Q1');
     assert.equal(

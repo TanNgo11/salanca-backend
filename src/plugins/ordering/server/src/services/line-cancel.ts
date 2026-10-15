@@ -39,6 +39,13 @@ type LineRow = {
 };
 
 /**
+ * Group states where the order already left the kitchen (delivery hand-off, dine-in served,
+ * delivery failed). The units are sold stock there: the money may still go back, the portion may
+ * not (owner decision 2026-10-15 on O-06). A `preparing`/`ready` group stays fully cancellable.
+ */
+export const HANDED_OFF_GROUP_STATUSES = ['out-for-delivery', 'served', 'failed'];
+
+/**
  * Cancels units of one order line ("hủy một phần món"). The units land in `canceledQuantity`
  * whether or not money was captured, and their telescoped share leaves what the customer still
  * owes (`domain/payable`). Only money held above that owed amount goes back, through the refund
@@ -49,6 +56,11 @@ type LineRow = {
  * pending until its reference is recorded. The order's `totalAmount` is immutable.
  * The fulfillment group is NOT auto-transitioned: staff close the group explicitly so
  * partially-canceled orders keep moving through the kitchen.
+ *
+ * Money back and stock back are separate (O-06, owner decision 2026-10-15). A group that already
+ * left the kitchen (`out-for-delivery`, dine-in `served`, delivery `failed`) refunds the same way
+ * but returns `restocked: false` and keeps its daily portions sold; a terminal success
+ * (`completed`/`delivered`) is still refused outright.
  */
 const lineCancel = ({ strapi }: { strapi: Core.Strapi }) => {
   const services = (): Services => {
@@ -70,7 +82,7 @@ const lineCancel = ({ strapi }: { strapi: Core.Strapi }) => {
     async cancelLineQuantity(
       input: { orderId: number; lineId: number; quantity: number; reason: string },
       ctx: ServiceContext,
-    ): Promise<{ order: OrderAggregate; refundAmount: number; refundShortfall: number }> {
+    ): Promise<{ order: OrderAggregate; refundAmount: number; refundShortfall: number; restocked: boolean }> {
       if (!input.reason?.trim()) {
         throw new OrderingError('VALIDATION_ERROR', 'cancel reason is required');
       }
@@ -127,7 +139,15 @@ const lineCancel = ({ strapi }: { strapi: Core.Strapi }) => {
           where: { id: line.id },
           data: { canceledQuantity: line.canceledQuantity + input.quantity },
         });
-        await services().dailyStock.releaseForLine(trx, input.lineId, input.quantity);
+        // O-06 (owner decision 2026-10-15): money back is independent from stock back. Once the
+        // group left the kitchen the portion is sold, so it stays off the shelf. Returned units
+        // are counted as gone by `returnedLineAmount`/`canceledAmount` either way.
+        const handedOff =
+          lineGroup !== undefined && HANDED_OFF_GROUP_STATUSES.includes(lineGroup.status);
+        const restocked = !handedOff;
+        if (restocked) {
+          await services().dailyStock.releaseForLine(trx, input.lineId, input.quantity);
+        }
 
         // Telescoped amount for the units just moved to canceled.
         const due = lineRemovalAmount(
@@ -239,6 +259,7 @@ const lineCancel = ({ strapi }: { strapi: Core.Strapi }) => {
               quantity: input.quantity,
               amount: due,
               reason: input.reason,
+              ...(restocked ? {} : { restocked: false }),
               ...(refundShortfall > 0 ? { refundShortfall } : {}),
             },
           },
@@ -262,7 +283,7 @@ const lineCancel = ({ strapi }: { strapi: Core.Strapi }) => {
         );
         await order.recomputeProjection(input.orderId);
         const updated = await repo.loadOrderAggregate(input.orderId);
-        return { order: updated as OrderAggregate, refundAmount, refundShortfall };
+        return { order: updated as OrderAggregate, refundAmount, refundShortfall, restocked };
       });
     },
   };

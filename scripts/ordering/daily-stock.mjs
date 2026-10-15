@@ -394,6 +394,103 @@ await withApp(async (app) => {
   assert.equal(mid.available, true);
   assert.equal(mid.dailyLimit.remaining, 1);
 
+  // O-06 (owner decision 2026-10-15): money back and stock back are separate. Once the group left
+  // the kitchen the portion is sold and must not return to the shelf, while the refund still
+  // settles. A fresh sellable keeps the `bun-bo` ledger above untouched; Q1 gets delivery so a
+  // group can reach `out-for-delivery` through its real workflow.
+  await app.plugin('ordering').service('registry').catalogAdapter('test-catalog').seed([
+    {
+      ref: { uid: 'bun-bo-giao' },
+      productType: 'test-food',
+      title: 'Bún bò giao',
+      listPrice: { amount: 100000, currency: 'VND' },
+      requiresShipping: false,
+      isVirtual: false,
+      isDownloadable: false,
+      isGiftCard: false,
+      fulfillmentKinds: ['pickup', 'delivery'],
+      options: [],
+      availability: {},
+      categories: [{ ref: 'mon-chinh', title: 'Món chính', path: ['mon-chinh'] }],
+      isActive: true,
+      purchasable: true,
+    },
+  ]);
+  await limits().create({
+    data: { ...ref('product', 'bun-bo-giao'), locationRef: 'Q1', dailyLimit: 2, updatedByRef: 'ordering-test' },
+  });
+  const q1Row = await app.db.query('plugin::ordering.branch').findOne({ where: { code: 'Q1' } });
+  await app.db.query('plugin::ordering.branch').update({
+    where: { id: q1Row.id },
+    data: {
+      fulfillment: {
+        ...q1Row.fulfillment,
+        delivery: {
+          enabled: true,
+          orderTiming: 'both',
+          paymentTiming: 'pay-on-pickup',
+          paymentProviders: ['cash'],
+          minOrderAmount: 0,
+          schedule: {
+            leadTimeMinutes: 60,
+            slotLengthMinutes: 15,
+            capacity: 8,
+            openingHours: { mode: '24_7' },
+          },
+          zones: [
+            {
+              code: 'near',
+              label: 'Gần',
+              priority: 10,
+              match: { kind: 'commune', communeCodes: ['XT01002'] },
+              rules: [{ when: 'any', fee: 0 }],
+            },
+          ],
+        },
+      },
+    },
+  });
+  const shipped = await order.createOrder(
+    basicOrderInput({
+      lines: [{ sellableUid: 'bun-bo-giao', quantity: 2 }],
+      adjustments: [],
+      placedAt,
+      receiveMethod: {
+        kind: 'delivery',
+        address: {
+          communeCode: 'XT01002',
+          line1: '12 Đường Thử',
+          recipientName: 'Người Thử',
+          phone: '0901234567',
+        },
+      },
+    }),
+    systemCtx,
+  );
+  assert.equal(await usage('product', 'bun-bo-giao', stockDate), 2, 'the delivery order holds both portions');
+  for (const to of ['preparing', 'ready', 'out-for-delivery']) {
+    await transition.transitionGroup(
+      { orderId: shipped.order.order.id, groupId: shipped.order.groups[0].id, to },
+      systemCtx,
+    );
+  }
+  const handedOff = await lineCancel.cancelLineQuantity(
+    {
+      orderId: shipped.order.order.id,
+      lineId: shipped.order.lines[0].id,
+      quantity: 1,
+      reason: 'khach bao thieu mot phan',
+    },
+    systemCtx,
+  );
+  assert.equal(handedOff.restocked, false, 'a portion that left the kitchen is not put back');
+  assert.equal(await usage('product', 'bun-bo-giao', stockDate), 2, 'the sold portion stays sold');
+  assert.equal(handedOff.order.lines[0].canceledQuantity, 1, 'the cancel itself still happened');
+  const afterHandOff = [
+    ...(await daily.remaining('Q1', stockDate, [ref('product', 'bun-bo-giao')])).values(),
+  ][0];
+  assert.equal(afterHandOff.remaining, 0, 'the shelf does not refill after hand-off');
+
   const branchRow = await app.db.query('plugin::ordering.branch').findOne({ where: { code: 'Q1' } });
   const pickup = branch.pickupSettings(branchRow);
   const slotNow = new Date('2026-10-20T03:00:00.000Z');

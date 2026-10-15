@@ -82,7 +82,7 @@ export const useOrderActions = (onChanged?: (detail: OrderDetail | null) => void
       ),
     preview: async (orderId: number, lineId: number, quantity: number) => {
       const { data } = await get(`/ordering/orders/${orderId}/lines/${lineId}/cancel-preview?quantity=${quantity}`);
-      return data as { refundAmount: number; refundShortfall: number };
+      return data as { refundAmount: number; refundShortfall: number; restocked: boolean };
     },
     // O13 "Gọi xe": quote → book → cancel a carrier trip on the delivery leg.
     carrierQuote: async (orderId: number, serviceId?: string) => {
