@@ -127,9 +127,19 @@ export const runWalletStatusCheck = async (
             await alerts.noteUnmatched(event.providerCode, ctx);
           }
         }
-        // failed/review leave the session pending or failed — rotate it, or close it when
-        // abandoned (a review row already holds the money question).
-        if (event.kind !== 'capture') await giveUp();
+        // A non-capture answer rotates the session (or closes it when abandoned). A capture
+        // that auto-matched already flipped the payment to `captured`, so it left the pending
+        // set on its own. A capture that was parked for review — or replayed after parking —
+        // stays `pending` and would be polled forever: the durable `needs-review` event row
+        // holds the money question, so the session is closed now and only that row remains.
+        if (event.kind !== 'capture') {
+          await giveUp();
+        } else {
+          await payments.update({
+            where: { id: row.id, status: 'pending' },
+            data: { status: 'cancelled', actorRef: 'job:wallet-status-check' },
+          });
+        }
       }
       return { checked: rows.length, applied };
     },

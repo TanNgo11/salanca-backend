@@ -130,6 +130,17 @@ const orderRepository = ({ strapi }: { strapi: Core.Strapi }) => {
       await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [`ordering-order:${orderId}`]);
     },
 
+    /**
+     * Takes the order mutex, then loads a FRESH aggregate under it. Every path that decides
+     * from current numbers ("tính due → tạo/capture payment") must call this inside its
+     * transaction instead of reading the aggregate first and locking later — a stale read
+     * under a lock fixes nothing (audit O-01…O-03).
+     */
+    async lockOrderAndLoad(trx: TransactionClient, orderId: number): Promise<OrderAggregate | null> {
+      await this.lockOrder(trx, orderId);
+      return this.loadOrderAggregate(orderId);
+    },
+
     /** Order id behind a child row through its link table, then the order mutex. */
     async lockOrderOf(
       trx: TransactionClient,

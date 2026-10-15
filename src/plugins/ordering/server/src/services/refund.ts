@@ -13,6 +13,7 @@ import type { TransactionClient } from '../migrations/runner';
 import orderRepository from '../repositories/order';
 import type { PaymentRow, RefundRow } from '../repositories/types';
 import type branchFactory from './branch';
+import type cashClosingFactory from './cash-closing';
 import type changeLogFactory from './change-log';
 import type giftCardFactory from './gift-card';
 import type loyaltyFactory from './loyalty';
@@ -35,6 +36,7 @@ type Services = {
   scope: ReturnType<typeof scopeFactory>;
   branch: ReturnType<typeof branchFactory>;
   giftCard: ReturnType<typeof giftCardFactory>;
+  cashClosing: ReturnType<typeof cashClosingFactory>;
 };
 
 const BANK_REFERENCE = /^[A-Za-z0-9][A-Za-z0-9-]{3,40}$/;
@@ -123,6 +125,7 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
       scope: plugin.service('scope') as Services['scope'],
       branch: plugin.service('branch') as Services['branch'],
       giftCard: plugin.service('gift-card') as Services['giftCard'],
+      cashClosing: plugin.service('cash-closing') as Services['cashClosing'],
     };
   };
   const repo = orderRepository({ strapi });
@@ -197,6 +200,19 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
         ? (rawOrder as { id: number }).id
         : Number(rawOrder);
     const aggregate = await order.getOrder(orderId, ctx); // scope check inside
+    // Contracts §19.3: a settled cash refund writes the collector's (branch, day, collector)
+    // bucket in this same transaction. The refund must still go through after the day is
+    // closed, but it opens the mismatch alert so the closing is never silently stale.
+    // Serialized with `close` by the advisory lock inside the call.
+    if (payment.providerCode === 'cash' && orderId !== null) {
+      await services().cashClosing.noteCashPosting(
+        trx,
+        aggregate.order.locationRef,
+        await businessDateFor(aggregate.order.locationRef, nowOf(ctx)),
+        payment.actorRef ?? 'system',
+        ctx,
+      );
+    }
     const currency = payment.currency;
 
     const lineRefunds: Array<{ lineId: number; quantity: number; amount: number }> = [];

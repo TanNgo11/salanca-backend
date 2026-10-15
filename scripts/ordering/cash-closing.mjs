@@ -329,7 +329,9 @@ withApp(async (app) => {
     console.log('[ordering-test] boundary: 01:30 order lands on yesterday, not today');
 
     // ── 9. A refund leaves the collector's float, not the clicker's ─────────────
-    // The courier collected the delivery order; the manager presses "hoàn tiền" later.
+    // The courier collected the delivery order; the manager presses "hoàn tiền" later. The
+    // courier's day is already closed: the refund still goes through (the customer is owed the
+    // money) but it opens the mismatch alert so the sealed closing is never silently stale.
     const courierRefund = await ops.as.quanly('POST', `/orders/${deliveryId}/refunds`, {
       method: 'cash',
       amount: 20000,
@@ -345,7 +347,14 @@ withApp(async (app) => {
       30000,
       'the manager who pressed refund only carries their own pickup refund',
     );
-    console.log('[ordering-test] refund attribution: courier 20.000, manager unchanged 30.000');
+    const lateAlerts = await app.db.query('plugin::ordering.ops-alert').findMany({
+      where: { dedupeKey: `cash-closing-mismatch:Q1:${today}:${nvgiaoRef}` },
+    });
+    assert.ok(
+      lateAlerts.some((row) => row.status === 'open' || row.status === 'acknowledged'),
+      'a refund after close raises the mismatch alert',
+    );
+    console.log('[ordering-test] refund attribution: courier 20.000 + late-close alert, manager unchanged 30.000');
 
     // Change-log records exist for close + adjust.
     const logs = await app.db.query('plugin::ordering.admin-change-log').findMany({

@@ -79,6 +79,18 @@ export type CashClosingSummary = {
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const SYSTEM_COLLECTOR = 'system';
 
+/**
+ * Stable advisory-lock key for one ledger bucket. `close` and every cash capture/refund
+ * write on the same (branch, business date, collector) triple take this lock, so a closing
+ * snapshot and a late posting serialize: the closing can never silently miss a later write,
+ * and a write that arrives after the close opens a mismatch alert.
+ */
+export const cashBucketLockKey = (
+  locationRef: string,
+  businessDate: string,
+  collectorRef: string,
+): string => `cash-closing:${locationRef}:${businessDate}:${collectorRef}`;
+
 const int = (value: string | number | null | undefined): number => {
   const n = Number(value ?? 0);
   if (!Number.isSafeInteger(n)) {
@@ -205,8 +217,9 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
   const paymentBuckets = async (
     locationRef: string,
     day: string,
+    q: TransactionClient = knex(),
   ): Promise<Map<string, { orderCount: number; systemAmount: number }>> => {
-    const rows = (await knex()
+    const rows = (await q
       .from('plugins_ordering_payment as p')
       .join('plugins_ordering_payment_order_lnk as link', 'link.payment_id', 'p.id')
       .join('plugins_ordering_order as o', 'o.id', 'link.order_id')
@@ -239,8 +252,9 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
   const refundBuckets = async (
     locationRef: string,
     day: string,
+    q: TransactionClient = knex(),
   ): Promise<Map<string, number>> => {
-    const rows = (await knex()
+    const rows = (await q
       .from('plugins_ordering_refund as r')
       .join('plugins_ordering_refund_order_lnk as orl', 'orl.refund_id', 'r.id')
       .join('plugins_ordering_order as o', 'o.id', 'orl.order_id')
@@ -309,9 +323,10 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     locationRef: string,
     day: string,
     collectorRef: string,
+    q: TransactionClient = knex(),
   ): Promise<{ orderCount: number; systemAmount: number; refundAmount: number }> => {
-    const payments = await paymentBuckets(locationRef, day);
-    const refunds = await refundBuckets(locationRef, day);
+    const payments = await paymentBuckets(locationRef, day, q);
+    const refunds = await refundBuckets(locationRef, day, q);
     return {
       orderCount: payments.get(collectorRef)?.orderCount ?? 0,
       systemAmount: payments.get(collectorRef)?.systemAmount ?? 0,
@@ -410,6 +425,33 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     },
 
     /**
+     * Call inside the caller's transaction BEFORE any cash capture/refund write. Takes the
+     * ledger-bucket advisory lock so the write serializes against `close` on the same
+     * (branch, business date, collector): the closing snapshot either includes the write or the
+     * write lands after it. A write after a `current` closing is NOT rejected — a refund or
+     * handover must still go through — but it opens the `cash-closing-mismatch` alert so a
+     * closing that no longer matches the ledger is never silent. `adjust` recomputes the
+     * expected amount from the ledger and resolves the alert once the count matches again.
+     */
+    async noteCashPosting(
+      trx: TransactionClient,
+      locationRef: string,
+      businessDate: string,
+      collectorRef: string,
+      ctx: ServiceContext,
+    ): Promise<void> {
+      await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [
+        cashBucketLockKey(locationRef, businessDate, collectorRef),
+      ]);
+      const closed = (await closings().findOne({
+        where: { locationRef, businessDate, collectorRef, status: 'current' },
+      })) as CashClosingRow | null;
+      if (closed) {
+        await reportMismatch(closed, ctx);
+      }
+    },
+
+    /**
      * Close one collector's day. System totals are recomputed server-side; a second `current`
      * row for the same triple is rejected — both by a pre-check and the partial unique index
      * (23505 → CASH_CLOSING_EXISTS) so simultaneous closes are safe.
@@ -434,47 +476,66 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
         });
       }
       await requireBranch(input.locationRef, ctx);
-      const bucket = await collectorBucket(input.locationRef, day, collectorRef);
-      const expectedAmount = bucket.systemAmount - bucket.refundAmount;
-      const differenceAmount = counted - expectedAmount;
-      if (differenceAmount !== 0 && !note) {
-        throw new OrderingError('VALIDATION_ERROR', 'a note is required when the count differs', {
-          details: { field: 'note' },
-        });
-      }
-      const existing = (await closings().findOne({
-        where: { locationRef: input.locationRef, businessDate: day, collectorRef, status: 'current' },
-      })) as CashClosingRow | null;
-      if (existing) {
-        throw new OrderingError('CASH_CLOSING_EXISTS', 'collector is already closed for this day');
-      }
-      let closing: CashClosingRow;
-      try {
-        closing = amounts((await closings().create({
-          data: {
-            locationRef: input.locationRef,
-            businessDate: day,
-            collectorRef,
-            orderCount: bucket.orderCount,
-            systemAmount: bucket.systemAmount,
-            refundAmount: bucket.refundAmount,
-            expectedAmount,
-            countedAmount: counted,
-            differenceAmount,
-            note,
-            closedBy: actorRefOf(ctx),
-            closedAt: nowOf(ctx),
-            status: 'current',
-            revision: 1,
-          },
-        })) as CashClosingRow);
-      } catch (error) {
-        if (isUniqueViolation(error)) {
-          throw new OrderingError('CASH_CLOSING_EXISTS', 'collector is already closed for this day');
-        }
-        throw error;
-      }
-      if (differenceAmount !== 0) {
+      // The snapshot is taken under the same advisory lock every cash capture/refund takes, so a
+      // closing is either before all postings or after all of them — never racing one. Cash that
+      // lands after the closing opens a mismatch alert via `noteCashPosting`.
+      const { bucket, closing } = await strapi.db.transaction(
+        async ({ trx }: { trx: TransactionClient }) => {
+          await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [
+            cashBucketLockKey(input.locationRef, day, collectorRef),
+          ]);
+          const bucket = await collectorBucket(input.locationRef, day, collectorRef, trx);
+          const expectedAmount = bucket.systemAmount - bucket.refundAmount;
+          const differenceAmount = counted - expectedAmount;
+          if (differenceAmount !== 0 && !note) {
+            throw new OrderingError('VALIDATION_ERROR', 'a note is required when the count differs', {
+              details: { field: 'note' },
+            });
+          }
+          const existing = (await closings().findOne({
+            where: {
+              locationRef: input.locationRef,
+              businessDate: day,
+              collectorRef,
+              status: 'current',
+            },
+          })) as CashClosingRow | null;
+          if (existing) {
+            throw new OrderingError('CASH_CLOSING_EXISTS', 'collector is already closed for this day');
+          }
+          let closing: CashClosingRow;
+          try {
+            closing = amounts((await closings().create({
+              data: {
+                locationRef: input.locationRef,
+                businessDate: day,
+                collectorRef,
+                orderCount: bucket.orderCount,
+                systemAmount: bucket.systemAmount,
+                refundAmount: bucket.refundAmount,
+                expectedAmount,
+                countedAmount: counted,
+                differenceAmount,
+                note,
+                closedBy: actorRefOf(ctx),
+                closedAt: nowOf(ctx),
+                status: 'current',
+                revision: 1,
+              },
+            })) as CashClosingRow);
+          } catch (error) {
+            if (isUniqueViolation(error)) {
+              throw new OrderingError(
+                'CASH_CLOSING_EXISTS',
+                'collector is already closed for this day',
+              );
+            }
+            throw error;
+          }
+          return { bucket, closing };
+        },
+      );
+      if (int(closing.differenceAmount) !== 0) {
         await reportMismatch(closing, ctx);
       }
       await services().changeLog.record(

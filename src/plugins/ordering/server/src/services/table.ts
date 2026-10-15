@@ -11,6 +11,7 @@ import { paidAmounts } from '../domain/storefront/serialize';
 import { isTerminal } from '../domain/workflow/transition';
 import type { OrderingConfig } from '../config';
 import type { TransactionClient } from '../migrations/runner';
+import orderRepository from '../repositories/order';
 import type branchFactory from './branch';
 import type changeLogFactory from './change-log';
 import type { ServiceContext } from './context';
@@ -78,6 +79,7 @@ const tableService = ({ strapi }: { strapi: Core.Strapi }) => {
     transition: () => plugin().service('transition') as ReturnType<typeof transitionFactory>,
   };
   const config = () => strapi.config.get('plugin::ordering') as OrderingConfig;
+  const repo = orderRepository({ strapi });
 
   /** 256-bit bearer token — scannable, unguessable; only the hash is persisted. */
   const newToken = (): string => randomBytes(32).toString('base64url');
@@ -579,6 +581,14 @@ const tableService = ({ strapi }: { strapi: Core.Strapi }) => {
           for (const ref of [...candidates].sort()) {
             await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [`sepay-ref:sepay:${ref}`]);
           }
+        }
+
+        // Take every order mutex first (stable id order), so a concurrent capture/cancel on
+        // any order on this session serializes BEFORE we read its balance. Locking here and
+        // still using the aggregate read later is what the audit caught (O-01): the mutex is
+        // the point where the stale read becomes impossible.
+        for (const row of orderRows) {
+          await repo.lockOrder(trx, row.id);
         }
 
         // Lock order groups first (stable id order), then validate every order is out of the

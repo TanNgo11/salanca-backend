@@ -9,6 +9,7 @@ import orderRepository from '../repositories/order';
 import type { PaymentRow } from '../repositories/types';
 import type { ServiceContext } from './context';
 import { actorRefOf, nowOf } from './context';
+import type cashClosingFactory from './cash-closing';
 import type orderServiceFactory from './order';
 import type outboxFactory from './outbox';
 import type timelineFactory from './timeline';
@@ -19,6 +20,7 @@ type Services = {
   order: ReturnType<typeof orderServiceFactory>;
   timeline: ReturnType<typeof timelineFactory>;
   outbox: ReturnType<typeof outboxFactory>;
+  cashClosing: ReturnType<typeof cashClosingFactory>;
 };
 
 const isUniqueViolation = (error: unknown): boolean =>
@@ -33,6 +35,7 @@ const paymentService = ({ strapi }: { strapi: Core.Strapi }) => {
       order: plugin.service('order') as Services['order'],
       timeline: plugin.service('timeline') as Services['timeline'],
       outbox: plugin.service('outbox') as Services['outbox'],
+      cashClosing: plugin.service('cash-closing') as Services['cashClosing'],
     };
   };
   const repo = orderRepository({ strapi });
@@ -75,32 +78,41 @@ const paymentService = ({ strapi }: { strapi: Core.Strapi }) => {
       input: { orderId: number; providerCode: string; returnUrl?: string; ipAddr?: string },
       ctx: ServiceContext,
     ): Promise<{ payment: PaymentRow; session: Record<string, unknown>; reused: boolean }> {
-      const { registry, order, timeline, outbox } = services();
+      const { registry, timeline, outbox } = services();
       const provider = registry.paymentProvider(input.providerCode);
       if (!provider.capabilities.includes('wallet')) {
         throw new OrderingError('VALIDATION_ERROR', 'this provider cannot open wallet sessions', {
           details: { providerCode: input.providerCode },
         });
       }
-      const aggregate = await order.getOrder(input.orderId, ctx);
-      if (
-        aggregate.groups.length > 0 &&
-        aggregate.groups.every((group) => ['canceled', 'expired', 'rejected'].includes(group.status))
-      ) {
-        throw new OrderingError('PAYMENT_NOT_DUE', 'the order is closed');
-      }
-      const captured = aggregate.payments.reduce(
-        (sum, payment) => sum + amountFromDb(payment.capturedAmount),
-        0,
-      );
-      const due = amountOwed(aggregate.order, captured);
-      if (!Number.isSafeInteger(due) || due <= 0) {
-        throw new OrderingError('PAYMENT_NOT_DUE', 'nothing is due on this order');
-      }
 
-      // Find-or-create the pending wallet row under an advisory lock — two parallel presses
-      // serialize here, so the second one sees the row the first created.
+      // Eligibility and due are computed under the ORDER mutex inside the session transaction
+      // (O-03): a line cancel / edit / capture whose transaction committed first must change
+      // the amount this session is opened for. The mutex also serializes the row find-or-create
+      // against carrierBook, which cancels pending sessions. The network `initiate` stays outside
+      // any transaction — the payment row already exists so a crashed initiate is resumable.
       const found = await strapi.db.transaction(async ({ trx }) => {
+        const aggregate = await repo.lockOrderAndLoad(trx, input.orderId);
+        if (!aggregate) {
+          throw new OrderingError('ORDER_NOT_FOUND', 'order not found', {
+            details: { orderId: input.orderId },
+          });
+        }
+        if (
+          aggregate.groups.length > 0 &&
+          aggregate.groups.every((group) => ['canceled', 'expired', 'rejected'].includes(group.status))
+        ) {
+          throw new OrderingError('PAYMENT_NOT_DUE', 'the order is closed');
+        }
+        const captured = aggregate.payments.reduce(
+          (sum, payment) => sum + amountFromDb(payment.capturedAmount),
+          0,
+        );
+        const due = amountOwed(aggregate.order, captured);
+        if (!Number.isSafeInteger(due) || due <= 0) {
+          throw new OrderingError('PAYMENT_NOT_DUE', 'nothing is due on this order');
+        }
+
         // One lock per order (not per provider): opening a VNPay session cancels a pending
         // MoMo one and vice versa, so a customer can never pay two wallet sessions.
         await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', [`wallet-session:${input.orderId}`]);
@@ -143,6 +155,8 @@ const paymentService = ({ strapi }: { strapi: Core.Strapi }) => {
             session: sessionOf(live.session) ?? {},
             reused: true as const,
             initiate: false,
+            due,
+            aggregate,
           };
         }
         // A pending row whose amount no longer matches (order edited) is cancelled first —
@@ -157,7 +171,14 @@ const paymentService = ({ strapi }: { strapi: Core.Strapi }) => {
         }
         const resumable = pendingRows.find((row) => !row.providerReference);
         if (resumable) {
-          return { payment: normalizePayment(resumable), session: {}, reused: false, initiate: true };
+          return {
+            payment: normalizePayment(resumable),
+            session: {},
+            reused: false,
+            initiate: true,
+            due,
+            aggregate,
+          };
         }
         const created = await payments().create({
           data: {
@@ -172,11 +193,19 @@ const paymentService = ({ strapi }: { strapi: Core.Strapi }) => {
             businessDate: aggregate.order.businessDate,
           },
         });
-        return { payment: normalizePayment(created), session: {}, reused: false, initiate: true };
+        return {
+          payment: normalizePayment(created),
+          session: {},
+          reused: false,
+          initiate: true,
+          due,
+          aggregate,
+        };
       });
 
       if (found.reused) return found;
 
+      const { due, aggregate } = found;
       const reference =
         found.payment.providerReference ?? `${aggregate.order.code}-${found.payment.id}`;
       const initiation = await provider.initiate({
@@ -415,6 +444,20 @@ const paymentService = ({ strapi }: { strapi: Core.Strapi }) => {
               ? (payment.order as unknown as { id: number }).id
               : (payment.order as number);
           const aggregate = await order.getOrder(orderId, ctx);
+
+          // Contracts §19.3: cash lands on the collector's (branch, day, collector) bucket.
+          // The advisory lock serializes against `close`; a capture after a `current` closing
+          // still lands but opens the mismatch alert so the stale closing is never silent.
+          if (payment.providerCode === 'cash') {
+            const { cashClosing } = services();
+            await cashClosing.noteCashPosting(
+              trx,
+              aggregate.order.locationRef,
+              aggregate.order.businessDate,
+              actorRefOf(ctx),
+              ctx,
+            );
+          }
 
           const event = await events().create({
             data: {

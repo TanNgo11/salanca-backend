@@ -935,8 +935,11 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
         });
       }
       return strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
-        const aggregate = await loadScoped(orderId, ctx);
+        await loadScoped(orderId, ctx); // scope check (404 out of scope)
         await s.courier().assertOwnOrder(orderId, ctx);
+        // The order mutex comes FIRST and the aggregate is re-read under it: a capture or
+        // line cancel that committed after the scope check must be visible in `due` (O-02).
+        const aggregate = (await repo.lockOrderAndLoad(trx, orderId)) as OrderAggregate;
         const group = liveGroup(aggregate);
         if (!group) throw new OrderingError('INVALID_TRANSITION', 'order has no active group');
         const delivery = isDeliveryGroup(group);
