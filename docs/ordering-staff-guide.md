@@ -335,6 +335,32 @@ thẻ giấy chỉ có giá trị từ lúc bán.
 Thẻ hết hạn tự động: job `gift-card-expiry` chạy 03:45 hằng ngày, ghi sổ `expire` phần số dư còn lại
 và đưa số dư về 0. Mã sai quá nhiều từ một IP mở cảnh báo **Dò mã thẻ quà tặng** trên bảng Cảnh báo.
 
+## Điểm và hạng thành viên (Bán hàng → Khuyến mãi & thẻ → Điểm & hạng)
+
+Quyền: **Quản lý chương trình điểm và hạng** (`loyalty.manage`) cho cấu hình; **Điều chỉnh điểm khách** (`loyalty.adjust`)
+cho nút điều chỉnh. Chương trình **tắt mặc định** — khách chưa tích hay dùng điểm cho tới khi bạn bật.
+
+1. **Chương trình điểm.** Lần bật đầu tiên hệ thống ghi mốc bắt đầu (chỉ đơn hoàn tất từ lúc đó mới được tích điểm) và tạo ba
+   hạng mặc định cùng hai nhóm khách `hang-bac`, `hang-vang`. Các số (1 điểm / bao nhiêu đồng, giá trị điểm, tối thiểu, tối đa % tiền
+   món, hạn, nhắc trước, trần/ngày) đổi được bất kỳ lúc nào, áp cho giao dịch mới.
+2. **Tích điểm.** Khi đơn hoàn tất, khách đã xác minh OTP được cộng điểm trên **tiền món sau giảm giá** (không tính phí giao, phí
+   dịch vụ, phần trả bằng thẻ quà tặng hay bằng điểm). Điểm có hạn theo lô (12 tháng). Đơn hoàn tiền một phần/toàn phần thì thu hồi điểm
+   tương ứng; nếu khách đã dùng hết điểm, số dư có thể âm và khách không dùng được điểm cho tới khi bù lại.
+3. **Dùng điểm.** Khách đăng nhập chọn số điểm ở bước thanh toán; giảm giá áp sau khuyến mãi, tối đa 50% tiền món. Hủy cả đơn thì điểm về
+   lại đúng lô cũ; hủy bớt món thì **không** hoàn điểm (tiền hoàn theo phân bổ). Sửa đơn làm tiền món nhỏ đi thì giảm giá điểm bị kéo về
+   mức tối đa mới và phần chênh được hoàn.
+4. **Hạng.** Tính theo chi tiêu 12 tháng. Lên hạng ngay khi đơn hoàn tất vượt mốc; xuống hạng khi dưới mốc liên tục 30 ngày. Mỗi hạng gắn
+   một nhóm khách (O14) — dùng nhóm đó cho bảng giá hạng hoặc điều kiện khuyến mãi ("Chỉ áp dụng cho nhóm khách" trong form khuyến mãi).
+   Bỏ khách khỏi nhóm hạng bằng tay sẽ bị job hạng thêm lại. **Tính lại hạng** ghi đơn hoàn tất 12 tháng qua vào lịch sử để hạng khởi
+   đầu đúng (không cộng điểm; chạy lại an toàn).
+5. **Điểm của khách.** Chi tiết khách → tab **Điểm**: số dư, hạng và còn bao nhiêu để lên hạng, điểm sắp hết hạn, các lô, sổ điểm. **Điều
+   chỉnh điểm** bắt buộc có lý do, ghi vào Lịch sử thay đổi; trừ không được vượt số dư. Nhân viên chỉ thấy khách có đơn ở chi nhánh mình.
+6. **Báo cáo.** Dưới báo cáo bán hàng: điểm phát, dùng, hoàn lại, hết hạn, thu hồi, **đang lưu hành** (điểm × giá trị = nợ điểm) và số
+   khách theo hạng. Lọc theo chi nhánh chỉ tính điểm gắn với đơn của chi nhánh.
+7. **Tự động.** `loyalty-earn-sweep` (10 phút) tích điểm cho đơn hoàn tất mà sự kiện không tới; `loyalty-expiry` (03:30) hết hạn lô và gửi
+   mail nhắc một lần; `loyalty-tiers` (04:00) xét hạng. Khách xóa dữ liệu thì điểm còn lại bị hủy.
+8. **Trước khi mở cho khách thật:** chốt điều khoản chương trình với pháp lý và cách hạch toán điểm đang lưu hành với kế toán.
+
 ## Bảng giá (Món → Bảng giá — quyền "Quản lý bảng giá và nhóm khách")
 
 1. **Bảng giá mới.** Đặt tên. Chọn **Giá riêng** (một giá cho từng món) hoặc **Điều chỉnh** (giảm % hoặc số

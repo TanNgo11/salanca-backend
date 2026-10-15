@@ -213,3 +213,13 @@ SSE đẩy đơn realtime và giới hạn tần suất storefront đều giữ 
 process** — chạy hai instance là hai thế giới khác nhau (đơn báo lệch, rate limit nhân
 đôi). Quyết định go-live mặc định: **một instance CMS**. Nâng lên nhiều instance là một
 thay đổi kiến trúc (Redis/pub-sub cho SSE + rate limit), không phải chỉnh deploy.
+
+## Job điểm thành viên (O16)
+
+| Job | Lịch | Việc | Chạy lại |
+| --- | --- | --- | --- |
+| `loyalty-earn-sweep` | mỗi 10 phút | Tích điểm cho đơn hoàn tất mà sự kiện không tới (hủy món, hoàn tiền, khách xác minh sau); hoàn điểm cho đơn hủy còn giữ điểm | an toàn, idempotent |
+| `loyalty-expiry` | 03:30 hằng ngày | Ghi `expire` từng lô quá hạn; gửi mail nhắc một lần/lô | an toàn |
+| `loyalty-tiers` | 04:00 hằng ngày | Tính lại chi tiêu 12 tháng, lên/xuống hạng, đổi nhóm O14 | an toàn |
+
+Tắt chương trình (`enabled=false`) dừng cả ba job; số dư và sổ giữ nguyên. Nhịp kỳ vọng nằm ở `jobs.heartbeatMinutes` (15 / 1500 / 1500 phút) cho cảnh báo `job-heartbeat-missed`.

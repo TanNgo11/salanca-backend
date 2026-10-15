@@ -103,6 +103,13 @@ const scripts = [
   'gift-card-admin.mjs',
   // O9 step 6: card metrics, cash closing, CSV column, expiry job, seal retention, probing alert.
   'gift-card-report.mjs',
+  // O16: loyalty — earn/reverse, spend, race (self-checking: red with locks off), expiry/reminder, tiers, admin.
+  'loyalty-earn.mjs',
+  'loyalty-redeem.mjs',
+  'loyalty-race.mjs',
+  'loyalty-expiry.mjs',
+  'loyalty-tiers.mjs',
+  'loyalty-admin.mjs',
   // O12 step 1: per-kind pause + busy mode.
   'pause.mjs',
   // O12 step 2: auto-reject stuck awaiting-acceptance groups.

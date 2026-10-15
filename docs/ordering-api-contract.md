@@ -124,6 +124,8 @@ for the receive business date (ASAP uses the order's business date; a slot uses 
 }
 ```
 
+`redeemPoints` (O16) is accepted here too — see [Loyalty points](#loyalty-points-o16).
+
 `variantUid` picks a non-default variant of the item (size, card denomination…); the server prices that variant and
 the order line snapshots its `sku`, `variantUid` and title (`Món · Biến thể`). Omit it for the default variant.
 A `variantUid` that is not a variant of `sellableUid` fails `400 VALIDATION_ERROR` (`details.field` =
@@ -306,6 +308,36 @@ no holder data. Unknown, malformed, inactive and blocked codes all answer `400 G
 Wrong codes are counted per IP like promotion codes: captcha after 3 misses
 (`CAPTCHA_FAILED`), `429 RATE_LIMITED` at `rateLimits.giftCard.max` (20 / 10 min), and attempts
 while limited still count toward the `gift-card-probing` ops alert (20 opens, 60 escalates).
+
+## Loyalty points (O16)
+
+The program is off by default (`loyalty.enabled`). Everything below is scoped to a signed-in customer
+(`X-Customer-Token`); a guest never sees or spends points, and a quote never reads the phone.
+
+**Spending.** `redeemPoints` (whole points, ≥ 0) on `POST /quote`, `POST /orders` and `POST /carts/current/checkout`.
+The server turns it into one fixed `discount` adjustment (`sourceRef: 'loyalty'`, priority 900) applied **after**
+promotions and before branch fees; the order food total after promotions bounds it at `maxRedeemShare` (default 50%),
+the balance of unexpired lots and `minRedeemPoints` (default 50) bound it too. The quote never fails on points — it answers
+`loyalty { enabled, loginRequired?, balance?, redeemable { min, max, value }, applied { points, amount } | null, reason?,
+earnPreview { points } }` with `reason` one of `disabled`, `channel`, `not-logged-in`, `not-verified`, `negative-balance`,
+`below-minimum`, `insufficient`, `over-cap`. Create refuses the same cases: `400 LOYALTY_DISABLED`, `401 LOYALTY_NOT_LOGGED_IN`,
+`409 LOYALTY_INSUFFICIENT` (`details.balance`), `400 LOYALTY_REDEEM_INVALID` (`details.reason`). Two orders racing the same
+points end with one `LOYALTY_INSUFFICIENT`. Canceling the whole order returns the points to their original lots; canceling
+one line does not.
+
+**Earning** needs no request: a completed order of an `active` customer earns `floor(base × tierMultiplier / (earnPerAmount ×
+100))` points with `base` = Σ `(baseAmount + discountAmount)` of the live lines less gift-card money paid (no fees, rounding or
+tip), capped per customer per Vietnam day. `earnPreview` is the quote's estimate.
+
+### `GET /me/loyalty`
+
+`{ loyalty: { enabled, balance, value, tier { code, name, multiplier } | null, nextTier { name, missing } | null,
+expiringSoon[] { points, expiresAt } } }` (points expiring within 30 days).
+
+### `GET /me/loyalty/history?page=`
+
+`{ items[] { at, kind, points, balanceAfter, orderCode }, total, page, pageSize }`, newest first, 20 per page. No staff
+references or free-text reasons. `GET /me/data-export` gains a `loyalty { balance, tier, lots[], ledger[] }` section.
 
 ## Order steps (pickup, pay on pickup)
 

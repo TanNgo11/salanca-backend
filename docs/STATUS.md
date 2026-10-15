@@ -2,6 +2,30 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
+2026-10-15: **Ordering O16 (tích điểm và hạng thành viên) — implemented + automated verification passed, chờ UAT tay** trên
+`TanNgo11/ordering-o16` (tách từ `feat/ordering` `5930344`), 8 commit theo [`plans/ordering-o16-loyalty.md`](plans/ordering-o16-loyalty.md)
+(Completion record có bảng bước → commit, kết quả gate và chỗ lệch kế hoạch). Chương trình **mặc định tắt**:
+
+- **Tích điểm**: khi đơn `completed` (consumer `order.transitioned` + job quét `loyalty-earn-sweep` cho đường không có sự kiện);
+  cơ sở = Σ `(baseAmount + discountAmount)` dòng còn sống, trừ phần thẻ quà tặng đã trả; 1 điểm/10.000đ × hệ số hạng, một lần
+  floor; trần 2.000 điểm/khách/ngày; chỉ khách `active`; không tích hồi tố (`startsAt`). Hoàn tiền thu hồi điểm theo tỉ lệ
+  (telescoping), số dư được âm và chặn dùng khi âm.
+- **Dùng điểm**: `redeemPoints` ở `/quote`, `/orders`, checkout giỏ; adjustment `loyalty` cố định (priority 900, sau khuyến mãi,
+  trước phí); trần 50% tiền món sau khuyến mãi, tối thiểu 50 điểm; lô sắp hết hạn dùng trước; quote không throw (`loyalty.reason`),
+  create trả `LOYALTY_*`. Hủy cả đơn hoàn điểm về lô gốc (lô đã hết hạn → lô `restore` 30 ngày); hủy bớt món không hoàn điểm; sửa
+  đơn kéo giảm giá về trần mới và hoàn phần chênh.
+- **Hạn điểm & hạng**: job `loyalty-expiry` (03:30) ghi `expire` từng lô + mail nhắc một lần/lô (khách đồng ý tiếp thị);
+  job `loyalty-tiers` (04:00) tính lại chi tiêu 12 tháng từ sổ, lên hạng ngay, xuống sau 30 ngày; hạng gắn nhóm O14 (`hang-bac`,
+  `hang-vang`, `auto = null`); khuyến mãi mới có điều kiện `customerGroups`.
+- **Dữ liệu cá nhân**: xóa dữ liệu → `forfeit` + về 0; xuất dữ liệu có mục `loyalty`; webhook `loyalty.points.earned` /
+  `loyalty.tier.changed` chỉ mang `customerDocumentId`.
+- **Admin**: trang Điểm & hạng (Y1–Y2), tab Điểm ở khách (Y3, điều chỉnh có lý do + log O15, quyền `loyalty.adjust`), thẻ điểm trong
+  báo cáo (Y4), ô nhóm khách trong form khuyến mãi.
+- **Migration `0013-o16-loyalty`**: unique `earn (order_id)` ở sổ và lô, `redeem (order_id, lot_id)`, mã hạng; CHECK
+  `0 ≤ remaining ≤ points`; index quét hết hạn/báo cáo.
+- **Còn mở:** UAT tay (danh sách ở spec); **chặn mở cho khách thật**: điều khoản chương trình (pháp lý) và hạch toán điểm lưu
+  hành (kế toán); màn hình khách (OW) làm ở phase web.
+
 2026-10-14: **Ordering core-sales audit — 6 lỗi đã đóng, targeted verification passed, chờ review/UAT** trên
 `feat/ordering` (báo cáo `artifacts/core-sales-audit/report.md`). 4 lỗi (khách tự hủy không hoàn tiền,
 hủy sai quyền khi đồng thời, deadline giao hàng, hoàn qua nhiều payment) đã được các phase sau sửa sẵn;

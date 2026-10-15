@@ -1856,6 +1856,23 @@ type ConsentSnapshot = {
   không cần khóa. Script test ordering đặt sẵn một khóa test cố định. Bản mã có tiền tố phiên bản (`v1:`) để
   đổi khóa về sau. Đã làm ở O3 (cột `idempotency-key.resultCipher`).
 
+## 22. Điểm và hạng thành viên (O16, 2026-10-15)
+
+- **Sổ**: `loyalty-ledger` append-only (không route sửa/xóa), `balanceAfter` theo từng dòng; `customer.pointsBalance = Σ points`.
+  `loyalty-lot` giữ điểm theo lô và hạn, `0 ≤ remaining ≤ points`, `Σ remaining = max(0, balance)`. Cột `customerId`/`orderId`/`lotId`
+  là số nguyên thường (Strapi lưu relation ở bảng `*_lnk` nên không đặt được unique/partial index trên relation).
+- **Cơ sở tích điểm** = Σ `(baseAmount + discountAmount)` dòng còn sống (chia theo `pricedQuantity` như `liveLineAmount`) trừ tiền thẻ quà
+  tặng; không dùng `lineTotalAmount` (đã gồm phí và làm tròn).
+- **Thứ tự giảm giá**: giá nhóm (O14) → khuyến mãi (O8) → điểm (O16, adjustment cố định `sourceRef = 'loyalty'`, priority 900) → phí chi
+  nhánh (priority 1000).
+- **Thứ tự khóa**: mutex đơn (`repo.lockOrder`) → khóa khách (`lockCustomer`) → hàng lô. `earn`, `reverse`, `reconcile` lấy mutex đơn
+  trước; job hết hạn/hạng chỉ khóa khách; `createOrder` giữ khóa khách từ lúc gắn khách rồi trừ lô. Hoàn điểm (hủy đơn, sửa đơn) chạy ở
+  transaction riêng sau sự kiện outbox để không chen khóa khách vào transaction hủy/sửa.
+- **Idempotent**: unique `earn (order_id)`, `redeem (order_id, lot_id)`; `release` suy ra từ sổ (`redeem − release` của đơn).
+- **Hạng** là nhóm O14 (`auto = null`, thành viên `source = 'auto'` do job hạng quản lý); `customer.spend12m` là cache của sổ
+  (earn/history cộng, reverse trừ nếu earn còn trong cửa sổ 12 tháng).
+- **Dữ liệu cá nhân**: sổ chỉ chứa id và số; xóa dữ liệu ghi `forfeit`; webhook chỉ mang `customerDocumentId`.
+
 ## Nguồn chính
 
 - [Strapi server API](https://docs.strapi.io/cms/plugins-development/server-api), [cron](https://docs.strapi.io/cms/configurations/cron),

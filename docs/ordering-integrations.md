@@ -32,12 +32,16 @@ mã hóa bằng `ORDERING_ENCRYPTION_KEY`; list/get/response không bao giờ tr
 
 `GET /ordering/webhooks/events` trả danh mục công khai đầy đủ (sự kiện đơn hàng, giao hàng, thanh
 toán, hoàn tiền, cảnh báo vận hành — `ops-alert.*`, khuyến mãi — `promotion.redeemed`, đánh giá —
-`rating.created`, khách hàng — `customer.erased` (O11), và
+`rating.created`, khách hàng — `customer.erased` (O11), điểm thành viên — `loyalty.points.earned`,
+`loyalty.tier.changed` (O16), và
 `ordering.ping` nội bộ cho "Gửi thử"). Endpoint chỉ nhận các loại đã tick trong `events`.
 
 `customer.erased` phát khi một yêu cầu xóa hoàn tất — `data` chỉ mang `customerId` (documentId) và
 `customerHash` (HMAC của SĐT), **không** tên/SĐT/email. `includeCustomer` không thêm gì vào sự kiện
 này — sau xóa không còn PII để gửi.
+
+`loyalty.points.earned` phát khi một đơn hoàn tất cộng điểm (> 0): `data` = `customerDocumentId`, `points`.
+`loyalty.tier.changed`: `customerDocumentId`, `tierCode`, `previousTierCode` (null lần đầu được xếp hạng). Hai sự kiện **không** mang tên/SĐT/email; `includeCustomer` không thêm gì (không gắn với đơn).
 
 `promotion.redeemed` phát **một lần cho mỗi khuyến mãi** được giữ chỗ khi đơn được tạo (cùng giao dịch với
 `order.created`, kể cả đơn nháp của nhân viên). `data`: `orderId`, `orderCode`, `promotionId`, `code` (mã khách đã nhập;

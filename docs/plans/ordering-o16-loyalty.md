@@ -1,6 +1,6 @@
 # O16 — Tích điểm và hạng thành viên: kế hoạch thực hiện
 
-Status: Draft — đã đối chiếu code `feat/ordering` @ `f3d9a47` (2026-10-15), sẵn sàng để duyệt rồi code
+Status: implemented + automated verification passed (2026-10-15) — chờ UAT tay; xem Completion record
 Owner: tan_ngo (duyệt + chốt tham số chương trình), AI thực hiện
 Last updated: 2026-10-15
 Related phase: [`phases/phase-ordering-16-loyalty.md`](../phases/phase-ordering-16-loyalty.md)
@@ -282,4 +282,59 @@ Quy ước chung như [`ordering-o3-screens.md`](ordering-o3-screens.md); chuỗ
 
 ## Completion record
 
-- Chưa bắt đầu.
+Trạng thái: **implemented + automated verification passed — chờ UAT tay + quyết định chủ dự án để mở cho khách thật** (2026-10-15).
+Nhánh `TanNgo11/ordering-o16` (tách từ `origin/feat/ordering` `5930344`); chương trình **mặc định tắt**.
+
+| Bước | Nội dung | Commit |
+| --- | --- | --- |
+| 1 | Hàm thuần `domain/loyalty` (earn, redeem, lots, reverse, tier) + test bảng/property | `504019d` |
+| 2a | 3 content type (`loyalty-tier/lot/ledger`), cột `customer`/`promotion`, migration `0013-o16-loyalty` | `5c8b6dc` |
+| 2b | Cấu hình (core-store), hạng, quyền `loyalty.manage/adjust`, route Admin, lỗi, audit, OpenAPI, `loyalty-admin` | `3cecde7` |
+| 3 | Tích điểm khi hoàn tất (consumer + job quét), thu hồi khi hoàn tiền, `loyalty-earn` | `4b3dc79` |
+| 4 | Dùng điểm (quote/create/checkout), hoàn điểm khi hủy/sửa đơn, điều kiện khuyến mãi theo nhóm, `loyalty-redeem`, `loyalty-race` | `903758d` |
+| 5 | Hết hạn lô + nhắc, xét hạng + nhóm O14, nhập lịch sử, 2 mẫu mail, 2 webhook, `/me/loyalty`, forfeit/export khi xóa dữ liệu, `loyalty-expiry`, `loyalty-tiers` | `8c2ac57` |
+| 6a | API Admin: điểm của khách, điều chỉnh có log, báo cáo | `d0d6d20` |
+| 6b | Màn Y1–Y4 (trang Điểm & hạng, tab Điểm ở khách, thẻ báo cáo, ô nhóm trong form khuyến mãi) | `524dc4b` |
+| 7 | Tài liệu, OpenAPI, `run-all.mjs`, gate | commit tài liệu cuối nhánh |
+
+**Gate cuối (targeted, một lần, DB `salanca_ordering_o16`):**
+
+Tất cả exit 0 (DB `salanca_ordering_o16`): `pnpm run lint`, `pnpm run typecheck`, `pnpm run typecheck:admin`,
+`pnpm exec vitest run src/plugins/ordering config` (), `pnpm run build:ordering`; script `loyalty-earn`, `loyalty-redeem`,
+`loyalty-race`, `loyalty-expiry`, `loyalty-tiers`, `loyalty-admin`, `create-order`, `storefront`, `cart-checkout`,
+`cart-promotion`, `order-edit`, `payment-refund`, `sepay-refund`, `core-sales-fixes`, `customers`, `customer-auth`,
+`data-rights`, `reports`, `price-lists`, `promotions`, `promotion-money`, `promotion-race`, `promotions-admin`,
+`email-templates`, `audit-coverage`, `schema`; `pnpm run ordering:openapi` + `openapi.mjs` (146 path);
+`ORDERING_ENABLED=true pnpm exec strapi build`. Không chạy `check:ordering`/`check:phase3`/smoke (theo quy ước gate gọn).
+
+**Chỗ lệch kế hoạch (và lý do):**
+
+- **Hoàn điểm khi hủy đơn / sửa đơn không nằm trong transaction hủy/sửa.** Làm trong transaction riêng
+  `reconcileForOrder` (mutex đơn → khóa khách → lô), kích hoạt bởi consumer `order.transitioned` (to=`canceled`),
+  sự kiện outbox `loyalty.reconcile` (cùng transaction với `order.edited`) và job `loyalty-earn-sweep` (bắt đơn hủy
+  không có sự kiện). Lý do: `createOrder` giữ khóa khách rồi mới đụng khuyến mãi/tồn/thẻ; chen khóa khách vào
+  transaction hủy (đã giữ khóa nhóm/thanh toán) có thể đóng vòng chờ. `reconcile` là idempotent theo sổ
+  (`Σ redeem − Σ release`), nên chạy lại không hoàn thêm. Độ trễ = chu kỳ outbox (vài giây).
+- **Không có unique `(order_id, lot_id)` cho `release`** (kế hoạch ghi có): sửa đơn có thể hoàn một phần rồi hủy hoàn
+  phần còn lại về cùng một lô. Idempotent nằm ở service; unique `earn (order_id)` và `redeem (order_id, lot_id)` vẫn có.
+- **Thêm cột `originLotId` ở sổ** (lô gốc của một dòng `release`, vì điểm hoàn có thể vào lô `restore` mới) và index
+  `(order_id) WHERE kind IN ('redeem','release')` cho job quét hoàn.
+- **Giảm giá điểm là dòng cố định `priority 900`**: sau khuyến mãi, trước phí chi nhánh (1000). Phí % tính trên tiền món
+  sau mọi giảm giá, kể cả điểm.
+- **Mail nâng hạng cần khách đồng ý tiếp thị** (như mail nhắc hết hạn); kế hoạch không nói rõ.
+- **API `/me/loyalty` làm ở bước 5** (gần job/hạng), không phải bước 6.
+- **Trần ngày `dailyEarnCap` tính theo ngày lịch Việt Nam (UTC+7)**, phần vượt bị bỏ (đúng đề xuất).
+- **Test tranh chấp có biến thể tự kiểm "tắt khóa thì đỏ"**: `loyalty-race.mjs` chạy kịch bản hai đơn cùng dùng hết điểm
+  với cả hai tầng khóa bị gỡ (khóa khách và `FOR UPDATE` trên lô) và khẳng định kết quả là lỗi CHECK `23514` thay vì
+  `LOYALTY_INSUFFICIENT` sạch. Hai tầng khóa che nhau nên gỡ riêng từng tầng không làm đỏ.
+- **Sửa nhỏ ở code cũ:** `refund.ts` gọi `reverseForOrder` ở cả `createRefundInTransaction` (khi `settled`) và
+  `settleRefund`; `data-rights` gọi `forfeitInTransaction` trong transaction xóa và thêm mục `loyalty` vào xuất dữ liệu.
+
+**Còn mở (chủ dự án):**
+
+- UAT tay theo spec: đặt 300.000đ → hoàn tất → nhận 30 điểm; đơn sau dùng điểm giảm; hủy đơn → điểm về lại; đặt mốc Bạc
+  thấp → lên hạng → thấy nhóm/giá Bạc; điều chỉnh điểm có log O15; báo cáo điểm lưu hành. Chưa chạy UAT trình duyệt bằng AI.
+- **Chặn mở cho khách thật:** điều khoản chương trình (pháp lý) và hạch toán điểm lưu hành (kế toán).
+- Xác nhận: `countHistoryForTiers` (đề xuất bật), thẻ quà tặng loại khỏi cơ sở theo cách "trả tiền món trước", cắt
+  `dailyEarnCap` bỏ phần vượt, hệ số hạng làm tròn xuống một lần.
+- Màn hình khách (OW) và tip: ngoài phạm vi; API đã sẵn (`redeemPoints`, `loyalty` trong quote, `/me/loyalty`).

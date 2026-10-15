@@ -1,6 +1,6 @@
 # Phase O16 — Tích điểm và hạng thành viên
 
-Trạng thái: spec chờ duyệt (2026-10-12); điều kiện bắt đầu (O8, O11, O14) đã merge vào `feat/ordering`; kế hoạch thực hiện đã đối chiếu code 2026-10-15. Roadmap: [`plans/ordering-roadmap.md`](../plans/ordering-roadmap.md).
+Trạng thái: **implemented + automated verification passed (2026-10-15), chờ UAT tay**; chương trình mặc định tắt. Kết quả và chỗ lệch kế hoạch: Completion record trong [`plans/ordering-o16-loyalty.md`](../plans/ordering-o16-loyalty.md). Roadmap: [`plans/ordering-roadmap.md`](../plans/ordering-roadmap.md).
 Mockup: [`plans/mockups/ordering-o16-loyalty.html`](../plans/mockups/ordering-o16-loyalty.html).
 Kế hoạch thực hiện (gồm đặc tả màn hình Y1–Y4): [`plans/ordering-o16-loyalty.md`](../plans/ordering-o16-loyalty.md).
 
