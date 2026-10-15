@@ -1080,24 +1080,15 @@ const adminOrders = ({ strapi }: { strapi: Core.Strapi }) => {
       ctx: ServiceContext,
     ) {
       const aggregate = await loadScoped(orderId, ctx);
-      const payment = aggregate.payments.find(
-        (row) => row.providerCode === 'cash' && row.capturedAmount - row.refundedAmount > 0,
-      );
-      if (!payment) {
-        throw new OrderingError('REFUND_EXCEEDS_CAPTURED', 'no cash payment left to refund');
-      }
-      const max = payment.capturedAmount - payment.refundedAmount;
-      if (!Number.isSafeInteger(input.amount) || input.amount <= 0 || input.amount > max) {
-        throw new OrderingError('REFUND_EXCEEDS_CAPTURED', 'refund amount exceeds what was collected', {
-          details: { max },
-        });
-      }
-      await s.refund().createRefund(
+      // O-07: the refund is split across ALL cash payments that still hold money, under the
+      // order mutex, so the backend cap matches the sum the dialog shows.
+      await s.refund().refundCash(
         {
-          paymentId: payment.id,
+          orderId,
           amount: input.amount,
           reason: input.reason ?? '',
-          idempotencyKey: input.idempotencyKey ?? `admin-refund:${randomUUID()}`,
+          idempotencyKey: input.idempotencyKey,
+          audit: { locationRef: aggregate.order.locationRef },
         },
         ctx,
       );

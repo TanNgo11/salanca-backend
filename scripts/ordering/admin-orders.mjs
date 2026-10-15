@@ -161,23 +161,39 @@ withApp(async (app) => {
     assert.equal(handover.body.detail.order.paymentStatus, 'paid');
     assert.equal(handover.body.detail.payments[0].actorName, 'lan HTTP');
 
-    // --- Mockup partial cancel: 87.940 ---------------------------------------------------------
-    const bunBo = handover.body.detail.lines.find((line) => line.title === 'Bún bò Huế');
-    const preview = await lan('GET', `/orders/${q1.id}/lines/${bunBo.id}/cancel-preview?quantity=1`);
+    // A completed order refuses a line cancel (O-06): the delivered unit is sold stock.
+    const completedLine = handover.body.detail.lines.find((line) => line.title === 'Bún bò Huế');
+    const completedCancel = await lan('POST', `/orders/${q1.id}/lines/${completedLine.id}/cancel`, {
+      quantity: 1,
+      reason: 'x',
+    });
+    assert.equal(completedCancel.status, 409, JSON.stringify(completedCancel.body));
+    assert.equal(completedCancel.body.error.code, 'INVALID_TRANSITION');
+
+    // --- Mockup partial cancel: 87.940 (a paid but still-live order) ---------------------------
+    const live = await place('Q1');
+    const paymentService = app.plugin('ordering').service('payment');
+    const liveCash = await paymentService.createPayment({ orderId: live.id, providerCode: 'cash' }, systemCtx);
+    await paymentService.capturePayment(
+      { paymentId: liveCash.id, amount: live.totalAmount, providerTransactionId: randomUUID() },
+      systemCtx,
+    );
+    const bunBo = (await lan('GET', `/orders/${live.id}`)).body.lines.find((line) => line.title === 'Bún bò Huế');
+    const preview = await lan('GET', `/orders/${live.id}/lines/${bunBo.id}/cancel-preview?quantity=1`);
     assert.equal(preview.status, 200, JSON.stringify(preview.body));
     assert.equal(preview.body.refundAmount, 87940);
-    assert.equal((await lan('GET', `/orders/${q1.id}`)).body.lines.find((l) => l.id === bunBo.id).canceledQuantity, 0, 'preview wrote nothing');
-    const lineCancel = await lan('POST', `/orders/${q1.id}/lines/${bunBo.id}/cancel`, { quantity: 1, reason: 'Hết giò heo' });
+    assert.equal((await lan('GET', `/orders/${live.id}`)).body.lines.find((l) => l.id === bunBo.id).canceledQuantity, 0, 'preview wrote nothing');
+    const lineCancel = await lan('POST', `/orders/${live.id}/lines/${bunBo.id}/cancel`, { quantity: 1, reason: 'Hết giò heo' });
     assert.equal(lineCancel.status, 200, JSON.stringify(lineCancel.body));
     assert.equal(lineCancel.body.refundAmount, 87940);
     assert.equal(lineCancel.body.detail.totals.refunded, 87940);
 
     // --- Manual cash refund respects the cap ----------------------------------------------------
     assert.equal(
-      (await lan('POST', `/orders/${q1.id}/refunds`, { amount: 100000, reason: 'x' })).body.error.code,
+      (await lan('POST', `/orders/${live.id}/refunds`, { amount: 100000, reason: 'x' })).body.error.code,
       'REFUND_EXCEEDS_CAPTURED',
     );
-    const refunded = await lan('POST', `/orders/${q1.id}/refunds`, { amount: 1060, reason: 'Thối thiếu' });
+    const refunded = await lan('POST', `/orders/${live.id}/refunds`, { amount: 1060, reason: 'Thối thiếu' });
     assert.equal(refunded.status, 200, JSON.stringify(refunded.body));
     assert.equal(refunded.body.totals.refunded, 89000);
 

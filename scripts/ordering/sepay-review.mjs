@@ -307,6 +307,23 @@ withApp(async (app) => {
     });
     assert.equal(reopenLog.length, 1);
 
+    // A SHORT late transfer must keep the reopened order waiting for the rest: it resumes at
+    // `awaiting-payment` and is never sent to the kitchen unpaid (O-11 review).
+    const shortOrder = await place();
+    await transition.cancelOrder({ orderId: shortOrder.order.order.id, reason: 'khach huy' }, systemCtx);
+    const shortTxn = seq + 1;
+    await transfer('0123456789', Math.floor(total / 2), `SLC${shortOrder.order.order.code}`);
+    const shortEvent = await eventOf(shortTxn);
+    assert.equal(shortEvent.reviewReason, 'order-closed');
+    const shortReopen = await http.as.lan('POST', `/payment-reviews/${shortEvent.id}/reopen`, {
+      orderId: shortOrder.order.order.id,
+      reason: 'khách chuyển thiếu sau khi hủy',
+    });
+    assert.equal(shortReopen.status, 200, JSON.stringify(shortReopen.body));
+    const shortAgg = await load(shortOrder.order.order.id);
+    assert.equal(shortAgg.groups[0].status, 'awaiting-payment', 'a short transfer keeps waiting');
+    assert.notEqual(shortAgg.order.paymentStatus, 'paid');
+
     console.log('[ordering-test] sepay review: scope, race, ignore, refund-due, closed assign, reopen');
   } finally {
     await http.cleanup();

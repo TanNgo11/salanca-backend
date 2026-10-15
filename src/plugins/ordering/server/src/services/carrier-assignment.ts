@@ -7,6 +7,7 @@ import { payableTotal } from '../domain/payable';
 import { paidAmounts } from '../domain/storefront/serialize';
 import { isTerminal } from '../domain/workflow/transition';
 import { endpointOf } from '../providers/ahamove/provider';
+import orderRepository from '../repositories/order';
 import type branchFactory from './branch';
 import type changeLogFactory from './change-log';
 import type { ServiceContext } from './context';
@@ -58,6 +59,8 @@ const carrierAssignment = ({ strapi }: { strapi: Core.Strapi }) => {
     };
   };
   const fulfillments = () => strapi.db.query('plugin::ordering.fulfillment');
+  const groups = () => strapi.db.query('plugin::ordering.fulfillment-group');
+  const repo = orderRepository({ strapi });
 
   const fulfillmentOf = (groupId: number) =>
     fulfillments().findOne({ where: { group: groupId } }) as Promise<FulfillmentRow | null>;
@@ -179,25 +182,34 @@ const carrierAssignment = ({ strapi }: { strapi: Core.Strapi }) => {
       ctx: ServiceContext,
     ) {
       return strapi.db.transaction(async ({ trx }) => {
-        const { aggregate, group, fulfillment } = await liveLeg(orderId, ctx);
-        // FOR UPDATE on the raw row, then re-read through db.query — raw columns are
-        // snake_case (provider_reference), the entity layer maps them back to camelCase.
-        const lockedRow = await trx('plugins_ordering_fulfillment')
-          .where({ id: fulfillment.id })
-          .forUpdate()
-          .first('id');
-        if (!lockedRow) {
-          throw new OrderingError('ORDER_NOT_FOUND', 'order not found', { details: { orderId } });
-        }
+        const { group: scannedGroup, fulfillment } = await liveLeg(orderId, ctx);
+        // Lock the GROUP row then the leg row — the same order the carrier webhook takes, so a
+        // status push and a booking serialize. Everything that decides is re-read under the
+        // locks, so a leg canceled between the scan and here is caught before the provider call
+        // (O-05). Raw columns are snake_case; db.query maps them back to camelCase.
+        const groupId = Number(scannedGroup.id);
+        await trx('plugins_ordering_fulfillment_group').where({ id: groupId }).forUpdate().first('id');
+        await trx('plugins_ordering_fulfillment').where({ id: fulfillment.id }).forUpdate().first('id');
         const locked = (await fulfillments().findOne({
           where: { id: fulfillment.id },
-        })) as FulfillmentRow;
+        })) as FulfillmentRow | null;
+        if (!locked) {
+          throw new OrderingError('ORDER_NOT_FOUND', 'order not found', { details: { orderId } });
+        }
+        const aggregate = await repo.loadOrderAggregate(orderId);
+        if (!aggregate) {
+          throw new OrderingError('ORDER_NOT_FOUND', 'order not found', { details: { orderId } });
+        }
         if (locked.providerReference) {
           return { alreadyBooked: true, ...bookedView(locked) };
         }
-        if (group.status !== 'ready') {
+        const group = (await groups().findOne({ where: { id: groupId } })) as {
+          id: number;
+          status: string;
+        } | null;
+        if (!group || group.status !== 'ready') {
           throw new OrderingError('CARRIER_BOOKING_FAILED', 'the leg is no longer ready to book', {
-            details: { reason: 'leg-not-ready', status: group.status },
+            details: { reason: 'leg-not-ready', status: group?.status ?? null },
           });
         }
         const provider = await carrierFor(orderId, locked, aggregate.order.locationRef ?? '');
@@ -271,21 +283,27 @@ const carrierAssignment = ({ strapi }: { strapi: Core.Strapi }) => {
      */
     async carrierCancel(orderId: number, input: { reason?: string }, ctx: ServiceContext) {
       return strapi.db.transaction(async ({ trx }) => {
-        const { aggregate, group, fulfillment } = await liveLeg(orderId, ctx);
-        const lockedRow = await trx('plugins_ordering_fulfillment')
-          .where({ id: fulfillment.id })
-          .forUpdate()
-          .first('id');
-        if (!lockedRow) {
-          throw new OrderingError('ORDER_NOT_FOUND', 'order not found', { details: { orderId } });
-        }
+        const { group: scannedGroup, fulfillment } = await liveLeg(orderId, ctx);
+        // Lock the group row then the leg row (same order as the webhook) and re-read both under
+        // the locks: a trip that moved `out-for-delivery` after the scan is never canceled on a
+        // stale `ready` (O-09).
+        const groupId = Number(scannedGroup.id);
+        await trx('plugins_ordering_fulfillment_group').where({ id: groupId }).forUpdate().first('id');
+        await trx('plugins_ordering_fulfillment').where({ id: fulfillment.id }).forUpdate().first('id');
         const locked = (await fulfillments().findOne({
           where: { id: fulfillment.id },
-        })) as FulfillmentRow;
+        })) as FulfillmentRow | null;
+        if (!locked) {
+          throw new OrderingError('ORDER_NOT_FOUND', 'order not found', { details: { orderId } });
+        }
         if (!locked.providerReference) return { cancelled: false };
-        if (group.status !== 'ready') {
+        const group = (await groups().findOne({ where: { id: groupId } })) as {
+          id: number;
+          status: string;
+        } | null;
+        if (!group || group.status !== 'ready') {
           throw new OrderingError('CARRIER_BOOKING_FAILED', 'the trip is already underway', {
-            details: { reason: 'in-process', status: group.status },
+            details: { reason: 'in-process', status: group?.status ?? null },
           });
         }
         const provider = services().registry.fulfillmentProvider(locked.providerCode);
@@ -325,7 +343,7 @@ const carrierAssignment = ({ strapi }: { strapi: Core.Strapi }) => {
           {
             action: 'carrier.cancel',
             entityType: 'order',
-            entityId: aggregate.order.id,
+            entityId: orderId,
             after: { providerCode: provider.code, carrierRef: locked.providerReference, reason },
           },
           ctx,

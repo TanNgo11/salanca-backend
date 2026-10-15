@@ -4,6 +4,7 @@ import { autoRejectMinutes, receiveKindKey } from '../domain/branch-settings';
 import { stateEnteredAt } from '../domain/payments/deadline';
 import { isTerminal } from '../domain/workflow/transition';
 import type { TransactionClient } from '../migrations/runner';
+import orderRepository from '../repositories/order';
 import type branchFactory from '../services/branch';
 import type { ServiceContext } from '../services/context';
 import type jobLockFactory from '../services/job-lock';
@@ -29,6 +30,7 @@ export const runAutoReject = async (
   const transition = plugin.service('transition') as ReturnType<typeof transitionFactory>;
   const refund = plugin.service('refund') as ReturnType<typeof refundFactory>;
   const registry = plugin.service('registry') as OrderingRegistry;
+  const repo = orderRepository({ strapi });
   const now = options.now ?? new Date();
   const ctx: ServiceContext = { actor: { kind: 'system', actorRef: 'job:auto-reject' }, now };
 
@@ -99,37 +101,59 @@ export const runAutoReject = async (
         if (item.minutes <= 0) continue;
         if (now.getTime() - item.since <= item.minutes * 60_000) continue;
         try {
-          await strapi.db.transaction(async ({ trx }: { trx: TransactionClient }) => {
-            // Re-read inside the transaction: staff may have accepted between the scan and
-            // this point — only groups still waiting are rejected.
-            const groups = (await strapi.db.query('plugin::ordering.fulfillment-group').findMany({
-              where: { order: item.orderId, status: 'awaiting-acceptance' },
-            })) as Array<{
-              id: number;
-              status: string;
-              workflowName: string;
-              workflowVersion: string;
-            }>;
-            for (const group of groups) {
-              const definition = registry.workflow(group.workflowName, group.workflowVersion);
-              if (isTerminal(definition, group.status) !== null) continue;
-              const to = definition.states[group.status]?.next.includes('rejected')
-                ? 'rejected'
-                : definition.cancelState;
-              await transition.transitionGroup(
-                {
-                  orderId: item.orderId,
-                  groupId: group.id,
-                  to,
-                  reason: 'no-response',
-                  payload: { autoRejected: true },
-                },
-                ctx,
-              );
-            }
-            await refund.refundHeldForOrder(trx, item.orderId, 'no-response', ctx);
-          });
-          rejected += 1;
+          const outcome = await strapi.db.transaction(
+            async ({ trx }: { trx: TransactionClient }) => {
+              // Order mutex first, then re-read: staff may have accepted between the scan and
+              // this point. A stale scan must never reject (or refund) an order staff already took.
+              await repo.lockOrder(trx, item.orderId);
+              const groups = (await strapi.db.query('plugin::ordering.fulfillment-group').findMany({
+                where: { order: item.orderId, status: 'awaiting-acceptance' },
+              })) as Array<{
+                id: number;
+                status: string;
+                workflowName: string;
+                workflowVersion: string;
+              }>;
+              let moved = 0;
+              for (const group of groups) {
+                const definition = registry.workflow(group.workflowName, group.workflowVersion);
+                if (isTerminal(definition, group.status) !== null) continue;
+                const to = definition.states[group.status]?.next.includes('rejected')
+                  ? 'rejected'
+                  : definition.cancelState;
+                await transition.transitionGroup(
+                  {
+                    orderId: item.orderId,
+                    groupId: group.id,
+                    to,
+                    reason: 'no-response',
+                    payload: { autoRejected: true },
+                  },
+                  ctx,
+                );
+                moved += 1;
+              }
+              // Nothing was awaiting any more: staff acted first — do NOT refund. A partial
+              // reject of a multi-group order keeps the money on its still-live legs; the refund
+              // only fires once the whole order is closed (every group terminal).
+              if (moved === 0) return { rejected: false };
+              const all = (await strapi.db.query('plugin::ordering.fulfillment-group').findMany({
+                where: { order: item.orderId },
+                select: ['status', 'workflowName', 'workflowVersion'],
+              })) as Array<{ status: string; workflowName: string; workflowVersion: string }>;
+              const closed =
+                all.length > 0 &&
+                all.every(
+                  (group) =>
+                    isTerminal(registry.workflow(group.workflowName, group.workflowVersion), group.status) !==
+                    null,
+                );
+              if (closed) await refund.refundHeldForOrder(trx, item.orderId, 'no-response', ctx);
+              return { rejected: true };
+            },
+          );
+          if (outcome.rejected) rejected += 1;
+          else skipped += 1;
         } catch {
           // Staff acted first or a workflow rejected the step — leave the order alone.
           skipped += 1;

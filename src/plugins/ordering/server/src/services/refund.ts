@@ -7,6 +7,7 @@ import type { Payment as ContractPayment } from '../contracts/payment';
 import { businessDate } from '../domain/business-date';
 import { OrderingError } from '../domain/errors';
 import { amountFromDb, toMoney } from '../domain/money';
+import { payableTotal } from '../domain/payable';
 import { allocateLargestRemainder } from '../domain/pricing/allocation';
 import { lineRemovalAmount } from '../domain/refund-amount';
 import type { TransactionClient } from '../migrations/runner';
@@ -317,7 +318,16 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
         .sum({ value: 'c.initial_amount' })
         .first()) as { value: string | number | null } | undefined;
       const issuedValue = amountFromDb(issued?.value ?? 0);
-      if (issuedValue > 0) {
+      // O-04: a gift-card group reaching `issued` COMMITS the whole card value even before the
+      // issuance consumer has created the cards. Count that commitment so a refund taken in the
+      // gap cannot leave active cards with no money behind them.
+      const issuedGroup = aggregate.groups.some(
+        (group) => group.workflowName === 'gift-card' && group.status === 'issued',
+      );
+      const committedValue = issuedGroup
+        ? Math.max(issuedValue, payableTotal(aggregate.order))
+        : issuedValue;
+      if (committedValue > 0) {
         const orderPending = (await trx('plugins_ordering_refund as refund')
           .join('plugins_ordering_refund_order_lnk as link', 'link.refund_id', 'refund.id')
           .where('link.order_id', orderId)
@@ -328,7 +338,7 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
           (sum, row) => sum + row.capturedAmount - row.refundedAmount,
           0,
         );
-        const room = held - amountFromDb(orderPending?.value ?? 0) - issuedValue;
+        const room = held - amountFromDb(orderPending?.value ?? 0) - committedValue;
         if (total > room) {
           throw new OrderingError('GIFT_CARD_NOT_ALLOWED', 'issued gift-card value is not refundable', {
             details: { reason: 'card-sale-refund', refundable: Math.max(0, room) },
@@ -715,6 +725,130 @@ const refund = ({ strapi }: { strapi: Core.Strapi }) => {
     },
 
     dispatchWalletRefund,
+
+    /**
+     * Manual cash refund (audit O-07): the amount is taken from the cash the order still holds,
+     * split across EVERY cash payment that has room — not just the first one. Runs under the
+     * order mutex and the `refund` idempotency scope, so the backend cap matches the whole cash
+     * held (the sum the Admin dialog shows) and a replay does not refund twice.
+     */
+    async refundCash(
+      input: {
+        orderId: number;
+        amount: number;
+        reason: string;
+        idempotencyKey?: string;
+        audit?: { locationRef?: string };
+      },
+      ctx: ServiceContext,
+    ): Promise<{ refundIds: number[]; total: number }> {
+      const reason = input.reason?.trim();
+      if (!reason) {
+        throw new OrderingError('VALIDATION_ERROR', 'refund reason is required', {
+          details: { field: 'reason' },
+        });
+      }
+      if (!Number.isSafeInteger(input.amount) || input.amount <= 0) {
+        throw new OrderingError('VALIDATION_ERROR', 'refund amount must be a positive integer', {
+          details: { field: 'amount' },
+        });
+      }
+      const { idempotency, order, changeLog } = services();
+      const key = input.idempotencyKey ?? `admin-cash-refund:${input.orderId}:${randomUUID()}`;
+      const outcome = await idempotency.run(
+        {
+          scope: 'refund',
+          key,
+          payload: { orderId: input.orderId, amount: input.amount, reason, method: 'cash' },
+        },
+        ctx,
+        async (trx) => {
+          await repo.lockOrder(trx, input.orderId);
+          const aggregate = await order.getOrder(input.orderId, ctx); // scope check inside
+          const cashPayments = aggregate.payments.filter((payment) => payment.providerCode === 'cash');
+          // Pending refunds already reserve a payment's room (same sum createRefundInTransaction checks).
+          const pendingByPayment = new Map<number, number>();
+          if (cashPayments.length > 0) {
+            const pendingRows = (await trx('plugins_ordering_refund as refund')
+              .join('plugins_ordering_refund_payment_lnk as link', 'link.refund_id', 'refund.id')
+              .whereIn(
+                'link.payment_id',
+                cashPayments.map((payment) => payment.id),
+              )
+              .where('refund.status', 'pending')
+              .select('link.payment_id', 'refund.amount')) as Array<{
+              payment_id: number;
+              amount: string | number;
+            }>;
+            for (const row of pendingRows) {
+              const id = Number(row.payment_id);
+              pendingByPayment.set(id, (pendingByPayment.get(id) ?? 0) + amountFromDb(row.amount));
+            }
+          }
+          const rooms = cashPayments
+            .map((payment) => ({
+              id: payment.id,
+              room:
+                payment.capturedAmount -
+                payment.refundedAmount -
+                (pendingByPayment.get(payment.id) ?? 0),
+            }))
+            .filter((room) => room.room > 0)
+            .sort((a, b) => b.room - a.room);
+          const totalRoom = rooms.reduce((sum, room) => sum + room.room, 0);
+          if (input.amount > totalRoom) {
+            throw new OrderingError('REFUND_EXCEEDS_CAPTURED', 'refund exceeds the cash still held', {
+              details: { max: totalRoom },
+            });
+          }
+          const refundIds: number[] = [];
+          let left = input.amount;
+          for (const room of rooms) {
+            if (left <= 0) break;
+            const slice = Math.min(room.room, left);
+            const { refund: created } = await createRefundInTransaction(
+              trx,
+              {
+                paymentId: room.id,
+                amount: slice,
+                reason,
+                idempotencyKey: `${key}:${room.id}`,
+              },
+              ctx,
+            );
+            refundIds.push(created.id as number);
+            left -= slice;
+          }
+          return {
+            result: { refundIds },
+            responseRef: `order-refund-cash:${input.orderId}:${refundIds.join(',')}`,
+            responseSnapshot: {
+              orderId: input.orderId,
+              amount: input.amount,
+              method: 'cash',
+              refundIds,
+            },
+          };
+        },
+      );
+      const refundIds = Array.isArray(outcome.result.refundIds)
+        ? outcome.result.refundIds.map(Number)
+        : [];
+      if (input.audit) {
+        await changeLog.record(
+          {
+            action: 'refund.create',
+            entityType: 'order',
+            entityId: String(input.orderId),
+            locationRef: input.audit.locationRef,
+            orderId: input.orderId,
+            after: { amount: input.amount, method: 'cash', reason, refundIds },
+          },
+          ctx,
+        );
+      }
+      return { refundIds, total: input.amount };
+    },
 
     async createRefund(
       input: {

@@ -435,6 +435,95 @@ const dailyStock = ({ strapi }: { strapi: Core.Strapi }) => {
       const rows = await loadReservations(trx, LINE_LINK, 'order_line_id', lineId);
       return { released: await releaseRows(trx, rows, quantity) };
     },
+
+    /**
+     * Inverse of `releaseForOrder` (audit O-08): re-acquires the released portions of an order
+     * under the same daily-limit rows so a reopened order holds its stock again. Throws
+     * `ITEM_SOLD_OUT` when another order has consumed the released units — the caller rolls
+     * back, so a reopen that cannot keep its stock leaves nothing behind. Lock order matches
+     * `reserveInTransaction` (entity keys ascending) so it cannot deadlock against a new order.
+     */
+    async restoreForOrder(
+      trx: TransactionClient,
+      orderId: number,
+    ): Promise<{ restored: number }> {
+      assertPositiveInt(orderId, 'orderId must be a positive integer');
+      const rows = await loadReservations(trx, ORDER_LINK, 'order_id', orderId);
+      const grouped = new Map<
+        string,
+        {
+          ref: DailyEntityRef;
+          locationRef: string;
+          businessDate: string;
+          release: number;
+          rows: UsageRow[];
+        }
+      >();
+      for (const row of rows) {
+        // The portion to restore is what cancellation released, not what is still held.
+        const room = asInt(row.released_quantity);
+        if (room <= 0) continue;
+        const businessDate = asDate(row.business_date);
+        const key = [row.entity_type, row.entity_document_id, row.location_ref, businessDate].join('\u0000');
+        const existing = grouped.get(key);
+        if (existing) {
+          existing.release += room;
+          existing.rows.push(row);
+        } else {
+          grouped.set(key, {
+            ref: { entityType: row.entity_type, entityDocumentId: row.entity_document_id },
+            locationRef: row.location_ref,
+            businessDate,
+            release: room,
+            rows: [row],
+          });
+        }
+      }
+      let restored = 0;
+      for (const key of [...grouped.keys()].sort()) {
+        const group = grouped.get(key);
+        if (!group) continue;
+        const limit = await lockLimit(trx, group.locationRef, group.ref);
+        if (limit !== null) {
+          const reserved = await upsertUsage(
+            trx,
+            group.locationRef,
+            group.businessDate,
+            group.ref,
+            group.release,
+            limit,
+          );
+          if (reserved === null) {
+            const already = await readReserved(trx, group.locationRef, group.businessDate, group.ref);
+            throw new OrderingError('ITEM_SOLD_OUT', 'sold out for the business day', {
+              details: {
+                entityType: group.ref.entityType,
+                entityDocumentId: group.ref.entityDocumentId,
+                locationRef: group.locationRef,
+                remaining: Math.max(0, limit - already),
+                businessDate: group.businessDate,
+              },
+            });
+          }
+        }
+        let left = group.release;
+        for (const row of group.rows) {
+          if (left <= 0) break;
+          const delta = Math.min(left, asInt(row.released_quantity));
+          if (delta <= 0) continue;
+          await trx.raw(
+            `UPDATE ${RESERVATION}
+             SET released_quantity = released_quantity - ?, updated_at = ?
+             WHERE id = ? AND released_quantity >= ?
+             RETURNING id`,
+            [delta, new Date(), row.id, delta],
+          );
+          left -= delta;
+          restored += delta;
+        }
+      }
+      return { restored };
+    },
   };
 };
 

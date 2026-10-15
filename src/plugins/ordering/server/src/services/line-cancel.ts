@@ -6,6 +6,7 @@ import { OrderingError } from '../domain/errors';
 import { amountFromDb, sumAmounts } from '../domain/money';
 import { returnedLineAmount } from '../domain/payable';
 import { lineRemovalAmount } from '../domain/refund-amount';
+import { isTerminal } from '../domain/workflow/transition';
 import type { TransactionClient } from '../migrations/runner';
 import orderRepository from '../repositories/order';
 import type { OrderAggregate } from '../repositories/types';
@@ -15,6 +16,7 @@ import type dailyStockFactory from './daily-stock';
 import type orderServiceFactory from './order';
 import type outboxFactory from './outbox';
 import type refundFactory from './refund';
+import type { OrderingRegistry } from './registry';
 import type timelineFactory from './timeline';
 
 type Services = {
@@ -23,6 +25,7 @@ type Services = {
   timeline: ReturnType<typeof timelineFactory>;
   outbox: ReturnType<typeof outboxFactory>;
   dailyStock: ReturnType<typeof dailyStockFactory>;
+  registry: OrderingRegistry;
 };
 
 type LineRow = {
@@ -56,6 +59,7 @@ const lineCancel = ({ strapi }: { strapi: Core.Strapi }) => {
       timeline: plugin.service('timeline') as Services['timeline'],
       outbox: plugin.service('outbox') as Services['outbox'],
       dailyStock: plugin.service('daily-stock') as Services['dailyStock'],
+      registry: plugin.service('registry') as Services['registry'],
     };
   };
   const repo = orderRepository({ strapi });
@@ -85,6 +89,26 @@ const lineCancel = ({ strapi }: { strapi: Core.Strapi }) => {
         }
         await repo.lockLine(trx, input.lineId);
         const line = (await lines().findOne({ where: { id: input.lineId } })) as LineRow;
+        // O-06: a unit that was delivered/completed is sold stock — canceling it must not put it
+        // back on the shelf (nor release its daily portion). Refuse while its group is a success
+        // terminal; a still-live group (served, out-for-delivery, …) keeps the old behaviour.
+        const lineGroupLink = (await trx('plugins_ordering_order_line_fulfillment_group_lnk')
+          .where({ order_line_id: input.lineId })
+          .first('fulfillment_group_id')) as { fulfillment_group_id: number } | undefined;
+        const lineGroup = lineGroupLink
+          ? aggregate.groups.find((group) => group.id === Number(lineGroupLink.fulfillment_group_id))
+          : undefined;
+        if (
+          lineGroup &&
+          isTerminal(
+            services().registry.workflow(lineGroup.workflowName, lineGroup.workflowVersion),
+            lineGroup.status,
+          ) === 'success'
+        ) {
+          throw new OrderingError('INVALID_TRANSITION', 'a delivered line cannot be canceled', {
+            details: { lineId: input.lineId, status: lineGroup.status },
+          });
+        }
         const committed =
           line.fulfilledQuantity + line.returnedQuantity + line.canceledQuantity;
         if (committed + input.quantity > line.quantity) {

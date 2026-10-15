@@ -435,7 +435,10 @@ export const OrderDetailPage = () => {
                         <Typography>{formatMoney(line.lineTotalAmount)}</Typography>
                       </Td>
                       <Td>
-                        {can.canEditLines && order.status !== 'canceled' && line.quantity - line.canceledQuantity > 0 ? (
+                        {can.canEditLines &&
+                        order.status !== 'canceled' &&
+                        order.status !== 'completed' &&
+                        line.quantity - line.canceledQuantity > 0 ? (
                           <IconButton label={t('detail.cancelLine')} variant="ghost" onClick={() => setDialog({ kind: 'line', lineId: line.id })}>
                             <Trash />
                           </IconButton>

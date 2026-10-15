@@ -2,6 +2,7 @@ import type { Core } from '@strapi/strapi';
 
 import { normalizeVietnamesePhone } from '../../../shared/contact/phone';
 import type { OrderingConfig } from '../config';
+import type { WorkflowDefinition } from '../contracts/workflow';
 import { OrderingError } from '../domain/errors';
 import type { LocationScope } from '../domain/scope';
 import { amountFromDb } from '../domain/money';
@@ -11,10 +12,13 @@ import { extractOrderCode } from '../domain/payments/memo';
 import type { TransactionClient } from '../migrations/runner';
 import { accountScope, type SepaySettings } from '../providers/sepay/config';
 import { sepaySettingsFromConfig } from '../providers/sepay/provider';
+import orderRepository from '../repositories/order';
 import type { ServiceContext } from './context';
 import { actorRefOf, nowOf } from './context';
 import type changeLogFactory from './change-log';
+import type dailyStockFactory from './daily-stock';
 import type orderServiceFactory from './order';
+import type { OrderingRegistry } from './registry';
 import type outboxFactory from './outbox';
 import type paymentMatchingFactory from './payment-matching';
 import type pickupSchedulingFactory from './pickup-scheduling';
@@ -62,6 +66,20 @@ const assertReason = (reason: unknown): string => {
 };
 
 /**
+ * Workflow-aware recovery state for a reopened order (audit O-11). A workflow with a payment
+ * head (`awaiting-payment`) resumes THERE, exactly as before: the late transfer is assigned right
+ * after, and `transitionIfPayable` moves the group to the payment-success state only when the
+ * transfer covers what is owed — a short transfer keeps waiting for the rest instead of sending
+ * the order to the kitchen unpaid. A workflow without a payment head (pay-on-pickup/delivery)
+ * has no `awaiting-payment` state, so it resumes at its initial state instead of an undeclared
+ * one. Returns null when the state does not exist, so the caller can refuse the reopen.
+ */
+const recoveryStateFor = (definition: WorkflowDefinition): string | null => {
+  if (definition.states['awaiting-payment']) return 'awaiting-payment';
+  return definition.states[definition.initial] ? definition.initial : null;
+};
+
+/**
  * Staff review of unmatched transfers (contracts §19.1). Branch scope is applied here.
  * Money that cannot be tied to a branch is visible only to `allLocations`. Two reviewers
  * of one event: the row lock lets one commit; the other gets `REVIEW_ALREADY_RESOLVED`.
@@ -75,6 +93,9 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
   const timeline = () => plugin().service('timeline') as ReturnType<typeof timelineFactory>;
   const outbox = () => plugin().service('outbox') as ReturnType<typeof outboxFactory>;
   const orderService = () => plugin().service('order') as ReturnType<typeof orderServiceFactory>;
+  const dailyStock = () => plugin().service('daily-stock') as ReturnType<typeof dailyStockFactory>;
+  const registry = () => plugin().service('registry') as OrderingRegistry;
+  const repo = orderRepository({ strapi });
   const events = () => strapi.db.query('plugin::ordering.payment-event');
   const orders = () => strapi.db.query('plugin::ordering.order');
   /** Payable total of a raw order row (bigint columns arrive as strings). */
@@ -435,6 +456,9 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
           throw new OrderingError('REOPEN_UNAVAILABLE', 'only a closed order can be reopened from review');
         }
         const staffScope = await scope().loadScope(ctx);
+        // Order mutex first, then the group row — same order as cancel/edit/capture, so the
+        // recovery state and the resource re-reservation cannot race a concurrent mutation.
+        await repo.lockOrder(trx, orderId);
         const order = (await orders().findOne({ where: { id: orderId } })) as {
           id: number;
           code: string;
@@ -464,6 +488,23 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
         if (!group || (group.status !== 'canceled' && group.status !== 'expired')) {
           throw new OrderingError('REOPEN_UNAVAILABLE', 'the order is not closed');
         }
+        // Recovery state from the group's own workflow (O-11): a pay-on-pickup workflow has no
+        // `awaiting-payment`; writing that state would strand the order on an undeclared state.
+        const definition = registry().workflow(group.workflowName, group.workflowVersion);
+        const recovery = recoveryStateFor(definition);
+        if (!recovery) {
+          throw new OrderingError('REOPEN_UNAVAILABLE', 'the workflow has no recovery state');
+        }
+        // Re-hold the daily-stock portions the cancellation released (O-08). If another order
+        // consumed them the reopen is refused and the whole transaction rolls back.
+        try {
+          await dailyStock().restoreForOrder(trx, orderId);
+        } catch (error) {
+          if (error instanceof OrderingError && error.code === 'ITEM_SOLD_OUT') {
+            throw new OrderingError('REOPEN_UNAVAILABLE', 'the daily stock for this order was resold');
+          }
+          throw error;
+        }
         const startsAt = order.receiveMethod?.timing?.slot?.startsAt;
         const endsAt = order.receiveMethod?.timing?.slot?.endsAt;
         if (startsAt && endsAt) {
@@ -489,11 +530,11 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
         // Terminal states have no outgoing edge, so reopening is written here rather than through
         // the transition service. It still records the step like a transition: the timeline entry
         // restarts the payment window (paymentWindowStart), and the outbox feeds the inbox stream.
-        await groups().update({ where: { id: group.id }, data: { status: 'awaiting-payment' } });
+        await groups().update({ where: { id: group.id }, data: { status: recovery } });
         const transitionPayload = {
           groupId: group.id,
           from: group.status,
-          to: 'awaiting-payment',
+          to: recovery,
           workflowName: group.workflowName,
           workflowVersion: group.workflowVersion,
           reason: 'payment-review-reopen',
@@ -535,7 +576,7 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
               locationRef: order.locationRef,
               reasonCode: 'payment-review-reopen',
             },
-            uniqueKey: `fgt:${group.id}:${group.status}>awaiting-payment:reopen:${row.id}`,
+            uniqueKey: `fgt:${group.id}:${group.status}>${recovery}:reopen:${row.id}`,
           },
           ctx,
         );
