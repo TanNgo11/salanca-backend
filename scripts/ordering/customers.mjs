@@ -411,4 +411,51 @@ await withApp(async (app) => {
     'stats are idempotent',
   );
   console.log('[ordering-test] order.transitioned → completed refreshes customer stats');
+
+  // A second completed order for the same customer: bigint amounts must add as numbers (BUG-02).
+  // `basicOrderInput` mints a fresh idempotencyKey, so this is a new order, not a replay.
+  const bySession2 = await order.createOrder(
+    basicOrderInput({
+      customerId: aInternal,
+      contact: { name: 'Kh A', phone: '+84909999999' },
+    }),
+    systemCtx,
+  );
+  assert.notEqual(
+    bySession2.order.order.id,
+    statOrder.id,
+    'a fresh idempotencyKey must create a second order',
+  );
+  await app.db
+    .connection('plugins_ordering_order')
+    .where('id', bySession2.order.order.id)
+    .update({ status: 'completed' });
+  await plugin.service('outbox').enqueue(
+    {
+      type: 'order.transitioned',
+      aggregateType: 'order',
+      aggregateId: String(bySession2.order.order.id),
+      payload: {
+        orderId: bySession2.order.order.id,
+        from: 'open',
+        to: 'completed',
+        locationRef: 'Q1',
+      },
+      uniqueKey: `test-transitioned:${randomUUID()}`,
+    },
+    systemCtx,
+  );
+  await runOutboxDispatcher(app, { owner: `test:${process.pid}` });
+  const totalOf = async (id) =>
+    Number((await app.db.query('plugin::ordering.order').findOne({ where: { id } })).totalAmount);
+  const afterTwo = await app.db
+    .query('plugin::ordering.customer')
+    .findOne({ where: { id: aInternal } });
+  assert.equal(afterTwo.orderCount, 2);
+  assert.equal(
+    Number(afterTwo.totalSpent),
+    (await totalOf(statOrder.id)) + (await totalOf(bySession2.order.order.id)),
+    'two completed orders must add as numbers, not concatenate as strings (BUG-02)',
+  );
+  console.log('[ordering-test] two completed orders add totalSpent as numbers (BUG-02)');
 });

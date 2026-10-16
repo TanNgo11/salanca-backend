@@ -338,7 +338,7 @@ const customerGroup = ({ strapi }: { strapi: Core.Strapi }) => {
             const { rows } = await strapi.db.connection.raw(
               `SELECT l.customer_id,
                       COUNT(*)::int AS order_count,
-                      COALESCE(SUM(o.total_amount), 0)::bigint AS spent
+                      COALESCE(SUM(GREATEST(0, o.total_amount - COALESCE(o.canceled_amount, 0))), 0)::bigint AS spent
                FROM ${ORDER_LINK} l
                JOIN ${ORDER} o ON o.id = l.order_id
                WHERE l.customer_id = ANY(?)

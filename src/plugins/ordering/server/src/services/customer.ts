@@ -3,6 +3,7 @@ import type { Core } from '@strapi/strapi';
 import type { OrderingConfig } from '../config';
 import { snapshotDeliveryAddress } from '../domain/contact/address';
 import { o11Hashing } from '../domain/customers/identity';
+import { spentOf } from '../domain/customers/stats';
 import { OrderingError } from '../domain/errors';
 import { lookupOrderView } from '../domain/storefront/serialize';
 import orderRepository from '../repositories/order';
@@ -356,7 +357,8 @@ const customer = ({ strapi }: { strapi: Core.Strapi }) => {
 
     /**
      * Outbox consumer for `order.transitioned`: a newly completed order refreshes the linked
-     * customer's orderCount/totalSpent/lastOrderAt (same math as migration 0007's backfill).
+     * customer's orderCount/totalSpent/lastOrderAt (same math as migration 0007's backfill, net
+     * of line cancels since 0014).
      * Idempotent — the fields are recomputed, not incremented.
      */
     async onOrderTransitioned(event: OutboxEvent) {
@@ -374,14 +376,18 @@ const customer = ({ strapi }: { strapi: Core.Strapi }) => {
     async refreshStats(customerId: number) {
       const linked = (await orders().findMany({
         where: { customer: customerId, status: 'completed' },
-        select: ['totalAmount', 'placedAt'],
+        select: ['totalAmount', 'canceledAmount', 'placedAt'],
         orderBy: { placedAt: 'desc' },
-      })) as { totalAmount: number; placedAt: string }[];
+      })) as {
+        totalAmount: string | number;
+        canceledAmount: string | number | null;
+        placedAt: string;
+      }[];
       await customers().update({
         where: { id: customerId },
         data: {
           orderCount: linked.length,
-          totalSpent: linked.reduce((sum, order) => sum + order.totalAmount, 0),
+          totalSpent: spentOf(linked),
           lastOrderAt: linked[0]?.placedAt ?? null,
         },
       });
