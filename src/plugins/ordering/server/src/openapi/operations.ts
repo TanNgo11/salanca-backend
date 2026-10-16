@@ -832,13 +832,29 @@ export const OPERATIONS: Operation[] = [
 
   // ── Admin: reports & cash ───────────────────────────────────────────────────
   adm('get', '/reports/branches', 'Reports', 'Branches for report filters', ['report.read']),
-  adm('get', '/cash-closing', 'Reports', 'Cash-closing summary', ['report.read']),
-  adm('get', '/cash-closing/summary', 'Reports', 'Cash-closing summary (alias)', ['report.read']),
+  adm('get', '/cash-closing', 'Reports', 'Cash-closing summary', ['report.read'], {
+    parameters: [
+      { name: 'branch', in: 'query', required: true, schema: str },
+      { name: 'businessDate', in: 'query', required: true, schema: { ...str, format: 'date' } },
+    ],
+  }),
+  adm('get', '/cash-closing/summary', 'Reports', 'Cash-closing summary (alias)', ['report.read'], {
+    parameters: [
+      { name: 'branch', in: 'query', required: true, schema: str },
+      { name: 'businessDate', in: 'query', required: true, schema: { ...str, format: 'date' } },
+    ],
+  }),
   adm('post', '/cash-closing', 'Reports', 'Close the day', ['report.read']),
   adm('post', '/cash-closing/:id/adjust', 'Reports', 'Adjust a closing', ['report.read'], {
     parameters: [pathParam('id')],
   }),
-  adm('get', '/reports/sales', 'Reports', 'Sales report by business date', ['report.read']),
+  adm('get', '/reports/sales', 'Reports', 'Sales report by business date', ['report.read'], {
+    parameters: [
+      { name: 'from', in: 'query', required: true, schema: { ...str, format: 'date' } },
+      { name: 'to', in: 'query', required: true, schema: { ...str, format: 'date' } },
+      { name: 'branch', in: 'query', schema: str },
+    ],
+  }),
 
   // ── Admin: audit ────────────────────────────────────────────────────────────
   adm('get', '/audit-log', 'Audit', 'Change history', ['audit.read']),
@@ -1157,8 +1173,20 @@ export const OPERATIONS: Operation[] = [
   adm('get', '/loyalty/settings', 'Loyalty', 'Loyalty program settings', ['loyalty.manage'], {
     response: obj({ settings: generic }),
   }),
-  adm('put', '/loyalty/settings', 'Loyalty', 'Save loyalty program settings (first enable stamps startsAt and seeds tiers)', ['loyalty.manage'], {
-    requestBody: generic,
+  adm('put', '/loyalty/settings', 'Loyalty', 'Save loyalty program settings (first enable stamps startsAt and seeds tiers); startsAt is read-only and ignored', ['loyalty.manage'], {
+    requestBody: obj({
+      enabled: bool,
+      earnPerAmount: int,
+      pointValue: int,
+      minRedeemPoints: int,
+      maxRedeemShare: num,
+      expiryMonths: int,
+      expiryReminderDays: int,
+      downgradeGraceDays: int,
+      dailyEarnCap: int,
+      channels: arr(str),
+      countHistoryForTiers: bool,
+    }),
     response: obj({ settings: generic }),
   }),
   adm('get', '/loyalty/tiers', 'Loyalty', 'Tiers with customer counts', ['loyalty.manage'], {

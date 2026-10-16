@@ -1,6 +1,7 @@
 import { z } from '@strapi/utils';
 
 import { OrderingError } from '../errors';
+import { issueView, type IssueView } from '../validation-issue';
 
 /** Receive kinds that can earn points. Digital (gift card) and appointment orders never do. */
 export const LOYALTY_CHANNELS = ['pickup', 'delivery', 'dine-in'] as const;
@@ -33,20 +34,29 @@ export const DEFAULT_LOYALTY_SETTINGS: LoyaltySettings = loyaltySettingsSchema.p
 /** The fields an Admin body may set (everything but the service-owned `startsAt`). */
 export const loyaltySettingsInputSchema = loyaltySettingsSchema.omit({ startsAt: true }).strict();
 
-const fail = (path: string, message: string): never => {
+const fail = (issue: IssueView): never => {
   throw new OrderingError('VALIDATION_ERROR', 'loyalty settings are invalid', {
-    details: { issues: [{ path, message }] },
+    details: { issues: [issue] },
   });
 };
 
+/**
+ * `startsAt` is service-owned and read-only: GET returns it, so a client echoing the body back
+ * to PUT must not be rejected as an unknown key.
+ */
+const withoutReadOnly = (raw: unknown): unknown => {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return raw ?? {};
+  const { startsAt: _readOnly, ...rest } = raw as Record<string, unknown>;
+  return rest;
+};
+
 export const parseLoyaltySettingsInput = (raw: unknown): Omit<LoyaltySettings, 'startsAt'> => {
-  const parsed = loyaltySettingsInputSchema.safeParse(raw ?? {});
-  if (!parsed.success) {
-    const issue = parsed.error.issues[0];
-    return fail(issue?.path.join('.') || 'settings', issue?.message ?? 'invalid');
-  }
+  const parsed = loyaltySettingsInputSchema.safeParse(withoutReadOnly(raw));
+  if (!parsed.success) return fail(issueView(parsed.error.issues[0], 'settings'));
   const data = parsed.data;
-  if (new Set(data.channels).size !== data.channels.length) fail('channels', 'channels must be unique');
+  if (new Set(data.channels).size !== data.channels.length) {
+    fail({ path: 'channels', message: 'channels must be unique', code: 'not_unique' });
+  }
   return data;
 };
 
@@ -74,9 +84,8 @@ export type TierInput = z.infer<typeof tierInputSchema>;
 export const parseTierInput = (raw: unknown): TierInput => {
   const parsed = tierInputSchema.safeParse(raw);
   if (!parsed.success) {
-    const issue = parsed.error.issues[0];
     throw new OrderingError('VALIDATION_ERROR', 'loyalty tier is invalid', {
-      details: { issues: [{ path: issue?.path.join('.') || 'tier', message: issue?.message ?? 'invalid' }] },
+      details: { issues: [issueView(parsed.error.issues[0], 'tier')] },
     });
   }
   return parsed.data;

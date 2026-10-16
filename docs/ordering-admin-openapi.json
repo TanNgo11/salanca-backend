@@ -6511,6 +6511,25 @@
             }
           }
         },
+        "parameters": [
+          {
+            "name": "branch",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "businessDate",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
         "x-ordering-permissions": [
           "plugin::ordering.report.read"
         ]
@@ -6629,6 +6648,25 @@
             }
           }
         },
+        "parameters": [
+          {
+            "name": "branch",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "businessDate",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
         "x-ordering-permissions": [
           "plugin::ordering.report.read"
         ]
@@ -6759,6 +6797,33 @@
             }
           }
         },
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "branch",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "x-ordering-permissions": [
           "plugin::ordering.report.read"
         ]
@@ -11755,7 +11820,7 @@
         "tags": [
           "Loyalty"
         ],
-        "summary": "Save loyalty program settings (first enable stamps startsAt and seeds tiers)",
+        "summary": "Save loyalty program settings (first enable stamps startsAt and seeds tiers); startsAt is read-only and ignored",
         "operationId": "admin.put.loyalty.settings",
         "responses": {
           "200": {
@@ -11818,7 +11883,45 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "earnPerAmount": {
+                    "type": "integer"
+                  },
+                  "pointValue": {
+                    "type": "integer"
+                  },
+                  "minRedeemPoints": {
+                    "type": "integer"
+                  },
+                  "maxRedeemShare": {
+                    "type": "number"
+                  },
+                  "expiryMonths": {
+                    "type": "integer"
+                  },
+                  "expiryReminderDays": {
+                    "type": "integer"
+                  },
+                  "downgradeGraceDays": {
+                    "type": "integer"
+                  },
+                  "dailyEarnCap": {
+                    "type": "integer"
+                  },
+                  "channels": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "countHistoryForTiers": {
+                    "type": "boolean"
+                  }
+                }
               }
             }
           }

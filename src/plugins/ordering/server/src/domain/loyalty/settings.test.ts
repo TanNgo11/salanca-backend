@@ -36,14 +36,23 @@ describe('loyalty settings', () => {
     });
   });
 
-  it('fills defaults for a partial body and refuses unknown or service-owned fields', () => {
+  it('fills defaults for a partial body and refuses unknown fields', () => {
     expect(parseLoyaltySettingsInput({ enabled: true, pointValue: 200 })).toMatchObject({
       enabled: true,
       pointValue: 200,
       earnPerAmount: 10_000,
     });
-    rejects(() => parseLoyaltySettingsInput({ startsAt: '2026-01-01T00:00:00Z' }));
     rejects(() => parseLoyaltySettingsInput({ surprise: 1 }));
+  });
+
+  it('ignores the read-only startsAt so a GET body can be sent straight back to PUT', () => {
+    const body = { ...DEFAULT_LOYALTY_SETTINGS, startsAt: '2026-10-10T00:00:00.000Z' };
+    expect(parseLoyaltySettingsInput(body)).not.toHaveProperty('startsAt');
+  });
+
+  it('still rejects unknown keys alongside startsAt', () => {
+    const { startsAt: _readOnly, ...writable } = DEFAULT_LOYALTY_SETTINGS;
+    rejects(() => parseLoyaltySettingsInput({ ...writable, nope: 1 }));
   });
 
   it('rejects out-of-range numbers and duplicate channels', () => {

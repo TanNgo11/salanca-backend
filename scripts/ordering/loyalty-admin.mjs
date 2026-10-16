@@ -69,8 +69,9 @@ withApp(async (app) => {
     console.log('[ordering-test] defaults: off, startsAt null, no tiers');
 
     // ── Validation ─────────────────────────────────────────────────────────────
+    // `startsAt` is service-owned and read-only: it is ignored, not rejected (a GET body may be
+    // echoed straight back to PUT). Every other unknown key still fails.
     for (const bad of [
-      { startsAt: '2020-01-01T00:00:00.000Z' },
       { maxRedeemShare: 2 },
       { earnPerAmount: 0 },
       { channels: ['pickup', 'pickup'] },
@@ -112,6 +113,13 @@ withApp(async (app) => {
     assert.equal(switchedOff.body.settings.startsAt, on.body.settings.startsAt, 'closing keeps the stamp');
     assert.equal((await as('GET', '/loyalty/settings')).body.settings.enabled, false);
     console.log('[ordering-test] first enable stamps startsAt once and seeds tiers + groups idempotently');
+
+    // ── A GET body can be sent straight back to PUT (startsAt is read-only) ───────
+    const current = (await as('GET', '/loyalty/settings')).body.settings;
+    const echoed = await as('PUT', '/loyalty/settings', current);
+    assert.equal(echoed.status, 200, JSON.stringify(echoed.body));
+    assert.equal(echoed.body.settings.startsAt, current.startsAt, 'read-only startsAt is ignored, not rejected');
+    console.log('[ordering-test] PUT accepts a verbatim GET body');
 
     // ── Tier rules ──────────────────────────────────────────────────────────────
     const tier = (over) => ({
