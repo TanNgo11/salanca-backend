@@ -25,6 +25,9 @@ const { runOutboxDispatcher } = await import(
 const { o11CustomersMigration } = await import(
   '../../src/plugins/ordering/dist/server/src/migrations/0007-o11-customers.js'
 );
+const { o11CustomerStatsRecomputeMigration } = await import(
+  '../../src/plugins/ordering/dist/server/src/migrations/0014-o11-customer-stats-recompute.js'
+);
 const { o11Hashing } = await import(
   '../../src/plugins/ordering/dist/server/src/domain/customers/identity.js'
 );
@@ -458,4 +461,28 @@ await withApp(async (app) => {
     'two completed orders must add as numbers, not concatenate as strings (BUG-02)',
   );
   console.log('[ordering-test] two completed orders add totalSpent as numbers (BUG-02)');
+
+  // Migration 0014 repairs stats that an older build stored wrong. Corrupt the row the way BUG-02 did
+  // (digits glued together, wrong count) and cancel part of one order, then run the migration.
+  const canceled = 10_000;
+  const knex = app.db.connection;
+  await knex('plugins_ordering_order').where('id', statOrder.id).update({ canceled_amount: canceled });
+  await knex('plugins_ordering_customer')
+    .where('id', aInternal)
+    .update({ total_spent: 4_500_030_000, order_count: 7, last_order_at: null });
+  await knex.transaction(async (trx) => o11CustomerStatsRecomputeMigration.up(trx, app));
+  const repaired = await app.db.query('plugin::ordering.customer').findOne({ where: { id: aInternal } });
+  assert.equal(repaired.orderCount, 2, 'order count is recomputed');
+  assert.equal(
+    Number(repaired.totalSpent),
+    (await totalOf(statOrder.id)) - canceled + (await totalOf(bySession2.order.order.id)),
+    'totalSpent is the payable amount: placement total less the canceled share',
+  );
+  assert.ok(repaired.lastOrderAt, 'lastOrderAt is restored');
+  // Idempotent: the values are recomputed, not incremented.
+  await knex.transaction(async (trx) => o11CustomerStatsRecomputeMigration.up(trx, app));
+  const again = await app.db.query('plugin::ordering.customer').findOne({ where: { id: aInternal } });
+  assert.equal(Number(again.totalSpent), Number(repaired.totalSpent), 'rerun changes nothing');
+  assert.equal(again.orderCount, 2);
+  console.log('[ordering-test] migration 0014 repairs corrupted stats, net of cancels, idempotently');
 });
