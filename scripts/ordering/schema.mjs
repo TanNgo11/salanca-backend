@@ -238,6 +238,7 @@ await withApp(async (app) => {
     '0011-o12-restaurant',
     '0012-o13-providers',
     '0013-o16-loyalty',
+    '0014-o11-customer-stats-recompute',
   ]) {
     assert.ok(
       applied.some((row) => row.name === migration),
