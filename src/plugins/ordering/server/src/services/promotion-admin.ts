@@ -291,7 +291,7 @@ const promotionAdmin = ({ strapi }: { strapi: Core.Strapi }) => {
         })) as PromotionRow;
         if (normalized && (await insertCodes(row.id, [normalized], null, null)) === 0) {
           throw new OrderingError('VALIDATION_ERROR', 'this code already exists', {
-            details: { issues: [{ path: 'code', message: 'code already exists' }] },
+            details: { issues: [{ path: 'code', message: 'code already exists', code: 'taken' }] },
           });
         }
         await changeLog().record(
@@ -464,7 +464,7 @@ const promotionAdmin = ({ strapi }: { strapi: Core.Strapi }) => {
       const usageLimit = limitOf(input.usageLimit, 'usageLimit');
       if ((await insertCodes(id, [normalized], usageLimit, null)) === 0) {
         throw new OrderingError('VALIDATION_ERROR', 'this code already exists', {
-          details: { issues: [{ path: 'code', message: 'code already exists' }] },
+          details: { issues: [{ path: 'code', message: 'code already exists', code: 'taken' }] },
         });
       }
       await changeLog().record(

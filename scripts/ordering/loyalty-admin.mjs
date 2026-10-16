@@ -131,26 +131,26 @@ withApp(async (app) => {
       active: true,
       ...over,
     });
-    assert.equal((await as('POST', '/loyalty/tiers', tier({ code: 'bac' }))).status, 400, 'duplicate code');
-    assert.equal((await as('POST', '/loyalty/tiers', tier({ minSpend12m: 2_000_000 }))).status, 400, 'duplicate threshold');
-    assert.equal(
-      (await as('POST', '/loyalty/tiers', tier({ customerGroupCode: 'khong-co' }))).status,
-      400,
-      'group must exist',
-    );
-    assert.equal(
-      (await as('POST', '/loyalty/tiers', tier({ customerGroupCode: 'hang-bac' }))).status,
-      400,
-      'a group follows one tier',
-    );
+    // The Admin translates `issues[0].code` (validation.<path>.<code>); the English message is only for API clients.
+    const issueOf = (res) => res.body.error?.details?.issues?.[0];
+    const dupCode = await as('POST', '/loyalty/tiers', tier({ code: 'bac' }));
+    assert.equal(dupCode.status, 400, 'duplicate code');
+    assert.deepEqual([issueOf(dupCode).path, issueOf(dupCode).code], ['code', 'taken']);
+    const dupSpend = await as('POST', '/loyalty/tiers', tier({ minSpend12m: 2_000_000 }));
+    assert.equal(dupSpend.status, 400, 'duplicate threshold');
+    assert.deepEqual([issueOf(dupSpend).path, issueOf(dupSpend).code], ['minSpend12m', 'duplicate_threshold']);
+    const missingGroup = await as('POST', '/loyalty/tiers', tier({ customerGroupCode: 'khong-co' }));
+    assert.equal(missingGroup.status, 400, 'group must exist');
+    assert.equal(issueOf(missingGroup).code, 'group_missing');
+    const takenGroup = await as('POST', '/loyalty/tiers', tier({ customerGroupCode: 'hang-bac' }));
+    assert.equal(takenGroup.status, 400, 'a group follows one tier');
+    assert.equal(issueOf(takenGroup).code, 'group_taken');
     await groups().create({
       data: { code: 'tu-dong', name: { vi: 'Tự động' }, auto: { minOrderCount: 3 }, active: true },
     });
-    assert.equal(
-      (await as('POST', '/loyalty/tiers', tier({ customerGroupCode: 'tu-dong' }))).status,
-      400,
-      'an automatic group cannot follow a tier',
-    );
+    const autoGroup = await as('POST', '/loyalty/tiers', tier({ customerGroupCode: 'tu-dong' }));
+    assert.equal(autoGroup.status, 400, 'an automatic group cannot follow a tier');
+    assert.equal(issueOf(autoGroup).code, 'group_auto');
     await groups().create({ data: { code: 'hang-dong', name: { vi: 'Hạng Đồng' }, auto: null, active: true } });
     const created = await as('POST', '/loyalty/tiers', tier({ customerGroupCode: 'hang-dong' }));
     assert.equal(created.status, 201, JSON.stringify(created.body));
@@ -175,11 +175,9 @@ withApp(async (app) => {
       ...over,
     });
     const base = tiers.find((item) => item.code === 'thanh-vien');
-    assert.equal(
-      (await as('PUT', `/loyalty/tiers/${base.id}`, editable(base, { minSpend12m: 100 }))).status,
-      400,
-      'the lowest active tier must start at 0',
-    );
+    const lowestNotZero = await as('PUT', `/loyalty/tiers/${base.id}`, editable(base, { minSpend12m: 100 }));
+    assert.equal(lowestNotZero.status, 400, 'the lowest active tier must start at 0');
+    assert.deepEqual([issueOf(lowestNotZero).path, issueOf(lowestNotZero).code], ['minSpend12m', 'lowest_not_zero']);
     assert.equal(
       (await as('PUT', `/loyalty/tiers/${dongId}`, tier({ minSpend12m: 2_000_000 }))).status,
       400,

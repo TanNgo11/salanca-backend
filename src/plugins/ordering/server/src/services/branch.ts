@@ -254,7 +254,7 @@ const branch = ({ strapi }: { strapi: Core.Strapi }) => {
       const value = assertValid(raw, 'create');
       if (await service.findByCode(value.code as string)) {
         throw new OrderingError('VALIDATION_ERROR', 'branch settings are invalid', {
-          details: { issues: [{ path: 'code', message: 'code is already used' }] },
+          details: { issues: [{ path: 'code', message: 'code is already used', code: 'taken' }] },
         });
       }
       const data: Record<string, unknown> = {

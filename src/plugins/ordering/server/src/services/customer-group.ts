@@ -84,7 +84,7 @@ const customerGroup = ({ strapi }: { strapi: Core.Strapi }) => {
     const clash = (rows as Array<{ id: number }>).find((row) => row.id !== exceptId);
     if (clash) {
       throw new OrderingError('VALIDATION_ERROR', 'customer group code is already used', {
-        details: { issues: [{ path: 'code', message: 'already used' }] },
+        details: { issues: [{ path: 'code', message: 'already used', code: 'taken' }] },
       });
     }
   };
@@ -209,7 +209,7 @@ const customerGroup = ({ strapi }: { strapi: Core.Strapi }) => {
       const input = parseCustomerGroupInput({ ...(raw as object), code: before.code });
       if (input.code !== before.code) {
         throw new OrderingError('VALIDATION_ERROR', 'customer group code cannot change', {
-          details: { issues: [{ path: 'code', message: 'immutable' }] },
+          details: { issues: [{ path: 'code', message: 'immutable', code: 'immutable' }] },
         });
       }
       await groups().update({

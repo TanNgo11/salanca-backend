@@ -31,9 +31,10 @@ const parseJson = <T>(value: unknown, fallback: T): T => {
   return (value ?? fallback) as T;
 };
 
-const invalid = (path: string, message: string): never => {
+/** `code` is what the Admin translates (validation.<path>.<code>); `message` is English for API clients. */
+const invalid = (path: string, message: string, code: string): never => {
   throw new OrderingError('VALIDATION_ERROR', 'loyalty tier is invalid', {
-    details: { issues: [{ path, message }] },
+    details: { issues: [{ path, message, code }] },
   });
 };
 
@@ -78,16 +79,16 @@ const loyaltyTier = ({ strapi }: { strapi: Core.Strapi }) => {
   /** The invariants a tier set must keep, checked against the rows as they would be after the write. */
   const assertSetValid = (rows: TierRow[]) => {
     const active = rows.filter((row) => row.active !== false);
-    if (active.length === 0) invalid('active', 'at least one tier must stay active');
+    if (active.length === 0) invalid('active', 'at least one tier must stay active', 'last_active');
     const spends = active.map((row) => amountFromDb(row.minSpend12m));
     if (new Set(spends).size !== spends.length) {
-      invalid('minSpend12m', 'active tiers need different spend thresholds');
+      invalid('minSpend12m', 'active tiers need different spend thresholds', 'duplicate_threshold');
     }
     const lowest = Math.min(...spends);
-    if (lowest !== 0) invalid('minSpend12m', 'the lowest active tier must start at 0');
+    if (lowest !== 0) invalid('minSpend12m', 'the lowest active tier must start at 0', 'lowest_not_zero');
     const used = rows.filter((row) => row.customerGroupCode).map((row) => row.customerGroupCode?.toUpperCase());
     if (new Set(used).size !== used.length) {
-      invalid('customerGroupCode', 'a customer group can follow only one tier');
+      invalid('customerGroupCode', 'a customer group can follow only one tier', 'group_taken');
     }
   };
 
@@ -98,9 +99,9 @@ const loyaltyTier = ({ strapi }: { strapi: Core.Strapi }) => {
       [code],
     );
     const group = (rows as Array<{ id: number; auto: unknown }>)[0];
-    if (!group) invalid('customerGroupCode', 'customer group does not exist');
+    if (!group) invalid('customerGroupCode', 'customer group does not exist', 'group_missing');
     if (parseJson(group.auto, null) !== null) {
-      invalid('customerGroupCode', 'the group is filled by an automatic rule; pick a manual group');
+      invalid('customerGroupCode', 'the group is filled by an automatic rule; pick a manual group', 'group_auto');
     }
   };
 
@@ -139,7 +140,7 @@ const loyaltyTier = ({ strapi }: { strapi: Core.Strapi }) => {
     async create(raw: unknown, ctx: ServiceContext) {
       const input = parseTierInput(raw);
       const existing = await allRows();
-      if (existing.some((row) => row.code === input.code)) invalid('code', 'tier code is already used');
+      if (existing.some((row) => row.code === input.code)) invalid('code', 'tier code is already used', 'taken');
       await assertGroupUsable(input.customerGroupCode);
       const candidate = { id: -1, ...input, minSpend12m: input.minSpend12m } as unknown as TierRow;
       assertSetValid([...existing, candidate]);
