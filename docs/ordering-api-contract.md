@@ -450,7 +450,9 @@ profile. `POST /auth/logout` with `X-Customer-Token` revokes the session (204).
 ### `GET /me` / `PUT /me`
 
 Profile view: `id, name, email, phone, status, marketingConsent, orderCount, totalSpent, lastOrderAt,
-createdAt`. `PUT /me { name?, marketingConsent? }` — email is accepted only unchanged; phone comes
+createdAt`. `totalSpent` sums each completed order's payable amount (`totalAmount − canceledAmount`,
+floored at 0) — the frozen placement snapshot is not used raw, and line cancels reduce it (2026-10-16).
+`PUT /me { name?, marketingConsent? }` — email is accepted only unchanged; phone comes
 from orders, not this route.
 
 ### `/me/addresses`
@@ -504,8 +506,20 @@ customers once a cart idles past `carts.reminderIdleHours` (default 2h), on bran
   process and reject. Out-of-scope identifiers return 404. A staff member without a location
   scope cannot list or mutate the queue. Requests without a currently visible customer, including
   erased customers whose orders were detached, remain accessible to all-location managers only.
+- Filing a staff erasure (`POST /data-requests { kind: 'erase' }`) requires `{ confirm: true }`
+  (2026-10-16). Without it the route answers `400 VALIDATION_ERROR` with `details.field = 'confirm'`
+  *before* any customer lookup, so the request row is never written and a role/scope denial still
+  wins (403/404). The Admin "Tạo yêu cầu" dialog and the C2 erase button send it; export needs none.
 - With O8 installed, erasure clears each affected order rating's `comment`, `staffNote` and
   `staffNoteBy`; stars/tags remain. `promotion-redemption.customerKey` and accounting fields
   remain unchanged to preserve per-customer use limits. See the O11 Completion record for the
   retention decision. Cart quotes also omit phone history; carts carry `promotionCode` (decided at
   checkout like `POST /orders`). OTP-aware quotes remain deferred.
+
+### Admin cash-closing response (2026-10-16)
+
+Each `GET /cash-closing` (and `/cash-closing/summary`) row's `closing` object now carries
+`liveDifferenceAmount = countedAmount − expectedAmount now`, alongside the frozen `differenceAmount`
+written at close time. The frozen value is the audit record and never moves; the live value follows
+the ledger, so cash captured after the close shows as a moved difference. Both are added, never
+renamed — clients that ignore `liveDifferenceAmount` are unaffected.

@@ -2,6 +2,55 @@
 
 Last reviewed against repository documentation: 2026-09-29
 
+2026-10-16: **Ordering E2E report fixes — Nhóm A implemented + automated verification passed, chờ UAT tay** trên
+worktree `salanca-notify` (nhánh `feat/ordering-notify-release`), theo
+[`plans/ordering-e2e-fixes-2026-10-16.md`](plans/ordering-e2e-fixes-2026-10-16.md) (Nhóm A: Task 1–8, 10–12).
+Nguồn lỗi là `docs/BAO-CAO-E2E-ORDERING.md`. **Đã commit cục bộ (chưa push)** thành 10 commit `fix(ordering): …`
+(mỗi task một commit, migration 0014 riêng; SHA ở Completion record của plan). **BUG-03/04 chưa commit**: chúng sửa
+proxy trong `registry.ts` mà R1a chưa commit, nên đi cùng commit R1a.
+
+- **Yêu cầu dữ liệu**: `POST /data-requests { kind: 'erase' }` nay **bắt buộc** `confirm: true`
+  (`400 VALIDATION_ERROR`, `details.field = 'confirm'`), kiểm **trước** mọi tra khách; UI "Tạo yêu cầu"
+  mặc định **Xuất** và xóa phải qua hai bước (cảnh báo đỏ + "Xóa vĩnh viễn"). `POST /me/erase` không đổi.
+- **BUG-01**: bảng Bếp đọc đúng envelope `{ item: board }` (`pages/Kitchen/board.ts`); envelope lệch giờ
+  báo lỗi tải thay vì bảng rỗng im lặng. Đã soát các trang đọc một đối tượng khác — không nơi nào lệch.
+- **BUG-02**: `totalSpent` cộng `biginteger` **ép Number** và trừ `canceledAmount` (`domain/customers/stats.ts`);
+  migration `0014-o11-customer-stats-recompute` tính lại dữ liệu cũ (idempotent, ghi vào sổ). Rule nhóm
+  `sinceDays` dùng cùng công thức.
+- **BUG-06**: `ClosingSnapshot` thêm `liveDifferenceAmount` (số sống), `differenceAmount` giữ nguyên là số
+  đã đóng băng; cột Chênh lệch ở màn Chốt tiền hiện số sống + dòng "Lúc chốt: …".
+- **BUG-03/04** (làm xong nhưng **chưa commit**, nằm trong working tree cùng R1a): proxy
+  `notificationProvider(...).send` đọc `send` thật **lúc trap `get`** nên không còn đệ quy vô hạn khi test ghi đè
+  `send`; `registry.test.ts` truyền `{ strapi }` cho 6 test cũ.
+- **BUG-05**: seed UAT nâng giới hạn bún bò Q1 `5 → 7`; seed chạy hết (6/7), không còn `ITEM_SOLD_OUT`.
+- **BUG-14**: webhook tới provider thanh toán chưa đăng ký trả **404** `WEBHOOK_PROVIDER_UNKNOWN` (trước là 500
+  `PROVIDER_NOT_REGISTERED`), không tạo cảnh báo webhook. Test: `scripts/ordering/sepay-webhook.mjs`.
+- **BUG-15**: ô tìm kiếm Đơn hàng không gửi khi nhấn Enter vì `Searchbar` (design-system 2.2.3) chỉ là `<input>`,
+  `onSubmit` phải nằm trên `<SearchForm>`. Bọc lại ở Đơn hàng và Duyệt chuyển khoản (màn thứ hai cùng lỗi, báo cáo
+  không nhắc). Chưa có test tự động ngoài `@bug-15` của bộ Playwright (`e2e/`).
+- **BUG-07/13**: menu Bếp theo đúng quyền route (`kitchen.read`); `Categories`/`Availability` bọc
+  `Page.Protect`; thêm route `*` → "Không tìm thấy trang" và màn không có mục nào → "Không có quyền".
+- **BUG-08**: `details.issues[]` mang thêm `code` + cận `min`/`max`; Admin tự dịch (`lib/validation.ts`),
+  **không in `message` tiếng Anh**. `fieldErrors(error, t)` ở Loyalty/CustomerLoyalty/Settings; toast nối
+  câu dịch. Lưu ý màn Bảng giá/Hạng.
+- **BUG-12**: `GET /ratings` và `/ratings/:id` trả thêm `tagLabels`; màn Đánh giá in **nhãn** thay vì mã.
+- **BUG-10**: khai query bắt buộc cho `/cash-closing`, `/cash-closing/summary`, `/reports/sales`; `PUT
+  /loyalty/settings` khai `requestBody` (không còn `generic`) và **bỏ qua `startsAt`** chỉ-đọc (gửi lại
+  nguyên body GET trả 200). Sinh lại `docs/ordering-admin-openapi.json` (150 path).
+- **Gate, working tree đầy đủ (có R1a/R1b; DB `salanca_ordering_test`)**: `lint`, `typecheck`, `typecheck:admin` exit 0,
+  `pnpm vitest run` **207 file / 1554 test pass**, `build:ordering` exit 0; script tích hợp pass —
+  `data-rights`, `admin-customers`, `customers`, `cash-closing`, `review-otp-race`, `review-round3`,
+  `notify-guard`, `rating`, `loyalty-admin`, `openapi` (+ `loyalty-tiers`, `price-lists`, seed UAT `uat-server.mjs`
+  ở lần chạy của AI thực thi).
+- **Gate, cây chỉ gồm các commit fix (worktree tạm tại HEAD, không có R1a/R1b)**: `lint`, `typecheck`,
+  `typecheck:admin` exit 0, `vitest` **204 file / 1528 test pass**, build server bằng `tsc` exit 0, `schema.mjs` và
+  `openapi.mjs` pass. **Chưa chạy trên cây này**: `customers`, `cash-closing`, `data-rights`, `admin-customers`,
+  `loyalty-admin`, `rating` (đã pass trên working tree đầy đủ) — cần chạy lại trước khi push.
+- **Còn mở**: UAT tay (xóa dữ liệu 2 bước, Bếp có đơn, chênh lệch sau chốt, 403/404, màn UX, giờ
+  khuyến mãi trên trình duyệt VN); **BUG-11** (React thiếu `key`) chưa sửa — cần nguyên văn cảnh báo
+  console; "giao-q1 mở Bàn & QR trắng" chưa tái hiện được bằng code (cần console + tab Network của user);
+  **Nhóm B (Task 9, UX)** chưa làm; chưa push; BUG-03/04 chờ commit R1a.
+
 2026-10-15: **Ordering O16 (tích điểm và hạng thành viên) — implemented + automated verification passed, chờ UAT tay** trên
 `TanNgo11/ordering-o16` (tách từ `feat/ordering` `5930344`), 8 commit theo [`plans/ordering-o16-loyalty.md`](plans/ordering-o16-loyalty.md)
 (Completion record có bảng bước → commit, kết quả gate và chỗ lệch kế hoạch). Chương trình **mặc định tắt**:

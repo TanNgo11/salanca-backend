@@ -155,6 +155,9 @@ Mục **Báo cáo → Chốt tiền mặt** (quyền Báo cáo) đối chiếu t
    cáo trong chi nhánh (quản lý, kế toán).
 5. Sai sau khi chốt: bấm **Điều chỉnh**, nhập lại số đếm và **lý do bắt buộc** — hệ thống tạo bản
    mới (tăng revision), bản cũ giữ lại trong lịch sử. Điều chỉnh về đúng số sẽ tự đóng cảnh báo.
+6. Nếu **sau khi chốt** người thu còn thu thêm tiền mặt trong ngày, cột **Chênh lệch** hiện số **sống**
+   theo sổ hiện tại, kèm dòng nhỏ "Lúc chốt: …" ghi số đã chốt. Bản chốt (số đã chốt, người chốt, giờ
+   chốt) **không đổi** — đó là bằng chứng kiểm toán; số sống chỉ cho biết tiền phát sinh thêm.
 
 ## Báo cáo bán hàng (quản lý, kế toán)
 
@@ -271,7 +274,9 @@ lần job kế tiếp (tối đa 35 phút) sau khi yêu cầu được xử lý 
   được — đọc kỹ hộp xác nhận.
 - **"Từ chối"**: bắt buộc nhập lý do (vd nghĩa vụ lưu trữ sổ sách) — khách vẫn giữ hồ sơ.
 - **"+ Tạo yêu cầu"**: khi khách **gọi điện** yêu cầu xuất/xóa — nhập SĐT khách đọc + loại + ghi chú.
-  Hệ thống chỉ lưu mã băm của số, không lưu số thô trong sổ yêu cầu.
+  Mặc định là **Xuất**; chọn **Xóa** thì phải qua **hai bước**: bấm nút → hiện cảnh báo đỏ → bấm
+  "Xóa vĩnh viễn" mới xóa thật ("Quay lại" để hủy). Hệ thống chỉ lưu mã băm của số, không lưu số thô
+  trong sổ yêu cầu.
 - Từ trang chi tiết khách (C2) cũng có nút "Tạo yêu cầu xóa" — nút này gửi mã khách, không cần biết
   số thật.
 
@@ -407,6 +412,9 @@ cho nút điều chỉnh. Chương trình **tắt mặc định** — khách ch�
 
 ## Bếp (Bán hàng → Bếp — quyền "Đọc bếp", O12)
 
+- Mục **Bếp** chỉ hiện với tài khoản có quyền **Đọc bếp** (`kitchen.read`) — đúng bằng quyền của mọi
+  route bếp (bảng, stream, bắt đầu, xong món, xong cả đơn). Chỉ có quyền xử lý đơn (`order.process`)
+  **không** mở được màn này (nút chuẩn bị/xong dùng chung quyền đọc bếp).
 - Bảng toàn màn hình tối, tự cập nhật qua stream (có còi báo đơn mới, bật/tắt được). Ba cột:
   **Mới** (chờ bếp bắt đầu) · **Đang làm** · **Xong** (15 phút gần nhất).
 - **Bắt đầu** trên thẻ Mới: đánh dấu bếp đã nhận đơn (đơn vẫn ở "Đang chuẩn bị" phía khách).
