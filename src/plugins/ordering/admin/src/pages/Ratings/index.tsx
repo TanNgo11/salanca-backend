@@ -47,10 +47,16 @@ export type RatingRow = {
 
 type Summary = { average: number | null; count: number; distribution: Record<string, number> };
 type Branch = { code: string; name: Record<string, string> };
+type TagLabels = Record<string, Record<string, string>>;
 type Detail = {
   rating: RatingRow;
+  tagLabels: TagLabels;
   order: { id: number; code: string; total: number; items: Array<{ title: string; quantity: number }>; courierRef: string | null } | null;
 };
+
+/** The configured label for a tag code, falling back to the raw code when it was removed. */
+const tagText = (code: string, labels: TagLabels | undefined, locale: string) =>
+  localized(labels?.[code], locale) || code;
 
 /** ★★★☆☆ — ≤ 2 stars in red (screens R1). */
 export const Stars = ({ value }: { value: number }) => (
@@ -72,6 +78,7 @@ const DetailModal = ({
   onChanged: () => void;
 }) => {
   const t = useT();
+  const locale = useLocale();
   const { get, post } = useFetchClient();
   const { toggleNotification } = useNotification();
   const toastError = useErrorToast();
@@ -120,7 +127,7 @@ const DetailModal = ({
                 <Flex gap={2} wrap="wrap">
                   {rating.tags.map((tag) => (
                     <Tag key={tag} icon={null}>
-                      {tag}
+                      {tagText(tag, detail?.tagLabels, locale)}
                     </Tag>
                   ))}
                 </Flex>
@@ -193,6 +200,7 @@ const RatingsList = () => {
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<RatingRow[] | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
+  const [tagLabels, setTagLabels] = useState<TagLabels>({});
   const [total, setTotal] = useState(0);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error' | 'forbidden'>('loading');
   const [open, setOpen] = useState<number | null>(null);
@@ -213,9 +221,10 @@ const RatingsList = () => {
       if (hasComment) query.set('hasComment', 'true');
       if (statusFilter) query.set('status', statusFilter);
       const { data } = await get(`/ordering/ratings?${query.toString()}`);
-      const body = data as { items: RatingRow[]; summary: Summary; pagination: { total: number } };
+      const body = data as { items: RatingRow[]; summary: Summary; tagLabels?: TagLabels; pagination: { total: number } };
       setRows(body.items);
       setSummary(body.summary);
+      setTagLabels(body.tagLabels ?? {});
       setTotal(body.pagination.total);
       setStatus('ready');
     } catch (error) {
@@ -367,7 +376,7 @@ const RatingsList = () => {
                         <Flex gap={1} wrap="wrap">
                           {row.tags.map((tag) => (
                             <Tag key={tag} icon={null}>
-                              {tag}
+                              {tagText(tag, tagLabels, locale)}
                             </Tag>
                           ))}
                         </Flex>

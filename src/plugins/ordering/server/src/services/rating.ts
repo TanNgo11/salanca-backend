@@ -141,6 +141,10 @@ const rating = ({ strapi }: { strapi: Core.Strapi }) => {
       sentiment: tag.sentiment,
     }));
 
+  /** code → { vi, en } of the configured rating tags, so staff screens show labels instead of codes. */
+  const tagLabels = async (): Promise<Record<string, Record<string, string>>> =>
+    Object.fromEntries((await settings().get()).ratingTags.map((tag) => [tag.code, tag.label]));
+
   const staffLocations = async (ctx: ServiceContext): Promise<{ scope: LocationScope; locations: string[] | null }> => {
     const staffScope = await scope().loadScope(ctx);
     if (staffScope === null) {
@@ -401,6 +405,7 @@ const rating = ({ strapi }: { strapi: Core.Strapi }) => {
         // Hidden ratings stay listed for staff but leave the average (spam, abuse, test orders).
         summary: summarize(all.filter((row) => row.status !== 'hidden').map((row) => row.stars)),
         items: items.map((row) => staffView(row, codes.get(row.orderId))),
+        tagLabels: await tagLabels(),
         pagination: { page, pageSize: PAGE_SIZE, total: all.length },
       };
     },
@@ -416,6 +421,7 @@ const rating = ({ strapi }: { strapi: Core.Strapi }) => {
       const delivery = legs.find((leg) => leg.assigneeRef);
       return {
         rating: staffView(row, aggregate?.order.code),
+        tagLabels: await tagLabels(),
         order: aggregate
           ? {
               id: aggregate.order.id,

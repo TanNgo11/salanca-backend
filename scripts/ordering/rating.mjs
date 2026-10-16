@@ -180,6 +180,11 @@ withApp(async (app) => {
     const detail = await readers.as.xem('GET', `/ratings/${ratingId}`);
     assert.equal(detail.status, 200);
     assert.equal(detail.body.order.code, first.order.order.code);
+    assert.ok(list.body.tagLabels && typeof list.body.tagLabels === 'object', 'list carries tagLabels');
+    for (const item of list.body.items) {
+      for (const code of item.tags) assert.ok(list.body.tagLabels[code], `label for tag ${code}`);
+    }
+    assert.ok(detail.body.tagLabels, 'detail carries tagLabels');
     assert.equal((await readers.as.xem('POST', `/ratings/${ratingId}/hide`, { hidden: true })).status, 403);
     const hidden = await staff.as.quanly('POST', `/ratings/${ratingId}/hide`, { hidden: true });
     assert.equal(hidden.status, 200);
