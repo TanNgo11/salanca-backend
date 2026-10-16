@@ -55,7 +55,7 @@ Nguồn lỗi là `docs/BAO-CAO-E2E-ORDERING.md`. **Đã commit cục bộ (chư
   `createElement` với `children` dạng mảng; đặt `key` trước spread là hết cảnh báo, và tên biến môi trường giờ mỗi tên một dòng.
   **NEW-1** (bug thật): `evaluateAvailability` so `outOfStockUntil` với giờ treo tường của chi nhánh, nên khi Node không chạy giờ VN
   món tạm hết "đến hết ngày" bán lại được từ 21:00; đã thêm `now` (instant thật) vào đầu vào và 2 ca unit test. Test e2e BUG-06 và BUG-10
-  sửa lại. Chưa làm: NEW-3 (chi nhánh mặc định của Chốt tiền mặt), NEW-4 (mã lỗi + bản dịch cho khoảng 25 lỗi viết tay), 34 body OpenAPI.
+  sửa lại. NEW-3: Chốt tiền mặt mở trên chi nhánh làm việc gần nhất. NEW-4: mọi lỗi `issues` viết tay có `code` + 36 câu dịch cho form chi nhánh và khuyến mãi (test quét mã nguồn giữ cho không tái diễn); OpenAPI khai thêm 16 body (còn 18 lệnh không có body thật). Chưa làm: lỗi dạng `details.field` (webhook, chốt tiền mặt, busy) vẫn tiếng Anh.
 - **Còn mở**: UAT tay (xóa dữ liệu 2 bước, Bếp có đơn, chênh lệch sau chốt, 403/404, màn UX, giờ
   khuyến mãi trên trình duyệt VN); "giao-q1 mở Bàn & QR trắng" chưa tái hiện được bằng code (cần console + tab Network của user);
   **Nhóm B (Task 9, UX)** chưa làm; nhánh đã push lên `origin` (chưa merge vào `feat/ordering`).
