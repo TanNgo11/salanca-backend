@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roadmap plugin seo-toolkit</title>
+<style>
+  :root {
+    --bg: #f6f6f9; --surface: #ffffff; --ink: #32324d; --muted: #666687; --line: #dcdce4;
+    --primary: #4945ff; --primary-soft: #f0f0ff;
+    --ok: #2f6846; --ok-bg: #eafbe7; --warn: #8a5100; --warn-bg: #fdf4dc;
+    --err: #b3261e; --info: #0c75af; --info-bg: #eaf5ff;
+    --have: #e7f1ee; --have-ink: #1f5c4a;
+    --radius: 8px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #181826; --surface: #212134; --ink: #eaeaef; --muted: #a5a5ba; --line: #4a4a6a;
+      --primary: #8b89ff; --primary-soft: #2a2a52;
+      --ok: #7bd69a; --ok-bg: #12301e; --warn: #f5c36b; --warn-bg: #3a2c10;
+      --err: #ff9a92; --info: #7ec8f2; --info-bg: #14293a;
+      --have: #173229; --have-ink: #8fd9bd;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 1120px; margin: 0 auto; padding: 32px 16px 80px; }
+  h1 { font-size: 28px; line-height: 1.2; margin: 0 0 6px; }
+  h2 { font-size: 20px; margin: 44px 0 6px; }
+  h3 { font-size: 16px; margin: 0; }
+  p { margin: 0 0 10px; }
+  .lede { color: var(--muted); max-width: 72ch; }
+  code { font: 12.5px ui-monospace, Consolas, monospace; background: var(--bg); border: 1px solid var(--line); padding: 1px 5px; border-radius: 4px; }
+  .scope { border: 1px solid var(--line); border-left: 4px solid var(--primary); background: var(--surface); border-radius: var(--radius); padding: 10px 14px; margin: 16px 0; font-size: 14px; }
+
+  .dest { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-top: 12px; }
+  .ctl { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+  .ctl label { font-weight: 700; }
+  .ctl input[type=range] { flex: 1; min-width: 200px; accent-color: var(--primary); }
+  .ctl output { font-weight: 800; color: var(--primary); min-width: 5.5ch; }
+  .ctl .cap { color: var(--muted); font-size: 13px; flex-basis: 100%; min-height: 1.5em; }
+  .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .col { background: var(--bg); border: 1px dashed var(--line); border-radius: 10px; padding: 10px; }
+  .col > h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 8px; }
+  .col > h3 small { display: block; text-transform: none; letter-spacing: 0; font-weight: 400; }
+  .node { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 10px; margin-bottom: 7px; font-size: 13px; display: flex; gap: 8px; align-items: baseline; opacity: .38; transition: opacity .15s, border-color .15s, background .15s; }
+  .node .r { font-size: 11px; font-weight: 800; color: var(--muted); flex: none; min-width: 3em; }
+  .node.on { opacity: 1; border-color: var(--primary); background: var(--primary-soft); }
+  .node.on .r { color: var(--primary); }
+  .node.have { opacity: 1; background: var(--have); border-color: transparent; }
+  .node.have .r { color: var(--have-ink); }
+  .out { margin-top: 12px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .out .node { margin: 0; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); margin-top: 12px; }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 4px; border: 1px solid var(--line); }
+
+  .stage { margin-top: 26px; }
+  .stage > header { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .stage > header .when { font-size: 12px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--primary); }
+  .stage > p { color: var(--muted); font-size: 14px; margin: 2px 0 10px; }
+  .milestone { border: 2px dashed var(--primary); background: var(--primary-soft); border-radius: var(--radius); padding: 12px 16px; margin: 22px 0 0; font-size: 14px; }
+  .rel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; border-left: 4px solid var(--line); }
+  .rel.in { border-left-color: var(--primary); }
+  .rel .top { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 4px; }
+  .rel .n { font-weight: 800; color: var(--primary); }
+  .rel h3 { flex: 1; min-width: 200px; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+  .tag.server { background: var(--primary-soft); color: var(--primary); border-color: transparent; }
+  .tag.admin { background: var(--info-bg); color: var(--info); border-color: transparent; }
+  .tag.next { background: var(--ok-bg); color: var(--ok); border-color: transparent; }
+  .tag.gate { background: var(--warn-bg); color: var(--warn); border-color: transparent; }
+  .tag.size { font-weight: 600; }
+  .rel dl { display: grid; grid-template-columns: 140px 1fr; gap: 4px 12px; margin: 8px 0 0; font-size: 14px; }
+  .rel dt { color: var(--muted); font-weight: 600; }
+  .rel dd { margin: 0; }
+  .src { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; font-size: 14px; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); background: var(--bg); padding: 8px 12px; }
+  td { padding: 9px 12px; border-top: 1px solid var(--line); vertical-align: top; }
+  .chg { background: var(--warn-bg); border-radius: var(--radius); padding: 12px 16px; font-size: 14px; }
+  .chg ul { margin: 6px 0 0; padding-left: 20px; }
+  .wrap { overflow-x: auto; }
+  pre.cfg { margin: 0; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); font: 12.5px/1.5 ui-monospace, Consolas, monospace; overflow-x: auto; }
+  footer { margin-top: 40px; color: var(--muted); font-size: 13px; }
+
+  @media (max-width: 820px) {
+    .cols, .out { grid-template-columns: 1fr; }
+    .rel dl { grid-template-columns: 1fr; gap: 0; }
+    .rel dt { margin-top: 6px; }
+    table { min-width: 560px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Roadmap plugin <code>seo-toolkit</code></h1>
+  <p class="lede">Mỗi release là một tính năng của plugin dùng được ngay, không có release nào chỉ để dựng nền. Kéo thanh bên dưới để thấy đích hiện dần theo từng release.</p>
+
+  <div class="scope"><b>Phạm vi:</b> chỉ plugin <code>seo-toolkit</code> và gói Next.js đi kèm. Salanca là client đầu tiên, giống cách ordering đi trước; việc riêng của Salanca nằm ở dòng "Salanca dùng khi nào" của từng release. Booking, payment và notification có roadmap riêng. Trạng thái dựa trên repo ngày 2026-10-16. Cỡ (nhỏ / vừa / lớn) là ước lượng tương đối của mình, không phải số ngày.</div>
+
+  <h2>Đích đến</h2>
+  <div class="dest">
+    <div class="ctl">
+      <label for="slider">Xem đến release</label>
+      <input type="range" id="slider" min="0" max="18" value="18" aria-describedby="cap">
+      <output id="outv" for="slider">v1.5</output>
+      <div class="cap" id="cap"></div>
+    </div>
+
+    <div class="cols">
+      <div class="col"><h3>Admin Strapi<small>Chủ quán và dev nhìn thấy</small></h3>
+        <div class="node" data-v="v0.2"><span class="r">v0.2</span><span>Trang Audit: lỗi theo loại, theo trang, nút Sửa</span></div>
+        <div class="node" data-v="v0.4"><span class="r">v0.4</span><span>Tab Go-live: công tắc và checklist</span></div>
+        <div class="node" data-v="v0.5"><span class="r">v0.5</span><span>Chip và xem trước Google ở màn sửa</span></div>
+        <div class="node" data-v="v0.6"><span class="r">v0.6</span><span>Tab Sitemap theo loại nội dung</span></div>
+        <div class="node" data-v="v0.9"><span class="r">v0.9</span><span>Quản lý redirect</span></div>
+        <div class="node" data-v="v0.10"><span class="r">v0.10</span><span>Thiết lập lần đầu trong admin</span></div>
+        <div class="node" data-v="v0.11"><span class="r">v0.11</span><span>Lịch sử audit và so sánh lần trước</span></div>
+        <div class="node" data-v="v0.13"><span class="r">v0.13</span><span>Số liệu Google Search Console</span></div>
+        <div class="node" data-v="v1.4"><span class="r">v1.4</span><span>Chính sách bot AI</span></div>
+      </div>
+      <div class="col"><h3>Plugin Strapi (server)<small><code>src/plugins/seo-toolkit</code></small></h3>
+        <div class="node" data-v="v0.1"><span class="r">v0.1</span><span>Bộ check audit khai báo theo loại nội dung, API và CLI</span></div>
+        <div class="node" data-v="v0.3"><span class="r">v0.3</span><span>Bộ thu thập trang đã render (crawl site thật)</span></div>
+        <div class="node" data-v="v0.4"><span class="r">v0.4</span><span>Cờ go-live, <code>audit-event</code>, endpoint trạng thái</span></div>
+        <div class="node" data-v="v0.6"><span class="r">v0.6</span><span>API sitemap theo khai báo</span></div>
+        <div class="node" data-v="v0.7"><span class="r">v0.7</span><span>API JSON-LD theo khai báo</span></div>
+        <div class="node" data-v="v0.8"><span class="r">v0.8</span><span>Mẫu title và description mặc định</span></div>
+        <div class="node" data-v="v0.9"><span class="r">v0.9</span><span>Luật redirect</span></div>
+        <div class="node" data-v="v0.11"><span class="r">v0.11</span><span>Lưu kết quả mỗi lần chạy</span></div>
+        <div class="node" data-v="v0.12"><span class="r">v0.12</span><span>Job gửi email tóm tắt hàng tuần</span></div>
+        <div class="node" data-v="v0.13"><span class="r">v0.13</span><span>Kết nối Search Console (chỉ đọc)</span></div>
+      </div>
+      <div class="col"><h3>Gói Next.js đi kèm<small>Frontend mỗi client</small></h3>
+        <div class="node have" data-v="have"><span class="r">có</span><span>Metadata từ <code>shared.seo</code>, canonical, hreflang (mã riêng trong <code>salanca-web</code>)</span></div>
+        <div class="node have" data-v="have"><span class="r">có</span><span>Sitemap có hreflang, loại noindex (mã riêng)</span></div>
+        <div class="node have" data-v="have"><span class="r">có</span><span>JSON-LD: WebSite, Restaurant, Breadcrumb, Offer (mã riêng)</span></div>
+        <div class="node" data-v="v0.4"><span class="r">v0.4</span><span>Đọc trạng thái go-live, phát noindex đúng cách</span></div>
+        <div class="node" data-v="v0.6"><span class="r">v0.6</span><span>Dựng sitemap từ API</span></div>
+        <div class="node" data-v="v0.7"><span class="r">v0.7</span><span>Dựng JSON-LD từ API</span></div>
+        <div class="node" data-v="v0.9"><span class="r">v0.9</span><span>Thực thi redirect 301</span></div>
+        <div class="node" data-v="v1.1"><span class="r">v1.1</span><span>Pack Product + Offer</span></div>
+        <div class="node" data-v="v1.2"><span class="r">v1.2</span><span>Pack bất động sản</span></div>
+        <div class="node" data-v="v1.3"><span class="r">v1.3</span><span>Pack dịch vụ đặt lịch</span></div>
+        <div class="node" data-v="v1.4"><span class="r">v1.4</span><span>robots.txt theo chính sách bot AI</span></div>
+        <div class="node" data-v="v1.5"><span class="r">v1.5</span><span>Ảnh OG tự sinh</span></div>
+      </div>
+    </div>
+    <div class="out">
+      <div class="node have" data-v="have"><span class="r">Ra</span><span>Google Search: trang đúng, đã index, hiện rich result khi đủ điều kiện</span></div>
+      <div class="node" data-v="v0.13"><span class="r">v0.13</span><span>Search Console trả dữ liệu thật về admin</span></div>
+      <div class="node" data-v="v0.12"><span class="r">v0.12</span><span>Email chủ quán: tuần này còn gì cần sửa</span></div>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--have)"></i>Đã có trong repo (mã riêng của Salanca, sẽ được plugin thay dần)</span>
+      <span><i style="background:var(--primary-soft);border-color:var(--primary)"></i>Gồm trong mốc đang xem</span>
+      <span><i style="opacity:.4"></i>Chưa tới mốc</span>
+    </div>
+  </div>
+
+  <h2>Luật tổng quát: dùng lại cho nhiều web Strapi</h2>
+  <p class="lede">Bạn chốt ngày 16/10: plugin phải tổng quát trước, sau này gắn vào nhiều backend Strapi. Nên tổng quát là luật cứng áp từ v0.1, không phải việc dọn dẹp ở cuối. Các luật này lấy theo cách ordering đang làm và luật tổng quát đã ghi cho notification-core, thêm vài điều riêng cho SEO.</p>
+  <div class="wrap"><table>
+    <thead><tr><th>#</th><th>Luật</th><th>Vì sao</th></tr></thead>
+    <tbody>
+      <tr><td>G1</td><td>Mọi thứ của plugin nằm trong <code>plugin::seo-toolkit.*</code>. Không import mã <code>src/domain</code> hay <code>src/api</code> của app chủ, không ghi cứng UID content type của Salanca.</td><td>Cùng ranh giới đã áp cho ordering. Import một lần là plugin dính vào Salanca.</td></tr>
+      <tr><td>G2</td><td>App chủ <b>khai báo</b> loại nội dung nào vào SEO và field SEO tên gì; đa ngôn ngữ plugin tự đọc từ schema. Cách dựng đường dẫn trang khai báo thêm khi release cần (từ v0.3), chưa đóng khung trước. Plugin chỉ đọc, không tự thêm field vào content type của app.</td><td>Web khác không dùng component <code>shared.seo</code>; field có thể tên khác hoặc nằm phẳng. Plugin SEO chính thức của Strapi thêm component riêng nên đụng <code>shared.seo</code> đã có (đã ghi ở file nghiên cứu).</td></tr>
+      <tr><td>G3</td><td>Plugin không biết route của frontend và không cần frontend là Next.js. Frontend nào cũng gọi được qua API và token; gói Next.js chỉ là lớp tiện cho Next.</td><td>Phần quan trọng nhất (render HTML, robots, sitemap) chạy ở frontend; plugin chỉ cấp dữ liệu và cổng bật tắt.</td></tr>
+      <tr><td>G4</td><td>Engine audit là hàm thuần: nhận bản ghi + cấu hình, trả danh sách lỗi. Không gọi Strapi bên trong.</td><td>Test được bằng dữ liệu giả không có Salanca, và đây là cách rẻ nhất để chứng minh "chạy với cấu hình khác".</td></tr>
+      <tr><td>G5</td><td>Mã lỗi, nhãn và hướng dẫn sửa tách khỏi code, có bản <code>vi</code> và <code>en</code>. Không ghi cứng tiếng Việt trong thông điệp server.</td><td>Salanca dùng tiếng Việt, web sau có thể dùng ngôn ngữ khác.</td></tr>
+      <tr><td>G6</td><td>Dữ liệu của plugin (kết quả audit, lỗi đã bỏ qua, thiết lập) nằm ở content type riêng của plugin. Không ghi vào bảng của app chủ. Không dùng SQL thô, đi qua Document Service hoặc query API.</td><td>Gỡ plugin không để lại rác trong content của app. Không phụ thuộc loại cơ sở dữ liệu của từng backend.</td></tr>
+      <tr><td>G7</td><td>Đóng gói như ordering: <code>package.json</code> có <code>exports</code> cho <code>strapi-server</code> và <code>strapi-admin</code>, <code>peerDependencies</code> theo phiên bản Strapi, README có bảng cấu hình.</td><td>Để chuyển sang gói npm lúc muốn mà không viết lại.</td></tr>
+      <tr><td>G8</td><td>Chỉ ghi "tổng quát" khi đủ ba điều: chạy ở Salanca, chạy ở BDS mà không sửa mã plugin, chạy trên một app Strapi trống với một content type bất kỳ.</td><td>Cùng ngưỡng đã ghi cho notification-core. Một client thì chưa chứng minh được gì.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="lede" style="margin-top:14px">Ví dụ minh họa cách mỗi web khai báo (chưa phải hợp đồng, chỉ để thấy cỡ của "khai báo tối thiểu"):</p>
+  <pre class="cfg">// config/plugins.ts của MỖI web tự viết
+'seo-toolkit': {
+  enabled: true,
+  config: {
+    contentTypes: {
+      'api::article.article': { seoField: 'seo' },
+      'api::listing.listing': {},   // seoField mặc định là 'seo'
+    },
+    // v0.1 chỉ cần hai khóa trên. Cách dựng đường dẫn trang chỉ thêm khi một release cần tới (từ v0.3).
+  },
+}</pre>
+
+  <h2>Các release</h2>
+  <div id="stages"></div>
+
+  <h2>Cố ý không làm</h2>
+  <p class="lede">Những thứ hay có trong plugin SEO nhưng không đáng ở đây. Cột cuối nói mức mình đã kiểm tra.</p>
+  <div class="wrap"><table>
+    <thead><tr><th>Tính năng</th><th>Lý do bỏ</th><th>Độ tin cậy</th></tr></thead>
+    <tbody>
+      <tr><td>Ping sitemap cho Google</td><td>Google ngừng endpoint này (thông báo 26/06/2023); gọi vào chỉ trả 404.</td><td>Từ kết quả tìm kiếm trích bài Google Search Central. Chưa mở trang gốc.</td></tr>
+      <tr><td>IndexNow</td><td>Chỉ Bing, Yandex, Seznam, Naver tham gia; Google chưa. Với khách Việt chủ yếu dùng Google thì lợi ích thấp.</td><td>Danh sách bên tham gia từ nguồn thứ cấp. Vế "khách Việt chủ yếu dùng Google" là suy đoán của mình.</td></tr>
+      <tr><td><code>llms.txt</code></td><td>Google Search không dùng. Chrome Lighthouse có thêm audit thử nghiệm nên tín hiệu lẫn lộn. Chỉ làm nếu có bên tiêu thụ rõ ràng.</td><td>Nguồn thứ cấp (tin SEO), cộng ghi chú trong skill <code>nextjs-seo</code> của repo.</td></tr>
+      <tr><td><code>priority</code> và <code>changefreq</code> trong sitemap</td><td>Google bỏ qua cả hai. <code>lastmod</code> chỉ dùng khi lấy từ ngày sửa thật.</td><td>Đã đọc tài liệu Google.</td></tr>
+      <tr><td>FAQ schema để lấy rich result</td><td>Theo skill <code>nextjs-seo</code> của repo, rich result FAQ đã ngừng với mọi site từ 2026-05-07. Không thêm FAQ chỉ để có JSON-LD.</td><td>Từ tài liệu nội bộ của repo, mình chưa tự kiểm với Google.</td></tr>
+      <tr><td>Điểm Core Web Vitals thực tế trong admin</td><td>Dữ liệu CrUX có thể trống với site ít truy cập; ngưỡng cụ thể Google không công bố trong kết quả mình đọc. Lighthouse là phép đo phòng thí nghiệm, không thay được INP thực tế.</td><td>Nguồn thứ cấp.</td></tr>
+      <tr><td>Chấm điểm đọc dễ / mật độ từ khóa kiểu Yoast</td><td>Chưa có bằng chứng giúp xếp hạng, và dễ thúc owner viết gượng.</td><td>Từ trí nhớ về Yoast, chưa kiểm.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Quyết định đang chờ, gắn với release bị chặn</h2>
+  <div class="wrap"><table>
+    <thead><tr><th>#</th><th>Câu hỏi</th><th>Chặn</th><th>Mình nghiêng về</th></tr></thead>
+    <tbody>
+      <tr><td>D1</td><td>Duyệt tạo plugin local <code>src/plugins/seo-toolkit</code> và màn admin custom (theo <code>AGENTS.md</code> backend). Plugin không import mã Salanca và không đổi content type Salanca, giống điều kiện đã áp cho ordering.</td><td>v0.1, v0.2 trở đi</td><td><b>Đã chốt 16/10:</b> bạn đồng ý và giao mình xử lý. Làm plugin local, tổng quát (G1 đến G8), trên worktree <code>salanca-seo</code> nhánh <code>feat/seo-toolkit</code>. Dòng ngoại lệ trong <code>AGENTS.md</code> chỉ cần khi bắt đầu màn admin custom (v0.2), nên thêm ở bước đó; v0.1 chỉ có server nên chưa cần.</td></tr>
+      <tr><td>D2</td><td>Salanca có cần v0.3 (crawl trang thật) trước go-live không?</td><td>Lịch go-live của Salanca</td><td>Có. Chỉ crawl mới thấy lỗi do code Next.js; site 38 trang nên rẻ.</td></tr>
+      <tr><td>D3</td><td>Đổi <code>robots.ts</code> trong <code>salanca-web</code> để tắt index bằng noindex mà vẫn cho thu thập, thay vì <code>Disallow: /</code>?</td><td>Salanca dùng v0.4</td><td>Đổi. Google chỉ thấy noindex khi được thu thập; <code>Disallow</code> làm trang đã index nằm lại.</td></tr>
+      <tr><td>D4</td><td>Banner go-live toàn admin: bọc ở <code>router.addRoute</code> trong <code>app.tsx</code> có ổn không?</td><td>v0.4</td><td>Spike nhỏ trước. Nếu hỏng thì dùng widget Trang chủ và chip trong màn sửa.</td></tr>
+      <tr><td>D5</td><td>Hai phần cần đường phân phối: (a) plugin Strapi tới nhiều backend, (b) gói Next.js tới nhiều frontend. Chọn thư mục chép tay, git dependency hay gói npm?</td><td>Không chặn v0.1 đến v0.3</td><td><b>Đã chốt 16/10:</b> local trước, bạn giao mình xử lý. Plugin nằm trong <code>src/plugins/seo-toolkit</code>, đã có <code>package.json</code> để tách sau như ordering. v0.1 đến v0.3 chỉ có server nên chưa cần gói Next.js. Cách phân phối gói Next.js (chép tay, git dependency hay npm) quyết lúc bắt đầu v0.4, vì <code>salanca-web</code> là repo riêng và không import được thư mục của backend. Publish gói lên npm vẫn là việc bạn quyết khi tới lúc đó.</td></tr>
+      <tr><td>D6</td><td>Notification core đã đủ dùng để gửi báo cáo chưa?</td><td>v0.12</td><td>Chờ roadmap notification; MVP của nó là email.</td></tr>
+      <tr><td>D7</td><td>Kết nối Search Console bằng OAuth hay service account; hạn mức API?</td><td>v0.13</td><td>Chưa biết, cần đọc docs chính thức trước.</td></tr>
+      <tr><td>D8</td><td>Chính sách của chủ quán với bot AI (cho tìm kiếm có, cho huấn luyện thế nào)?</td><td>v1.4</td><td>Quyết định của owner, không đặt mặc định thay họ.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Đã đổi so với bản roadmap trước</h2>
+  <div class="chg">
+    <ul>
+      <li><b>Chỉ còn tính năng của plugin.</b> Script audit riêng và việc sửa <code>robots.ts</code> không còn là release: script audit là cách chạy của v0.1, việc sửa <code>robots.ts</code> là bước Salanca dùng v0.4.</li>
+      <li><b>Plugin làm tổng quát từ đầu, local trước</b> (như ordering), thay vì viết riêng cho Salanca rồi mới rút. Lý do: mục tiêu của bạn là plugin dùng lại được cho nhiều web Strapi (xác nhận ngày 16/10). Tổng quát giờ là tám luật cứng G1 đến G8 ở mục riêng phía trên. <b>Rủi ro mình đã nói trước đó vẫn còn:</b> mới có một client nên dễ trừu tượng hóa sai. Giảm bằng khai báo tối thiểu (map field SEO, cách dựng đường dẫn), engine audit là hàm thuần test được bằng cấu hình giả (G4), và mốc v1.0 chỉ tính là xong khi cài vào client thứ hai và chạy trên app trống.</li>
+      <li><b>Câu hỏi "crawl hay đọc DB"</b> giải bằng thứ tự: v0.1 đọc dữ liệu CMS, v0.3 thêm crawl trang thật. Hai loại check bổ sung nhau.</li>
+      <li><b>Tách nhỏ hơn:</b> lịch sử audit (v0.11) và email hàng tuần (v0.12) thành hai release riêng; thêm mẫu title mặc định (v0.8) và thiết lập lần đầu (v0.10) vì plugin tổng quát cần chúng.</li>
+    </ul>
+  </div>
+
+  <footer>Nguồn: <code>seo-admin-page-research.md</code> và <code>seo-admin-page-mockup.html</code> (cùng thư mục), skill <code>nextjs-seo</code> của <code>salanca-web</code>, <code>docs/STATUS.md</code>. Bản nháp để bạn duyệt, chưa phải cam kết.</footer>
+</main>
+
+<script>
+(() => {
+  const STAGES = [
+    { id: "s1", when: "Chặng 1", title: "Biết mình sai ở đâu",
+      note: "Chỉ kiểm tra và báo cáo, chưa đổi gì trên site. An toàn nhất để bắt đầu.",
+      items: [
+        { v: "v0.1", title: "Audit từ dữ liệu CMS", size: "vừa", half: ["server"],
+          who: "Dev chạy một lệnh hoặc gọi một API và nhận danh sách lỗi theo từng entry và ngôn ngữ: thiếu khối SEO, title hoặc description thiếu, quá dài hay trùng, thiếu bản dịch đã xuất bản, ảnh chia sẻ thiếu hoặc thiếu alt, entry đang đặt noIndex. Chỉ những gì nhìn thấy được trong dữ liệu CMS.",
+          done: "Lệnh trả mã thoát khác 0 khi còn lỗi mức Lỗi. Mỗi lỗi nêu rõ loại nội dung, documentId và ngôn ngữ. Loại nội dung và field SEO khai báo trong cấu hình, plugin không import mã Salanca. Có test chạy engine với một cấu hình giả không liên quan Salanca (G1, G4). Chi tiết: <code>docs/phases/phase-seo-toolkit-1-cms-audit.md</code>.",
+          dep: "Không phụ thuộc gì.", gates: ["D1"],
+          salanca: "Trước go-live. Chạy một lần để bắt lỗi trước khi mở index.",
+          src: "Check lấy từ checklist trong skill nextjs-seo và các lỗi đã phân tích ở các bước trước." },
+        { v: "v0.2", title: "Chủ quán tự xem lỗi SEO trong admin", size: "lớn", half: ["admin"],
+          who: "Chủ quán thấy điểm, lỗi theo loại hoặc theo trang, bấm Sửa nhảy thẳng tới entry, bỏ qua một lỗi có ghi lý do.",
+          done: "Bấm Sửa mở đúng entry và đúng ngôn ngữ; chỉ vai trò có quyền <code>seo-toolkit.manage</code> mới thấy nút bỏ qua.",
+          dep: "v0.1.", gates: ["D1"],
+          salanca: "Sau go-live. Làm trước go-live cũng được nếu muốn chủ quán tự kiểm tra sớm.",
+          src: "Mockup <code>seo-admin-page-mockup.html</code>, tab Audit. Mẫu: Ahrefs, Semrush, Screaming Frog, Webflow Audit panel (đã ghi trong file nghiên cứu)." },
+        { v: "v0.3", title: "Audit trang đã render", size: "vừa", half: ["server"],
+          who: "Dev thấy các lỗi chỉ lộ ra trên trang thật: canonical sai hoặc noindex thực tế, title thực tế, robots chặn trang đang noindex, noindex nằm trong sitemap, URL trong sitemap trả 404 hoặc redirect. Canonical và sitemap nằm ở đây vì chúng do frontend quyết (route registry của Salanca), dữ liệu CMS không cho biết.",
+          done: "Chạy với địa chỉ staging, đối chiếu từng trang với dữ liệu CMS và báo những chỗ CMS điền đúng nhưng trang in sai.",
+          dep: "v0.1 và một site chạy được.", gates: ["D2"],
+          salanca: "Trước go-live. Đây là cách duy nhất bắt lỗi do code Next.js.",
+          src: "Google: noindex vô hiệu nếu trang bị robots.txt chặn (tài liệu block-indexing, đã đọc). Lighthouse: chỉ báo khi noindex áp cho mọi crawler." }
+      ] },
+    { id: "s2", when: "Chặng 2", title: "Mở index an toàn",
+      note: "Lỗi đắt nhất là quên bỏ noindex hoặc tắt index sai cách. Chặng này chặn cả hai.",
+      items: [
+        { v: "v0.4", title: "Công tắc go-live", size: "vừa", half: ["server", "admin", "next"],
+          who: "Chủ quán thấy dải cảnh báo khi production đang chặn index và bật bằng công tắc có xác nhận. Frontend đọc trạng thái này để phát noindex hoặc cho phép.",
+          done: "Công tắc khóa khi còn lỗi hoặc môi trường không phải production. Tắt index thì mọi trang có noindex và robots vẫn cho thu thập. Mỗi lần đổi ghi một dòng <code>audit-event</code>.",
+          dep: "v0.2.", gates: ["D3", "D4", "D5"],
+          salanca: "Trước go-live. Salanca phải sửa <code>robots.ts</code> theo hành vi mới.",
+          src: "Mockup tab Go-live. Mẫu: plugin cảnh báo của WordPress cho ô chặn index; Yoast giữ riêng cảnh báo chặn robots vì quá quan trọng." },
+        { v: "v0.5", title: "Gợi ý SEO ngay lúc sửa nội dung", size: "vừa", half: ["admin"],
+          who: "Người sửa nội dung thấy bộ đếm ký tự, xem trước kết quả Google và chip Complete / Incomplete ngay trong màn sửa entry.",
+          done: "Chip hiện ở mọi loại nội dung đã khai báo; đổi title thì xem trước đổi theo.",
+          dep: "v0.1 (dùng chung giới hạn ký tự).", gates: [],
+          salanca: "Sau go-live, chủ quán dùng hằng ngày.",
+          src: "Mẫu: plugin SEO chính thức của Strapi (thẻ bên phải), Saleor SeoForm (đã đọc). Không cắm nguyên plugin chính thức vì đụng tên <code>shared.seo</code>." }
+      ] },
+    { id: "s3", when: "Chặng 3", title: "Cấp dữ liệu cho frontend, thay mã riêng từng site",
+      note: "Đây là chặng làm plugin thật sự tái dùng được: mỗi site thôi viết lại sitemap, JSON-LD, redirect.",
+      items: [
+        { v: "v0.6", title: "Sitemap theo khai báo", size: "vừa", half: ["server", "admin", "next"],
+          who: "Dev khai báo loại nội dung nào vào sitemap và nhận danh sách URL có hreflang, loại noindex, <code>lastmod</code> từ ngày sửa thật.",
+          done: "Test so sánh: tập URL plugin sinh cho Salanca bằng tập URL của <code>sitemap.ts</code> hiện tại.",
+          dep: "v0.1.", gates: [],
+          salanca: "Không bắt buộc. Thay <code>sitemap.ts</code> khi muốn bỏ mã riêng.",
+          src: "Mockup tab Sitemap. Không có <code>priority</code> hay <code>changefreq</code> (Google bỏ qua)." },
+        { v: "v0.7", title: "JSON-LD theo khai báo", size: "vừa", half: ["server", "next"],
+          who: "Dev khai báo loại nội dung nào ứng với loại schema nào và nhận JSON-LD an toàn: WebSite, Organization, Breadcrumb, LocalBusiness.",
+          done: "JSON-LD trang chủ Salanca sinh từ plugin khớp với bản hiện tại; ký tự <code>&lt;</code> được escape.",
+          dep: "Không.", gates: [],
+          salanca: "Không bắt buộc, tương tự sitemap.",
+          src: "Mã hiện có <code>structured-data.ts</code> và skill nextjs-seo (chỉ đánh dấu nội dung hiển thị thật)." },
+        { v: "v0.8", title: "Mẫu title và description mặc định", size: "nhỏ", half: ["server"],
+          who: "Chủ quán không phải điền từng trang: trang để trống tự có title và description theo mẫu như <code>{title} | {siteName}</code>.",
+          done: "Entry để trống thì API trả giá trị theo mẫu; audit ghi mức Lưu ý \"đang dùng mẫu\" thay vì báo thiếu, và vẫn báo nếu description trùng nhau.",
+          dep: "v0.1.", gates: [],
+          salanca: "Chưa cần. Hữu ích cho client có nhiều trang.",
+          src: "Rank Math có mẫu tiêu đề với biến (từ trí nhớ, chưa kiểm). Rủi ro: mẫu dễ sinh description trùng." },
+        { v: "v0.9", title: "Quản lý redirect khi đổi URL", size: "vừa", half: ["server", "admin", "next"],
+          who: "Chủ quán đổi đường dẫn một trang mà khách và Google vẫn tới được trang mới, không gặp 404.",
+          done: "Thêm một luật trong admin thì URL cũ trả 301 sang URL mới; chống vòng lặp.",
+          dep: "Client đã live.", gates: [],
+          salanca: "Sau go-live. Quy tắc cũ: trước go-live URL cũ trả 404, không redirect.",
+          src: "Yoast và Rank Math đều có quản lý redirect (từ trí nhớ, chưa kiểm)." }
+      ] },
+    { id: "s4", when: "Chặng 4", title: "Tự vận hành",
+      note: "Plugin nhắc việc, nhớ lịch sử và nối với Google, chủ quán ít phải mở trang kiểm tra.",
+      items: [
+        { v: "v0.10", title: "Thiết lập lần đầu trong admin", size: "vừa", half: ["admin"],
+          who: "Dev hoặc chủ quán chọn loại nội dung, khớp field SEO, nhập địa chỉ site và ngôn ngữ mặc định mà không sửa file cấu hình.",
+          done: "Client mới cấu hình xong và chạy audit đầu tiên ngay trong màn thiết lập.",
+          dep: "v0.1.", gates: [],
+          salanca: "Chưa cần (Salanca cấu hình bằng file). Client thứ hai dùng.",
+          src: "Wix SEO Setup Checklist: danh sách bước có hướng dẫn (đã đọc trang trợ giúp)." },
+        { v: "v0.11", title: "Lịch sử audit và so sánh lần trước", size: "vừa", half: ["server", "admin"],
+          who: "Chủ quán thấy bao nhiêu lỗi mới, bao nhiêu đã sửa so với lần trước, và đường điểm theo thời gian.",
+          done: "Mỗi lần chạy được lưu; trang Audit hiện nhãn Mới và biểu đồ điểm các lần gần nhất.",
+          dep: "v0.2.", gates: [],
+          salanca: "Sau go-live.",
+          src: "Ahrefs (chọn hai lần crawl, cột Added/New/Removed) và Semrush (Fixed/New), đã đọc." },
+        { v: "v0.12", title: "Email tóm tắt SEO mỗi tuần", size: "nhỏ", half: ["server"],
+          who: "Chủ quán nhận email: tuần này còn mấy lỗi, có lỗi mới nào, đã sửa được bao nhiêu.",
+          done: "Job chạy theo lịch và gửi một email có số lỗi, lỗi mới và liên kết tới trang SEO.",
+          dep: "v0.11 và notification core.", gates: ["D6"],
+          salanca: "Sau go-live.",
+          src: "Ý tưởng của mình, tái dùng hạ tầng thông báo." },
+        { v: "v0.13", title: "Xem Google đang thấy gì, ngay trong admin", size: "lớn", half: ["server", "admin"],
+          who: "Chủ quán thấy số trang đã index, lý do Google bỏ qua, lượt hiển thị và click mà không cần mở Search Console.",
+          done: "Số trang đã index khớp với Search Console cho cùng khoảng ngày; chỉ đọc, không ghi.",
+          dep: "Client đã live, domain đã xác minh.", gates: ["D7"],
+          salanca: "Sau go-live.",
+          src: "Yoast (qua Site Kit) và Rank Math hiện dữ liệu Search Console khi nối (đã kiểm qua tìm kiếm). Dữ liệu GSC trễ vài ngày." }
+      ] },
+    { id: "s5", when: "Sau v1.0", title: "Mở rộng theo ngành và chính sách",
+      note: "Mỗi pack gắn với một plugin ngành chưa xây xong, nên đặt sau cùng.",
+      items: [
+        { v: "v1.1", title: "Pack bán hàng: giá và tồn kho trên Google", size: "vừa", half: ["next"],
+          who: "Sản phẩm đặt online có giá và tình trạng còn hàng đúng trong dữ liệu có cấu trúc.",
+          done: "Giá và tồn kho trong JSON-LD khớp trang; đổi giá thì cập nhật qua đường làm mới cache thật.",
+          dep: "v0.7 và trang sản phẩm của ordering.", gates: [],
+          salanca: "Khi ordering có trang web.",
+          src: "Chỉ đánh dấu giá và tồn kho hiển thị thật; không tự thêm đánh giá." },
+        { v: "v1.2", title: "Pack bất động sản", size: "vừa", half: ["next"],
+          who: "Mỗi tin BDS có dữ liệu có cấu trúc: giá, diện tích, địa chỉ, ảnh.",
+          done: "Trang tin đạt Rich Results Test cho loại dữ liệu được hỗ trợ.",
+          dep: "v0.7.", gates: [],
+          salanca: "Không dùng. Dành cho BDS.",
+          src: "Cần kiểm tra loại schema nào Google còn hỗ trợ trước khi làm." },
+        { v: "v1.3", title: "Pack dịch vụ đặt lịch và giờ mở cửa nhất quán", size: "vừa", half: ["next", "server"],
+          who: "Dịch vụ đặt lịch có dữ liệu có cấu trúc; audit báo khi giờ mở cửa hoặc địa chỉ không khớp giữa các nơi.",
+          done: "Audit có check giờ mở cửa và địa chỉ lấy từ <code>global-setting</code> khớp JSON-LD và chân trang.",
+          dep: "v0.7 và plugin booking.", gates: [],
+          salanca: "Khi booking có trang web.",
+          src: "Giờ mở cửa đã có trong Restaurant JSON-LD hiện tại." },
+        { v: "v1.4", title: "Chủ quán quyết định cho AI đọc site ra sao", size: "nhỏ", half: ["admin", "next"],
+          who: "Chủ quán chọn cho phép hay chặn từng nhóm bot AI (tìm kiếm, huấn luyện) mà không sửa mã.",
+          done: "Đổi lựa chọn thì <code>robots.txt</code> đổi theo; các nhóm bot riêng lặp lại đúng luật của nhóm chung.",
+          dep: "Quyết định của owner.", gates: ["D8"],
+          salanca: "Khi owner muốn.",
+          src: "Skill nextjs-seo: bảo toàn chính sách của chủ site, phân biệt huấn luyện, tìm kiếm và truy xuất theo yêu cầu người dùng." },
+        { v: "v1.5", title: "Ảnh chia sẻ tự sinh cho từng trang", size: "lớn", half: ["next"],
+          who: "Link sản phẩm hoặc chiến dịch gửi qua Zalo và Facebook ra thẻ có tên, giá và ảnh riêng.",
+          done: "Ảnh 1200×630 sinh từ template, cache theo nội dung, đổi giá hoặc tên thì sinh lại.",
+          dep: "v1.1 (có giá để in lên ảnh).", gates: [],
+          salanca: "Cuối cùng, khi owner cần.",
+          src: "Để cuối vì render ảnh phía server nặng nhất mà lợi ích thấp nhất." }
+      ] }
+  ];
+
+  const TAG = { server: "Plugin (server)", admin: "Admin UI", next: "Gói Next.js" };
+  const order = [];
+  STAGES.forEach(s => s.items.forEach(r => order.push(r)));
+  const idx = {};
+  order.forEach((r, i) => { idx[r.v] = i + 1; });
+
+  const MILESTONE = `<div class="milestone"><b>Mốc v1.0:</b> cài plugin và gói Next.js vào một dự án thứ hai (BDS) mà không sửa mã plugin, và chạy được trên một app Strapi trống (G8); API đã ổn định; có tài liệu cài đặt. Không phải một tính năng mới, mà là điều kiện để coi plugin đã tổng quát thật.</div>`;
+
+  document.getElementById("stages").innerHTML = STAGES.map(s => `
+    ${s.id === "s5" ? MILESTONE : ""}
+    <section class="stage" aria-labelledby="b-${s.id}">
+      <header><span class="when">${s.when}</span><h3 id="b-${s.id}">${s.title}</h3></header>
+      <p>${s.note}</p>
+      ${s.items.map(r => `
+      <article class="rel" data-v="${r.v}">
+        <div class="top"><span class="n">${r.v}</span><h3>${r.title}</h3>
+          ${r.half.map(h => `<span class="tag ${h}">${TAG[h]}</span>`).join("")}
+          <span class="tag size">Cỡ ${r.size}</span>
+          ${r.gates.map(g => `<span class="tag gate">Chờ ${g}</span>`).join("")}</div>
+        <dl>
+          <dt>Ai làm được gì</dt><dd>${r.who}</dd>
+          <dt>Xong khi</dt><dd>${r.done}</dd>
+          <dt>Phụ thuộc</dt><dd>${r.dep}</dd>
+          <dt>Salanca dùng khi nào</dt><dd>${r.salanca}</dd>
+        </dl>
+        <div class="src"><b>Nguồn ý tưởng:</b> ${r.src}</div>
+      </article>`).join("")}
+    </section>`).join("");
+
+  const slider = document.getElementById("slider");
+  const outv = document.getElementById("outv");
+  const cap = document.getElementById("cap");
+
+  function apply() {
+    const k = +slider.value;
+    const cur = order[k - 1];
+    outv.textContent = k === 0 ? "Hôm nay" : cur.v;
+    cap.textContent = k === 0
+      ? "Chỉ có phần đã làm: metadata, sitemap và JSON-LD cơ bản, viết riêng trong salanca-web."
+      : "Mốc " + cur.v + ": " + cur.title + "." + (cur.v === "v0.13" ? " Sau mốc này là v1.0, nếu đã cài được vào dự án thứ hai." : "");
+    document.querySelectorAll(".node[data-v]").forEach(n => {
+      if (n.dataset.v === "have") return;
+      n.classList.toggle("on", idx[n.dataset.v] <= k);
+    });
+    document.querySelectorAll(".rel").forEach(c => c.classList.toggle("in", idx[c.dataset.v] <= k));
+  }
+  slider.addEventListener("input", apply);
+  apply();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SEO toolkit: trước và sau</title>
+<style>
+  :root {
+    --bg: #faf8f5; --surface: #ffffff; --ink: #1f1b16; --muted: #6b645b;
+    --line: #e6e0d6; --before: #8a5a00; --before-bg: #fdf3dc;
+    --after: #0b6b4a; --after-bg: #e3f4ec; --warn: #9b2c2c; --warn-bg: #fbe9e7;
+    --accent: #3b3a8f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17140f; --surface: #1f1b15; --ink: #f1ece3; --muted: #a79f92;
+      --line: #342e25; --before: #f0c36a; --before-bg: #3a2d0f;
+      --after: #6fd3a8; --after-bg: #0f2f22; --warn: #f2a3a3; --warn-bg: #3a1717;
+      --accent: #a9a8f5;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17140f; --surface: #1f1b15; --ink: #f1ece3; --muted: #a79f92;
+    --line: #342e25; --before: #f0c36a; --before-bg: #3a2d0f;
+    --after: #6fd3a8; --after-bg: #0f2f22; --warn: #f2a3a3; --warn-bg: #3a1717;
+    --accent: #a9a8f5;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 40px 16px 72px; }
+  h1 { font-size: 1.9rem; line-height: 1.25; margin: 0 0 8px; }
+  h2 { font-size: 1.2rem; margin: 40px 0 12px; }
+  p { margin: 0 0 12px; }
+  .lede { color: var(--muted); max-width: 70ch; }
+  code { font: 0.85em ui-monospace, SFMono-Regular, Consolas, monospace;
+    background: var(--line); padding: 1px 5px; border-radius: 4px; }
+  .callout { border: 1px solid var(--line); border-left: 4px solid var(--accent);
+    background: var(--surface); border-radius: 8px; padding: 14px 16px; margin: 20px 0; }
+  .callout.warn { border-left-color: var(--warn); background: var(--warn-bg); }
+  .callout strong { display: block; margin-bottom: 4px; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin: 20px 0 8px; font-size: .9rem; }
+  .chip { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .78rem; font-weight: 600; }
+  .chip.b { background: var(--before-bg); color: var(--before); }
+  .chip.a { background: var(--after-bg); color: var(--after); }
+
+  .row { display: grid; grid-template-columns: 170px 1fr 1fr 150px; gap: 0;
+    border: 1px solid var(--line); background: var(--surface); }
+  .row + .row { border-top: 0; }
+  .row:first-of-type { border-radius: 10px 10px 0 0; }
+  .row:last-of-type { border-radius: 0 0 10px 10px; }
+  .row > div { padding: 14px 16px; border-left: 1px solid var(--line); font-size: .93rem; }
+  .row > div:first-child { border-left: 0; font-weight: 600; }
+  .head > div { background: var(--bg); font-size: .78rem; text-transform: uppercase;
+    letter-spacing: .05em; color: var(--muted); font-weight: 700; }
+  .cell-b { background: var(--before-bg); }
+  .cell-a { background: var(--after-bg); }
+  .state { display: block; font-size: .75rem; font-weight: 700; margin-bottom: 4px; }
+  .cell-b .state { color: var(--before); }
+  .cell-a .state { color: var(--after); }
+  .val { font-weight: 700; }
+  .val small { display: block; font-weight: 400; color: var(--muted); font-size: .8rem; margin-top: 2px; }
+  ul { margin: 6px 0 0; padding-left: 18px; }
+  li { margin: 2px 0; }
+
+  @media (max-width: 820px) {
+    .row { grid-template-columns: 1fr; border-radius: 10px !important; margin-bottom: 12px; }
+    .row + .row { border-top: 1px solid var(--line); }
+    .row > div { border-left: 0; border-top: 1px solid var(--line); }
+    .row > div:first-child { border-top: 0; font-size: 1rem; }
+    .head { display: none; }
+    .cell-b::before { content: "Hiện tại"; }
+    .cell-a::before { content: "Sau plugin"; }
+    .cell-b::before, .cell-a::before { display: block; font-size: .72rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+  }
+
+  .plan { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin-top: 12px; }
+  .step { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 14px 16px; }
+  .step .n { font-size: .75rem; font-weight: 700; color: var(--accent); }
+  .step h3 { margin: 2px 0 6px; font-size: 1rem; }
+  .step p { font-size: .9rem; color: var(--muted); margin: 0; }
+  footer { margin-top: 40px; color: var(--muted); font-size: .85rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>SEO toolkit: hiện tại và sau khi có plugin</h1>
+  <p class="lede">So sánh dựa trên code thật của <code>salanca-web</code> và <code>salanca-backend</code> (đọc 2026-10-16), không phải phỏng đoán. Cột "Sau plugin" là đề xuất, chưa build.</p>
+
+  <div class="callout">
+    <strong>Kết luận ngắn</strong>
+    SEO của Salanca đã làm khá đủ, nằm trong code web và gắn chặt với Salanca. Plugin không làm Salanca tốt lên nhiều. Giá trị thật nằm ở ba chỗ: client mới (BDS) khỏi viết lại, audit tự động trước go-live (hiện chưa có), và JSON-LD cho sản phẩm/dịch vụ khi ordering và booking lên.
+  </div>
+
+  <div class="legend">
+    <span><span class="chip b">Hiện tại</span> đã verify trong code</span>
+    <span><span class="chip a">Sau plugin</span> đề xuất</span>
+  </div>
+
+  <div class="row head"><div>Hạng mục</div><div>Hiện tại</div><div>Sau plugin</div><div>Giá trị thêm</div></div>
+
+  <div class="row">
+    <div>Meta title, description, canonical, noIndex</div>
+    <div class="cell-b"><span class="state">ĐÃ CÓ</span>
+      Component <code>shared.seo</code> trong Strapi: <code>metaTitle</code> ≤ 60, <code>metaDescription</code> ≤ 160, <code>shareImage</code>, <code>canonicalPath</code>, <code>noIndex</code>. Web gộp theo từng field qua <code>buildRouteMetadata</code>.</div>
+    <div class="cell-a"><span class="state">GIỮ NGUYÊN</span>
+      Dùng chung component này làm chuẩn. Thêm xem trước kết quả Google ngay trong admin và cảnh báo khi title/description quá dài hoặc trùng trang khác.</div>
+    <div class="val">Thấp<small>Salanca đã đủ. Cao cho client mới.</small></div>
+  </div>
+
+  <div class="row">
+    <div>Sitemap</div>
+    <div class="cell-b"><span class="state">ĐÃ CÓ, GẮN CHẶT SALANCA</span>
+      <code>src/app/sitemap.ts</code> khoảng 190 dòng: hreflang vi/en + x-default, loại <code>noIndex</code>, CMS lỗi thì bỏ section chứ không mất cả sitemap. Campaigns, menu sections, locations viết tay từng loại.</div>
+    <div class="cell-a"><span class="state">KHAI BÁO THAY VÌ CODE</span>
+      Mỗi content type khai báo: path pattern, locale, có index hay không. Plugin trả danh sách entry, web chỉ map sang <code>MetadataRoute.Sitemap</code>.</div>
+    <div class="val">Vừa<small>Client mới khỏi viết lại 190 dòng.</small></div>
+  </div>
+
+  <div class="row">
+    <div>Chặn index khi chưa go-live</div>
+    <div class="cell-b"><span class="state">ĐÃ CÓ</span>
+      <code>robots.ts</code> disallow toàn site khi không phải production. Route chỉ index khi đủ 4 điều kiện: <code>indexable</code>, <code>seoReadiness = ready</code>, <code>DEPLOYMENT_ENV=production</code> + <code>SEO_INDEXING=on</code>, và không <code>noIndex</code>.</div>
+    <div class="cell-a"><span class="state">GIỮ LOGIC, ĐỔI NƠI ĐẶT CỜ</span>
+      Cờ go-live nằm một chỗ trong admin thay vì rải ở env và route registry. Audit đọc đúng các cờ này để đối chiếu.</div>
+    <div class="val">Vừa<small>Giảm nguy cơ quên bật hoặc quên tắt.</small></div>
+  </div>
+
+  <div class="row">
+    <div>JSON-LD</div>
+    <div class="cell-b"><span class="state">CÓ MỘT PHẦN</span>
+      <code>structured-data.ts</code> có: WebSite, Restaurant (có giờ mở cửa khi CMS có), Breadcrumb, Offer cho campaign, Restaurant cho từng cơ sở. <b>Không có</b> Product, Article, Service, RealEstateListing, AggregateRating.</div>
+    <div class="cell-a"><span class="state">REGISTRY MAP LOẠI NỘI DUNG</span>
+      <ul>
+        <li>Sản phẩm ordering → Product + Offer (VND, tồn kho)</li>
+        <li>Booking → Service / LocalBusiness</li>
+        <li>BDS → RealEstateListing</li>
+        <li>Review → AggregateRating</li>
+      </ul></div>
+    <div class="val">Cao<small>Khi ordering và booking lên, sản phẩm sẽ chưa có rich result nếu không làm.</small></div>
+  </div>
+
+  <div class="row">
+    <div>Ảnh OG khi chia sẻ link</div>
+    <div class="cell-b"><span class="state">TĨNH + THEO TRANG</span>
+      Một file <code>opengraph-image.jpg</code> mặc định, cộng <code>shareImage</code> owner chọn tay từng trang trong CMS. Sản phẩm không tự có ảnh riêng.</div>
+    <div class="cell-a"><span class="state">TỰ SINH TỪ TEMPLATE</span>
+      1200×630 từ logo + tên + giá + ảnh chính, cache theo hash nội dung, đổi giá hay tên thì sinh lại.</div>
+    <div class="val">Thấp đến vừa<small>Nặng nhất vì render ảnh phía server. Làm cuối.</small></div>
+  </div>
+
+  <div class="row">
+    <div>Audit trước go-live</div>
+    <div class="cell-b"><span class="state">CHƯA CÓ</span>
+      Không thấy script audit hay Lighthouse trong <code>package.json</code>. Chỉ có test đơn vị cho <code>build-metadata</code> và <code>structured-data</code>, cộng checklist trong docs. Kiểm tra toàn site là làm tay.</div>
+    <div class="cell-a"><span class="state">MỘT LỆNH / MỘT NÚT</span>
+      Crawl sitemap, báo pass/fail: thiếu hoặc trùng title/description, ảnh thiếu alt, H1, canonical trỏ staging, còn <code>noindex</code>, link gãy, URL 404 nằm trong sitemap, JSON-LD sai.</div>
+    <div class="val">Cao nhất<small>Sai canonical hoặc quên bỏ noindex là lỗi đắt nhất.</small></div>
+  </div>
+
+  <div class="row">
+    <div>Redirect</div>
+    <div class="cell-b"><span class="state">CHỦ Ý KHÔNG CÓ</span>
+      <code>proxy.ts</code> chỉ redirect 308 cho locale. URL cũ trả 404 vì site chưa live.</div>
+    <div class="cell-a"><span class="state">KHÔNG ĐỔI</span>
+      Làm sau go-live, khi có URL cũ thật cần map.</div>
+    <div class="val">—<small>Đúng quyết định cũ.</small></div>
+  </div>
+
+  <div class="row">
+    <div>Dùng cho BDS / client mới</div>
+    <div class="cell-b"><span class="state">COPY CODE</span>
+      Phải sao chép <code>src/lib/seo</code>, sitemap, robots, adapter rồi sửa tay cho từng site.</div>
+    <div class="cell-a"><span class="state">CÀI VÀ CẤU HÌNH</span>
+      Cài plugin, khai báo content type, nhận sitemap + JSON-LD + audit sẵn.</div>
+    <div class="val">Cao<small>Đây là lý do chính để làm plugin.</small></div>
+  </div>
+
+  <h2>Đính chính và đề xuất thứ tự</h2>
+
+  <div class="callout warn">
+    <strong>Đính chính danh sách ý tưởng trước</strong>
+    Ý "Audit log" (số 10) thực ra đã có: <code>audit-event</code> và <code>audit-log</code> trong <code>salanca-backend/src/api</code>, theo <code>ordering-o15-audit-log.md</code>. Bỏ khỏi danh sách cần làm. "SEO toolkit" cũng không phải bắt đầu từ số 0 như mình tả.
+  </div>
+
+  <p>Vì Salanca đã chạy tốt, không nên viết lại. Làm plugin ngay lúc này dễ ra abstraction sai vì mới có một người dùng. Đề xuất đi từng bước, mỗi bước trả lời được câu hỏi có đáng làm tiếp không:</p>
+
+  <div class="plan">
+    <div class="step"><div class="n">BƯỚC 1</div><h3>Audit CLI cho Salanca</h3>
+      <p>Một script chạy trên site hiện có. Lấp chỗ trống thật duy nhất, dùng được ngay trước go-live, chưa cần plugin.</p></div>
+    <div class="step"><div class="n">BƯỚC 2</div><h3>JSON-LD cho ordering</h3>
+      <p>Product + Offer khi trang sản phẩm ordering lên web. Viết theo kiểu registry để dễ rút ra sau.</p></div>
+    <div class="step"><div class="n">BƯỚC 3</div><h3>Rút thành plugin</h3>
+      <p>Chỉ khi BDS cần SEO thật. Lúc đó đã có hai người dùng, biết phần nào chung, phần nào riêng.</p></div>
+    <div class="step"><div class="n">SAU CÙNG</div><h3>OG image tự sinh</h3>
+      <p>Nặng nhất, lợi ích thấp nhất. Chỉ làm khi owner thật sự cần ảnh chia sẻ riêng cho từng sản phẩm.</p></div>
+  </div>
+
+  <footer>Nguồn đối chiếu: <code>salanca-web/docs/seo-cms-integration.md</code>, <code>src/app/sitemap.ts</code>, <code>src/app/robots.ts</code>, <code>src/lib/seo/structured-data.ts</code>, <code>salanca-backend/src/components/shared/seo.json</code>.</footer>
+</main>
+</body>
+</html>

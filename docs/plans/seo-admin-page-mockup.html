@@ -1,0 +1,736 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup trang SEO admin</title>
+<style>
+  :root {
+    --bg: #f6f6f9; --surface: #ffffff; --ink: #32324d; --muted: #666687; --line: #dcdce4;
+    --primary: #4945ff; --primary-ink: #ffffff; --primary-soft: #f0f0ff;
+    --err: #d02b20; --err-bg: #fcecea;
+    --warn: #8a5100; --warn-bg: #fdf4dc;
+    --info: #0c75af; --info-bg: #eaf5ff;
+    --ok: #2f6846; --ok-bg: #eafbe7;
+    --side: #212134; --side-ink: #c0c0cf;
+    --radius: 6px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #181826; --surface: #212134; --ink: #eaeaef; --muted: #a5a5ba; --line: #4a4a6a;
+      --primary: #7b79ff; --primary-ink: #181826; --primary-soft: #26264a;
+      --err: #ff8a80; --err-bg: #3d1d1d; --warn: #f5c36b; --warn-bg: #3a2c10;
+      --info: #7ec8f2; --info-bg: #14293a; --ok: #7bd69a; --ok-bg: #12301e;
+      --side: #0f0f1a; --side-ink: #a5a5ba;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  a { color: var(--primary); }
+  code { font: 12px ui-monospace, Consolas, monospace; background: var(--bg); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--line); }
+  h1, h2, h3 { margin: 0; }
+
+  /* demo controls */
+  .demo { background: #1b1b2e; color: #d9d9e8; padding: 8px 16px; display: flex; gap: 16px; flex-wrap: wrap; align-items: center; font-size: 12px; }
+  .demo b { color: #fff; }
+  .demo label { display: flex; gap: 6px; align-items: center; }
+  .demo select { background: #2d2d46; color: #fff; border: 1px solid #55557a; border-radius: 4px; padding: 3px 6px; font: inherit; }
+
+  /* global go-live banner (appears on EVERY admin page) */
+  .gbanner { display: flex; gap: 12px; align-items: center; padding: 9px 16px; font-weight: 600; font-size: 13px; flex-wrap: wrap; }
+  .gbanner .sp { flex: 1; }
+  .gbanner a { font-weight: 700; }
+  .gbanner.s-staging { background: var(--info-bg); color: var(--info); }
+  .gbanner.s-blocked { background: var(--err); color: #fff; }
+  .gbanner.s-blocked a { color: #fff; }
+  .gbanner.s-live { background: var(--ok-bg); color: var(--ok); }
+
+  .shell { display: grid; grid-template-columns: 220px 1fr; min-height: 640px; }
+  nav.side { background: var(--side); color: var(--side-ink); padding: 16px 0; }
+  nav.side .brand { color: #fff; font-weight: 700; padding: 0 20px 16px; }
+  nav.side a { display: flex; gap: 8px; align-items: center; padding: 9px 20px; color: var(--side-ink); text-decoration: none; }
+  nav.side a.on { background: #32324d; color: #fff; border-left: 3px solid var(--primary); padding-left: 17px; }
+  nav.side .tagdot { margin-left: auto; width: 8px; height: 8px; border-radius: 50%; background: var(--err); }
+  nav.side .tagdot[hidden] { display: none; }
+  main { padding: 24px 32px 64px; min-width: 0; }
+
+  .head { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 16px; }
+  .head .t { flex: 1; min-width: 220px; }
+  .head h1 { font-size: 26px; }
+  .head p { margin: 2px 0 0; color: var(--muted); }
+  .btn { display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--line); background: var(--surface);
+    padding: 7px 14px; border-radius: var(--radius); font-weight: 600; text-decoration: none; color: var(--ink); }
+  .btn.primary { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
+  .btn.danger { background: var(--err); border-color: var(--err); color: #fff; }
+  .btn.small { padding: 3px 10px; font-size: 12px; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 20px; overflow-x: auto; }
+  .tabs button { background: none; border: 0; padding: 10px 16px; font-weight: 600; color: var(--muted); border-bottom: 3px solid transparent; white-space: nowrap; }
+  .tabs button[aria-selected="true"] { color: var(--primary); border-color: var(--primary); }
+  .tabs .count { background: var(--err); color: #fff; border-radius: 999px; font-size: 11px; padding: 0 6px; margin-left: 4px; }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  .pad { padding: 16px 20px; }
+
+  /* summary */
+  .sum { display: grid; grid-template-columns: 1.3fr repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+  .score { display: flex; gap: 16px; align-items: center; padding: 16px 20px; }
+  .ring { position: relative; width: 84px; height: 84px; flex: none; }
+  .ring svg { transform: rotate(-90deg); }
+  .ring .n { position: absolute; inset: 0; display: grid; place-items: center; font-size: 24px; font-weight: 800; }
+  .score small { display: block; color: var(--muted); }
+  .score .delta { font-weight: 700; }
+  .delta.up { color: var(--ok); } .delta.down { color: var(--err); }
+  .cnt { padding: 16px 20px; border-left: 4px solid var(--line); }
+  .cnt .big { font-size: 28px; font-weight: 800; line-height: 1.1; }
+  .cnt.err { border-left-color: var(--err); } .cnt.err .big { color: var(--err); }
+  .cnt.warn { border-left-color: #d9822f; } .cnt.warn .big { color: var(--warn); }
+  .cnt.info { border-left-color: var(--info); } .cnt.info .big { color: var(--info); }
+  .cnt small { color: var(--muted); display: block; }
+
+  .tools { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+  .seg button { border: 0; background: none; padding: 6px 14px; font-weight: 600; color: var(--muted); }
+  .seg button[aria-pressed="true"] { background: var(--primary-soft); color: var(--primary); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 3px 12px; font-size: 12px; font-weight: 600; }
+  .chip[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+
+  .badge { display: inline-block; border-radius: 4px; padding: 1px 8px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; }
+  .badge.err { background: var(--err-bg); color: var(--err); }
+  .badge.warn { background: var(--warn-bg); color: var(--warn); }
+  .badge.info { background: var(--info-bg); color: var(--info); }
+  .badge.ok { background: var(--ok-bg); color: var(--ok); }
+  .badge.new { background: var(--primary-soft); color: var(--primary); }
+  .badge.mute { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+
+  .irow { border-top: 1px solid var(--line); }
+  .irow:first-child { border-top: 0; }
+  .irow > button.hd { width: 100%; display: grid; grid-template-columns: 78px 1fr auto 24px; gap: 12px; align-items: center; text-align: left; background: none; border: 0; padding: 12px 16px; }
+  .irow > button.hd:hover { background: var(--bg); }
+  .irow .tt { font-weight: 600; }
+  .irow .ds { color: var(--muted); font-size: 12px; }
+  .irow .pg { font-weight: 700; white-space: nowrap; }
+  .irow .pg small { color: var(--muted); font-weight: 400; }
+  .chev { transition: transform .15s; color: var(--muted); }
+  [aria-expanded="true"] .chev { transform: rotate(90deg); }
+  .detail { padding: 4px 16px 16px 106px; }
+  .detail .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .detail h4 { margin: 0 0 2px; font-size: 11px; text-transform: uppercase; color: var(--muted); letter-spacing: .05em; }
+  .detail p { margin: 0; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 8px 12px; background: var(--bg); border-bottom: 1px solid var(--line); }
+  td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  tr:last-child td { border-bottom: 0; }
+  .tbl { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+  .acts { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+  .foot { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+
+  .empty { text-align: center; padding: 56px 24px; }
+  .empty h2 { font-size: 18px; margin-bottom: 4px; }
+  .empty p { color: var(--muted); margin: 0 0 16px; }
+  .prog { height: 8px; background: var(--bg); border-radius: 999px; overflow: hidden; max-width: 420px; margin: 16px auto 0; border: 1px solid var(--line); }
+  .prog i { display: block; height: 100%; width: 0; background: var(--primary); transition: width 1.6s ease; }
+
+  /* toggle */
+  .sw { position: relative; width: 40px; height: 22px; flex: none; }
+  .sw input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+  .sw i { position: absolute; inset: 0; background: var(--line); border-radius: 999px; transition: background .15s; pointer-events: none; }
+  .sw i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform .15s; }
+  .sw input:checked + i { background: var(--ok); }
+  .sw input:checked + i::after { transform: translateX(18px); }
+  .sw input:focus-visible + i { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+  /* go-live */
+  .layers { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .layer { padding: 14px 16px; }
+  .layer h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 6px; }
+  .layer .v { font-weight: 800; font-size: 16px; }
+  .layer small { color: var(--muted); display: block; margin-top: 2px; }
+  .gate { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; padding: 16px 20px; margin-bottom: 16px; }
+  .gate .tx { flex: 1; min-width: 240px; }
+  .ck { display: grid; grid-template-columns: 28px 1fr auto; gap: 12px; align-items: center; padding: 12px 16px; border-top: 1px solid var(--line); }
+  .ck:first-child { border-top: 0; }
+  .ck .ic { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 800; }
+  .ck .ic.ok { background: var(--ok); color: #fff; }
+  .ck .ic.no { background: var(--err); color: #fff; }
+  .ck .ic.td { background: var(--bg); border: 2px solid var(--line); color: var(--muted); }
+  .ck .ds { color: var(--muted); font-size: 12px; }
+  .ck .who { font-size: 11px; }
+
+  /* modal */
+  .scrim { position: fixed; inset: 0; background: rgba(33,33,52,.6); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 50; }
+  .scrim.open { display: flex; }
+  .modal { background: var(--surface); border-radius: 8px; max-width: 480px; width: 100%; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,.35); }
+  .modal h2 { font-size: 18px; margin-bottom: 8px; }
+  .modal input[type=text] { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); color: var(--ink); font: inherit; margin: 6px 0 14px; }
+  .modal .row { display: flex; gap: 8px; justify-content: flex-end; }
+  .toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: #212134; color: #fff; padding: 10px 16px; border-radius: 6px; font-size: 13px; display: none; z-index: 60; max-width: 90vw; }
+  .toast.on { display: block; }
+
+  /* dev spec */
+  .spec { max-width: 1100px; margin: 0 auto; padding: 8px 32px 64px; }
+  .spec h2 { font-size: 20px; margin: 28px 0 8px; }
+  .spec h3 { font-size: 14px; margin: 16px 0 4px; }
+  .spec ul { margin: 4px 0 8px; padding-left: 20px; }
+  .spec pre { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; overflow-x: auto; font: 12px/1.5 ui-monospace, Consolas, monospace; }
+  .spec .note { border-left: 4px solid var(--warn); background: var(--warn-bg); padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; }
+
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; }
+    nav.side { display: none; }
+    main { padding: 16px; }
+    .sum { grid-template-columns: 1fr 1fr 1fr; }
+    .sum .score { grid-column: 1 / -1; }
+    .layers { grid-template-columns: 1fr; }
+    .detail { padding-left: 16px; }
+    .detail .two { grid-template-columns: 1fr; }
+    .irow > button.hd { grid-template-columns: 1fr auto 20px; }
+    .irow > button.hd .badge { grid-column: 1 / -1; justify-self: start; }
+    .spec { padding: 8px 16px 48px; }
+    td, th { padding: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="demo" role="group" aria-label="Điều khiển demo">
+  <b>Điều khiển demo (không thuộc UI):</b>
+  <label>Môi trường
+    <select id="d-env">
+      <option value="staging">Staging</option>
+      <option value="blocked" selected>Production, index đang tắt</option>
+      <option value="live">Production, index đang mở</option>
+    </select>
+  </label>
+  <label>Kết quả audit
+    <select id="d-run">
+      <option value="none">Chưa chạy lần nào</option>
+      <option value="done" selected>Có kết quả</option>
+      <option value="clean">Có kết quả, đã sửa hết lỗi</option>
+    </select>
+  </label>
+  <span>Dữ liệu mẫu, trang và số liệu là giả định.</span>
+</div>
+
+<!-- Global banner: renders on top of EVERY admin page, not only the SEO page -->
+<div id="gbanner" class="gbanner" role="status"></div>
+
+<div class="shell">
+  <nav class="side" aria-label="Menu admin (mô phỏng)">
+    <div class="brand">Salanca CMS</div>
+    <a href="#">Content Manager</a>
+    <a href="#">Content-Type Builder</a>
+    <a href="#">Media Library</a>
+    <a href="#" class="on" aria-current="page">SEO <span class="tagdot" id="navdot" hidden></span></a>
+    <a href="#">Leads &amp; đặt bàn</a>
+    <a href="#">Cài đặt</a>
+  </nav>
+
+  <main>
+    <div class="head">
+      <div class="t">
+        <h1>SEO</h1>
+        <p id="lastrun"></p>
+      </div>
+      <button class="btn primary" id="run">Chạy audit</button>
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tab-audit" aria-selected="true" data-tab="audit">Audit <span class="count" id="tabcount" hidden></span></button>
+      <button role="tab" id="tab-sitemap" aria-selected="false" data-tab="sitemap">Sitemap</button>
+      <button role="tab" id="tab-golive" aria-selected="false" data-tab="golive">Go-live</button>
+    </div>
+
+    <section id="p-audit" role="tabpanel" aria-labelledby="tab-audit"></section>
+    <section id="p-sitemap" role="tabpanel" aria-labelledby="tab-sitemap" hidden></section>
+    <section id="p-golive" role="tabpanel" aria-labelledby="tab-golive" hidden></section>
+  </main>
+</div>
+
+<div class="scrim" id="scrim" role="dialog" aria-modal="true" aria-labelledby="m-title">
+  <div class="modal" id="modal"></div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<div class="spec" style="padding-bottom:0">
+  <h2>Phụ: widget trên Trang chủ admin</h2>
+  <p style="color:var(--muted);margin:0 0 12px">Repo đã có <code>app.widgets.register</code> cho lead (Strapi 5.13+, repo đang chạy 5.51.1). Widget này là phương án dự phòng nếu banner toàn cục không làm được, và hữu ích riêng vì owner mở admin là thấy ngay.</p>
+  <div id="widget" class="card" style="max-width:420px"></div>
+</div>
+
+<!-- ===================== SPEC CHO NGƯỜI/AI CODE ===================== -->
+<div class="spec">
+  <h2>Ghi chú cho người code</h2>
+  <div class="note"><b>Giả định cần xác nhận:</b> audit đọc từ DB Strapi + route registry của web, không crawl URL live. Vì vậy không phát hiện được lỗi chỉ có sau khi frontend render. Nguồn nghiên cứu: <code>seo-admin-page-research.md</code>. Custom Admin UI cần được duyệt theo <code>AGENTS.md</code> của backend.</div>
+
+  <h3>Bố cục</h3>
+  <ul>
+    <li>Banner go-live nằm trên cùng, hiện trên <b>mọi</b> trang admin. Tài liệu Strapi 5 <b>không có</b> vùng chèn toàn cục (injection zone nào cũng thuộc một plugin cụ thể). Nhưng <code>src/admin/app.tsx</code> đã bọc toàn bộ route bằng <code>registeredApp.router.addRoute(...)</code> cùng các Provider của hộp thư. Đặt banner ở lớp bọc đó, theo đúng cách repo đang làm. <b>Cần spike nhỏ</b>: layout Strapi cao 100vh nên banner phải sticky/fixed, kiểm tra không đẩy lệch thanh menu trái.</li>
+    <li>Phương án dự phòng nếu spike thất bại: widget trên Trang chủ admin (xem mockup bên dưới) cộng chip trạng thái ở <code>listView.actions</code> và <code>editView.right-links</code>, là hai vùng chèn có tài liệu của Content Manager.</li>
+    <li>Trang SEO có 3 tab: <b>Audit</b>, <b>Sitemap</b>, <b>Go-live</b>. Chấm đỏ cạnh mục menu SEO khi còn lỗi. Mục menu dùng <code>app.addMenuLink</code> ở vị trí khoảng 7 (hiện: Home 0, leads 0.1 đến 0.3, Content Manager 1, Media Library 4, Nhật ký 8, Settings 9).</li>
+    <li>Làm theo khuôn của <code>src/admin/audit-log</code> (Screen, Filters, Table, DetailDrawer, helper có test, <code>vi.ts</code> cho bản dịch) và quyền theo <code>notification-settings</code>.</li>
+    <li>Điều khiển demo ở đầu file chỉ để xem các trạng thái, không build.</li>
+  </ul>
+
+  <h3>Trạng thái banner</h3>
+  <ul>
+    <li><code>staging</code>: nền xanh dương nhạt, "Staging: index tắt đúng như mong đợi". Không báo động.</li>
+    <li><code>blocked</code>: nền đỏ đặc, "Production đang chặn index" kèm link sang tab Go-live. Đây là trạng thái nguy hiểm.</li>
+    <li><code>live</code>: nền xanh lá nhạt, "Index đang mở".</li>
+    <li>Index chỉ mở khi <b>cả hai</b> lớp đúng: env (<code>DEPLOYMENT_ENV=production</code> và <code>SEO_INDEXING=on</code>) <b>và</b> công tắc admin. Công tắc admin không bao giờ vượt quyền env.</li>
+  </ul>
+
+  <h3>Hành vi chính</h3>
+  <ul>
+    <li>Điểm = số trang không có lỗi mức Lỗi / tổng số trang × 100 (công thức Ahrefs). Luôn hiện kèm "x/y trang sạch lỗi" vì site ít trang nên điểm dao động mạnh.</li>
+    <li>Ba mức: <b>Lỗi</b> (chặn go-live), <b>Cảnh báo</b>, <b>Lưu ý</b>. Lưu ý không tính vào điểm. Dữ liệu chừa thêm trường <code>priority</code> (cao/vừa/thấp) tách khỏi <code>severity</code>, theo mô hình Screaming Frog, dù MVP chưa hiện.</li>
+    <li>Hai cách xem: theo loại lỗi (mặc định) và theo trang.</li>
+    <li>Mỗi issue có: tiêu đề, vì sao quan trọng, cách sửa, danh sách trang, nhãn <b>Mới</b> nếu chưa có ở lần chạy trước.</li>
+    <li>Nút <b>Sửa</b> mở đúng entry trong Content Manager. Dạng URL (Strapi 5, kiểm tra lại khi code): <code>/admin/content-manager/collection-types/&lt;uid&gt;/&lt;documentId&gt;?plugins[i18n][locale]=vi</code>; single type: <code>/admin/content-manager/single-types/&lt;uid&gt;?plugins[i18n][locale]=vi</code>.</li>
+    <li><b>Bỏ qua (có chủ ý)</b>: ghi lý do, issue chuyển sang nhóm "Đã bỏ qua", không tính điểm. Ghi vào <code>audit-event</code>.</li>
+    <li><b>Chạy lại check này</b>: chạy riêng một check, không cần audit cả site.</li>
+    <li>Trang noindex có chủ ý hiện ở mức Lưu ý, không phải lỗi.</li>
+    <li>Tab Sitemap: tắt một loại nội dung = loại khỏi sitemap <b>và</b> thêm noindex (một cơ chế nhất quán). Không có ô <code>priority</code> hay <code>changefreq</code> vì Google bỏ qua cả hai. <code>lastmod</code> chỉ dùng khi lấy từ <code>updatedAt</code> thật của nội dung, không lấy giờ build.</li>
+    <li>Mở index: nút bị khóa khi còn lỗi hoặc khi env không phải production; mở cần gõ <code>MỞ INDEX</code>; mọi thay đổi ghi vào <code>audit-event</code> (append-only).</li>
+    <li><b>Tắt index sau khi đã live phải dùng noindex, không dùng robots.txt Disallow.</b> Google chỉ thấy thẻ noindex khi được phép thu thập trang; nếu robots.txt chặn thì trang đã có trên Google vẫn nằm lại. Hiện <code>salanca-web/src/app/robots.ts</code> trả <code>Disallow: /</code> khi <code>crawlIndexable</code> tắt. Ổn cho staging (chưa từng index), nhưng với "production đã live rồi tắt" thì phải đổi: giữ <code>Allow</code> và phát noindex. Đây là quyết định cần bạn chốt.</li>
+  </ul>
+
+  <h3>Dữ liệu gợi ý</h3>
+<pre>seo_audit_run     { id, startedAt, finishedAt, status: running|done|failed,
+                    totalPages, cleanPages, score, triggeredBy }
+seo_audit_finding { id, runId, checkId, severity: error|warning|notice,
+                    priority?, entryUid, documentId, locale, path,
+                    detail, dismissedReason?, dismissedBy? }
+seo_setting       { indexingEnabled: boolean, updatedBy, updatedAt }   // singleton
+seo_sitemap_rule  { contentTypeUid, includeInSitemap: boolean }</pre>
+
+  <h3>Check MVP (đọc từ DB + registry)</h3>
+  <ul>
+    <li>canonical chứa domain staging / không phải đường dẫn tương đối hợp lệ</li>
+    <li>trang trong sitemap nhưng <code>noIndex = true</code></li>
+    <li>meta title trùng giữa các trang cùng locale; meta title quá ngắn (dưới 30 ký tự; trên 60 đã bị schema chặn)</li>
+    <li>thiếu meta description, thiếu bản dịch theo locale</li>
+    <li>thiếu ảnh share; ảnh thiếu alt</li>
+    <li>hreflang thiếu bản đối ứng</li>
+    <li>route <code>seoReadiness</code> khác <code>ready</code> nhưng đang bật index</li>
+    <li>trang có noindex nhưng robots.txt lại chặn thu thập (Google không thấy thẻ noindex)</li>
+  </ul>
+
+  <h3>Trạng thái giao diện cần làm</h3>
+  <ul>
+    <li>Chưa chạy lần nào: màn trống kèm nút chạy audit.</li>
+    <li>Đang chạy: thanh tiến độ, khóa nút, không đóng được trang nhưng không chặn điều hướng.</li>
+    <li>Chạy lỗi: thông báo lỗi và nút thử lại (chưa vẽ trong mockup này).</li>
+    <li>Quyền: chỉ vai trò có quyền "seo.manage" mới thấy công tắc Go-live và nút Bỏ qua; vai trò khác chỉ đọc.</li>
+  </ul>
+</div>
+
+<script>
+(() => {
+  const TOTAL_PAGES = 38;
+  const PREV_SCORE = 85;
+  const HISTORY = [70, 76, 79, 83, PREV_SCORE];
+  const FIXED_SINCE_LAST = 3;
+
+  /* sample data */
+  const ISSUES = [
+    { id: "canon-staging", sev: "error", isNew: true,
+      title: "Canonical trỏ về domain staging",
+      why: "Google có thể bỏ trang thật và giữ bản staging trong kết quả tìm kiếm.",
+      fix: "Xóa giá trị ở ô Đường dẫn chuẩn, hoặc sửa thành đường dẫn tương đối như /vi/menu/rodizio.",
+      pages: [
+        { path: "/vi/menu/rodizio", loc: "vi", note: "canonicalPath = https://staging.salanca.vn/vi/menu/rodizio", uid: "menu-package" },
+        { path: "/en/menu/rodizio", loc: "en", note: "canonicalPath = https://staging.salanca.vn/en/menu/rodizio", uid: "menu-package" },
+        { path: "/vi/campaigns/thang-10", loc: "vi", note: "canonicalPath = https://staging.salanca.vn/vi/campaigns/thang-10", uid: "campaign" } ] },
+    { id: "sitemap-noindex", sev: "error", isNew: false,
+      title: "Trang vừa nằm trong sitemap vừa bị noindex",
+      why: "Tín hiệu mâu thuẫn: sitemap nói hãy index, thẻ noindex nói đừng. Google thường bỏ qua sitemap, nhưng báo lỗi trong Search Console.",
+      fix: "Bỏ tích noIndex nếu muốn trang hiện trên Google, hoặc tắt loại nội dung này khỏi sitemap.",
+      pages: [ { path: "/vi/campaigns/tet-2027", loc: "vi", note: "noIndex = true, nhưng chiến dịch đang được xuất bản", uid: "campaign" } ] },
+    { id: "title-dup", sev: "warning", isNew: false,
+      title: "Meta title trùng nhau",
+      why: "Hai trang cùng tiêu đề trên Google khiến khách khó phân biệt và Google tự chọn một trang.",
+      fix: "Đặt tiêu đề riêng cho từng trang, nêu rõ nội dung chính của trang đó.",
+      pages: [
+        { path: "/vi/menu/buffet-trua", loc: "vi", note: "\"Thực đơn Buffet | Salanca\"", uid: "menu-package" },
+        { path: "/vi/menu/buffet-toi", loc: "vi", note: "\"Thực đơn Buffet | Salanca\"", uid: "menu-package" } ] },
+    { id: "desc-missing", sev: "warning", isNew: false,
+      title: "Thiếu meta description ở bản tiếng Anh",
+      why: "Không có mô tả, Google tự cắt một đoạn văn ngẫu nhiên từ trang.",
+      fix: "Mở entry, chuyển sang locale English, điền Mô tả khi hiển thị trên Google (tối đa 160 ký tự).",
+      pages: [
+        { path: "/en/story", loc: "en", note: "metaDescription trống", uid: "story-page" },
+        { path: "/en/space", loc: "en", note: "metaDescription trống", uid: "space-page" },
+        { path: "/en/experience", loc: "en", note: "metaDescription trống", uid: "experience-page" } ] },
+    { id: "share-image", sev: "warning", isNew: false,
+      title: "Thiếu ảnh chia sẻ (OG)",
+      why: "Khi gửi link qua Zalo/Facebook sẽ chỉ hiện ảnh mặc định của cả site.",
+      fix: "Chọn Ảnh share cho trang. Kích thước gợi ý 1200×630.",
+      pages: [
+        { path: "/vi/locations/quan-1", loc: "vi", note: "shareImage trống", uid: "location" },
+        { path: "/vi/locations/quan-7", loc: "vi", note: "shareImage trống", uid: "location" },
+        { path: "/vi/menu/category/lau", loc: "vi", note: "shareImage trống", uid: "menu-category" },
+        { path: "/vi/menu/category/nuong", loc: "vi", note: "shareImage trống", uid: "menu-category" } ] },
+    { id: "hreflang", sev: "warning", isNew: true,
+      title: "Thiếu bản dịch đối ứng (hreflang)",
+      why: "Trang có bản vi nhưng chưa có bản en nên Google không nối được hai phiên bản.",
+      fix: "Tạo bản dịch cho locale còn thiếu và xuất bản, hoặc đánh dấu trang là chỉ một ngôn ngữ.",
+      pages: [ { path: "/vi/campaigns/tet-2027", loc: "vi", note: "chưa có bản en được xuất bản", uid: "campaign" } ] },
+    { id: "title-short", sev: "notice", isNew: false,
+      title: "Meta title ngắn hơn 30 ký tự",
+      why: "Còn dư chỗ để nêu thêm lợi ích hoặc từ khóa. Không bắt buộc sửa.",
+      fix: "Thêm ngành hàng hoặc khu vực vào tiêu đề nếu phù hợp.",
+      pages: [
+        { path: "/vi/contact", loc: "vi", note: "\"Liên hệ | Salanca\" (18 ký tự)", uid: "contact-page" },
+        { path: "/en/contact", loc: "en", note: "\"Contact | Salanca\" (18 ký tự)", uid: "contact-page" } ] },
+    { id: "alt-missing", sev: "notice", isNew: false,
+      title: "Ảnh thiếu mô tả (alt)",
+      why: "Giúp người khiếm thị và giúp Google hiểu ảnh.",
+      fix: "Thêm Alternative text trong Media Library.",
+      pages: [
+        { path: "/vi/menu/category/lau", loc: "vi", note: "3 ảnh", uid: "menu-category" },
+        { path: "/vi/space", loc: "vi", note: "2 ảnh", uid: "space-page" },
+        { path: "/vi/story", loc: "vi", note: "1 ảnh", uid: "story-page" } ] },
+    { id: "intended-noindex", sev: "notice", isNew: false, scoreless: true,
+      title: "Trang noindex có chủ ý",
+      why: "Báo để biết, không phải lỗi. Trang này cố ý ẩn khỏi Google.",
+      fix: "Không cần làm gì. Nếu muốn hiện trên Google, bỏ tích noIndex.",
+      pages: [
+        { path: "/vi/privacy-draft", loc: "vi", note: "noIndex = true, bản nháp", uid: "privacy" },
+        { path: "/vi/campaigns/noi-bo", loc: "vi", note: "noIndex = true, chiến dịch nội bộ", uid: "campaign" } ] }
+  ];
+
+  const SITEMAP = [
+    { label: "Trang chính", uid: "route registry", urls: 16, excluded: 0, sample: "/vi, /vi/menu, /vi/contact", on: true },
+    { label: "Mục thực đơn (menu sections)", uid: "menu-package", urls: 6, excluded: 0, sample: "/vi/menu/rodizio", on: true },
+    { label: "Danh mục thực đơn", uid: "menu-category", urls: 4, excluded: 0, sample: "/vi/menu/category/lau", on: true },
+    { label: "Chiến dịch", uid: "campaign", urls: 4, excluded: 2, sample: "/vi/campaigns/thang-10", on: true },
+    { label: "Cơ sở (locations)", uid: "location", urls: 4, excluded: 0, sample: "/vi/locations/quan-1", on: true },
+    { label: "Chính sách riêng tư", uid: "privacy", urls: 2, excluded: 0, sample: "/vi/privacy", on: true }
+  ];
+
+  const state = {
+    env: "blocked", run: "done", tab: "audit", view: "type", sev: "all",
+    open: new Set(), dismissed: new Set(), sitemap: SITEMAP.map(r => ({ ...r })),
+    running: false, manual: { gsc: false, owner: false }
+  };
+
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const SEV_LABEL = { error: "Lỗi", warning: "Cảnh báo", notice: "Lưu ý" };
+  const SEV_CLS = { error: "err", warning: "warn", notice: "info" };
+
+  function activeIssues() {
+    let list = ISSUES.filter(i => !state.dismissed.has(i.id));
+    if (state.run === "clean") list = list.filter(i => i.sev !== "error");
+    return list;
+  }
+  function stats() {
+    const list = activeIssues();
+    const errPaths = new Set();
+    list.filter(i => i.sev === "error").forEach(i => i.pages.forEach(p => errPaths.add(p.path)));
+    const clean = TOTAL_PAGES - errPaths.size;
+    return {
+      list, clean, score: Math.round(clean / TOTAL_PAGES * 100),
+      err: list.filter(i => i.sev === "error").length,
+      warn: list.filter(i => i.sev === "warning").length,
+      notice: list.filter(i => i.sev === "notice").length,
+      newCount: list.filter(i => i.isNew).length
+    };
+  }
+
+  /* ---------- global banner ---------- */
+  function renderBanner() {
+    const el = $("#gbanner");
+    el.className = "gbanner s-" + state.env;
+    const map = {
+      staging: `<span>Staging: index đang tắt, đúng như mong đợi.</span><span class="sp"></span>`,
+      blocked: `<span>Production đang CHẶN index. Google không thấy site này.</span><span class="sp"></span><a href="#" data-goto="golive">Mở trang Go-live</a>`,
+      live: `<span>Index đang mở. Google có thể thu thập site này.</span><span class="sp"></span><a href="#" data-goto="golive">Xem trạng thái</a>`
+    };
+    el.innerHTML = map[state.env];
+  }
+
+  /* ---------- header ---------- */
+  function renderHead() {
+    const s = stats();
+    const hasRun = state.run !== "none";
+    $("#lastrun").textContent = hasRun ? "Lần chạy gần nhất: hôm nay 09:14, 38 trang, mất 6 giây." : "Chưa chạy audit lần nào.";
+    const tc = $("#tabcount");
+    tc.hidden = !(hasRun && s.err > 0);
+    tc.textContent = s.err;
+    $("#navdot").hidden = !(hasRun && s.err > 0);
+    $("#run").disabled = state.running;
+    $("#run").textContent = state.running ? "Đang chạy…" : (hasRun ? "Chạy lại audit" : "Chạy audit");
+  }
+
+  /* ---------- audit tab ---------- */
+  function spark(values) {
+    const w = 120, h = 32, min = Math.min(...values) - 2, max = Math.max(...values) + 2;
+    const pts = values.map((v, i) => `${(i / (values.length - 1) * (w - 6) + 3).toFixed(1)},${(h - 3 - (v - min) / (max - min) * (h - 6)).toFixed(1)}`);
+    const last = pts[pts.length - 1].split(",");
+    return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img" aria-label="Điểm 6 lần chạy gần nhất: ${values.join(", ")}"><polyline fill="none" stroke="currentColor" stroke-width="2" points="${pts.join(" ")}"/><circle cx="${last[0]}" cy="${last[1]}" r="3.5" fill="currentColor"/></svg>`;
+  }
+  function ring(score) {
+    const r = 36, c = 2 * Math.PI * r;
+    const col = score >= 90 ? "var(--ok)" : score >= 70 ? "#d9822f" : "var(--err)";
+    return `<div class="ring"><svg width="84" height="84" viewBox="0 0 84 84"><circle cx="42" cy="42" r="${r}" fill="none" stroke="var(--line)" stroke-width="8"/><circle cx="42" cy="42" r="${r}" fill="none" stroke="${col}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - score / 100)}"/></svg><div class="n">${score}</div></div>`;
+  }
+
+  function renderAudit() {
+    const el = $("#p-audit");
+    if (state.running) {
+      el.innerHTML = `<div class="card empty"><h2>Đang kiểm tra ${TOTAL_PAGES} trang…</h2><p>Đọc nội dung từ CMS và so với danh sách route. Thường mất dưới 10 giây.</p><div class="prog"><i id="progbar"></i></div></div>`;
+      requestAnimationFrame(() => requestAnimationFrame(() => { const b = $("#progbar"); if (b) b.style.width = "100%"; }));
+      return;
+    }
+    if (state.run === "none") {
+      el.innerHTML = `<div class="card empty"><h2>Chưa có kết quả audit</h2><p>Chạy audit để kiểm tra title, description, canonical, sitemap và ảnh chia sẻ trước khi mở index cho Google.</p><button class="btn primary" data-act="run">Chạy audit</button></div>`;
+      return;
+    }
+    const s = stats();
+    const delta = s.score - PREV_SCORE;
+    const dCls = delta >= 0 ? "up" : "down";
+    const dTxt = (delta >= 0 ? "+" : "") + delta;
+
+    let rows = s.list.filter(i => state.sev === "all" || i.sev === state.sev);
+    let body = "";
+    if (state.view === "type") {
+      body = rows.map(issueRow).join("") || `<div class="pad" style="color:var(--muted)">Không có vấn đề nào ở mức này.</div>`;
+    } else {
+      const byPage = new Map();
+      rows.forEach(i => i.pages.forEach(p => {
+        if (!byPage.has(p.path)) byPage.set(p.path, { path: p.path, loc: p.loc, uid: p.uid, items: [] });
+        byPage.get(p.path).items.push({ issue: i, note: p.note });
+      }));
+      const order = { error: 0, warning: 1, notice: 2 };
+      const pages = [...byPage.values()].sort((a, b) =>
+        Math.min(...a.items.map(x => order[x.issue.sev])) - Math.min(...b.items.map(x => order[x.issue.sev])) || b.items.length - a.items.length);
+      body = pages.map(pageRow).join("") || `<div class="pad" style="color:var(--muted)">Không có trang nào ở mức này.</div>`;
+    }
+
+    el.innerHTML = `
+      <div class="sum">
+        <div class="card score">${ring(s.score)}
+          <div>
+            <b>Điểm sức khỏe SEO</b>
+            <small>${s.clean}/${TOTAL_PAGES} trang sạch lỗi</small>
+            <span class="delta ${dCls}">${dTxt} so với lần trước</span>
+            <div style="color:var(--primary)">${spark([...HISTORY, s.score])}</div>
+          </div>
+        </div>
+        <div class="card cnt err"><div class="big">${s.err}</div><b>Lỗi</b><small>Phải sửa trước go-live</small></div>
+        <div class="card cnt warn"><div class="big">${s.warn}</div><b>Cảnh báo</b><small>Nên sửa</small></div>
+        <div class="card cnt info"><div class="big">${s.notice}</div><b>Lưu ý</b><small>Không tính vào điểm</small></div>
+      </div>
+      <p style="margin:0 0 12px;color:var(--muted)">So với lần chạy trước: <b style="color:var(--primary)">${s.newCount} vấn đề mới</b>, <b style="color:var(--ok)">${FIXED_SINCE_LAST} đã sửa</b>.</p>
+      <div class="tools">
+        <div class="seg" role="group" aria-label="Cách xem">
+          <button data-view="type" aria-pressed="${state.view === "type"}">Theo loại lỗi</button>
+          <button data-view="page" aria-pressed="${state.view === "page"}">Theo trang</button>
+        </div>
+        <div class="chips" role="group" aria-label="Lọc mức độ">
+          ${[["all", "Tất cả"], ["error", "Lỗi"], ["warning", "Cảnh báo"], ["notice", "Lưu ý"]].map(([k, l]) => `<button class="chip" data-sev="${k}" aria-pressed="${state.sev === k}">${l}</button>`).join("")}
+        </div>
+      </div>
+      <div class="card">${body}</div>
+      ${state.dismissed.size ? `<p style="color:var(--muted);margin-top:12px">${state.dismissed.size} vấn đề đã bỏ qua có chủ ý. <a href="#" data-act="restore">Khôi phục tất cả</a></p>` : ""}`;
+  }
+
+  function issueRow(i) {
+    const open = state.open.has("t:" + i.id);
+    const pages = i.pages.map(p => `<tr>
+      <td><code>${esc(p.path)}</code></td><td>${esc(p.loc)}</td><td>${esc(p.note)}</td>
+      <td><div class="acts"><a class="btn small" href="#" data-edit="${esc(p.uid)}|${esc(p.loc)}">Sửa →</a><a class="btn small" href="#" data-open="${esc(p.path)}">Mở trang ↗</a></div></td></tr>`).join("");
+    return `<div class="irow">
+      <button class="hd" aria-expanded="${open}" data-toggle="t:${i.id}">
+        <span><span class="badge ${SEV_CLS[i.sev]}">${SEV_LABEL[i.sev]}</span></span>
+        <span><span class="tt">${esc(i.title)}</span> ${i.isNew ? '<span class="badge new">Mới</span>' : ""}${i.scoreless ? ' <span class="badge mute">Không tính điểm</span>' : ""}
+          <div class="ds">${esc(i.why)}</div></span>
+        <span class="pg">${i.pages.length} <small>trang</small></span>
+        <span class="chev" aria-hidden="true">▸</span>
+      </button>
+      ${open ? `<div class="detail">
+        <div class="two"><div><h4>Vì sao quan trọng</h4><p>${esc(i.why)}</p></div><div><h4>Cách sửa</h4><p>${esc(i.fix)}</p></div></div>
+        <div class="tbl"><table><thead><tr><th>Trang</th><th>Ngôn ngữ</th><th>Chi tiết</th><th></th></tr></thead><tbody>${pages}</tbody></table></div>
+        <div class="foot">
+          <button class="btn small" data-recheck="${i.id}">Chạy lại check này</button>
+          <button class="btn small" data-dismiss="${i.id}">Bỏ qua, có chủ ý…</button>
+        </div></div>` : ""}
+    </div>`;
+  }
+  function pageRow(p) {
+    const open = state.open.has("p:" + p.path);
+    const worst = p.items.some(x => x.issue.sev === "error") ? "error" : p.items.some(x => x.issue.sev === "warning") ? "warning" : "notice";
+    const items = p.items.map(x => `<tr><td><span class="badge ${SEV_CLS[x.issue.sev]}">${SEV_LABEL[x.issue.sev]}</span></td><td><b>${esc(x.issue.title)}</b><div class="ds">${esc(x.note)}</div></td><td>${esc(x.issue.fix)}</td></tr>`).join("");
+    return `<div class="irow">
+      <button class="hd" aria-expanded="${open}" data-toggle="p:${esc(p.path)}">
+        <span><span class="badge ${SEV_CLS[worst]}">${SEV_LABEL[worst]}</span></span>
+        <span><span class="tt"><code>${esc(p.path)}</code></span><div class="ds">${p.items.length} vấn đề trên trang này</div></span>
+        <span class="pg">${esc(p.loc)}</span>
+        <span class="chev" aria-hidden="true">▸</span>
+      </button>
+      ${open ? `<div class="detail"><div class="tbl"><table><thead><tr><th>Mức</th><th>Vấn đề</th><th>Cách sửa</th></tr></thead><tbody>${items}</tbody></table></div>
+        <div class="foot"><a class="btn small" href="#" data-edit="${esc(p.uid)}|${esc(p.loc)}">Sửa trang này →</a><a class="btn small" href="#" data-open="${esc(p.path)}">Mở trang ↗</a></div></div>` : ""}
+    </div>`;
+  }
+
+  /* ---------- sitemap tab ---------- */
+  function renderSitemap() {
+    const total = state.sitemap.reduce((n, r) => n + (r.on ? r.urls : 0), 0);
+    $("#p-sitemap").innerHTML = `
+      <div class="head" style="margin-bottom:12px"><div class="t"><h2 style="font-size:18px">Loại nội dung vào sitemap</h2>
+        <p>Tắt một loại = loại khỏi sitemap <b>và</b> thêm noindex cho các trang đó.</p></div>
+        <a class="btn" href="#" data-open="/sitemap.xml">Xem /sitemap.xml ↗</a></div>
+      <div class="tbl"><table>
+        <thead><tr><th>Loại nội dung</th><th>Vào sitemap</th><th>Số URL</th><th>Bị loại do noindex</th><th>Ví dụ</th></tr></thead>
+        <tbody>${state.sitemap.map((r, i) => `<tr>
+          <td><b>${esc(r.label)}</b><div class="ds" style="color:var(--muted);font-size:12px"><code>${esc(r.uid)}</code></div></td>
+          <td><label class="sw"><input type="checkbox" data-sm="${i}" ${r.on ? "checked" : ""} aria-label="Đưa ${esc(r.label)} vào sitemap"><i></i></label></td>
+          <td>${r.on ? r.urls : "<span style='color:var(--muted)'>0</span>"}</td>
+          <td>${r.on ? (r.excluded ? `<span class="badge info">${r.excluded}</span>` : "—") : "—"}</td>
+          <td><code>${esc(r.sample)}</code></td></tr>`).join("")}</tbody>
+      </table></div>
+      <p style="color:var(--muted);margin-top:12px">Tổng: <b>${total} URL</b> trong sitemap (đã tính hreflang vi/en).</p>`;
+  }
+
+  /* ---------- go-live tab ---------- */
+  function renderGolive() {
+    const s = stats();
+    const hasRun = state.run !== "none";
+    const prod = state.env !== "staging";
+    const adminOn = state.env === "live";
+    const effective = prod && adminOn;
+    const checks = [
+      { ok: hasRun && s.err === 0, no: hasRun && s.err > 0, t: "Audit không còn lỗi", d: hasRun ? (s.err ? `Còn ${s.err} lỗi chưa sửa` : "Không có lỗi mức Lỗi") : "Chưa chạy audit", who: "Tự động", go: "audit" },
+      { ok: true, t: "Mọi route chính ở trạng thái ready", d: "8/8 route (seoReadiness = ready)", who: "Tự động" },
+      { ok: hasRun && !s.list.some(i => i.id === "canon-staging"), no: hasRun && s.list.some(i => i.id === "canon-staging"), t: "Không còn canonical trỏ về staging", d: !hasRun ? "Chưa chạy audit" : s.list.some(i => i.id === "canon-staging") ? "3 trang còn canonical staging" : "Không có trang nào", who: "Tự động", go: "audit" },
+      { ok: true, t: "Sitemap có URL và không rỗng", d: `${state.sitemap.reduce((n, r) => n + (r.on ? r.urls : 0), 0)} URL`, who: "Tự động", go: "sitemap" },
+      { ok: state.manual.owner, t: "Chủ quán đã duyệt nội dung và thông tin liên hệ", d: "Tự xác nhận", who: "Owner · 5 phút", manual: "owner" },
+      { ok: state.manual.gsc, t: "Đã kết nối Google Search Console", d: "Cần quyền domain. Làm ngoài CMS.", who: "Dev · 15 phút", manual: "gsc" }
+    ];
+    const done = checks.filter(c => c.ok).length;
+    const canOpen = prod && !adminOn && hasRun && s.err === 0;
+    let reason = "";
+    if (!prod) reason = "Chỉ mở index được ở production. Staging luôn tắt.";
+    else if (adminOn) reason = "";
+    else if (!hasRun) reason = "Chạy audit trước khi mở index.";
+    else if (s.err > 0) reason = `Còn ${s.err} lỗi chưa sửa.`;
+
+    $("#p-golive").innerHTML = `
+      <div class="layers">
+        <div class="card layer"><h3>Lớp 1 · Môi trường (chỉ đọc)</h3><div class="v">${prod ? "production" : "staging"}</div><small><code>DEPLOYMENT_ENV</code> và <code>SEO_INDEXING=${prod ? "on" : "off"}</code> đặt ở server. Admin không sửa được.</small></div>
+        <div class="card layer"><h3>Lớp 2 · Công tắc admin</h3><div class="v">${adminOn ? "Đang mở" : "Đang tắt"}</div><small>Thay đổi cần xác nhận và được ghi lại.</small></div>
+        <div class="card layer"><h3>Kết quả thực tế</h3><div class="v" style="color:${effective ? "var(--ok)" : "var(--err)"}">${effective ? "Google được index" : "Google bị chặn"}</div><small>Chỉ mở khi cả hai lớp cùng đúng.</small></div>
+      </div>
+      <div class="card gate">
+        <div class="tx"><b>${adminOn ? "Index đang mở cho Google" : "Mở index cho Google"}</b>
+          <div style="color:var(--muted)">${adminOn ? "Tắt lại sẽ thêm noindex cho toàn site, nhưng trang đã vào Google cần thời gian mới biến mất." : (reason || "Đủ điều kiện. Cần gõ xác nhận trước khi mở.")}</div></div>
+        ${adminOn
+          ? `<button class="btn danger" data-act="close-index">Tắt index…</button>`
+          : `<button class="btn primary" data-act="open-index" ${canOpen ? "" : "disabled"}>Mở index…</button>`}
+      </div>
+      <h2 style="font-size:16px;margin:0 0 8px">Checklist trước go-live <span style="color:var(--muted);font-weight:400">· ${done}/${checks.length} xong</span></h2>
+      <div class="card">${checks.map(c => `<div class="ck">
+        <span class="ic ${c.ok ? "ok" : c.no ? "no" : "td"}" aria-label="${c.ok ? "Xong" : c.no ? "Chưa đạt" : "Chưa làm"}">${c.ok ? "✓" : c.no ? "!" : ""}</span>
+        <div><b>${esc(c.t)}</b><div class="ds">${esc(c.d)}</div></div>
+        <div style="text-align:right"><div class="who badge mute">${esc(c.who)}</div>
+          ${c.manual ? `<div style="margin-top:6px"><label class="sw" style="display:inline-block"><input type="checkbox" data-manual="${c.manual}" ${c.ok ? "checked" : ""} aria-label="Đánh dấu xong: ${esc(c.t)}"><i></i></label></div>` : ""}
+          ${c.go && !c.ok ? `<div style="margin-top:6px"><a class="btn small" href="#" data-goto="${c.go}">Xem</a></div>` : ""}</div>
+      </div>`).join("")}</div>`;
+  }
+
+  /* ---------- modal & toast ---------- */
+  function toast(msg) {
+    const t = $("#toast"); t.textContent = msg; t.classList.add("on");
+    clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("on"), 2600);
+  }
+  function modal(html) { $("#modal").innerHTML = html; $("#scrim").classList.add("open"); const i = $("#modal input[type=text],#modal textarea"); if (i) i.focus(); }
+  function closeModal() { $("#scrim").classList.remove("open"); }
+
+  function confirmIndex(open) {
+    const word = open ? "MỞ INDEX" : "TẮT INDEX";
+    modal(`<h2 id="m-title">${open ? "Mở index cho Google?" : "Tắt index toàn site?"}</h2>
+      <p>${open ? "Google sẽ bắt đầu thu thập và hiển thị site. Hành động này được ghi vào nhật ký (audit-event)." : "Toàn site sẽ thêm noindex và vẫn cho Google thu thập để thấy thẻ này. Trang đã có trên Google cần vài ngày đến vài tuần mới biến mất."}</p>
+      <label for="cf">Gõ <b>${word}</b> để xác nhận</label>
+      <input type="text" id="cf" autocomplete="off">
+      <div class="row"><button class="btn" data-act="cancel">Hủy</button><button class="btn ${open ? "primary" : "danger"}" id="cfgo" disabled data-act="${open ? "do-open" : "do-close"}">${open ? "Mở index" : "Tắt index"}</button></div>`);
+    $("#cf").addEventListener("input", (e) => { $("#cfgo").disabled = e.target.value.trim() !== word; });
+  }
+  function dismissModal(id) {
+    const i = ISSUES.find(x => x.id === id);
+    modal(`<h2 id="m-title">Bỏ qua "${esc(i.title)}"?</h2>
+      <p>Vấn đề này sẽ không tính điểm và không chặn go-live. Cần ghi lý do để người sau hiểu.</p>
+      <label for="why">Lý do</label>
+      <input type="text" id="why" autocomplete="off" placeholder="Ví dụ: trang nội bộ, cố ý không có ảnh">
+      <div class="row"><button class="btn" data-act="cancel">Hủy</button><button class="btn primary" id="dsgo" disabled data-dismiss-go="${id}">Bỏ qua</button></div>`);
+    $("#why").addEventListener("input", (e) => { $("#dsgo").disabled = e.target.value.trim().length < 3; });
+  }
+
+  /* ---------- actions ---------- */
+  function runAudit() {
+    if (state.running) return;
+    state.running = true; setTab("audit"); renderAll();
+    setTimeout(() => { state.running = false; if (state.run === "none") { state.run = "done"; $("#d-run").value = "done"; } renderAll(); toast("Audit xong: 38 trang."); }, 1800);
+  }
+  function setTab(t) {
+    state.tab = t;
+    document.querySelectorAll("[data-tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === t)));
+    ["audit", "sitemap", "golive"].forEach(k => { $("#p-" + k).hidden = k !== t; });
+  }
+  function renderWidget() {
+    const s = stats(), hasRun = state.run !== "none";
+    const envTxt = { staging: "Staging · index tắt", blocked: "Production · index đang TẮT", live: "Production · index đang MỞ" }[state.env];
+    const envCls = { staging: "info", blocked: "err", live: "ok" }[state.env];
+    $("#widget").innerHTML = `<div class="pad">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b>Sức khỏe SEO</b><a href="#" data-goto="audit" style="font-size:12px">Mở trang SEO</a></div>
+      <span class="badge ${envCls}">${envTxt}</span>
+      ${hasRun
+        ? `<div style="display:flex;gap:16px;align-items:center;margin-top:12px"><div style="font-size:32px;font-weight:800">${s.score}</div><div><div>${s.clean}/${TOTAL_PAGES} trang sạch lỗi</div><div style="color:var(--muted)">${s.err} lỗi · ${s.warn} cảnh báo · ${s.notice} lưu ý</div></div></div>`
+        : `<p style="color:var(--muted);margin:12px 0 0">Chưa chạy audit.</p>`}
+    </div>`;
+  }
+  function renderAll() { renderBanner(); renderHead(); renderAudit(); renderSitemap(); renderGolive(); renderWidget(); }
+
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest("[data-toggle],[data-view],[data-sev],[data-tab],[data-goto],[data-edit],[data-open],[data-act],[data-dismiss],[data-dismiss-go],[data-recheck],#run");
+    if (!t) return;
+    if (t.id === "run") return runAudit();
+    if (t.dataset.toggle) { const k = t.dataset.toggle; state.open.has(k) ? state.open.delete(k) : state.open.add(k); return renderAudit(); }
+    if (t.dataset.view) { state.view = t.dataset.view; return renderAudit(); }
+    if (t.dataset.sev) { state.sev = t.dataset.sev; return renderAudit(); }
+    if (t.dataset.tab) return setTab(t.dataset.tab);
+    if (t.dataset.goto) { e.preventDefault(); return setTab(t.dataset.goto); }
+    if (t.dataset.edit) { e.preventDefault(); const [uid, loc] = t.dataset.edit.split("|"); return toast(`Mở /admin/content-manager/…/api::${uid}.${uid}/<documentId>?plugins[i18n][locale]=${loc}`); }
+    if (t.dataset.open) { e.preventDefault(); return toast("Mở " + t.dataset.open + " trong tab mới"); }
+    if (t.dataset.recheck) return toast("Đã chạy lại riêng check này (không cần audit cả site).");
+    if (t.dataset.dismiss) return dismissModal(t.dataset.dismiss);
+    if (t.dataset.dismissGo) { state.dismissed.add(t.dataset.dismissGo); closeModal(); renderAll(); return toast("Đã bỏ qua và ghi vào nhật ký."); }
+    switch (t.dataset.act) {
+      case "run": return runAudit();
+      case "restore": e.preventDefault(); state.dismissed.clear(); return renderAll();
+      case "open-index": return confirmIndex(true);
+      case "close-index": return confirmIndex(false);
+      case "cancel": return closeModal();
+      case "do-open": state.env = "live"; $("#d-env").value = "live"; closeModal(); renderAll(); return toast("Đã mở index. Đã ghi vào audit-event.");
+      case "do-close": state.env = "blocked"; $("#d-env").value = "blocked"; closeModal(); renderAll(); return toast("Đã tắt index. Đã ghi vào audit-event.");
+    }
+  });
+  document.addEventListener("change", (e) => {
+    if (e.target.dataset.sm !== undefined) { state.sitemap[+e.target.dataset.sm].on = e.target.checked; renderSitemap(); renderGolive(); }
+    if (e.target.dataset.manual) { state.manual[e.target.dataset.manual] = e.target.checked; renderGolive(); }
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+  $("#scrim").addEventListener("click", (e) => { if (e.target.id === "scrim") closeModal(); });
+  $("#d-env").addEventListener("change", (e) => { state.env = e.target.value; renderAll(); });
+  $("#d-run").addEventListener("change", (e) => { state.run = e.target.value; renderAll(); });
+
+  renderAll();
+})();
+</script>
+</body>
+</html>

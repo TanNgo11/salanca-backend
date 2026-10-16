@@ -320,6 +320,48 @@ export const resolveOrderingPluginConfig = (
   };
 };
 
+/** Local generic SEO audit plugin (docs/phases/phase-seo-toolkit-1-cms-audit.md). Off unless SEO_TOOLKIT_ENABLED=true. */
+export const seoToolkitPluginPath = './src/plugins/seo-toolkit';
+const seoToolkitServerEntry = 'dist/server/src/index.js';
+
+export const resolveSeoToolkitPluginConfig = (
+  env: Core.Config.Shared.ConfigParams['env'],
+  serverEntryExists: (relativePath: string) => boolean = (relativePath) =>
+    fs.existsSync(path.resolve(process.cwd(), relativePath)),
+) => {
+  const enabled = env.bool('SEO_TOOLKIT_ENABLED', false);
+  // Strapi silently skips a plugin whose server entry is missing; fail loudly instead.
+  if (enabled && !serverEntryExists(path.join(seoToolkitPluginPath, seoToolkitServerEntry))) {
+    throw new Error(
+      `SEO_TOOLKIT_ENABLED=true but ${seoToolkitPluginPath}/${seoToolkitServerEntry} is missing; run pnpm run build:seo-toolkit.`,
+    );
+  }
+  return {
+    enabled,
+    resolve: seoToolkitPluginPath,
+    config: {
+      // Salanca content types that carry `shared.seo` (spec §6). UIDs live here, never in the
+      // plugin. `slug` is a string attribute on the collections. `global-setting.defaultSeo` is a
+      // fallback (shared with the home page by design), so it is excluded: it would only report
+      // duplicates that are not real problems.
+      contentTypes: {
+        'api::home-page.home-page': {},
+        'api::menu-page.menu-page': { seoField: ['seo', 'cateringSeo'] },
+        'api::story-page.story-page': {},
+        'api::space-page.space-page': {},
+        'api::experience-page.experience-page': {},
+        'api::campaign-page.campaign-page': {},
+        'api::booking-page.booking-page': {},
+        'api::contact-page.contact-page': {},
+        'api::campaign.campaign': { labelField: 'slug' },
+        'api::menu-category.menu-category': { labelField: 'slug' },
+        'api::menu-package.menu-package': { labelField: 'slug' },
+        'api::location.location': { labelField: 'slug' },
+      },
+    },
+  };
+};
+
 const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Plugin => {
   assertProductionMediaStorage(env);
 
@@ -360,6 +402,7 @@ const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Plugin =>
       config: uploadConfig,
     },
     ordering: resolveOrderingPluginConfig(env),
+    'seo-toolkit': resolveSeoToolkitPluginConfig(env),
   };
 };
 

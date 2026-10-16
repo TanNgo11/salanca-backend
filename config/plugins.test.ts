@@ -7,6 +7,8 @@ import config, {
   orderingPluginPath,
   resolveAuthCookieConfig,
   resolveOrderingPluginConfig,
+  resolveSeoToolkitPluginConfig,
+  seoToolkitPluginPath,
   uploadBreakpoints,
 } from './plugins';
 
@@ -305,5 +307,46 @@ describe('ordering plugin configuration', () => {
   it('fails startup when the plugin is enabled without a server build', () => {
     const env = createEnv({ ORDERING_ENABLED: 'true' });
     expect(() => resolveOrderingPluginConfig(env, () => false)).toThrow(/build:ordering/);
+  });
+});
+
+describe('seo-toolkit plugin configuration', () => {
+  const salancaContentTypes = {
+    'api::home-page.home-page': {},
+    'api::menu-page.menu-page': { seoField: ['seo', 'cateringSeo'] },
+    'api::story-page.story-page': {},
+    'api::space-page.space-page': {},
+    'api::experience-page.experience-page': {},
+    'api::campaign-page.campaign-page': {},
+    'api::booking-page.booking-page': {},
+    'api::contact-page.contact-page': {},
+    'api::campaign.campaign': { labelField: 'slug' },
+    'api::menu-category.menu-category': { labelField: 'slug' },
+    'api::menu-package.menu-package': { labelField: 'slug' },
+    'api::location.location': { labelField: 'slug' },
+  };
+
+  it('declares the local plugin but keeps it disabled by default', () => {
+    const resolved = config(createParams(s3Environment))['seo-toolkit'];
+    expect(resolved).toEqual({
+      enabled: false,
+      resolve: seoToolkitPluginPath,
+      config: { contentTypes: salancaContentTypes },
+    });
+    expect(Object.keys(resolved.config.contentTypes)).toHaveLength(12);
+  });
+
+  it('enables the plugin when SEO_TOOLKIT_ENABLED is true and the server build exists', () => {
+    const env = createEnv({ SEO_TOOLKIT_ENABLED: 'true' });
+    expect(resolveSeoToolkitPluginConfig(env, () => true)).toEqual({
+      enabled: true,
+      resolve: seoToolkitPluginPath,
+      config: { contentTypes: salancaContentTypes },
+    });
+  });
+
+  it('fails startup when the plugin is enabled without a server build', () => {
+    const env = createEnv({ SEO_TOOLKIT_ENABLED: 'true' });
+    expect(() => resolveSeoToolkitPluginConfig(env, () => false)).toThrow(/build:seo-toolkit/);
   });
 });

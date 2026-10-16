@@ -1,0 +1,26 @@
+{
+  "name": "strapi-plugin-seo-toolkit",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Generic, read-only SEO data audit toolkit for Strapi 5.",
+  "license": "UNLICENSED",
+  "strapi": {
+    "kind": "plugin",
+    "name": "seo-toolkit",
+    "displayName": "SEO toolkit",
+    "description": "Audit SEO data in Strapi content."
+  },
+  "exports": {
+    "./strapi-server": {
+      "require": "./dist/server/src/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsc -p server/tsconfig.json"
+  },
+  "peerDependencies": {
+    "@strapi/strapi": "^5.51.1",
+    "@strapi/utils": "^5.51.1"
+  }
+}

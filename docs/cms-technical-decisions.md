@@ -140,6 +140,27 @@ in ~1s without a page reload. Decisions locked in
   only when the admin UI locale is `vi`; `reservation-inbox.*` ids carry the
   Vietnamese string as `defaultMessage` so labels render under any UI locale.
 
+### Plugin SEO toolkit (local, generic, v0.1 read-only, 2026-10-16)
+
+`src/plugins/seo-toolkit` is a generic, read-only SEO audit plugin for Strapi 5, with
+Salanca as the first client (spec `docs/phases/phase-seo-toolkit-1-cms-audit.md`). It is
+off unless `SEO_TOOLKIT_ENABLED=true`. It follows the ordering plugin's conventions: config
+keyed by UID lives in `config/plugins.ts` (never Salanca UIDs inside the plugin), and the
+schema check at bootstrap is soft — it only logs, because a read-only tool must never stop
+the CMS. v0.1 adds no content type, migration, cron or middleware and writes nothing.
+
+- Surfaces: `pnpm run seo:audit` (exit `0` clean / `1` issues at the fail-on level / `2`
+  could not run) and `POST /seo-toolkit/audit/run` (admin, action
+  `plugin::seo-toolkit.audit.run`); both call one read-only service.
+- The rule engine is a pure function (`shared/audit/engine.ts`) that takes normalized entries
+  and config and returns codes plus params only — no prose. `shared/messages.ts` holds the
+  vi/en text.
+- Config keys: `contentTypes` (UID → `seoField`/`labelField`), `fields`, `status`
+  (`published` | `draft`), `limits`, `severities`. The Salanca block declares the 12 content
+  types that carry `shared.seo` and are real pages; `global-setting` is excluded because its
+  `defaultSeo` is a fallback shared with the home page by design (auditing it only produced
+  duplicates that are not real problems).
+
 ## Open decisions before staging
 
 These are hard Phase 4 entry gates. A role is accountable now; the project owner must

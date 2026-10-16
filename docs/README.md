@@ -75,6 +75,16 @@ are written and approved before code.
 
 Overview: [`plans/be-pattern-lift-plan.md`](plans/be-pattern-lift-plan.md). Do not implement Phase 4+ from roadmap bullets alone; use these specs. Phase 0 must pass before Phase 4 implementation.
 
+### SEO toolkit plugin (opened 2026-10-16)
+
+Generic, read-only SEO data audit plugin (`src/plugins/seo-toolkit`; Salanca is the first client).
+Off unless `SEO_TOOLKIT_ENABLED=true`. v0.1 writes nothing.
+
+- [`Plugin README`](../src/plugins/seo-toolkit/README.md)
+- [`Phase SEO-1 (v0.1) - CMS SEO data audit`](phases/phase-seo-toolkit-1-cms-audit.md)
+- [`v0.1 implementation plan`](plans/seo-toolkit-v0.1-cms-audit.md)
+- [`v0.1 handoff prompt`](plans/seo-toolkit-v0.1-handoff.md)
+
 ## Source-of-truth rules
 
 When documents disagree with accepted decisions or runtime behavior, stop and reconcile them. Use this investigation order:
