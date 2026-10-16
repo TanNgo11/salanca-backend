@@ -83,10 +83,12 @@ const main = async () => {
       .run(status === undefined ? {} : { status });
     const serialized = `${JSON.stringify(report, null, 2)}\n`;
     // `--out` writes the report to a file because Strapi logs its startup and shutdown lines to
-    // stdout, which makes stdout unsafe to pipe. Alone, `--out` keeps stdout log-only.
+    // stdout, which makes stdout unsafe to pipe. Alone, `--out` prints one summary line and leaves
+    // the rest of stdout log-only.
     if (out) await fs.writeFile(out, serialized, 'utf8');
     if (json) process.stdout.write(serialized);
-    else if (!out) process.stdout.write(`${cli.formatTable(report, lang)}\n`);
+    else if (out) process.stdout.write(`${cli.formatOutSummary(report, out)}\n`);
+    else process.stdout.write(`${cli.formatTable(report, lang)}\n`);
     return cli.exitCodeFor(report, failOn);
   } catch (error) {
     console.error(`seo:audit: ${error?.message ?? error}`);

@@ -421,12 +421,26 @@ AI thực hiện ghi vào đây mọi chỗ làm khác plan và lý do.
     (2026-10-16). `menu-package` giữ lại vì web có trang `/menu/[section]` và cảnh báo trùng mô tả
     rodizio/buffet là thật. Test cấu hình và `docs/cms-technical-decisions.md` cập nhật theo.
 
+### Closeout (2026-10-16)
+
+17. **Harness và smoke HTTP riêng cho seo-toolkit (T1).** Thêm `scripts/seo-toolkit/_harness.mjs` (nhân
+    bản phần cần thiết của harness ordering, **không import**) và `scripts/seo-toolkit/admin-route-smoke.mjs`,
+    cùng script `smoke:seo-toolkit` trong `package.json`. Boot Strapi trên DB test riêng `salanca_seo_test`
+    (`SEO_TOOLKIT_TEST_DATABASE`), xác nhận `current_database()` trước khi làm tiếp; không dùng DB dev.
+    8/8 ca đạt (xem Completion record). Để ngoài `check:seo-toolkit` vì cần PostgreSQL local.
+18. **`--out` in một dòng tóm tắt (T2).** Thêm `formatOutSummary(report, file)` vào `shared/cli.ts`
+    (có test trong `cli.test.ts`); `audit.mjs` in dòng đó ra stdout khi có `--out` mà không `--json`.
+    Không đổi mã thoát, không đổi nội dung file JSON.
+19. **Gắn nhãn lịch sử cho bước 7 (T3).** Mục "Bước 7" trong Completion record nay ghi rõ là lần chạy đầu
+    (trước khi bỏ `global-setting`); dòng "khối Salanca 13 UID" sửa thành 12. Không viết lại số liệu cũ.
+
 ## Completion record
 
 Trạng thái: **implemented** + **automated verification passed** trên nhánh `feat/seo-toolkit`
-(worktree `salanca-seo`), **chưa commit**. Bước 7 đã chạy trên DB local, và vòng review lần 2 đã sửa
-3 lỗi CLI cùng với việc bỏ `global-setting` (còn 12 content type); **ready for manual UAT** (mở Admin
-đối chiếu, gọi route admin, chốt dương tính giả, UAT mã thoát).
+(worktree `salanca-seo`), v0.1 đã commit (`506d891`), closeout ở commit sau; **chưa push**. Bước 7 đã chạy trên DB local; vòng review lần 2 sửa 3 lỗi
+CLI và bỏ `global-setting` (còn 12 content type); closeout đã thêm smoke HTTP cho route admin trên DB
+test (`smoke:seo-toolkit`, 8/8 ca). **ready for manual UAT** (mở Admin đối chiếu và chốt dương tính giả,
+UAT mã thoát).
 
 ### Baseline (bước 0, trước khi sửa)
 
@@ -440,7 +454,7 @@ Trạng thái: **implemented** + **automated verification passed** trên nhánh 
   thông điệp), config schema + validator (7 ca), collector + inspect (9 + 6 ca), service/controller/
   route/quyền/bootstrap (1 + 5 ca), CLI thuần + lệnh `seo:audit` (8 ca).
 - Cổng build/typecheck/script trong `package.json`; gate bật plugin trong `config/plugins.ts`
-  (nhân bản `resolveOrderingPluginConfig`), khối Salanca 13 UID.
+  (nhân bản `resolveOrderingPluginConfig`), khối Salanca 12 UID.
 - Vòng review: `seoField` nhận mảng (mỗi khối SEO một entry; `menu-page` = `['seo','cateringSeo']`),
   `AuditIssue` thêm `seoField`; CLI không ghi đè `config.status`.
 - README plugin; liên kết ở `docs/README.md`; mục quyết định ở `docs/cms-technical-decisions.md`.
@@ -458,7 +472,7 @@ Trạng thái: **implemented** + **automated verification passed** trên nhánh 
 | `node scripts/seo-toolkit/audit.mjs --bogus` | exit 2, không khởi động Strapi |
 | `git diff --check` | sạch (exit 0) |
 
-### Bước 7 — ĐÃ CHẠY trên DB local (2026-10-16)
+### Bước 7 — lần chạy đầu trên DB local (2026-10-16, trước khi bỏ `global-setting`; kết quả hiện tại ở mục "Vòng sửa sau review lần 2")
 
 - Chuẩn bị: copy `.env` dev từ `..\salanca-backend\.env` sang worktree (file gitignore, chưa commit).
   Đặt `NODE_ENV=development` cho lần chạy vì shell của công cụ có sẵn `NODE_ENV=production`, khiến
@@ -516,14 +530,34 @@ Sửa 3 lỗi CLI và chốt `global-setting` (xem "Điều lệch" mục 13–1
 - `others[]` trong báo cáo thật đã mang `seoField` (nhóm trùng `contact-page`/`location` trỏ đúng
   `seoField: "seo"`), xác nhận bug 3 trên dữ liệu thật.
 
+### Closeout — bằng chứng route admin và ảnh chia sẻ (2026-10-16)
+
+`pnpm run smoke:seo-toolkit` — **8/8 ca đạt** trên DB test `salanca_seo_test` (log khởi động ghi
+`Database name salanca_seo_test`). Không thao tác nào lên DB dev: harness chỉ kết nối DB test và
+xác nhận `SELECT current_database()` trước khi chạy.
+
+- ca1: không token → **401**.
+- ca2: role thiếu `plugin::seo-toolkit.audit.run` → **403**.
+- ca3: role có quyền → **200**, body đủ `generatedAt`/`scope.contentTypes`/`summary.entries`/`issues`
+  (`entries=0` vì DB test rỗng).
+- ca4: body sai (`status: 'bogus'`, `contentTypes: 'x'`) → **400** (không 500).
+- ca5: `contentTypes` chứa UID chưa khai báo → **400**.
+- ca6: `actionProvider.has('plugin::seo-toolkit.audit.run')` = true → action hiện trong Role.
+- ca7: bản nháp `menu-category` với `shareImage` trỏ một dòng `plugin::upload.file` không alt → có
+  `media.share-image-alt-missing` và **không** có `media.share-image-missing`; đặt alt rồi chạy lại →
+  lỗi alt biến mất. Bằng chứng trực tiếp cho A2 trên `shareImage`.
+- ca8: cùng document ở `status: 'published'` (chưa publish) → **0 entry**. Chứng minh `status` được tôn trọng.
+
+Gate kèm theo: `build:seo-toolkit` 0, `typecheck` 0, `typecheck:seo-toolkit` 0,
+`eslint src/plugins/seo-toolkit config/plugins.ts config/plugins.test.ts` 0,
+`vitest run src/plugins/seo-toolkit config/plugins.test.ts` **9 file / 94 passed**, `git diff --check` sạch.
+
 ### Cổng còn mở (thủ công / ngoài phạm vi)
 
 - Quyết định UID: **đã chốt** — bỏ `global-setting` (còn 12 type; "Điều lệch" mục 16), giữ `menu-package`.
-- Gọi thử route admin `POST /seo-toolkit/audit/run` một lần bằng JWT admin và kiểm action "Run SEO audit"
-  hiện trong Role. **Chưa làm** (mới test qua CLI).
-- A2 trên `shareImage` thật: DB chưa có ảnh share nào nên quy tắc `share-image-alt-missing` chưa chạy
-  trên dữ liệu thật (mới kiểm gián tiếp qua media của component khác). Muốn bằng chứng trực tiếp thì gắn
-  một ảnh vào SEO một trang trên DB dev rồi chạy lại. **Chưa làm.**
+- Route admin và quyền: **đã đóng bằng smoke** (ca 1–6, `smoke:seo-toolkit`). Gọi thêm trên server dev
+  bằng JWT thật chỉ là tùy chọn nếu muốn đối chiếu môi trường.
+- A2 trên `shareImage`: **đã có bằng chứng trực tiếp** (ca7 trên dòng file thật ở DB test).
 - Mở Admin đối chiếu vài lỗi `error`/`warn` còn lại và chốt danh sách dương tính giả.
 - UAT tay mã thoát 0/1/2 và việc plugin tắt mặc định không đổi menu/API/cron hiện có.
 

@@ -48,6 +48,7 @@
     "check:ordering": "pnpm run build:ordering && node scripts/ordering/run-all.mjs",
     "check:seo-toolkit": "pnpm run build:seo-toolkit && pnpm run typecheck:seo-toolkit && vitest run src/plugins/seo-toolkit config/plugins.test.ts",
     "seo:audit": "pnpm run build:seo-toolkit && node scripts/seo-toolkit/audit.mjs",
+    "smoke:seo-toolkit": "pnpm run build:seo-toolkit && node scripts/seo-toolkit/admin-route-smoke.mjs",
     "ordering:openapi": "node scripts/ordering/openapi.mjs --write",
     "smoke:ordering-pickup": "pnpm run build:ordering && node scripts/smoke-ordering-pickup.mjs",
     "upgrade": "npx @strapi/upgrade latest",

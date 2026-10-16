@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { exitCodeFor, formatTable, parseFailOn } from './cli';
+import { exitCodeFor, formatOutSummary, formatTable, parseFailOn } from './cli';
 import type { AuditReport } from './audit/types';
 
 const report = (over: Partial<AuditReport> = {}): AuditReport => ({
@@ -77,5 +77,16 @@ describe('formatTable', () => {
   it('reports a clean run in the requested language', () => {
     expect(formatTable(report(), 'en')).toContain('No issues.');
     expect(formatTable(report(), 'vi')).toContain('Không có lỗi.');
+  });
+});
+
+describe('formatOutSummary', () => {
+  it('renders the counts and the file path on one line', () => {
+    const line = formatOutSummary(
+      report({ summary: { entries: 45, error: 6, warn: 15, notice: 39 } }),
+      'out/report.json',
+    );
+
+    expect(line).toBe('SEO audit: entries=45 error=6 warn=15 notice=39 -> out/report.json');
   });
 });

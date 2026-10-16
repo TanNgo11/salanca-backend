@@ -38,3 +38,9 @@ export function formatTable(report: AuditReport, lang: MessageLang): string {
   lines.push(`error: ${report.summary.error}  warn: ${report.summary.warn}  notice: ${report.summary.notice}`);
   return lines.join('\n');
 }
+
+/** One stdout line when the report goes to a file (`--out`): the counts and where it landed. */
+export function formatOutSummary(report: AuditReport, file: string): string {
+  const { entries, error, warn, notice } = report.summary;
+  return `SEO audit: entries=${entries} error=${error} warn=${warn} notice=${notice} -> ${file}`;
+}
