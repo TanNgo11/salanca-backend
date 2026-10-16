@@ -22,6 +22,7 @@ const SECRET_KEY = 'momo-test-secret-key-0123456789';
 const startFakeMomo = () => {
   const calls = { query: [] };
   const transactions = new Map(); // orderId -> { transId, amount, resultCode }
+  const unavailable = new Set();
   const server = http.createServer((req, res) => {
     let body = '';
     req.on('data', (chunk) => (body += chunk));
@@ -39,6 +40,11 @@ const startFakeMomo = () => {
       }
       if (req.url === '/v2/gateway/api/query') {
         calls.query.push(payload);
+        if (unavailable.has(payload.orderId)) {
+          res.writeHead(503, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ message: 'temporary outage' }));
+          return;
+        }
         const tx = transactions.get(payload.orderId);
         if (!tx) return reply({ resultCode: 1005, message: 'not found' });
         reply({
@@ -55,7 +61,7 @@ const startFakeMomo = () => {
   });
   return new Promise((resolve) => {
     server.listen(0, '127.0.0.1', () =>
-      resolve({ server, calls, transactions, port: server.address().port }),
+      resolve({ server, calls, transactions, unavailable, port: server.address().port }),
     );
   });
 };
@@ -149,6 +155,32 @@ try {
     assert.equal(idle.checked, 0);
     assert.equal(idle.applied, 0);
 
+    // --- provider outage on an old session stays retryable ------------------------------
+    const outageRef = await openSession();
+    fake.unavailable.add(outageRef);
+    await app.db.connection('plugins_ordering_payment')
+      .where({ provider_reference: outageRef })
+      .update({ created_at: new Date(Date.now() - 3 * 60 * 60_000) });
+    const outage = await runWalletStatusCheck(app, {
+      owner,
+      now: new Date(later.getTime() + 60_000),
+    });
+    assert.equal(outage.checked, 1);
+    assert.equal(outage.applied, 0);
+    assert.equal(
+      (await payments().findOne({ where: { providerReference: outageRef } })).status,
+      'pending',
+      'transport failure must not become a cancelled payment',
+    );
+    fake.unavailable.delete(outageRef);
+    const recovered = await runWalletStatusCheck(app, {
+      owner,
+      now: new Date(later.getTime() + 120_000),
+    });
+    assert.equal(recovered.applied, 1);
+    assert.equal((await payments().findOne({ where: { providerReference: outageRef } })).status, 'captured');
+    console.log('[ordering-test] wallet-status provider outage stays pending and recovers');
+
 
     // --- review fix: abandoned sessions leave the queue; new ones are never starved -------
     const knex = app.db.connection;
@@ -165,9 +197,16 @@ try {
       const row = await payments().findOne({ where: { id: payment.id } });
       return row.providerReference;
     };
+    const momoProvider = app.plugin('ordering').service('registry').paymentProvider('momo');
+    const queryTransaction = momoProvider.queryTransaction.bind(momoProvider);
+    const terminalRefs = new Set();
+    momoProvider.queryTransaction = (reference, context) =>
+      terminalRefs.has(reference)
+        ? Promise.resolve({ outcome: 'terminal-not-found' })
+        : queryTransaction(reference, context);
     const abandonedRefs = [];
     for (let i = 0; i < 55; i += 1) abandonedRefs.push(await walletSession());
-    for (const ref of abandonedRefs) fake.transactions.delete(ref); // never paid: MoMo 1005
+    for (const ref of abandonedRefs) terminalRefs.add(ref);
     await knex('plugins_ordering_payment')
       .whereIn('provider_reference', abandonedRefs)
       .update({ created_at: new Date(Date.now() - 3 * 60 * 60_000) });
@@ -186,6 +225,40 @@ try {
       'the rest close on the next run',
     );
     console.log('[ordering-test] wallet-status review fix: abandoned sessions close, fresh ones still polled');
+
+    // --- retryable failures rotate: a full failed batch cannot starve later old rows --------
+    for (const ref of abandonedRefs) {
+      terminalRefs.delete(ref);
+      fake.unavailable.add(ref);
+    }
+    await knex('plugins_ordering_payment')
+      .whereIn('provider_reference', abandonedRefs)
+      .update({
+        status: 'pending',
+        created_at: new Date(Date.now() - 3 * 60 * 60_000),
+        updated_at: new Date(Date.now() - 2 * 60 * 60_000),
+      });
+    const terminalRef = await walletSession();
+    terminalRefs.add(terminalRef);
+    await knex('plugins_ordering_payment')
+      .where({ provider_reference: terminalRef })
+      .update({
+        created_at: new Date(Date.now() - 3 * 60 * 60_000),
+        updated_at: new Date(Date.now() - 2 * 60 * 60_000),
+      });
+    await runWalletStatusCheck(app, { owner, now: new Date(later.getTime() + 180_000) });
+    assert.equal(
+      (await payments().findOne({ where: { providerReference: terminalRef } })).status,
+      'pending',
+      'the row after a full failed batch waits for the next sweep',
+    );
+    await runWalletStatusCheck(app, { owner, now: new Date(later.getTime() + 240_000) });
+    assert.equal(
+      (await payments().findOne({ where: { providerReference: terminalRef } })).status,
+      'cancelled',
+      'rotated provider failures must let later terminal rows advance',
+    );
+    console.log('[ordering-test] wallet-status retryable failures rotate without starvation');
 
     console.log('[ordering-test] wallet-status job: capture, processing→pending, failed, idle');
   });

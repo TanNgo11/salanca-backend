@@ -82,8 +82,8 @@ const startFakeMomo = () => {
           requestId: payload.requestId,
           transId: tx.transId,
           amount: tx.amount,
-          resultCode: 0,
-          message: 'Successful.',
+          resultCode: tx.resultCode ?? 0,
+          message: tx.resultCode === 1005 ? 'Expired.' : 'Successful.',
         });
         return;
       }
@@ -315,9 +315,15 @@ try {
     // --- query + refund against the fake gateway ------------------------------------
     const provider = app.plugin('ordering').service('registry').paymentProvider('momo');
     const queried = await provider.queryTransaction(reference);
-    assert.equal(queried.kind, 'capture');
-    assert.equal(queried.providerTransactionId, fake.transactions.get(reference).transId);
+    assert.equal(queried.outcome, 'event');
+    assert.equal(queried.event.kind, 'capture');
+    assert.equal(queried.event.providerTransactionId, fake.transactions.get(reference).transId);
     assert.equal(fake.calls.query.length >= 1, true);
+    fake.transactions.get(reference).resultCode = 1005;
+    const expired = await provider.queryTransaction(reference);
+    assert.equal(expired.outcome, 'event');
+    assert.equal(expired.event.kind, 'failed', 'MoMo 1005 is a final expired checkout');
+    fake.transactions.get(reference).resultCode = 0;
 
     const { refund } = await services(app).refund.createRefund(
       {

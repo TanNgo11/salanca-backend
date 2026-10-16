@@ -44,6 +44,12 @@ export const o13Messages: Record<string, [string, string]> = {
     'Đã chạm hạn mức tin Zalo/SMS trong ngày, đang dùng kênh dự phòng',
     'Daily Zalo/SMS message limit reached, falling back to cheaper channels',
   ],
+  // Core-sales provider recovery: the carrier call result could not be confirmed, so the leg is
+  // blocked until staff reconcile it by hand.
+  'alert.code.carrier-operation-unknown': [
+    'Kết quả gọi/hủy xe của đối tác chưa rõ, cần đối soát thủ công',
+    'Carrier call result unknown, needs manual reconciliation',
+  ],
 
   // P3 "Kênh thông báo" — ordered channel chain + ZNS mapping per template.
   'settings.tab.channels': ['Kênh thông báo', 'Notification channels'],

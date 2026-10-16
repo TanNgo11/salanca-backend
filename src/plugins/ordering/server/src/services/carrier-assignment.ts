@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import type { Core } from '@strapi/strapi';
 
 import type { Fulfillment } from '../contracts/entities';
@@ -8,6 +10,7 @@ import { paidAmounts } from '../domain/storefront/serialize';
 import { isTerminal } from '../domain/workflow/transition';
 import { endpointOf } from '../providers/ahamove/provider';
 import orderRepository from '../repositories/order';
+import type alertFactory from './alert';
 import type branchFactory from './branch';
 import type changeLogFactory from './change-log';
 import type { ServiceContext } from './context';
@@ -39,10 +42,45 @@ type FulfillmentRow = {
   assigneeRef: string | null;
 };
 
+type ProviderOperationRow = {
+  id: number;
+  operationKey: string;
+  kind: 'carrier-book' | 'carrier-cancel';
+  state: 'prepared' | 'dispatching' | 'succeeded' | 'rejected' | 'unknown' | 'resolved';
+  providerCode: string;
+  orderId: number;
+  fulfillmentId: number;
+  codAmount: string | number | null;
+  serviceId: string | null;
+  providerReference: string | null;
+};
+
+const ACTIVE_OPERATION_STATES = ['prepared', 'dispatching', 'unknown'] as const;
+
+/**
+ * How staff settle an operation after checking the provider by hand. A booking is either there
+ * (`booked` — attach the trip) or it never existed (`not-created` — release the guard); a
+ * cancellation either went through (`cancelled` — drop the reference) or the trip is still alive
+ * (`still-booked` — the leg may be cancelled again).
+ */
+export const RECONCILE_OUTCOMES = ['booked', 'not-created', 'cancelled', 'still-booked'] as const;
+export type ReconcileOutcome = (typeof RECONCILE_OUTCOMES)[number];
+
+const OUTCOMES_FOR_KIND: Record<
+  ProviderOperationRow['kind'],
+  readonly ReconcileOutcome[]
+> = {
+  'carrier-book': ['booked', 'not-created'],
+  'carrier-cancel': ['cancelled', 'still-booked'],
+};
+
+/** Outcomes that prove an external side effect happened — the operation is `succeeded`. */
+const RECONCILE_TERMINAL: readonly ReconcileOutcome[] = ['booked', 'cancelled'];
+
 /**
  * O13 carrier legs ("Gọi xe", screens P2). Booking is a staff decision — order placement never
- * calls the carrier. `book` is idempotent: the fulfillment row is locked FOR UPDATE, so a second
- * click (or retry) finds `providerReference` already set and answers with the existing trip.
+ * calls the carrier. A durable provider operation is committed before the outbound booking call;
+ * a retry either returns the stored trip or stops for reconciliation when the result is uncertain.
  * Carrier pushes land via the signed webhook and move the leg through `transitionGroup` only —
  * a COMPLETED push on a COD order with money still due records the carrier status but leaves
  * the leg `out-for-delivery` until staff collect (same PAYMENT_REQUIRED rule as manual marks).
@@ -60,7 +98,67 @@ const carrierAssignment = ({ strapi }: { strapi: Core.Strapi }) => {
   };
   const fulfillments = () => strapi.db.query('plugin::ordering.fulfillment');
   const groups = () => strapi.db.query('plugin::ordering.fulfillment-group');
+  const providerOperations = () => strapi.db.query('plugin::ordering.provider-operation');
+  const alerts = () => strapi.plugin('ordering').service('alert') as ReturnType<typeof alertFactory>;
   const repo = orderRepository({ strapi });
+
+  const activeCarrierOperation = (fulfillmentId: number, kind: 'carrier-book' | 'carrier-cancel') =>
+    providerOperations().findOne({
+      where: { fulfillmentId, kind, state: { $in: [...ACTIVE_OPERATION_STATES] } },
+      orderBy: { id: 'desc' },
+    }) as Promise<ProviderOperationRow | null>;
+
+  const bookingUnknown = (operation: ProviderOperationRow): OrderingError =>
+    new OrderingError('CARRIER_BOOKING_FAILED', 'the previous carrier booking needs reconciliation', {
+      details: {
+        reason: 'booking-unknown',
+        operationKey: operation.operationKey,
+        operationState: operation.state,
+      },
+    });
+
+  const cancelUnknown = (operation: ProviderOperationRow): OrderingError =>
+    new OrderingError('CARRIER_BOOKING_FAILED', 'the previous carrier cancellation needs reconciliation', {
+      details: {
+        reason: 'cancel-unknown',
+        operationKey: operation.operationKey,
+        operationState: operation.state,
+      },
+    });
+
+  /**
+   * The outbound call may have reached the provider while its result could not be stored. That
+   * blocks a blind retry and pages Ops — the alert is raised even when the state update itself
+   * fails, because a DB that is only intermittently reachable is exactly the dangerous case.
+   */
+  const markOperationUnknown = async (
+    operation: Pick<ProviderOperationRow, 'id' | 'operationKey' | 'orderId'>,
+    lastErrorCode: string,
+    ctx: ServiceContext,
+  ): Promise<void> => {
+    try {
+      await providerOperations().update({
+        where: { id: operation.id, state: { $in: ['prepared', 'dispatching'] } },
+        data: { state: 'unknown', lastErrorCode: lastErrorCode.slice(0, 100) },
+      });
+    } catch (error) {
+      // The durable `dispatching` row was committed before HTTP. If the DB is still down, that
+      // state remains sufficient to block a second booking when the DB becomes reachable.
+      strapi.log.error(
+        `[ordering] could not mark carrier operation ${operation.id} unknown: ${String((error as { code?: string }).code ?? 'db-error')}`,
+      );
+    }
+    try {
+      await alerts().noteCarrierOperationUnknown(
+        { operationKey: operation.operationKey, orderId: operation.orderId },
+        ctx,
+      );
+    } catch (error) {
+      strapi.log.error(
+        `[ordering] could not alert on carrier operation ${operation.id}: ${String((error as { code?: string }).code ?? 'db-error')}`,
+      );
+    }
+  };
 
   const fulfillmentOf = (groupId: number) =>
     fulfillments().findOne({ where: { group: groupId } }) as Promise<FulfillmentRow | null>;
@@ -173,20 +271,186 @@ const carrierAssignment = ({ strapi }: { strapi: Core.Strapi }) => {
     },
 
     /**
-     * `POST /orders/:id/carrier/book`. The row lock makes a second click return the same trip —
-     * Ahamove is called exactly once per leg.
+     * Staff recovery after checking the provider by operation key/order remark. A booking is
+     * settled with `booked` (attaches the confirmed trip) or `not-created` (releases the guard);
+     * a cancellation with `cancelled` (the trip is gone) or `still-booked` (the trip is alive, so
+     * the leg may be cancelled again). A reason is mandatory and audited.
+     */
+    async carrierReconcile(
+      orderId: number,
+      input: {
+        operationKey: string;
+        outcome: ReconcileOutcome;
+        carrierRef?: string;
+        carrierStatus?: string;
+        reason: string;
+      },
+      ctx: ServiceContext,
+    ) {
+      await services().order.getOrder(orderId, ctx); // scope check before exposing operation state
+      const operationKey = input.operationKey.trim();
+      const reason = input.reason.trim();
+      const carrierRef = input.carrierRef?.trim() ?? '';
+      if (
+        operationKey === '' ||
+        reason === '' ||
+        !RECONCILE_OUTCOMES.includes(input.outcome) ||
+        (input.outcome === 'booked' && carrierRef === '')
+      ) {
+        throw new OrderingError('VALIDATION_ERROR', 'carrier reconciliation is incomplete', {
+          details: { reason: 'reconcile-input' },
+        });
+      }
+      return strapi.db.transaction(async ({ trx }) => {
+        await repo.lockOrder(trx, orderId);
+        const scannedOperation = (await providerOperations().findOne({
+          where: {
+            orderId,
+            operationKey,
+            state: { $in: [...ACTIVE_OPERATION_STATES] },
+          },
+        })) as ProviderOperationRow | null;
+        if (!scannedOperation) {
+          throw new OrderingError('CARRIER_BOOKING_FAILED', 'carrier operation is not reconcilable', {
+            details: { reason: 'operation-not-active', operationKey },
+          });
+        }
+        const scanned = (await fulfillments().findOne({
+          where: { id: scannedOperation.fulfillmentId },
+          populate: { group: { columns: ['id'] } },
+        })) as FulfillmentRow | null;
+        if (!scanned) {
+          throw new OrderingError('ORDER_NOT_FOUND', 'carrier fulfillment disappeared', {
+            details: { orderId, operationKey },
+          });
+        }
+        const groupId = groupIdOf(scanned);
+        await trx('plugins_ordering_fulfillment_group').where({ id: groupId }).forUpdate().first('id');
+        await trx('plugins_ordering_fulfillment').where({ id: scanned.id }).forUpdate().first('id');
+        await trx('plugins_ordering_provider_operation')
+          .where({ id: scannedOperation.id })
+          .forUpdate()
+          .first('id');
+        const locked = (await fulfillments().findOne({ where: { id: scanned.id } })) as FulfillmentRow | null;
+        const operation = (await providerOperations().findOne({
+          where: { id: scannedOperation.id, state: { $in: [...ACTIVE_OPERATION_STATES] } },
+        })) as ProviderOperationRow | null;
+        if (!locked || !operation) {
+          throw new OrderingError('ORDER_NOT_FOUND', 'carrier fulfillment disappeared', {
+            details: { orderId, operationKey },
+          });
+        }
+        if (!OUTCOMES_FOR_KIND[operation.kind].includes(input.outcome)) {
+          throw new OrderingError('VALIDATION_ERROR', 'reconcile outcome does not match the operation', {
+            details: { reason: 'reconcile-kind-mismatch', kind: operation.kind, outcome: input.outcome },
+          });
+        }
+
+        if (input.outcome === 'booked') {
+          if (locked.providerReference && locked.providerReference !== carrierRef) {
+            throw new OrderingError('CARRIER_BOOKING_FAILED', 'another carrier trip is already stored', {
+              details: { reason: 'booking-conflict', operationKey },
+            });
+          }
+          await fulfillments().update({
+            where: { id: locked.id },
+            data: {
+              providerCode: operation.providerCode,
+              providerReference: carrierRef,
+              carrierStatus: input.carrierStatus?.slice(0, 100) || 'RECONCILED',
+              metadata: {
+                ...(locked.metadata ?? {}),
+                carrier: {
+                  bookedAt: nowOf(ctx).toISOString(),
+                  codAmount: Number(operation.codAmount ?? 0),
+                  ...(operation.serviceId ? { serviceId: operation.serviceId } : {}),
+                  operationKey,
+                  reconciled: true,
+                },
+              },
+            },
+          });
+        } else if (input.outcome === 'cancelled') {
+          // The provider confirms it dropped the trip: the leg keeps its own status but no longer
+          // carries a live reference, exactly like a staff cancellation that succeeded outright.
+          const trips = Array.isArray(locked.metadata?.carrierTrips)
+            ? (locked.metadata.carrierTrips as unknown[])
+            : [];
+          await fulfillments().update({
+            where: { id: locked.id },
+            data: {
+              providerReference: null,
+              carrierStatus: null,
+              carrierFee: null,
+              trackingUrl: null,
+              metadata: {
+                ...(locked.metadata ?? {}),
+                carrier: null,
+                carrierTrips: [
+                  ...trips,
+                  {
+                    carrierRef: operation.providerReference ?? locked.providerReference,
+                    carrierStatus: 'CANCELLED',
+                    reason: 'reconciled',
+                    at: nowOf(ctx).toISOString(),
+                  },
+                ],
+              },
+            },
+          });
+        }
+        await providerOperations().update({
+          where: { id: operation.id },
+          data: {
+            state: RECONCILE_TERMINAL.includes(input.outcome) ? 'succeeded' : 'resolved',
+            providerReference: input.outcome === 'booked' ? carrierRef : operation.providerReference,
+            lastErrorCode: null,
+            finishedAt: nowOf(ctx),
+          },
+        });
+        await alerts().resolveCarrierOperation(operationKey, ctx);
+        await services().changeLog.record(
+          {
+            action: 'carrier.reconcile',
+            entityType: 'order',
+            entityId: orderId,
+            after: {
+              operationKey,
+              outcome: input.outcome,
+              kind: operation.kind,
+              ...(input.outcome === 'booked' ? { carrierRef } : {}),
+              reason: reason.slice(0, 500),
+            },
+          },
+          ctx,
+        );
+        return {
+          operationKey,
+          outcome: input.outcome,
+          carrierRef: input.outcome === 'booked' ? carrierRef : null,
+        };
+      });
+    },
+
+    /**
+     * `POST /orders/:id/carrier/book`. A committed operation guard prevents a second provider call
+     * after an uncertain response or a failure while persisting the provider result.
      */
     async carrierBook(
       orderId: number,
       input: { serviceId?: string; note?: string; notifyCustomer?: boolean },
       ctx: ServiceContext,
     ) {
-      return strapi.db.transaction(async ({ trx }) => {
+      const prepared = await strapi.db.transaction(async ({ trx }) => {
         const { group: scannedGroup, fulfillment } = await liveLeg(orderId, ctx);
         // Lock the GROUP row then the leg row — the same order the carrier webhook takes, so a
         // status push and a booking serialize. Everything that decides is re-read under the
         // locks, so a leg canceled between the scan and here is caught before the provider call
         // (O-05). Raw columns are snake_case; db.query maps them back to camelCase.
+        const aggregate = await repo.lockOrderAndLoad(trx, orderId);
+        if (!aggregate) {
+          throw new OrderingError('ORDER_NOT_FOUND', 'order not found', { details: { orderId } });
+        }
         const groupId = Number(scannedGroup.id);
         await trx('plugins_ordering_fulfillment_group').where({ id: groupId }).forUpdate().first('id');
         await trx('plugins_ordering_fulfillment').where({ id: fulfillment.id }).forUpdate().first('id');
@@ -196,12 +460,12 @@ const carrierAssignment = ({ strapi }: { strapi: Core.Strapi }) => {
         if (!locked) {
           throw new OrderingError('ORDER_NOT_FOUND', 'order not found', { details: { orderId } });
         }
-        const aggregate = await repo.loadOrderAggregate(orderId);
-        if (!aggregate) {
-          throw new OrderingError('ORDER_NOT_FOUND', 'order not found', { details: { orderId } });
-        }
         if (locked.providerReference) {
-          return { alreadyBooked: true, ...bookedView(locked) };
+          return { outcome: 'already-booked' as const, result: { alreadyBooked: true, ...bookedView(locked) } };
+        }
+        const active = await activeCarrierOperation(locked.id, 'carrier-book');
+        if (active) {
+          throw bookingUnknown(active);
         }
         const group = (await groups().findOne({ where: { id: groupId } })) as {
           id: number;
@@ -234,59 +498,158 @@ const carrierAssignment = ({ strapi }: { strapi: Core.Strapi }) => {
             .whereNotNull('session')
             .update({ status: 'cancelled', updated_at: nowOf(ctx) });
         }
-        const booking = await provider.book({
-          pickup: await pickupFor(aggregate.order.locationRef ?? ''),
-          dropoff: dropoffFor(locked),
-          codAmount,
-          ...(input.note ? { note: input.note.slice(0, 200) } : {}),
-          remarks: aggregate.order.code,
-          ...(input.serviceId ? { option: { serviceId: input.serviceId } } : {}),
-        });
-        await fulfillments().update({
-          where: { id: locked.id },
+        const operationKey = `carrier-book:${locked.id}:${randomUUID()}`;
+        const operation = (await providerOperations().create({
           data: {
+            operationKey,
+            kind: 'carrier-book',
+            state: 'dispatching',
             providerCode: provider.code,
-            providerReference: booking.carrierRef,
-            carrierStatus: booking.carrierStatus ?? null,
-            carrierFee: booking.carrierFee ?? null,
-            trackingUrl: booking.trackingUrl ?? null,
-            metadata: {
-              ...(locked.metadata ?? {}),
-              carrier: {
-                bookedAt: nowOf(ctx).toISOString(),
-                codAmount,
-                ...(input.serviceId ? { serviceId: input.serviceId } : {}),
-              },
-            },
+            orderId: aggregate.order.id,
+            fulfillmentId: locked.id,
+            codAmount,
+            serviceId: input.serviceId ?? null,
+            attempts: 1,
+            startedAt: nowOf(ctx),
           },
-        });
-        await services().changeLog.record(
-          {
-            action: 'carrier.book',
-            entityType: 'order',
-            entityId: aggregate.order.id,
-            after: {
-              providerCode: provider.code,
-              carrierRef: booking.carrierRef,
-              ...(booking.carrierFee !== undefined ? { carrierFee: booking.carrierFee } : {}),
-            },
+        })) as ProviderOperationRow;
+        return {
+          outcome: 'dispatch' as const,
+          operation,
+          provider,
+          groupId,
+          fulfillmentId: locked.id,
+          orderCode: aggregate.order.code,
+          request: {
+            idempotencyKey: operationKey,
+            pickup: await pickupFor(aggregate.order.locationRef ?? ''),
+            dropoff: dropoffFor(locked),
+            codAmount,
+            ...(input.note ? { note: input.note.slice(0, 200) } : {}),
+            remarks: aggregate.order.code,
+            ...(input.serviceId ? { option: { serviceId: input.serviceId } } : {}),
           },
+        };
+      });
+
+      if (prepared.outcome === 'already-booked') return prepared.result;
+
+      let booking;
+      try {
+        booking = await prepared.provider.book!(prepared.request);
+      } catch (error) {
+        await markOperationUnknown(
+          prepared.operation,
+          String((error as { code?: string }).code ?? 'provider-call-uncertain'),
           ctx,
         );
-        return { alreadyBooked: false, ...booking };
-      });
+        throw new OrderingError('CARRIER_BOOKING_FAILED', 'carrier booking result is unknown', {
+          details: { reason: 'booking-unknown', operationKey: prepared.operation.operationKey },
+          cause: error,
+        });
+      }
+
+      try {
+        return await strapi.db.transaction(async ({ trx }) => {
+          await repo.lockOrder(trx, orderId);
+          await trx('plugins_ordering_fulfillment_group')
+            .where({ id: prepared.groupId })
+            .forUpdate()
+            .first('id');
+          await trx('plugins_ordering_fulfillment')
+            .where({ id: prepared.fulfillmentId })
+            .forUpdate()
+            .first('id');
+          await trx('plugins_ordering_provider_operation')
+            .where({ id: prepared.operation.id })
+            .forUpdate()
+            .first('id');
+          const locked = (await fulfillments().findOne({
+            where: { id: prepared.fulfillmentId },
+          })) as FulfillmentRow | null;
+          const operation = (await providerOperations().findOne({
+            where: { id: prepared.operation.id },
+          })) as ProviderOperationRow | null;
+          if (!locked || !operation) {
+            throw new OrderingError('ORDER_NOT_FOUND', 'carrier booking target disappeared', {
+              details: { orderId, operationKey: prepared.operation.operationKey },
+            });
+          }
+          if (operation.state !== 'dispatching') throw bookingUnknown(operation);
+          if (locked.providerReference && locked.providerReference !== booking.carrierRef) {
+            throw new OrderingError('CARRIER_BOOKING_FAILED', 'another carrier trip is already stored', {
+              details: { reason: 'booking-conflict', operationKey: operation.operationKey },
+            });
+          }
+          await fulfillments().update({
+            where: { id: prepared.fulfillmentId },
+            data: {
+              providerCode: prepared.provider.code,
+              providerReference: booking.carrierRef,
+              carrierStatus: booking.carrierStatus ?? null,
+              carrierFee: booking.carrierFee ?? null,
+              trackingUrl: booking.trackingUrl ?? null,
+              metadata: {
+                ...(locked.metadata ?? {}),
+                carrier: {
+                  bookedAt: nowOf(ctx).toISOString(),
+                  codAmount: prepared.request.codAmount,
+                  ...(input.serviceId ? { serviceId: input.serviceId } : {}),
+                  operationKey: prepared.operation.operationKey,
+                },
+              },
+            },
+          });
+          await providerOperations().update({
+            where: { id: prepared.operation.id },
+            data: {
+              state: 'succeeded',
+              providerReference: booking.carrierRef,
+              finishedAt: nowOf(ctx),
+              lastErrorCode: null,
+            },
+          });
+          await alerts().resolveCarrierOperation(prepared.operation.operationKey, ctx);
+          await services().changeLog.record(
+            {
+              action: 'carrier.book',
+              entityType: 'order',
+              entityId: orderId,
+              after: {
+                providerCode: prepared.provider.code,
+                carrierRef: booking.carrierRef,
+                operationKey: prepared.operation.operationKey,
+                ...(booking.carrierFee !== undefined ? { carrierFee: booking.carrierFee } : {}),
+              },
+            },
+            ctx,
+          );
+          return { alreadyBooked: false, ...booking };
+        });
+      } catch (error) {
+        await markOperationUnknown(prepared.operation, 'provider-result-not-persisted', ctx);
+        throw error;
+      }
     },
 
     /**
      * `POST /orders/:id/carrier/cancel` — only while the leg is still `ready` (pre-pickup).
      * Cancel mid-trip is a support flow on the carrier side; the leg moves `failed` via webhook.
+     *
+     * Same boundary as booking: the operation guard is committed before the outbound call, the
+     * HTTP call runs outside the PostgreSQL transaction, and a result that cannot be stored keeps
+     * the guard `unknown` so a retry never cancels (or re-cancels) on a guess.
      */
     async carrierCancel(orderId: number, input: { reason?: string }, ctx: ServiceContext) {
-      return strapi.db.transaction(async ({ trx }) => {
+      const prepared = await strapi.db.transaction(async ({ trx }) => {
         const { group: scannedGroup, fulfillment } = await liveLeg(orderId, ctx);
         // Lock the group row then the leg row (same order as the webhook) and re-read both under
         // the locks: a trip that moved `out-for-delivery` after the scan is never canceled on a
         // stale `ready` (O-09).
+        const aggregate = await repo.lockOrderAndLoad(trx, orderId);
+        if (!aggregate) {
+          throw new OrderingError('ORDER_NOT_FOUND', 'order not found', { details: { orderId } });
+        }
         const groupId = Number(scannedGroup.id);
         await trx('plugins_ordering_fulfillment_group').where({ id: groupId }).forUpdate().first('id');
         await trx('plugins_ordering_fulfillment').where({ id: fulfillment.id }).forUpdate().first('id');
@@ -296,7 +659,9 @@ const carrierAssignment = ({ strapi }: { strapi: Core.Strapi }) => {
         if (!locked) {
           throw new OrderingError('ORDER_NOT_FOUND', 'order not found', { details: { orderId } });
         }
-        if (!locked.providerReference) return { cancelled: false };
+        if (!locked.providerReference) return { outcome: 'nothing' as const };
+        const active = await activeCarrierOperation(locked.id, 'carrier-cancel');
+        if (active) throw cancelUnknown(active);
         const group = (await groups().findOne({ where: { id: groupId } })) as {
           id: number;
           status: string;
@@ -312,44 +677,127 @@ const carrierAssignment = ({ strapi }: { strapi: Core.Strapi }) => {
             details: { providerCode: provider.code },
           });
         }
-        const reason = (input.reason ?? 'staff-cancelled').slice(0, 200);
-        await provider.cancel({ fulfillment: locked as unknown as Fulfillment, reason });
-        const trips = Array.isArray(locked.metadata?.carrierTrips)
-          ? (locked.metadata.carrierTrips as unknown[])
-          : [];
-        await fulfillments().update({
-          where: { id: locked.id },
+        const operationKey = `carrier-cancel:${locked.id}:${randomUUID()}`;
+        const operation = (await providerOperations().create({
           data: {
-            providerReference: null,
-            carrierStatus: null,
-            carrierFee: null,
-            trackingUrl: null,
-            metadata: {
-              ...(locked.metadata ?? {}),
-              carrier: null,
-              carrierTrips: [
-                ...trips,
-                {
-                  carrierRef: locked.providerReference,
-                  carrierStatus: 'CANCELLED',
-                  reason,
-                  at: nowOf(ctx).toISOString(),
-                },
-              ],
-            },
+            operationKey,
+            kind: 'carrier-cancel',
+            state: 'dispatching',
+            providerCode: provider.code,
+            orderId: aggregate.order.id,
+            fulfillmentId: locked.id,
+            providerReference: locked.providerReference,
+            attempts: 1,
+            startedAt: nowOf(ctx),
           },
-        });
-        await services().changeLog.record(
-          {
-            action: 'carrier.cancel',
-            entityType: 'order',
-            entityId: orderId,
-            after: { providerCode: provider.code, carrierRef: locked.providerReference, reason },
+        })) as ProviderOperationRow;
+        return {
+          outcome: 'dispatch' as const,
+          operation,
+          provider,
+          groupId,
+          fulfillment: locked,
+          carrierRef: locked.providerReference,
+          request: {
+            fulfillment: locked as unknown as Fulfillment,
+            reason: (input.reason ?? 'staff-cancelled').slice(0, 200),
+            idempotencyKey: operationKey,
           },
+        };
+      });
+
+      if (prepared.outcome === 'nothing') return { cancelled: false };
+
+      try {
+        await prepared.provider.cancel!(prepared.request);
+      } catch (error) {
+        await markOperationUnknown(
+          prepared.operation,
+          String((error as { code?: string }).code ?? 'provider-call-uncertain'),
           ctx,
         );
-        return { cancelled: true, carrierRef: locked.providerReference };
-      });
+        throw new OrderingError('CARRIER_BOOKING_FAILED', 'carrier cancellation result is unknown', {
+          details: { reason: 'cancel-unknown', operationKey: prepared.operation.operationKey },
+          cause: error,
+        });
+      }
+
+      try {
+        return await strapi.db.transaction(async ({ trx }) => {
+          await repo.lockOrder(trx, orderId);
+          await trx('plugins_ordering_fulfillment_group')
+            .where({ id: prepared.groupId })
+            .forUpdate()
+            .first('id');
+          await trx('plugins_ordering_fulfillment')
+            .where({ id: prepared.fulfillment.id })
+            .forUpdate()
+            .first('id');
+          await trx('plugins_ordering_provider_operation')
+            .where({ id: prepared.operation.id })
+            .forUpdate()
+            .first('id');
+          const locked = (await fulfillments().findOne({
+            where: { id: prepared.fulfillment.id },
+          })) as FulfillmentRow | null;
+          const operation = (await providerOperations().findOne({
+            where: { id: prepared.operation.id },
+          })) as ProviderOperationRow | null;
+          if (!locked || !operation) {
+            throw new OrderingError('ORDER_NOT_FOUND', 'carrier cancellation target disappeared', {
+              details: { orderId, operationKey: prepared.operation.operationKey },
+            });
+          }
+          if (operation.state !== 'dispatching') throw cancelUnknown(operation);
+          const trips = Array.isArray(locked.metadata?.carrierTrips)
+            ? (locked.metadata.carrierTrips as unknown[])
+            : [];
+          await fulfillments().update({
+            where: { id: locked.id },
+            data: {
+              providerReference: null,
+              carrierStatus: null,
+              carrierFee: null,
+              trackingUrl: null,
+              metadata: {
+                ...(locked.metadata ?? {}),
+                carrier: null,
+                carrierTrips: [
+                  ...trips,
+                  {
+                    carrierRef: prepared.carrierRef,
+                    carrierStatus: 'CANCELLED',
+                    reason: prepared.request.reason,
+                    at: nowOf(ctx).toISOString(),
+                  },
+                ],
+              },
+            },
+          });
+          await providerOperations().update({
+            where: { id: prepared.operation.id },
+            data: { state: 'succeeded', finishedAt: nowOf(ctx), lastErrorCode: null },
+          });
+          await alerts().resolveCarrierOperation(prepared.operation.operationKey, ctx);
+          await services().changeLog.record(
+            {
+              action: 'carrier.cancel',
+              entityType: 'order',
+              entityId: orderId,
+              after: {
+                providerCode: prepared.provider.code,
+                carrierRef: prepared.carrierRef,
+                reason: prepared.request.reason,
+              },
+            },
+            ctx,
+          );
+          return { cancelled: true, carrierRef: prepared.carrierRef };
+        });
+      } catch (error) {
+        await markOperationUnknown(prepared.operation, 'provider-result-not-persisted', ctx);
+        throw error;
+      }
     },
 
     /**

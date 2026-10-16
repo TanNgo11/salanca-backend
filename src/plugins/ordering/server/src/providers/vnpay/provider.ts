@@ -231,6 +231,9 @@ export const createVnpayPaymentProvider = (deps: {
       });
       const body = jsonObject(response);
       const responseCode = str(body?.vnp_ResponseCode);
+      // VNPay querydr documents 91 as "transaction not found". It is the only transport-level
+      // answer that can close an abandoned local session without a transaction event.
+      if (response.status === 200 && responseCode === '91') return { outcome: 'terminal-not-found' };
       if (response.status !== 200 || responseCode !== '00') {
         throw providerError('querydr', `response:${responseCode || response.status}`);
       }
@@ -253,11 +256,11 @@ export const createVnpayPaymentProvider = (deps: {
           payDate: str(body?.vnp_PayDate),
         },
       });
-      if (status === '00') return event('capture');
+      if (status === '00') return { outcome: 'event', event: event('capture') };
       // 01 pending / 02 processing at VNPay → nothing to apply yet.
-      if (status === '01' || status === '02' || status === '') return null;
-      if (status === '07') return event('review');
-      return event('failed');
+      if (status === '01' || status === '02' || status === '') return { outcome: 'pending' };
+      if (status === '07') return { outcome: 'event', event: event('review') };
+      return { outcome: 'event', event: event('failed') };
     },
 
     async refund(input) {

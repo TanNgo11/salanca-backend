@@ -30,6 +30,25 @@ withApp(async (app) => {
     const denied = await staff.as.nvn('GET', '/ops/status');
     assert.equal(denied.status, 403, 'order.read alone must not see the ops board');
 
+    // The carrier reconcile route sits behind the same `ops.read`: order.read alone is refused,
+    // and a key with no active operation maps to a typed 409 rather than a 500.
+    const reconcilePath = `/ops/carrier/${encodeURIComponent('carrier-book:999999:missing')}/reconcile`;
+    const carrierDenied = await staff.as.nvn('POST', reconcilePath, {
+      outcome: 'booked',
+      carrierRef: 'probe',
+      reason: 'probe',
+    });
+    assert.equal(carrierDenied.status, 403, 'order.read alone must not reconcile a carrier operation');
+    const carrierUnknown = await ops.as.opsuser('POST', reconcilePath, {
+      outcome: 'booked',
+      carrierRef: 'probe',
+      reason: 'probe',
+    });
+    assert.equal(carrierUnknown.status, 409, 'a key with no active operation is not reconcilable');
+    assert.equal(carrierUnknown.body.error.code, 'CARRIER_BOOKING_FAILED');
+    assert.equal(carrierUnknown.body.error.details.reason, 'operation-not-active');
+    console.log('[ordering-test] ops carrier reconcile: ops.read gate, unknown key 409');
+
     // ── Status shape ────────────────────────────────────────────────────────────
     const first = await ops.as.opsuser('GET', '/ops/status');
     assert.equal(first.status, 200);

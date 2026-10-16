@@ -2,6 +2,7 @@ import type { Core } from '@strapi/strapi';
 
 import type adminOrdersFactory from '../services/admin-orders';
 import type carrierAssignmentFactory from '../services/carrier-assignment';
+import type { ReconcileOutcome } from '../services/carrier-assignment';
 import type deliveryAssignmentFactory from '../services/delivery-assignment';
 import type orderExportFactory from '../services/order-export';
 import type manualPaymentFactory from '../services/manual-payment';
@@ -186,6 +187,20 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
           serviceId: optionalText(input.serviceId),
           note: optionalText(input.note),
           notifyCustomer: typeof input.notifyCustomer === 'boolean' ? input.notifyCustomer : undefined,
+        },
+        serviceCtx,
+      );
+    }),
+    carrierReconcile: adminAction(strapi, async (ctx, serviceCtx) => {
+      const input = body(ctx.request.body);
+      return carriers().carrierReconcile(
+        id(ctx.params.id),
+        {
+          operationKey: String(input.operationKey ?? ''),
+          outcome: String(input.outcome ?? '') as ReconcileOutcome,
+          carrierRef: optionalText(input.carrierRef),
+          carrierStatus: optionalText(input.carrierStatus),
+          reason: String(input.reason ?? ''),
         },
         serviceCtx,
       );

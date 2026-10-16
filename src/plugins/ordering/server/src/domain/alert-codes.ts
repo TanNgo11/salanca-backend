@@ -20,6 +20,7 @@ export const ALERT_CODES = [
   'gift-card-underfunded',
   'table-session-open',
   'data-request-overdue',
+  'carrier-operation-unknown',
 ] as const;
 
 export type AlertCode = (typeof ALERT_CODES)[number];
@@ -65,6 +66,10 @@ const labels: Record<AlertCode, { vi: string; en: string }> = {
   'data-request-overdue': {
     vi: 'Yêu cầu dữ liệu cá nhân quá hạn xử lý',
     en: 'Personal-data request past its deadline',
+  },
+  'carrier-operation-unknown': {
+    vi: 'Kết quả gọi/hủy xe của đối tác chưa rõ, cần đối soát',
+    en: 'Carrier call result unknown, needs reconciliation',
   },
 };
 

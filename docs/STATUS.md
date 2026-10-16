@@ -26,9 +26,9 @@ Last reviewed against repository documentation: 2026-09-29
 - **Còn mở:** UAT tay (danh sách ở spec); **chặn mở cho khách thật**: điều khoản chương trình (pháp lý) và hạch toán điểm lưu
   hành (kế toán); màn hình khách (OW) làm ở phase web.
 
-2026-10-15: **Ordering core-sales audit vòng 2–7 — 22 đường lỗi đã có bản sửa, automated verification passed, chờ UAT tay**
+2026-10-15: **Ordering core-sales audit vòng 2–7 — 24 đường lỗi đã có bản sửa/regression, full automated gate passed, vẫn NO-GO production**
 trên `feat/ordering` (báo cáo `artifacts/core-sales-audit-20261015*/`, bàn giao `plans/core-sales-audit-fix-handoff.md`,
-kế hoạch `plans/core-sales-audit-next-plan.md`). Gốc lỗi lặp lại là đọc số dư/trạng thái trước khi khóa rồi dùng lại số cũ;
+kế hoạch `plans/core-sales-provider-recovery-and-release.md`). Gốc lỗi lặp lại là đọc số dư/trạng thái trước khi khóa rồi dùng lại số cũ;
 quy ước mới: khóa order trước (`repo.lockOrder` / `lockOrderAndLoad`), đọc lại dưới khóa, thứ tự order → group → payment/fulfillment.
 
 - **Thu tiền theo số dư mới**: đóng bàn, "Thu tiền và giao", wallet checkout.
@@ -39,12 +39,27 @@ quy ước mới: khóa order trước (`repo.lockOrder` / `lockOrderAndLoad`), 
   tiền đơn đã được nhận; hủy món không trả suất khi món đã rời bếp (`restocked:false`, vẫn hoàn tiền); đơn đã giao không hủy món.
 - **Thẻ quà tặng**: hoàn tiền chặn theo giá trị đã cam kết khi group ở `issued`; consumer không phát thẻ khi đơn không còn giữ
   đủ tiền, mở cảnh báo `gift-card-underfunded`.
-- **Carrier**: book/cancel khóa group rồi leg và đọc lại dưới khóa. **Còn mở (hoãn):** gọi provider vẫn nằm trong transaction
-  (chưa có intent/outbox); nhãn "stale" trên màn chốt quỹ cần migration.
+- **Provider recovery vòng 7**: lỗi query ví do hạ tầng giữ payment `pending` để retry; MoMo/VNPay phân biệt event, pending và
+  terminal-not-found. Carrier book ghi durable operation trước HTTP; nếu provider đã nhận booking nhưng DB finalize lỗi thì retry bị
+  chặn, staff reconcile bằng operation key thay vì gọi xe lần hai.
+- **Provider recovery — carrier cancel, cảnh báo và Ops (2026-10-16)**: `carrierCancel` dùng đúng protocol của booking: commit
+  operation `dispatching` trước HTTP, gọi đối tác ngoài transaction, finalize trong transaction mới; lỗi sau khi đối tác đã nhận lệnh
+  để operation ở `unknown` và **chặn hủy lại**. `carrierReconcile` theo kind: book `booked`/`not-created`, cancel
+  `cancelled`/`still-booked` (sai từ vựng trả `VALIDATION_ERROR` + `reconcile-kind-mismatch`). Operation `unknown` mở cảnh báo
+  critical `carrier-operation-unknown` (`dedupeKey` = operation key, `ops.read`), tự đóng khi finalize/reconcile xong. Tình trạng
+  vận hành có tab **Đối tác giao xe** (`carrierOperations`) liệt kê operation chưa kết thúc kèm tuổi, lỗi cuối và link mở đơn.
+  (2026-10-16) Tab này có nút **Đối soát** ngay trên dòng: hộp thoại nhập kết quả kiểm tra đối tác
+  (`booked`/`not-created`, `cancelled`/`still-booked`), mã chuyến khi đã tạo và lý do bắt buộc; gửi tới
+  `POST /ops/carrier/:operationKey/reconcile` dưới quyền `ops.read` (route tra operation theo key rồi gọi lại
+  `carrier-assignment.carrierReconcile`, giữ kiểm scope/trạng thái và change-log). Trước đây reconcile chỉ có ở
+  chi tiết đơn dưới quyền `order.process`.
+  **Còn mở:** nhãn "stale" trên màn chốt quỹ cần migration; cảnh báo tự động ngoài email.
 - Gate đã chạy: `build:ordering`, `typecheck`, `typecheck:admin`, lint phần source, các script `cash-closing`, `sepay-review`,
   `admin-orders`, `daily-stock`, `gift-card-*`, `payment-refund`, `core-sales-fixes`, `promotions*`, `dine-in`, `jobs`,
-  `auto-reject`, `wallet-status`, `loyalty-*` và các `reproduce.mjs` vòng 1–6 — exit 0. Chưa chạy: full `check:ordering`, UAT tay
-  (chốt quỹ, hoàn tiền mặt, đóng bàn, reopen đơn), provider thật. **Core chưa được gọi là release-ready** đến khi UAT xong.
+  `auto-reject`, `wallet-status`, `provider-recovery`, `loyalty-*` và các `reproduce.mjs` vòng 1–6 — exit 0. Full
+  `check:ordering`: **106/106 scripts PASS** trên PostgreSQL `salanca_ordering_release_gate`. Global lint còn fail do 16 lỗi trong
+  các artifact `reproduce.mjs` untracked có sẵn; source-scoped lint xanh. Chưa chạy lượt full thứ hai, UAT tay, provider sandbox thật
+  hoặc release rehearsal. **Core chưa được gọi là release-ready** đến khi các blocker đó đóng.
 
 2026-10-14: **Ordering core-sales audit — 6 lỗi đã đóng, targeted verification passed, chờ review/UAT** trên
 `feat/ordering` (báo cáo `artifacts/core-sales-audit/report.md`). 4 lỗi (khách tự hủy không hoàn tiền,

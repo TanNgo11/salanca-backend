@@ -146,6 +146,7 @@ export const AUDIT_ACTIONS: Record<string, ActionDef> = {
   'delivery.retry': { category: 'delivery', label: ['Giao lại', 'Retry delivery'] },
   // O13: staff-triggered carrier booking on a delivery leg (Ahamove "Gọi xe").
   'carrier.book': { category: 'delivery', label: ['Gọi xe (đối tác)', 'Book carrier trip'] },
+  'carrier.reconcile': { category: 'delivery', label: ['Đối soát chuyến chưa rõ', 'Reconcile unknown carrier trip'] },
   'carrier.cancel': { category: 'delivery', label: ['Hủy chuyến đối tác', 'Cancel carrier trip'] },
   'carrier.cod-conflict': {
     category: 'delivery',

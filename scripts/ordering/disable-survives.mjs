@@ -30,6 +30,9 @@ const MIGRATION_INDEXES = [
   'plugins_ordering_outbox_pending_available_idx',
   'plugins_ordering_hold_open_expires_idx',
   'plugins_ordering_order_event_occurred_idx',
+  'plugins_ordering_provider_operation_key_uq',
+  'plugins_ordering_provider_operation_active_uq',
+  'plugins_ordering_provider_operation_order_state_idx',
 ];
 
 const assertIndexes = async (db, label) => {

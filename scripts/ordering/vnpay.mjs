@@ -309,12 +309,15 @@ try {
     const provider = app.plugin('ordering').service('registry').paymentProvider('vnpay');
     const sessionRow = await payments().findOne({ where: { id: payment.id } });
     const queried = await provider.queryTransaction(reference, { session: sessionRow.session });
-    assert.equal(queried.kind, 'capture');
-    assert.equal(queried.providerTransactionId, txnNo);
+    assert.equal(queried.outcome, 'event');
+    assert.equal(queried.event.kind, 'capture');
+    assert.equal(queried.event.providerTransactionId, txnNo);
     const queryCall = fake.calls.api.find((call) => call.vnp_Command === 'querydr');
     assert.equal(queryCall.vnp_TxnRef, reference);
     assert.equal(queryCall.vnp_TransactionDate, sessionRow.session.vnpCreateDate);
     assert.equal(queryCall.vnp_SecureHash.length, 128);
+    const missing = await provider.queryTransaction(`${reference}-missing`, { session: sessionRow.session });
+    assert.equal(missing.outcome, 'terminal-not-found', 'VNPay querydr 91 is definitive not-found');
 
     const { refund } = await services(app).refund.createRefund(
       {

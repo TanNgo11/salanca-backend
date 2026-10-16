@@ -269,6 +269,7 @@ export default {
       // O13 "Gọi xe": staff quotes, books and cancels a carrier trip for the delivery leg.
       adminRoute('POST', '/orders/:id/carrier/quote', 'admin-orders.carrierQuote', 'order.process'),
       adminRoute('POST', '/orders/:id/carrier/book', 'admin-orders.carrierBook', 'order.process'),
+      adminRoute('POST', '/orders/:id/carrier/reconcile', 'admin-orders.carrierReconcile', 'order.process'),
       adminRoute('POST', '/orders/:id/carrier/cancel', 'admin-orders.carrierCancel', 'order.process'),
       adminRoute('POST', '/orders/:id/cancel', 'admin-orders.cancel', 'order.cancel'),
       adminRoute(
@@ -318,11 +319,18 @@ export default {
           policies: ['admin::isAuthenticatedAdmin', 'plugin::ordering.has-alert-access'],
         },
       },
-      // "Tình trạng vận hành" (screens V1): status board plus the two staff actions —
-      // run a catalog job now, retry a failed outbox event. `ops.read` for all three.
+      // "Tình trạng vận hành" (screens V1): status board plus the staff actions — run a catalog
+      // job now, retry a failed outbox event, settle an uncertain carrier operation by hand.
+      // `ops.read` for all four; the reconcile still enforces the caller's location scope.
       adminRoute('GET', '/ops/status', 'ops.status', 'ops.read'),
       adminRoute('POST', '/ops/jobs/:name/run', 'ops.runJob', 'ops.read'),
       adminRoute('POST', '/ops/outbox/:id/retry', 'ops.retryOutbox', 'ops.read'),
+      adminRoute(
+        'POST',
+        '/ops/carrier/:operationKey/reconcile',
+        'ops.reconcileCarrier',
+        'ops.read',
+      ),
       // Cash closing (screens V3, contracts §19.3): branch/day summary plus close & adjust.
       // `report.read` for all three; the service still enforces the caller's location scope.
       adminRoute('GET', '/reports/branches', 'reports.branches', 'report.read'),

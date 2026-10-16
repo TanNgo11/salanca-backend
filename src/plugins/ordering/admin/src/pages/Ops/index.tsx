@@ -24,6 +24,7 @@ import { useErrorToast } from '../../lib/api';
 import { formatDateTime } from '../../lib/format';
 import { useT, type Translate } from '../../lib/i18n';
 import { PERMISSIONS } from '../../lib/permissions';
+import { CarrierReconcileDialog } from './CarrierReconcileDialog';
 
 type WebhookRow = {
   providerCode: string;
@@ -57,6 +58,19 @@ type FailedRow = {
   lastError: string | null;
 };
 
+/** A carrier book/cancel that has not reached a known end state (provider recovery). */
+type CarrierOperationRow = {
+  operationKey: string;
+  kind: string;
+  state: string;
+  providerCode: string;
+  orderId: number;
+  orderCode: string | null;
+  startedAt: string | null;
+  ageMinutes: number | null;
+  lastErrorCode: string | null;
+};
+
 type StatusBody = {
   now: string;
   outbox: {
@@ -79,6 +93,7 @@ type StatusBody = {
   alerts: { open: number; critical: number };
   jobs: JobRow[];
   failedOutbox: FailedRow[];
+  carrierOperations: CarrierOperationRow[];
 };
 
 const REFRESH_MS = 30_000;
@@ -116,9 +131,10 @@ const OpsPage = () => {
   const toastError = useErrorToast();
   const [body, setBody] = useState<StatusBody | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [tab, setTab] = useState<'jobs' | 'failed'>('jobs');
+  const [tab, setTab] = useState<'jobs' | 'failed' | 'carrier'>('jobs');
   const [running, setRunning] = useState<JobRow | null>(null);
   const [busy, setBusy] = useState<number | string | null>(null);
+  const [reconciling, setReconciling] = useState<CarrierOperationRow | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -169,8 +185,34 @@ const OpsPage = () => {
     }
   };
 
+  const reconcile = async (body: {
+    outcome: string;
+    carrierRef?: string;
+    carrierStatus?: string;
+    reason: string;
+  }) => {
+    if (!reconciling) return;
+    const row = reconciling;
+    setBusy(row.operationKey);
+    try {
+      await post(`/ordering/ops/carrier/${encodeURIComponent(row.operationKey)}/reconcile`, body);
+      toggleNotification({
+        type: 'success',
+        message: t('ops.carrier.reconcile.done', { key: row.operationKey.slice(-8) }),
+      });
+      setReconciling(null);
+      void load();
+    } catch (error) {
+      toastError(error);
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const outbox = body?.outbox;
   const failedRows = body?.failedOutbox ?? [];
+  const carrierRows = body?.carrierOperations ?? [];
+  const carrierUnknown = carrierRows.filter((row) => row.state === 'unknown').length;
 
   return (
     <Page.Protect permissions={PERMISSIONS.ops}>
@@ -319,12 +361,19 @@ const OpsPage = () => {
                 </Box>
               </Flex>
 
-              <Tabs.Root value={tab} onValueChange={(next: string) => setTab(next as 'jobs' | 'failed')}>
+              <Tabs.Root
+                value={tab}
+                onValueChange={(next: string) => setTab(next as 'jobs' | 'failed' | 'carrier')}
+              >
                 <Tabs.List>
                   <Tabs.Trigger value="jobs">{t('ops.tab.jobs')}</Tabs.Trigger>
                   <Tabs.Trigger value="failed">
                     {t('ops.tab.failed')}
                     {failedRows.length > 0 ? ` (${failedRows.length})` : ''}
+                  </Tabs.Trigger>
+                  <Tabs.Trigger value="carrier">
+                    {t('ops.tab.carrier')}
+                    {carrierUnknown > 0 ? ` (${carrierUnknown})` : ''}
                   </Tabs.Trigger>
                 </Tabs.List>
               </Tabs.Root>
@@ -393,6 +442,79 @@ const OpsPage = () => {
                     ))}
                   </Tbody>
                 </Table>
+              ) : tab === 'carrier' ? (
+                carrierRows.length === 0 ? (
+                  <EmptyStateLayout content={t('ops.carrier.empty')} />
+                ) : (
+                  <Table colCount={7} rowCount={carrierRows.length + 1}>
+                    <Thead>
+                      <Tr>
+                        <Th><Typography variant="sigma">{t('ops.carrier.col.kind')}</Typography></Th>
+                        <Th><Typography variant="sigma">{t('ops.carrier.col.order')}</Typography></Th>
+                        <Th><Typography variant="sigma">{t('ops.carrier.col.provider')}</Typography></Th>
+                        <Th><Typography variant="sigma">{t('ops.carrier.col.state')}</Typography></Th>
+                        <Th><Typography variant="sigma">{t('ops.carrier.col.age')}</Typography></Th>
+                        <Th><Typography variant="sigma">{t('ops.carrier.col.error')}</Typography></Th>
+                        <Th><Typography variant="sigma">{t('orders.col.actions')}</Typography></Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {carrierRows.map((row) => (
+                        <Tr key={row.operationKey}>
+                          <Td>
+                            <Typography>
+                              {t(row.kind === 'carrier-cancel' ? 'carrier.cancel' : 'carrier.call')}
+                            </Typography>
+                            <Typography variant="pi" textColor="neutral600">
+                              {row.kind} · {row.operationKey.slice(-8)}
+                            </Typography>
+                          </Td>
+                          <Td>
+                            <Typography variant="pi">{row.orderCode ?? row.orderId}</Typography>
+                          </Td>
+                          <Td>
+                            <Typography variant="pi">{row.providerCode}</Typography>
+                          </Td>
+                          <Td>
+                            <Badge
+                              {...(row.state === 'unknown'
+                                ? { textColor: 'danger700', backgroundColor: 'danger100' }
+                                : {})}
+                            >
+                              {t(`ops.carrier.state.${row.state}`, undefined, row.state)}
+                            </Badge>
+                          </Td>
+                          <Td>
+                            <Typography variant="pi">
+                              {row.ageMinutes === null
+                                ? '—'
+                                : t('ops.minutes', { minutes: row.ageMinutes })}
+                            </Typography>
+                          </Td>
+                          <Td>
+                            <Typography variant="pi">{row.lastErrorCode ?? '—'}</Typography>
+                          </Td>
+                          <Td>
+                            <Flex gap={2} alignItems="center">
+                              <Button
+                                size="S"
+                                variant="tertiary"
+                                loading={busy === row.operationKey}
+                                disabled={busy !== null}
+                                onClick={() => setReconciling(row)}
+                              >
+                                {t('ops.carrier.reconcile')}
+                              </Button>
+                              <Link to={`/plugins/ordering/orders/${row.orderId}`}>
+                                {t('ops.carrier.open')}
+                              </Link>
+                            </Flex>
+                          </Td>
+                        </Tr>
+                      ))}
+                    </Tbody>
+                  </Table>
+                )
               ) : failedRows.length === 0 ? (
                 <EmptyStateLayout content={t('ops.failed.empty')} />
               ) : (
@@ -464,6 +586,16 @@ const OpsPage = () => {
           </Dialog.Footer>
         </Dialog.Content>
       </Dialog.Root>
+      {reconciling ? (
+        <CarrierReconcileDialog
+          kind={reconciling.kind}
+          providerCode={reconciling.providerCode}
+          operationKey={reconciling.operationKey}
+          busy={busy !== null}
+          onClose={() => setReconciling(null)}
+          onSubmit={(payload) => void reconcile(payload)}
+        />
+      ) : null}
     </Page.Protect>
   );
 };

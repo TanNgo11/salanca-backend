@@ -60,6 +60,16 @@ export type NormalizedPaymentEvent = {
   metadata?: JsonObject;
 };
 
+/**
+ * A status query must distinguish "still waiting" from a definitive provider answer. `null`
+ * used to mean both pending and not-found, which let the reconciliation job turn transport
+ * failures into a business decision for old sessions.
+ */
+export type PaymentQueryResult =
+  | { outcome: 'event'; event: NormalizedPaymentEvent }
+  | { outcome: 'pending' }
+  | { outcome: 'terminal-not-found' };
+
 export type WebhookAckMode = 'after-processing' | 'immediate';
 export type WebhookProcessingResult =
   | 'accepted'
@@ -128,7 +138,7 @@ export interface PaymentProvider {
   queryTransaction?(
     reference: string,
     context?: { session?: JsonObject },
-  ): Promise<NormalizedPaymentEvent | null>;
+  ): Promise<PaymentQueryResult>;
   listTransactions?(input: {
     from: string;
     to: string;

@@ -58,6 +58,7 @@ const EXPECTED_TABLES = [
   'plugins_ordering_promotion_code',
   'plugins_ordering_promotion_redemption',
   'plugins_ordering_price_list',
+  'plugins_ordering_provider_operation',
   'plugins_ordering_payment_event',
   'plugins_ordering_refund',
   'plugins_ordering_refund_line',
@@ -146,6 +147,10 @@ const EXPECTED_INDEXES = [
   'plugins_ordering_loyalty_ledger_kind_at_idx',
   'plugins_ordering_loyalty_ledger_order_idx',
   'plugins_ordering_loyalty_ledger_redeem_order_idx',
+  // Core-sales provider recovery (migration 0014).
+  'plugins_ordering_provider_operation_key_uq',
+  'plugins_ordering_provider_operation_active_uq',
+  'plugins_ordering_provider_operation_order_state_idx',
 ];
 
 // Catalog types staff edit in Content Manager (O2 step 1).

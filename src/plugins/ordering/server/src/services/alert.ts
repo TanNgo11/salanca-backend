@@ -499,6 +499,29 @@ const alert = ({ strapi }: { strapi: Core.Strapi }) => {
       ctx,
     );
 
+  /**
+   * Core-sales provider recovery: a carrier book/cancel call may already have reached the
+   * provider while its result could not be stored locally. Always critical — the leg stays
+   * blocked and only staff can prove what the carrier holds. One alert per operation key.
+   */
+  const noteCarrierOperationUnknown = async (
+    input: { operationKey: string; orderId: number },
+    ctx: ServiceContext,
+  ): Promise<OpenResult> =>
+    service.open(
+      {
+        alertCode: 'carrier-operation-unknown',
+        dedupeKey: `carrier-operation-unknown:${input.operationKey}`,
+        severity: 'critical',
+        aggregateRef: `order:${input.orderId}`,
+      },
+      ctx,
+    );
+
+  /** The operation reached a known end state, so its alert is no longer true. */
+  const resolveCarrierOperation = (operationKey: string, ctx: ServiceContext): Promise<boolean> =>
+    service.resolve(`carrier-operation-unknown:${operationKey}`, ctx);
+
   return {
     ...service,
     ...adminService,
@@ -506,6 +529,8 @@ const alert = ({ strapi }: { strapi: Core.Strapi }) => {
     noteWebhookSuccess,
     noteUnmatched,
     noteReconciliationMismatch,
+    noteCarrierOperationUnknown,
+    resolveCarrierOperation,
   };
 };
 

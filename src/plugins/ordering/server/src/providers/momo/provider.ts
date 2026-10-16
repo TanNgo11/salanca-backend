@@ -29,7 +29,7 @@ const num = (value: unknown): number => {
 
 const MOMO_RESULT_OK = '0';
 /** MoMo resultCodes for a finished-but-unsuccessful transaction (query/IPN). */
-const MOMO_RESULT_FAILED = new Set(['1006', '1004']);
+const MOMO_RESULT_FAILED = new Set(['1006', '1005', '1004']);
 /**
  * 9000: authorized at MoMo — the customer's money is held, but this integration (autoCapture)
  * never expects it. Money may have moved, so it goes to staff review instead of `failed`.
@@ -247,20 +247,24 @@ export const createMomoPaymentProvider = (deps: {
       if (kind === 'capture' && str(body.transId) === '') throw providerError('query', 'no-trans-id');
       if (kind) {
         // failed/review: still a real terminal event for the pending payment.
-        return eventFromPayload(
-          {
-            transId: str(body.transId),
-            orderId: reference,
-            amount: str(body.amount),
-            resultCode,
-            requestId: str(body.requestId),
-            payType: str(body.payType),
-          },
-          kind,
-        );
+        return {
+          outcome: 'event',
+          event: eventFromPayload(
+            {
+              transId: str(body.transId),
+              orderId: reference,
+              amount: str(body.amount),
+              resultCode,
+              requestId: str(body.requestId),
+              payType: str(body.payType),
+            },
+            kind,
+          ),
+        };
       }
-      // resultCode 1000 and friends: still processing at MoMo — nothing to apply yet.
-      return null;
+      // Unknown codes remain pending: a new provider code must never be guessed into a failed
+      // payment. MoMo documents 1005 as an expired checkout, so momoKind maps it to `failed`.
+      return { outcome: 'pending' };
     },
 
     async refund(input) {

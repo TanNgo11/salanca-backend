@@ -70,7 +70,11 @@ export interface FulfillmentProvider {
     trackingNumber?: string;
     trackingUrl?: string;
   }>;
-  cancel?(input: { fulfillment: Fulfillment; reason: string }): Promise<void>;
+  /**
+   * Cancels the booked trip. Like `book`, the caller commits a durable operation first and passes
+   * its `idempotencyKey` so a provider that supports dedupe can recognize a retry.
+   */
+  cancel?(input: { fulfillment: Fulfillment; reason: string; idempotencyKey?: string }): Promise<void>;
   getDocuments?(input: { fulfillment: Fulfillment }): Promise<JsonObject[]>;
 
   // --- O13 carrier lifecycle (providers that can actually book a courier) ---
@@ -86,10 +90,13 @@ export interface FulfillmentProvider {
     option?: JsonObject;
   }): Promise<CarrierQuote[]>;
   /**
-   * Books one trip. The caller holds a lock on the fulfillment row — a second click finds
-   * `providerReference` already set and never reaches the provider.
+   * Books one trip after the caller commits a durable operation. `idempotencyKey` identifies
+   * that operation across provider retries; an uncertain result must be reconciled before a new
+   * operation is allowed.
    */
   book?(input: {
+    /** Stable local operation id. Providers that support idempotency must reuse it on retries. */
+    idempotencyKey?: string;
     pickup: CarrierEndpoint;
     dropoff: CarrierEndpoint;
     codAmount: number;

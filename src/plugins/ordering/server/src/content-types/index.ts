@@ -56,6 +56,7 @@ import payment from './payment';
 import promotion from './promotion';
 import promotionCode from './promotion-code';
 import promotionRedemption from './promotion-redemption';
+import providerOperation from './provider-operation';
 import paymentEvent from './payment-event';
 import refund from './refund';
 import refundLine from './refund-line';
@@ -118,6 +119,7 @@ export default {
   promotion,
   'promotion-code': promotionCode,
   'promotion-redemption': promotionRedemption,
+  'provider-operation': providerOperation,
   'payment-event': paymentEvent,
   refund,
   'refund-line': refundLine,

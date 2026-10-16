@@ -130,6 +130,7 @@ const scripts = [
   'vnpay.mjs',
   'wallet-status.mjs',
   'ahamove.mjs',
+  'provider-recovery.mjs',
   'zalo-zns.mjs',
   'sms.mjs',
   // Core-sales audit regressions: owed after line cancel, expiry refund, split refunds.

@@ -167,6 +167,16 @@ export const ALERT_RULE_DEFAULTS: AlertRules = {
     aggregationMinutes: 1440,
     recipients: ['ops.read'],
   },
+  // Core-sales provider recovery: an outbound carrier call may have reached the provider but its
+  // result could not be stored, so the leg is blocked until staff reconcile it by hand. Always
+  // critical — only a human can prove what the carrier actually holds.
+  'carrier-operation-unknown': {
+    enabled: true,
+    threshold: 1,
+    criticalThreshold: 1,
+    aggregationMinutes: 1440,
+    recipients: ['ops.read'],
+  },
 };
 
 /** Unknown codes (custom callers) behave as a minimal warning rule rather than being dropped. */

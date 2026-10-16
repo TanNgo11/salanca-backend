@@ -12,9 +12,8 @@ import type { OrderingRegistry } from '../services/registry';
 /** Pending sessions younger than this are left alone — an in-flight IPN would race the poll. */
 const GRACE_MS = 60_000;
 /**
- * Sessions older than this are abandoned (MoMo/VNPay sessions expire in ~15 minutes): one
- * last query, then — unless it shows money moved — the payment is cancelled so it leaves the
- * pending set. Without this, 50 abandoned rows filled every batch forever.
+ * Sessions older than this receive a final classification. Only an explicit terminal-not-found
+ * answer closes them; pending or provider errors stay retryable and rotate to the back.
  */
 const ABANDON_MS = 2 * 60 * 60_000;
 const BATCH = 50;
@@ -71,7 +70,7 @@ export const runWalletStatusCheck = async (
       // every pending session gets its turn.
       const abandoned = (await payments.findMany({
         where: { ...pendingWhere, createdAt: { $lte: abandonBefore } },
-        orderBy: { id: 'asc' },
+        orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
         limit: BATCH,
       })) as PendingPayment[];
       const live = (await payments.findMany({
@@ -87,36 +86,38 @@ export const runWalletStatusCheck = async (
       let applied = 0;
       for (const row of rows) {
         const provider = registry.paymentProvider(row.providerCode);
-        const giveUp = async () => {
-          if (!abandonedIds.has(row.id)) {
-            // Rotate: the next tick starts with other sessions.
-            await payments.update({ where: { id: row.id }, data: { updatedAt: now } });
-            return;
-          }
-          await payments.update({
-            where: { id: row.id, status: 'pending' },
-            data: { status: 'cancelled', actorRef: 'job:wallet-status-check' },
-          });
-        };
-        let event;
+        const rotate = () => payments.update({ where: { id: row.id }, data: { updatedAt: now } });
+        let queryResult;
         try {
-          event = await provider.queryTransaction?.(row.providerReference ?? '', {
+          queryResult = await provider.queryTransaction?.(row.providerReference ?? '', {
             session: row.session ?? {},
           });
         } catch (error) {
-          // One bad payment must not abort the sweep — it retries next tick (or, when
-          // abandoned, is closed: "not found" means the customer never paid).
+          // An OrderingError here is not a provider business answer. Keep the money question
+          // open and rotate it; a later query or IPN can still prove capture/failure.
           if (!(error instanceof OrderingError)) throw error;
           strapi.log.warn(
             `[ordering] wallet-status ${row.providerCode} query failed: ${error.code}`,
           );
-          await giveUp();
+          await rotate();
           continue;
         }
-        if (!event) {
-          await giveUp();
+        if (!queryResult || queryResult.outcome === 'pending') {
+          await rotate();
           continue;
         }
+        if (queryResult.outcome === 'terminal-not-found') {
+          if (abandonedIds.has(row.id)) {
+            await payments.update({
+              where: { id: row.id, status: 'pending' },
+              data: { status: 'cancelled', actorRef: 'job:wallet-status-check' },
+            });
+          } else {
+            await rotate();
+          }
+          continue;
+        }
+        const event = queryResult.event;
         const saved = await matching.ingest(
           { event, rawPayload: { source: 'wallet-status-check' } },
           ctx,
@@ -127,19 +128,12 @@ export const runWalletStatusCheck = async (
             await alerts.noteUnmatched(event.providerCode, ctx);
           }
         }
-        // A non-capture answer rotates the session (or closes it when abandoned). A capture
-        // that auto-matched already flipped the payment to `captured`, so it left the pending
-        // set on its own. A capture that was parked for review — or replayed after parking —
-        // stays `pending` and would be polled forever: the durable `needs-review` event row
-        // holds the money question, so the session is closed now and only that row remains.
-        if (event.kind !== 'capture') {
-          await giveUp();
-        } else {
-          await payments.update({
-            where: { id: row.id, status: 'pending' },
-            data: { status: 'cancelled', actorRef: 'job:wallet-status-check' },
-          });
-        }
+        // Auto-matched capture/failure already moved the payment. A capture/review parked for
+        // staff remains represented by its durable payment-event, so stop polling the session.
+        await payments.update({
+          where: { id: row.id, status: 'pending' },
+          data: { status: 'cancelled', actorRef: 'job:wallet-status-check' },
+        });
       }
       return { checked: rows.length, applied };
     },

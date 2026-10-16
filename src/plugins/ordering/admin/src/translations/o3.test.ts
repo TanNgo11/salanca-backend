@@ -84,6 +84,7 @@ const DYNAMIC: Record<string, string[]> = {
   'batch.col': ['code', 'source', 'denomination', 'quantity', 'sold', 'remaining', 'created'],
   'batch.source': ['generated', 'imported'],
   'ops.webhook': ['ok', 'slow', 'failing'],
+  'ops.carrier.reconcile.outcome': ['booked', 'not-created', 'cancelled', 'still-booked'],
   'p1.provider': ['cash', 'sepay', 'momo', 'vnpay', 'gift-card', 'self-delivery', 'ahamove', 'ghn', 'email', 'zalo', 'sms'],
   'p1.group': ['payment', 'fulfillment', 'notification'],
   'p1.state': ['configured', 'unconfigured', 'error', 'not-implemented'],

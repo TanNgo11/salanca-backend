@@ -627,6 +627,10 @@ export const OPERATIONS: Operation[] = [
     parameters: [pathParam('id')],
     requestBody: obj({ serviceId: str, note: str, notifyCustomer: bool }),
   }),
+  adm('post', '/orders/:id/carrier/reconcile', 'Orders', 'Resolve an unknown carrier booking or cancellation after provider verification', ['order.process'], {
+    parameters: [pathParam('id')],
+    requestBody: obj({ operationKey: str, outcome: str, carrierRef: str, carrierStatus: str, reason: str }, ['operationKey', 'outcome', 'reason']),
+  }),
   adm('post', '/orders/:id/carrier/cancel', 'Orders', 'Cancel the booked carrier trip', ['order.process'], {
     parameters: [pathParam('id')],
     requestBody: obj({ reason: str }),
@@ -828,6 +832,10 @@ export const OPERATIONS: Operation[] = [
   }),
   adm('post', '/ops/outbox/:id/retry', 'Ops', 'Retry a failed outbox event', ['ops.read'], {
     parameters: [pathParam('id')],
+  }),
+  adm('post', '/ops/carrier/:operationKey/reconcile', 'Ops', 'Settle an uncertain carrier operation after provider verification', ['ops.read'], {
+    parameters: [pathParam('operationKey')],
+    requestBody: obj({ outcome: str, carrierRef: str, carrierStatus: str, reason: str }, ['outcome', 'reason']),
   }),
 
   // ── Admin: reports & cash ───────────────────────────────────────────────────

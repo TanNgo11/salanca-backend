@@ -32,6 +32,20 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     retryOutbox: adminAction(strapi, async (ctx, serviceCtx) =>
       ops().retryOutbox(positiveInt(ctx.params.id) ?? 0, serviceCtx),
     ),
+    // Carrier reconcile straight from the Ops board (the order detail keeps the same service call).
+    reconcileCarrier: adminAction(strapi, async (ctx, serviceCtx) => {
+      const input = body(ctx.request.body);
+      return ops().reconcileCarrier(
+        text(ctx.params.operationKey) ?? '',
+        {
+          outcome: String(input.outcome ?? ''),
+          carrierRef: text(input.carrierRef),
+          carrierStatus: text(input.carrierStatus),
+          reason: String(input.reason ?? ''),
+        },
+        serviceCtx,
+      );
+    }),
     getAlertRules: adminAction(strapi, async () => ({ rules: await rules().get() })),
     putAlertRules: adminAction(strapi, async (ctx, serviceCtx) => ({
       rules: await rules().put(body(ctx.request.body).rules, serviceCtx),

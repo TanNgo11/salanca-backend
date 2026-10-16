@@ -20,6 +20,14 @@ export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    // Audit reproduction scripts are plain Node ESM (not part of the build), so they need the
+    // Node globals rather than the browser ones ESLint assumes by default.
+    files: ['artifacts/**/*.mjs'],
+    languageOptions: {
+      globals: { console: 'readonly', process: 'readonly', URL: 'readonly' },
+    },
+  },
+  {
     files: ['**/*.ts', '**/*.tsx'],
     rules: {
       'no-undef': 'off',

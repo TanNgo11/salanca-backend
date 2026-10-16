@@ -5,6 +5,8 @@ import { OrderingError } from '../domain/errors';
 import { SIGNED_WEBHOOK_CAPABILITY } from '../domain/raw-body';
 import { jobByName, ORDERING_JOBS } from '../jobs/catalog';
 import type alertRulesFactory from './alert-rules';
+import type carrierAssignmentFactory from './carrier-assignment';
+import type { ReconcileOutcome } from './carrier-assignment';
 import type changeLogFactory from './change-log';
 import { actorRefOf } from './context';
 import type { ServiceContext } from './context';
@@ -14,6 +16,10 @@ import type { OrderingRegistry } from './registry';
 const MINUTE_MS = 60_000;
 const HOUR_MS = 3_600_000;
 const FAILED_OUTBOX_LIMIT = 50;
+const PROVIDER_OPERATION_LIMIT = 50;
+
+/** Unresolved carrier operations: `unknown` needs staff reconciliation, the rest are in flight. */
+const ACTIVE_OPERATION_STATES = ['prepared', 'dispatching', 'unknown'];
 
 type JobLockRow = {
   jobName: string;
@@ -33,6 +39,17 @@ type OutboxRow = {
   attempts: number;
   failedAt: string | Date | null;
   lastError: string | null;
+};
+
+/** A carrier operation that has not reached a known end state (provider recovery, §O-13). */
+type ProviderOperationRow = {
+  operationKey: string;
+  kind: string;
+  state: string;
+  providerCode: string;
+  orderId: number;
+  startedAt: string | Date | null;
+  lastErrorCode: string | null;
 };
 
 type CronSpec = { name?: string | null; job?: { nextInvocation?: () => Date | null } };
@@ -160,16 +177,26 @@ const opsStatus = ({ strapi }: { strapi: Core.Strapi }) => {
       orderBy: { failedAt: 'desc' },
       limit: FAILED_OUTBOX_LIMIT,
     })) as OutboxRow[];
+    // Carrier operations that never reached a known end state (provider recovery). `unknown`
+    // rows are blocked pending staff reconciliation; the others are still in flight.
+    const operationRows = (await strapi.db
+      .query('plugin::ordering.provider-operation')
+      .findMany({
+        where: { state: { $in: ACTIVE_OPERATION_STATES } },
+        orderBy: { startedAt: 'asc' },
+        limit: PROVIDER_OPERATION_LIMIT,
+      })) as ProviderOperationRow[];
     // Order codes for the "Mã đơn" column — order aggregates or payloads carrying orderId.
     const orderIds = [
       ...new Set(
-        failedRows
-          .map((row) =>
+        [
+          ...failedRows.map((row) =>
             row.aggregateType === 'order'
               ? Number(row.aggregateId)
               : Number(row.payload?.orderId),
-          )
-          .filter((id) => Number.isSafeInteger(id) && id > 0),
+          ),
+          ...operationRows.map((row) => Number(row.orderId)),
+        ].filter((id) => Number.isSafeInteger(id) && id > 0),
       ),
     ];
     const codeOf = new Map<number, string>();
@@ -194,6 +221,21 @@ const opsStatus = ({ strapi }: { strapi: Core.Strapi }) => {
         lastError: row.lastError,
       };
     });
+
+    // References and counters only — never the provider request payload or customer data.
+    const carrierOperations = operationRows.map((row) => ({
+      operationKey: row.operationKey,
+      kind: row.kind,
+      state: row.state,
+      providerCode: row.providerCode,
+      orderId: row.orderId,
+      orderCode: codeOf.get(Number(row.orderId)) ?? null,
+      startedAt: toIso(row.startedAt),
+      ageMinutes: row.startedAt
+        ? Math.max(0, Math.round((now.getTime() - new Date(row.startedAt).getTime()) / MINUTE_MS))
+        : null,
+      lastErrorCode: row.lastErrorCode,
+    }));
 
     return {
       now: now.toISOString(),
@@ -222,6 +264,7 @@ const opsStatus = ({ strapi }: { strapi: Core.Strapi }) => {
       alerts: { open: Number(openAlerts), critical: Number(criticalAlerts) },
       jobs,
       failedOutbox,
+      carrierOperations,
     };
   };
 
@@ -276,6 +319,51 @@ const opsStatus = ({ strapi }: { strapi: Core.Strapi }) => {
         ctx,
       );
       return { id, availableAt };
+    },
+
+    /**
+     * Staff settle an uncertain carrier operation straight from the Ops board. The row is located
+     * by its stable operation key; the carrier service still verifies the caller's scope, that the
+     * operation is active and that the outcome matches its kind, and audits the mandatory reason.
+     */
+    async reconcileCarrier(
+      operationKey: string,
+      input: {
+        outcome: string;
+        carrierRef?: string;
+        carrierStatus?: string;
+        reason: string;
+      },
+      ctx: ServiceContext,
+    ): Promise<{ operationKey: string; outcome: string; carrierRef: string | null }> {
+      const key = operationKey.trim();
+      if (key === '') {
+        throw new OrderingError('VALIDATION_ERROR', 'carrier reconciliation is incomplete', {
+          details: { reason: 'reconcile-input' },
+        });
+      }
+      const operation = (await strapi.db
+        .query('plugin::ordering.provider-operation')
+        .findOne({ where: { operationKey: key } })) as { orderId: number } | null;
+      if (!operation) {
+        throw new OrderingError('CARRIER_BOOKING_FAILED', 'carrier operation is not reconcilable', {
+          details: { reason: 'operation-not-active', operationKey: key },
+        });
+      }
+      const carriers = strapi.plugin('ordering').service('carrier-assignment') as ReturnType<
+        typeof carrierAssignmentFactory
+      >;
+      return carriers.carrierReconcile(
+        Number(operation.orderId),
+        {
+          operationKey: key,
+          outcome: input.outcome as ReconcileOutcome,
+          carrierRef: input.carrierRef,
+          carrierStatus: input.carrierStatus,
+          reason: input.reason,
+        },
+        ctx,
+      );
     },
   };
 };

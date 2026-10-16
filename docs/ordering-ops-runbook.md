@@ -32,10 +32,19 @@ Hai tab phía dưới:
 - **Lỗi outbox**: các event `failed` mới nhất (kiểu, mã đơn nếu suy ra được, số lần thử,
   lỗi cuối). Nút **Thử lại** gọi `POST /ordering/ops/outbox/:id/retry` — xóa lease, reset
   `attempts` về 0 và `failedAt`, giữ `lastError` làm ngữ cảnh; event quay lại hàng chờ.
+- **Đối tác giao xe**: các operation gọi/hủy xe chưa kết thúc (kind, mã đơn, provider, trạng
+  thái `prepared`/`dispatching`/`unknown`, tuổi, lỗi cuối, link mở đơn). Dòng `unknown` tô đỏ:
+  hệ thống **không** gọi lại đối tác, nhân viên phải kiểm trang đối tác (hoặc gọi API) xem chuyến có
+  thật sự được tạo/hủy, rồi bấm **Đối soát** ngay trên dòng. Hộp thoại gửi
+  `POST /ordering/ops/carrier/:operationKey/reconcile` (book: `booked`/`not-created`; cancel:
+  `cancelled`/`still-booked`) kèm lý do bắt buộc; điền mã chuyến khi chọn `booked`. Route dưới quyền
+  `ops.read` (route cũ trên chi tiết đơn vẫn còn, dưới `order.process`). Reconcile xong cảnh báo
+  `carrier-operation-unknown` tự đóng.
 
 ## Cảnh báo
 
-Mười rule (contracts §12 + O15 + O9; producer trong `jobs/` và `services/alert.ts`). Ngưỡng và người
+Các rule (contracts §12 + O15 + O9 + provider recovery; producer trong `jobs/` và
+`services/alert.ts`). Ngưỡng và người
 nhận chỉnh tại **Bán hàng → Cấu hình → Cài đặt bán hàng**, khối **Cảnh báo**
 (`GET/PUT /ordering/settings/alert-rules`,
 ghi change-log `alert-rules.update`), lưu trong plugin store key `alert-rules`.
@@ -54,6 +63,7 @@ ghi change-log `alert-rules.update`), lưu trong plugin store key `alert-rules`.
 | `gift-card-probing` | mã thẻ quà tặng sai liên tiếp từ một IP (`dedupeKey` = IP; đếm cả request đang bị 429) | 20 lần / cửa sổ | 60 lần | `ops.read` | IP đã bị rate-limit + captcha — chỉ cần xác nhận, cân nhắc chặn IP ở edge nếu critical; không tự đóng |
 | `gift-card-underfunded` | đơn bán thẻ quà tặng đã sang `issued` nhưng tiền đơn **thực giữ** (captured − refunded − refund `pending`) nhỏ hơn giá trị thẻ sắp phát, nên consumer **không phát thẻ**; `dedupeKey` = `gift-card-underfunded:<orderId>` | 1 đơn | luôn critical | `report.read` | mở chi tiết đơn: hoàn phần đã thu **hoặc** thu lại phần thiếu rồi để event phát lại; thẻ **không** được phát ở lần chạy đó nên không có thẻ "rỗng" nào tồn tại; không tự đóng |
 | `data-request-overdue` | yêu cầu dữ liệu cá nhân (xuất/xóa) còn `received`/`waiting` quá `dataRights.deadlineHours` (mặc định 72 giờ); `dedupeKey` = `data-request-overdue:<documentId>`, không mang SĐT | 1 yêu cầu | — | `ops.read` | mở Yêu cầu dữ liệu, xử lý (hoặc từ chối có ghi chú) trước hạn Nghị định 13; **tự đóng** ở lần chạy `data-request-waiting` kế tiếp (35 phút) sau khi yêu cầu xong/bị từ chối. Cảnh báo không gắn chi nhánh nên chỉ nhân viên xem tất cả chi nhánh thấy |
+| `carrier-operation-unknown` | lệnh gọi/hủy xe đã ra khỏi hệ thống (HTTP đã gửi) nhưng kết quả không ghi được vào DB, nên operation ở `unknown`; `dedupeKey` = `carrier-operation-unknown:<operationKey>`, không mang địa chỉ/SĐT | 1 operation | luôn critical | `ops.read` | mở tab **Đối tác giao xe** trên Tình trạng vận hành, mở đơn, kiểm chuyến bên đối tác rồi `POST /orders/:id/carrier/reconcile` (book: `booked` — gắn mã chuyến, hoặc `not-created` — trả guard; cancel: `cancelled` — bỏ tham chiếu, hoặc `still-booked` — cho hủy lại) kèm lý do; **không** bấm Gọi xe/Hủy chuyến lại trước khi đối soát; reconcile xong **tự đóng** |
 
 Cơ chế chung:
 
