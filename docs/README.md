@@ -84,6 +84,9 @@ Off unless `SEO_TOOLKIT_ENABLED=true`. v0.1 writes nothing.
 - [`Phase SEO-1 (v0.1) - CMS SEO data audit`](phases/phase-seo-toolkit-1-cms-audit.md)
 - [`v0.1 implementation plan`](plans/seo-toolkit-v0.1-cms-audit.md)
 - [`v0.1 handoff prompt`](plans/seo-toolkit-v0.1-handoff.md)
+- [`Phase SEO-2 (v0.2) - Admin audit page (spec, awaiting approval)`](phases/phase-seo-toolkit-2-admin-audit.md)
+- [`v0.2 implementation plan`](plans/seo-toolkit-v0.2-admin-audit.md)
+- [`v0.2 handoff prompt`](plans/seo-toolkit-v0.2-handoff.md)
 
 ## Source-of-truth rules
 
