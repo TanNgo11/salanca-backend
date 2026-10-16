@@ -21,7 +21,10 @@ test('BUG-02 customer totalSpent is the numeric sum of completed orders @bug-02'
   let sum = 0;
   for (const q of [2, 3]) {
     const o = await orders.place({ phone, quantity: q }); await orders.advance(o.id, ['preparing', 'ready']);
-    await api.post(`/orders/${o.id}/cash-handover`, { method: 'cash' }); sum += o.total;
+    await api.post(`/orders/${o.id}/cash-handover`, { method: 'cash' });
+    // `o.total` is the quote: it is taken before a first-order promotion. totalSpent follows what the order really charged.
+    const { totals } = (await orders.state(o.id)).raw;
+    sum += totals.total;
   }
   await expect.poll(async () => {
     const items = (await api.get('/customers')).body.items as any[];
@@ -81,8 +84,8 @@ test('BUG-06 cash-closing difference reflects cash collected after closing @bug-
   expect(after.closing.differenceAmount, 'the frozen difference does not move').not.toBe(diff);
   expect(after.collectorName, 'the collector row is found by name').toBeTruthy();
   await ui.open(page, 'cash-closing');
-  const header = (await page.getByRole('row').filter({ hasText: /chênh lệch/i }).first().locator('th, td, [role=gridcell], [role=columnheader], [role=cell]').allInnerTexts()).map((t) => t.trim().toUpperCase());
-  const idx = header.findIndex((t) => t.includes('CHÊNH LỆCH'));
+  const header = (await page.getByRole('row').filter({ hasText: /chênh lệch/i }).first().locator('th, td, [role=gridcell], [role=columnheader], [role=cell]').allInnerTexts()).map((t) => t.trim());
+  const idx = header.findIndex((t) => /chênh lệch/i.test(t.normalize('NFC')));
   expect(idx, `headers: ${header.join(' | ')}`).toBeGreaterThan(-1);
   const row = page.getByRole('row').filter({ hasText: after.collectorName }).first();
   const texts = await row.locator('th, td, [role=gridcell], [role=cell]').allInnerTexts();
@@ -227,6 +230,8 @@ test('UX data-request erase over the API needs confirm:true @ux-erase-confirm', 
   const denied = await api.post('/data-requests', { phone, kind: 'erase' });
   expect(denied.status, JSON.stringify(denied.body)).toBe(400);
   expect(denied.body.error?.details?.field).toBe('confirm');
-  // with the flag the request passes the gate; this phone has no profile, so the lookup answers 404, never 400
-  expect((await api.post('/data-requests', { phone, kind: 'erase', confirm: true })).status).toBe(404);
+  // With the flag the request passes the confirm gate. What follows for a phone with no profile (201 for an
+  // all-branches admin, 404 for scoped staff) is a separate rule; here it only must not be the confirm 400.
+  const confirmed = await api.post('/data-requests', { phone, kind: 'erase', confirm: true });
+  expect([201, 404], JSON.stringify(confirmed.body)).toContain(confirmed.status);
 });

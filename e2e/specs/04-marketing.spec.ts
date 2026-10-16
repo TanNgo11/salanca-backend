@@ -40,7 +40,23 @@ test.describe('Gift cards', () => {
 });
 
 test.describe('Loyalty', () => {
+  // Tier rules (server): the lowest active tier starts at 0 and active thresholds are distinct. A database with no
+  // tiers yet has to get its base tier before any higher one is accepted; the base tier stays (it must always exist).
+  const ensureBaseTier = async (api: any) => {
+    const active = ((await api.get('/loyalty/tiers')).body.items as any[]).filter((t) => t.active !== false);
+    if (active.some((t) => Number(t.minSpend12m) === 0)) return;
+    const made = await api.post('/loyalty/tiers', { code: `base-${uid()}`, name: { vi: 'Thành viên' }, minSpend12m: 0, multiplier: 100, customerGroupCode: null, active: true });
+    expect(made.status, JSON.stringify(made.body)).toBeLessThan(300);
+  };
+  test('tier rules answer with a code the Admin can translate', async ({ api }) => {
+    const active = ((await api.get('/loyalty/tiers')).body.items as any[]).filter((t) => t.active !== false);
+    const hasBase = active.some((t) => Number(t.minSpend12m) === 0);
+    const r = await api.post('/loyalty/tiers', { code: `e2e-${uid()}`, name: { vi: 'x' }, minSpend12m: hasBase ? 0 : 5_000_000, multiplier: 100, customerGroupCode: null, active: true });
+    expect(r.status, JSON.stringify(r.body)).toBe(400);
+    expect(r.body.error?.details?.issues?.[0]).toMatchObject({ path: 'minSpend12m', code: hasBase ? 'duplicate_threshold' : 'lowest_not_zero' });
+  });
   test('tier create + edit (UI) persists', async ({ page, api }) => {
+    await ensureBaseTier(api);
     const code = `e2e-${uid()}`; const name = `Hạng ${code}`;
     await ui.open(page, 'loyalty');
     await page.getByRole('tab', { name: 'Hạng thành viên' }).click();
