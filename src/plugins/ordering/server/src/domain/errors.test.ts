@@ -6,6 +6,7 @@ describe('OrderingError', () => {
   it('derives the default status from the code table', () => {
     expect(new OrderingError('ORDER_NOT_FOUND', 'missing').status).toBe(404);
     expect(new OrderingError('HOLD_NOT_FOUND', 'missing').status).toBe(404);
+    expect(new OrderingError('WEBHOOK_PROVIDER_UNKNOWN', 'no receiver').status).toBe(404);
     expect(new OrderingError('VALIDATION_ERROR', 'bad input').status).toBe(400);
     expect(new OrderingError('CONSENT_REQUIRED', 'no consent').status).toBe(400);
     expect(new OrderingError('SCOPE_REQUIRED', 'no scope').status).toBe(403);

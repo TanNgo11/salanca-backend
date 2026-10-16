@@ -10,6 +10,7 @@ import {
   IconButton,
   Loader,
   Searchbar,
+  SearchForm,
   SingleSelect,
   SingleSelectOption,
   Table,
@@ -234,24 +235,28 @@ export const OrdersList = () => {
             />
           </Field.Root>
           <Box minWidth="260px">
-            <Searchbar
-              name="q"
-              value={query}
-              placeholder={t('orders.filter.search')}
-              clearLabel={t('common.clear')}
-              onClear={() => {
-                setQuery('');
-                setSearch('');
-              }}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) => setQuery(event.target.value)}
+            {/* `Searchbar` renders a bare <input>: Enter only submits inside a <form>, so the form owns onSubmit. */}
+            <SearchForm
               onSubmit={(event: React.FormEvent) => {
                 event.preventDefault();
                 setSearch(query.trim());
                 setPage(1);
               }}
             >
-              {t('orders.filter.search')}
-            </Searchbar>
+              <Searchbar
+                name="q"
+                value={query}
+                placeholder={t('orders.filter.search')}
+                clearLabel={t('common.clear')}
+                onClear={() => {
+                  setQuery('');
+                  setSearch('');
+                }}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => setQuery(event.target.value)}
+              >
+                {t('orders.filter.search')}
+              </Searchbar>
+            </SearchForm>
           </Box>
           <Field.Root>
             <Field.Label>{t('orders.filter.payment')}</Field.Label>

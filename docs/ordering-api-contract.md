@@ -395,6 +395,10 @@ the payload below is **400** `{ "success": false }`. Anything else, after the ra
 **200** `{ "success": true }` — including a duplicate `id`, an outbound transfer, and money that does
 not match an order. SePay retries any other response.
 
+`POST` or `GET /webhooks/<code>` for a code no payment provider is registered under (SePay env unset, a typo,
+a probe) answers **404** `{ "error": { "code": "WEBHOOK_PROVIDER_UNKNOWN" } }`, never a 500, and raises no
+webhook-failure alert.
+
 ```json
 {
   "id": 96001,

@@ -108,5 +108,16 @@ withApp(async (app) => {
   assert.equal(outRow.transferType, 'out');
   assert.equal((await payments().findMany()).length, 0);
 
-  console.log('[ordering-test] sepay webhook ack, replay, reject, money-out');
+  // A code no provider answers to is a client error, never a 500: the route is public, so an
+  // unconfigured provider (SePay env unset) must not raise server errors for anyone who calls it.
+  const unknownUrl = url.replace('/webhooks/sepay', '/webhooks/not-a-provider');
+  const unknown = await fetch(unknownUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}',
+  });
+  assert.equal(unknown.status, 404);
+  assert.equal((await unknown.json()).error.code, 'WEBHOOK_PROVIDER_UNKNOWN');
+
+  console.log('[ordering-test] sepay webhook ack, replay, reject, money-out, unknown provider 404');
 });

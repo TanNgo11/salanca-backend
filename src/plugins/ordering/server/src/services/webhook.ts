@@ -107,6 +107,14 @@ const webhook = ({ strapi }: { strapi: Core.Strapi }) => {
           return receiveCarrier(fulfillment, input, ctx);
         }
       }
+      // The route is public. A code nothing is registered for (SePay env unset, a typo, a probe) is a
+      // client error, not a server fault, and must not raise the failure alert either.
+      if (!registry().hasPaymentProvider(input.providerCode)) {
+        throw new OrderingError(
+          'WEBHOOK_PROVIDER_UNKNOWN',
+          'no webhook receiver is configured for this provider',
+        );
+      }
       const provider = registry().paymentProvider(input.providerCode);
       const receivedAt = nowOf(ctx).toISOString();
       const rawBody = readUnparsedBody(input.body);

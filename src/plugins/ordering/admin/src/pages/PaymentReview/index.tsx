@@ -10,6 +10,7 @@ import {
   Loader,
   Modal,
   Searchbar,
+  SearchForm,
   SingleSelect,
   SingleSelectOption,
   Table,
@@ -584,25 +585,29 @@ const PaymentReviewPage = () => {
               />
             </Field.Root>
             <Box minWidth="260px">
-              <Searchbar
-                name="q"
-                value={query}
-                placeholder={t('review.filter.search')}
-                clearLabel={t('common.clear')}
-                onClear={() => {
-                  setQuery('');
-                  setSearch('');
-                  setPage(1);
-                }}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) => setQuery(event.target.value)}
+              {/* `Searchbar` renders a bare <input>: Enter only submits inside a <form>, so the form owns onSubmit. */}
+              <SearchForm
                 onSubmit={(event: React.FormEvent) => {
                   event.preventDefault();
                   setSearch(query.trim());
                   setPage(1);
                 }}
               >
-                {t('review.filter.search')}
-              </Searchbar>
+                <Searchbar
+                  name="q"
+                  value={query}
+                  placeholder={t('review.filter.search')}
+                  clearLabel={t('common.clear')}
+                  onClear={() => {
+                    setQuery('');
+                    setSearch('');
+                    setPage(1);
+                  }}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => setQuery(event.target.value)}
+                >
+                  {t('review.filter.search')}
+                </Searchbar>
+              </SearchForm>
             </Box>
           </Flex>
 

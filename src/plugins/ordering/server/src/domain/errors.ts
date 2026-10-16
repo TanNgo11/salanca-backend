@@ -117,6 +117,7 @@ export type OrderingErrorCode =
   | 'PROVIDER_UNAVAILABLE'
   | 'CARRIER_BOOKING_FAILED'
   | 'CARRIER_NOT_CONFIGURED'
+  | 'WEBHOOK_PROVIDER_UNKNOWN'
   | 'INTERNAL';
 
 const defaultStatus: Record<OrderingErrorCode, number> = {
@@ -233,6 +234,7 @@ const defaultStatus: Record<OrderingErrorCode, number> = {
   PROVIDER_UNAVAILABLE: 503,
   CARRIER_BOOKING_FAILED: 409,
   CARRIER_NOT_CONFIGURED: 400,
+  WEBHOOK_PROVIDER_UNKNOWN: 404,
   INTERNAL: 500,
 };
 
