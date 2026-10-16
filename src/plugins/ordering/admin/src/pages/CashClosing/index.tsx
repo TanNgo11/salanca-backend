@@ -26,6 +26,7 @@ import {
 import { Layouts, Page, useFetchClient, useNotification } from '@strapi/strapi/admin';
 
 import { fieldErrors, useErrorToast } from '../../lib/api';
+import { defaultBranch, rememberBranch } from '../../lib/branch-memory';
 import { formatDateTime, formatMoney, localized } from '../../lib/format';
 import { useLocale, useT } from '../../lib/i18n';
 import { PERMISSIONS } from '../../lib/permissions';
@@ -133,7 +134,8 @@ const CashClosingPage = () => {
           setStatus('empty');
           return;
         }
-        const first = list[0];
+        // The branch the staff member last worked in, else the first they can see.
+        const first = defaultBranch(list) ?? list[0];
         setBranch(first.code);
         setDate(first.businessDateToday);
         void loadSummary(first.code, first.businessDateToday);
@@ -148,6 +150,7 @@ const CashClosingPage = () => {
 
   const pickBranch = (code: string) => {
     setBranch(code);
+    rememberBranch(code);
     const option = branches?.find((item) => item.code === code);
     const day = option?.businessDateToday ?? date;
     setDate(day);
