@@ -97,7 +97,7 @@ export const CustomerLoyalty = ({ customerId }: { customerId: string }) => {
       setReason('');
       setExpiresAt('');
     } catch (error) {
-      setErrors(fieldErrors(error));
+      setErrors(fieldErrors(error, t));
       toast(error);
     } finally {
       setSaving(false);

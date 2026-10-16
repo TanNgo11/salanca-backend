@@ -60,6 +60,24 @@ export const o3Messages: Record<string, [string, string]> = {
   'error.LINE_QUANTITY_EXCEEDED': ['Số lượng hủy vượt quá số còn lại', 'More than the remaining quantity'],
   'error.CONFIG_INVALID': ['Thiếu cấu hình máy chủ (khóa mã hóa)', 'Server configuration is missing (encryption key)'],
 
+  // Validation issues from the server: `validation.<path>.<code>`, then `validation.<code>`,
+  // then `validation.invalid`. The server never shows these itself — the Admin translates them.
+  'validation.invalid': ['Giá trị chưa hợp lệ', 'This value is not valid'],
+  'validation.too_small': ['Giá trị tối thiểu là {min}', 'The minimum is {min}'],
+  'validation.too_big': ['Giá trị tối đa là {max}', 'The maximum is {max}'],
+  'validation.invalid_format': ['Định dạng chưa đúng', 'The format is not valid'],
+  'validation.invalid_date': ['Ngày không hợp lệ', 'The date is not valid'],
+  'validation.not_unique': ['Các giá trị không được trùng nhau', 'Values must be unique'],
+  'validation.code.invalid_format': ['Mã chỉ gồm chữ thường, số và dấu gạch ngang (2–40 ký tự)', 'Use lowercase letters, digits and dashes (2–40 characters)'],
+  'validation.multiplier.too_small': ['Hệ số điểm tối thiểu là {min} (100 = ×1.0)', 'The minimum multiplier is {min} (100 = ×1.0)'],
+  'validation.multiplier.too_big': ['Hệ số điểm tối đa là {max} (100 = ×1.0)', 'The maximum multiplier is {max} (100 = ×1.0)'],
+  'validation.lines.no_variant': ['Chọn ít nhất một món cho bảng giá', 'Choose at least one item for the price list'],
+  'validation.lines.too_many_rows': ['Quá nhiều dòng giá, hãy thu hẹp điều kiện', 'Too many price rows, narrow the conditions'],
+  'validation.validTo.range_order': ['Ngày kết thúc phải sau ngày bắt đầu', 'The end must be after the start'],
+  'validation.rules.timeRanges.empty_range': ['Khung giờ không được để trống', 'A time range must not be empty'],
+  'validation.adjust.value.too_big': ['Phần trăm giảm tối đa là {max}', 'The percentage can be at most {max}'],
+  'validation.adjust.target.refs.no_target': ['Chọn ít nhất một danh mục hoặc món', 'Choose at least one category or product'],
+
   // Order states / tabs / payment / origin
   'state.draft': ['Nháp', 'Draft'],
   'state.awaiting-acceptance': ['Chờ quán nhận', 'Awaiting acceptance'],

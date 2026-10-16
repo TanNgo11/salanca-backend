@@ -114,7 +114,7 @@ const ProgramTab = ({ settings, onChange, onSaved }: { settings: Settings; onCha
       onSaved((data as { settings: Settings }).settings);
       toggleNotification({ type: 'success', message: t('loyalty.saved') });
     } catch (error) {
-      setErrors(fieldErrors(error));
+      setErrors(fieldErrors(error, t));
       toast(error);
     } finally {
       setSaving(false);
@@ -278,7 +278,7 @@ const TiersTab = ({ settings }: { settings: Settings }) => {
       setForm(null);
       await load();
     } catch (error) {
-      setErrors(fieldErrors(error));
+      setErrors(fieldErrors(error, t));
       toast(error);
     }
   };

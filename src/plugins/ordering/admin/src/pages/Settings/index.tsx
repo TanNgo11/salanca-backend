@@ -111,7 +111,7 @@ const AlertRulesBlock = ({ t }: { t: Translate }) => {
       setRules((data as { rules: AlertRules }).rules);
       toggleNotification({ type: 'success', message: t('settings.alerts.saved') });
     } catch (error) {
-      setAlertErrors(fieldErrors(error));
+      setAlertErrors(fieldErrors(error, t));
       toastError(error);
     } finally {
       setSaving(false);
@@ -292,7 +292,7 @@ const SettingsPage = () => {
       setSettings((data as { settings: InboxSettings }).settings);
       toggleNotification({ type: 'success', message: t('settings.saved') });
     } catch (error) {
-      setErrors(fieldErrors(error));
+      setErrors(fieldErrors(error, t));
       toastError(error);
     } finally {
       setSaving(false);

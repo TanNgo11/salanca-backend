@@ -2,6 +2,7 @@ import type { Core } from '@strapi/strapi';
 import { z } from '@strapi/utils';
 
 import { OrderingError } from '../domain/errors';
+import { issueView } from '../domain/validation-issue';
 import type changeLogFactory from './change-log';
 import type { ServiceContext } from './context';
 
@@ -98,7 +99,7 @@ const orderingSettings = ({ strapi }: { strapi: Core.Strapi }) => {
       if (!parsed.success) {
         throw new OrderingError('VALIDATION_ERROR', 'settings are invalid', {
           details: {
-            issues: parsed.error.issues.map((issue) => ({ path: issue.path.join('.'), message: issue.message })),
+            issues: parsed.error.issues.map((issue) => issueView(issue, 'settings')),
           },
         });
       }

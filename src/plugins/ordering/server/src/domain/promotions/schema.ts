@@ -1,6 +1,7 @@
 import { z } from '@strapi/utils';
 
 import { OrderingError } from '../errors';
+import { issueView } from '../validation-issue';
 
 const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 const clock = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
@@ -64,7 +65,7 @@ export const parsePromotionInput = (raw: unknown): PromotionInput => {
   if (!parsed.success || parsed.data === undefined) {
     const issue = parsed.success ? undefined : parsed.error.issues[0];
     throw new OrderingError('VALIDATION_ERROR', 'promotion is invalid', {
-      details: { issues: [{ path: issue?.path.join('.') || 'promotion', message: issue?.message ?? 'invalid' }] },
+      details: { issues: [issueView(issue, 'promotion')] },
     });
   }
   const input = parsed.data;

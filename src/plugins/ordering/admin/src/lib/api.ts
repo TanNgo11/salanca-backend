@@ -1,7 +1,9 @@
 import { useCallback } from 'react';
 import { useNotification } from '@strapi/strapi/admin';
 
+import type { Translate } from './i18n';
 import { useT } from './i18n';
+import { fieldErrorsOf, issueText, type ValidationIssue } from './validation';
 
 export type ApiError = { code?: string; message?: string; details?: Record<string, unknown> };
 
@@ -17,13 +19,18 @@ export const httpStatusOf = (error: unknown): number | undefined => {
   return value?.status ?? value?.response?.status;
 };
 
-/** Field-addressed validation issues (`details.issues[{ path, message }]`) by path. */
-export const fieldErrors = (error: unknown): Record<string, string> => {
+/**
+ * Field-addressed validation issues (`details.issues[{ path, message, code, min, max }]`) by path.
+ * Pass `t` to render translated text (the server `message` is English); without it the raw server
+ * message is kept for callers that have no translator in scope.
+ */
+export const fieldErrors = (error: unknown, t?: Translate): Record<string, string> => {
   const issues = apiErrorOf(error).details?.issues;
   if (!Array.isArray(issues)) {
     const field = apiErrorOf(error).details?.field;
     return typeof field === 'string' ? { [field]: apiErrorOf(error).message ?? '' } : {};
   }
+  if (t) return fieldErrorsOf(issues as ValidationIssue[], t);
   return Object.fromEntries(
     (issues as Array<{ path?: string; message?: string }>).map((issue) => [issue.path ?? '', issue.message ?? '']),
   );
@@ -35,9 +42,11 @@ export const useErrorToast = () => {
   const t = useT();
   return useCallback(
     (error: unknown) => {
-      const { code, message } = apiErrorOf(error);
+      const { code, message, details } = apiErrorOf(error);
       const known = code ? t(`error.${code}`, undefined, '') : '';
-      toggleNotification({ type: 'danger', message: known || message || t('error.generic') });
+      const head = known || message || t('error.generic');
+      const issue = (details?.issues as ValidationIssue[] | undefined)?.[0];
+      toggleNotification({ type: 'danger', message: issue ? `${head}: ${issueText(t, issue)}` : head });
     },
     [t, toggleNotification],
   );
