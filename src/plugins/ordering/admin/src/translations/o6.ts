@@ -169,6 +169,10 @@ export const o6Messages: Record<string, [string, string]> = {
   'cash.adjust.expected': ['Hệ thống đang tính phải có {amount}', 'The system expects {amount}'],
   'cash.adjustReason': ['Điều chỉnh: {reason}', 'Adjustment: {reason}'],
   'cash.adjusted': ['Đã lưu bản điều chỉnh', 'Adjustment saved'],
+  'cash.postedAfterClose': [
+    'Lúc chốt: {at}. Có tiền mặt phát sinh sau khi chốt.',
+    'At close: {at}. Cash was posted after closing.',
+  ],
 
   'reports.title': ['Báo cáo bán hàng', 'Sales report'],
   'reports.subtitle': [

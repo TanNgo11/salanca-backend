@@ -363,6 +363,31 @@ withApp(async (app) => {
     assert.ok(logs.filter((row) => row.action === 'cash-closing.close').length >= 3);
     assert.ok(logs.filter((row) => row.action === 'cash-closing.adjust').length >= 1);
 
+    // ── 10. Late cash after a close: the snapshot stays frozen, the live difference moves ──
+    const lateId = (await order.createOrder(
+      orderInput('Q1', [{ sellableUid: 'tra-dao', quantity: 1 }]),
+      systemCtx,
+    )).order.order.id;
+    await move(ops.as.quanly, lateId, 'preparing');
+    await move(ops.as.quanly, lateId, 'ready');
+    const beforeLate = rowOf((await summary(ops.as.quanly, 'Q1', today)).body, quanlyRef);
+    assert.ok(beforeLate.closing, 'quanly must still hold a current closing here');
+    await handover(ops.as.quanly, lateId);
+    const afterLate = rowOf((await summary(ops.as.quanly, 'Q1', today)).body, quanlyRef);
+    const added = afterLate.expectedAmount - beforeLate.expectedAmount;
+    assert.ok(added > 0, 'late cash raises the expected amount');
+    assert.equal(
+      afterLate.closing.differenceAmount,
+      beforeLate.closing.differenceAmount,
+      'frozen snapshot unchanged',
+    );
+    assert.equal(
+      afterLate.closing.liveDifferenceAmount,
+      beforeLate.closing.liveDifferenceAmount - added,
+      'live difference follows the ledger (BUG-06)',
+    );
+    console.log('[ordering-test] late cash after close moves liveDifferenceAmount, not the frozen difference');
+
     console.log('[ordering-test] cash-closing: all checks passed');
   } finally {
     await ops.cleanup();

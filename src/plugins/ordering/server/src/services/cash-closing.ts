@@ -49,7 +49,10 @@ type CashClosingRow = {
 export type ClosingSnapshot = {
   id: number;
   countedAmount: number;
+  /** Frozen when the closing was written (audit); never changes. */
   differenceAmount: number;
+  /** `countedAmount − expected now`; moves when cash is posted after the close. */
+  liveDifferenceAmount: number;
   note: string | null;
   closedBy: string;
   closedByName: string | null;
@@ -287,10 +290,15 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       })) as CashClosingRow[]
     ).map(amounts);
 
-  const snapshot = (row: CashClosingRow, names: Map<string, string | null>): ClosingSnapshot => ({
+  const snapshot = (
+    row: CashClosingRow,
+    names: Map<string, string | null>,
+    expectedNow: number,
+  ): ClosingSnapshot => ({
     id: row.id,
     countedAmount: int(row.countedAmount),
     differenceAmount: int(row.differenceAmount),
+    liveDifferenceAmount: int(row.countedAmount) - expectedNow,
     note: row.note,
     closedBy: row.closedBy,
     closedByName: names.get(row.closedBy) ?? null,
@@ -312,7 +320,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
     systemAmount: bucket.systemAmount,
     refundAmount: bucket.refundAmount,
     expectedAmount: bucket.systemAmount - bucket.refundAmount,
-    closing: closing ? snapshot(closing, names) : null,
+    closing: closing ? snapshot(closing, names, bucket.systemAmount - bucket.refundAmount) : null,
   });
 
   const dedupeKey = (locationRef: string, day: string, collectorRef: string): string =>

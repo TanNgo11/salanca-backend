@@ -41,6 +41,7 @@ type Closing = {
   id: number;
   countedAmount: number;
   differenceAmount: number;
+  liveDifferenceAmount: number;
   note: string | null;
   closedBy: string;
   closedByName: string | null;
@@ -328,12 +329,21 @@ const CashClosingPage = () => {
                           <>
                             <Td><Typography variant="pi">{formatMoney(row.closing.countedAmount)}</Typography></Td>
                             <Td>
-                              <Typography
-                                variant="pi"
-                                textColor={row.closing.differenceAmount !== 0 ? 'danger600' : undefined}
-                              >
-                                {formatMoney(row.closing.differenceAmount)}
-                              </Typography>
+                              <Flex direction="column" alignItems="start" gap={1}>
+                                <Typography
+                                  variant="pi"
+                                  textColor={row.closing.liveDifferenceAmount !== 0 ? 'danger600' : undefined}
+                                >
+                                  {formatMoney(row.closing.liveDifferenceAmount)}
+                                </Typography>
+                                {row.closing.liveDifferenceAmount !== row.closing.differenceAmount ? (
+                                  <Typography variant="pi" textColor="neutral600">
+                                    {t('cash.postedAfterClose', {
+                                      at: formatMoney(row.closing.differenceAmount),
+                                    })}
+                                  </Typography>
+                                ) : null}
+                              </Flex>
                             </Td>
                             <Td>
                               <Flex direction="column" alignItems="start" gap={1}>
