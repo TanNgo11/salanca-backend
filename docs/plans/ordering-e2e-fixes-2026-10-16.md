@@ -1,6 +1,6 @@
 # Ordering — sửa lỗi từ báo cáo E2E 16/10/2026
 
-Status: Automated verification passed và đã commit cục bộ trừ BUG-03/04 (Nhóm A, 2026-10-16) — chưa `Complete`: còn UAT tay của user và các quyết định D0–D4. D0–D3 chốt theo mặc định đề xuất; D2/D3 có chỗ lệch đã ghi ở Completion record.
+Status: Automated verification passed và đã commit cục bộ, chưa push (Nhóm A, 2026-10-16; BUG-03/04 nằm trong commit R1 `80dcecd`) — chưa `Complete`: còn UAT tay của user và các quyết định D0–D4. D0–D3 chốt theo mặc định đề xuất; D2/D3 có chỗ lệch đã ghi ở Completion record.
 Owner: AI thực thi do user chỉ định; user duyệt kết quả và tự UAT UI
 Last updated: 2026-10-16
 Related phase: nhánh `feat/ordering-notify-release`; nguồn lỗi là `docs/BAO-CAO-E2E-ORDERING.md` (bản HTML có ảnh: `C:\Users\tan_ngo\Downloads\BAO-CAO-E2E-ORDERING.html`)
@@ -1129,8 +1129,8 @@ Mười commit `fix(ordering): …` trên `feat/ordering-notify-release`, mỗi 
 `72da645` Task 1 · `1b1cdee` Task 2 · `6343fca` Task 3 · `097ba30` migration 0014 · `dd3bdde` Task 4 ·
 `fa566b5` Task 7 · `dc2b6f8` Task 8 · `64f3e4c` Task 10 · `8af3c72` Task 11 (BUG-12) · `7971800` Task 12.
 Các file lẫn thay đổi R1a/R1b (`permissions.ts`, `App.tsx`, `o3.ts`, `operations.ts`, `ordering-admin-openapi.json`,
-`STATUS.md`, `staff-guide`) chỉ stage phần hunk của fix. **Task 5/6 (BUG-03/04) chưa commit**: chúng sửa lớp proxy
-`registry.ts` và `registry.test.ts` mà R1a chưa commit (HEAD không có proxy), nên đi cùng commit R1a.
+`STATUS.md`, `staff-guide`) chỉ stage phần hunk của fix. **Task 5/6 (BUG-03/04)** nằm trong commit R1 `80dcecd`
+(`feat(ordering): notification release R1 …`): chúng sửa lớp proxy `registry.ts` và `registry.test.ts` của R1a mà HEAD trước đó không có, nên đi cùng.
 Hai chỗ bổ sung khi commit (user cho phép): cảnh báo xóa dữ liệu nay in số điện thoại sắp bị xóa
 (`dataRequests.create.erasePhone`); số test trong STATUS cập nhật. Đã kiểm lại trên worktree tạm tại HEAD (không có
 R1a/R1b): `lint`, `typecheck`, `typecheck:admin`, `vitest` 204 file / 1528 test, build server bằng `tsc`, `schema.mjs`,

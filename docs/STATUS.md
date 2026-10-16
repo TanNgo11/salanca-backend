@@ -6,8 +6,8 @@ Last reviewed against repository documentation: 2026-09-29
 worktree `salanca-notify` (nhánh `feat/ordering-notify-release`), theo
 [`plans/ordering-e2e-fixes-2026-10-16.md`](plans/ordering-e2e-fixes-2026-10-16.md) (Nhóm A: Task 1–8, 10–12).
 Nguồn lỗi là `docs/BAO-CAO-E2E-ORDERING.md`. **Đã commit cục bộ (chưa push)** thành 10 commit `fix(ordering): …`
-(mỗi task một commit, migration 0014 riêng; SHA ở Completion record của plan). **BUG-03/04 chưa commit**: chúng sửa
-proxy trong `registry.ts` mà R1a chưa commit, nên đi cùng commit R1a.
+(mỗi task một commit, migration 0014 riêng; SHA ở Completion record của plan). **BUG-03/04** nằm trong commit R1
+`80dcecd` (chúng sửa proxy của R1a, nên đi cùng).
 
 - **Yêu cầu dữ liệu**: `POST /data-requests { kind: 'erase' }` nay **bắt buộc** `confirm: true`
   (`400 VALIDATION_ERROR`, `details.field = 'confirm'`), kiểm **trước** mọi tra khách; UI "Tạo yêu cầu"
@@ -19,7 +19,7 @@ proxy trong `registry.ts` mà R1a chưa commit, nên đi cùng commit R1a.
   `sinceDays` dùng cùng công thức.
 - **BUG-06**: `ClosingSnapshot` thêm `liveDifferenceAmount` (số sống), `differenceAmount` giữ nguyên là số
   đã đóng băng; cột Chênh lệch ở màn Chốt tiền hiện số sống + dòng "Lúc chốt: …".
-- **BUG-03/04** (làm xong nhưng **chưa commit**, nằm trong working tree cùng R1a): proxy
+- **BUG-03/04** (commit `80dcecd`, cùng R1a): proxy
   `notificationProvider(...).send` đọc `send` thật **lúc trap `get`** nên không còn đệ quy vô hạn khi test ghi đè
   `send`; `registry.test.ts` truyền `{ strapi }` cho 6 test cũ.
 - **BUG-05**: seed UAT nâng giới hạn bún bò Q1 `5 → 7`; seed chạy hết (6/7), không còn `ITEM_SOLD_OUT`.
@@ -49,7 +49,7 @@ proxy trong `registry.ts` mà R1a chưa commit, nên đi cùng commit R1a.
 - **Còn mở**: UAT tay (xóa dữ liệu 2 bước, Bếp có đơn, chênh lệch sau chốt, 403/404, màn UX, giờ
   khuyến mãi trên trình duyệt VN); **BUG-11** (React thiếu `key`) chưa sửa — cần nguyên văn cảnh báo
   console; "giao-q1 mở Bàn & QR trắng" chưa tái hiện được bằng code (cần console + tab Network của user);
-  **Nhóm B (Task 9, UX)** chưa làm; chưa push; BUG-03/04 chờ commit R1a.
+  **Nhóm B (Task 9, UX)** chưa làm; chưa push.
 
 2026-10-15: **Thông báo cho release Salanca (R0–R1e) — implemented + automated verification passed, ready for manual UAT** trên
 nhánh `feat/ordering-notify-release` (worktree `D:\outsource\salanca\salanca-notify`, tách từ `feat/ordering` tại `de77da5`),
@@ -82,7 +82,7 @@ kế hoạch). Kênh bật khi release: **email**; Zalo ZNS và SMS giữ `enabl
   bằng kết quả của chính mình trước khi coi là hồ sơ nghiệm thu. Theo quy ước gate gọn của nhánh, **không** chạy
   `check:ordering` đầy đủ, `check:phase3` hay smoke; repo chưa có CI nên đây là bằng chứng duy nhất.
 - **Còn mở:** UAT tay (chủ dự án; AI không UAT trình duyệt); bước 5/R1d (tên miền, DKIM/SPF/DMARC, gửi thử Gmail + Outlook);
-  **các đề xuất D1–D4 trong kế hoạch chưa được chủ dự án xác nhận**; chưa commit gì trên nhánh. **Việc theo dõi sau R1** (không làm ở đây): khách chỉ có SĐT
+  **các đề xuất D1–D4 trong kế hoạch chưa được chủ dự án xác nhận**; đã commit cục bộ `80dcecd` (chưa push). **Việc theo dõi sau R1** (không làm ở đây): khách chỉ có SĐT
   không để lại dấu vết, nút "Gửi lại", alert "gửi lỗi liên tục", xuất CSV nhật ký, job dọn nhật ký cũ, R2/R3/R5.
 
 2026-10-15: **Ordering O16 (tích điểm và hạng thành viên) — implemented + automated verification passed, chờ UAT tay** trên
