@@ -92,9 +92,13 @@ const auditLog = ({ strapi }: { strapi: Core.Strapi }) => {
       throw new OrderingError('VALIDATION_ERROR', 'unknown category', { details: { field: 'category' } });
     }
     const staffScope = await callerScope(ctx);
-    const builder = knex()(TABLE)
-      .where('occurred_at', '>=', `${from}T00:00:00${DAY_OFFSET}`)
-      .where('occurred_at', '<', knex().raw(`?::timestamptz + interval '1 day'`, [`${to}T00:00:00${DAY_OFFSET}`]));
+    // `occurred_at` is `timestamp without time zone`, written by Strapi from a JS Date. Binding Dates here
+    // goes through the same driver conversion, so the bounds mean the same instants whatever the Node or
+    // Postgres time zone is. A string bound loses its offset and `?::timestamptz` keeps it, which put the
+    // two ends of the Vietnam day on different clocks.
+    const rangeStart = new Date(`${from}T00:00:00${DAY_OFFSET}`);
+    const rangeEnd = new Date(Date.parse(`${to}T00:00:00${DAY_OFFSET}`) + 86_400_000);
+    const builder = knex()(TABLE).where('occurred_at', '>=', rangeStart).where('occurred_at', '<', rangeEnd);
     if (!staffScope.allLocations) {
       builder.whereIn('location_ref', staffScope.locationRefs);
     }

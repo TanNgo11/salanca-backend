@@ -117,6 +117,45 @@ withApp(async (app) => {
     assert.equal(noExportRes.status, 403, 'export also needs the export action');
     console.log('[ordering-test] audit log: scope, filters, detail, actors, csv');
 
+    // ── Vietnam-day bounds do not depend on the Node or Postgres time zone ──────────
+    // Fixed past day with rows at both edges plus one just after: the first two belong to the day, the
+    // third to the next. Run with `TZ=UTC` and with `PGOPTIONS="-c timezone=UTC"` to exercise the mismatch.
+    const edgeDay = '2026-03-05';
+    const edgeRows = [
+      ['edge-first', '2026-03-05T00:30:00+07:00'],
+      ['edge-last', '2026-03-05T23:30:00+07:00'],
+      ['edge-next', '2026-03-06T00:30:00+07:00'],
+    ];
+    for (const [entityId, at] of edgeRows) {
+      await app.db.query('plugin::ordering.admin-change-log').create({
+        data: {
+          actorRef: 'tz-fixture',
+          action: 'settings.update',
+          entityType: 'settings',
+          entityId,
+          locationRef: 'Q1',
+          occurredAt: new Date(at),
+          changes: {},
+        },
+      });
+    }
+    try {
+      const idsOf = async (from, to) =>
+        (await staff.as.chuoi('GET', `/audit-log?from=${from}&to=${to}&actor=tz-fixture`)).body.rows
+          .map((row) => row.entityId)
+          .sort();
+      assert.deepEqual(await idsOf(edgeDay, edgeDay), ['edge-first', 'edge-last'], 'the Vietnam day holds its own rows only');
+      assert.deepEqual(await idsOf('2026-03-06', '2026-03-06'), ['edge-next'], 'the next day starts at 00:00 +07:00');
+      assert.deepEqual(
+        await idsOf(edgeDay, '2026-03-06'),
+        ['edge-first', 'edge-last', 'edge-next'],
+        'a two-day range covers both days',
+      );
+    } finally {
+      await knex('plugins_ordering_admin_change_log').where('actor_ref', 'tz-fixture').delete();
+    }
+    console.log('[ordering-test] audit log: Vietnam-day bounds at 00:30 and 23:30 (any server time zone)');
+
     // ── Hash chain ────────────────────────────────────────────────────────────
     const later = new Date(Date.now() + 120_000);
     const filled = await runAuditChain(app, { owner, now: later });

@@ -155,9 +155,12 @@ withApp(async (app) => {
   console.log(`[ordering-test] worker B abandoned ${bLocks[0].n} leased rows`);
 
   // B's lease runs out (moved into the past here), then a fresh process reclaims the remainder.
+  // Instants go in as JS Dates, the way the service writes them. The columns are `timestamp without time zone`,
+  // so a Postgres `now()` here is read on the database's clock, not Node's, and shifts by the zone difference.
   await db.raw(
-    `UPDATE plugins_ordering_outbox SET lease_until = now() - interval '1 second'
+    `UPDATE plugins_ordering_outbox SET lease_until = ?
        WHERE locked_by = 'B' AND delivered_at IS NULL`,
+    [new Date(Date.now() - 1000)],
   );
   const a2 = await runWorker('A2');
   assert.equal(a2.code, 0, `worker A2 must exit cleanly (got ${a2.code})`);
@@ -197,10 +200,10 @@ withApp(async (app) => {
   const first = await outbox.dispatch({ owner: 'parent' });
   assert.equal(first.retried, 3);
   const { rows: retried } = await db.raw(
-    `SELECT attempts, last_error, extract(epoch FROM (available_at - now()))::int AS backoff
-       FROM plugins_ordering_outbox WHERE type = 'test.fail'`,
+    `SELECT attempts, last_error, available_at FROM plugins_ordering_outbox WHERE type = 'test.fail'`,
   );
   for (const row of retried) {
+    row.backoff = Math.round((new Date(row.available_at).getTime() - Date.now()) / 1000);
     assert.equal(row.attempts, 1);
     assert.ok(row.backoff >= 25 && row.backoff <= 35, `backoff ≈30s, got ${row.backoff}`);
     assert.match(row.last_error ?? '', /test\.fail consumer always fails/);
@@ -211,8 +214,9 @@ withApp(async (app) => {
   // Jump attempts to maxAttempts-1 and make the rows due: next failure sets failed_at.
   await db.raw(
     `UPDATE plugins_ordering_outbox
-        SET attempts = 9, available_at = now() - interval '1 second'
+        SET attempts = 9, available_at = ?
        WHERE type = 'test.fail'`,
+    [new Date(Date.now() - 1000)],
   );
   const second = await outbox.dispatch({ owner: 'parent' });
   assert.equal(second.failed, 3);
