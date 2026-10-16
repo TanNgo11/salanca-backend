@@ -7,7 +7,7 @@ integration scripts, which serve as the feature list.
 
 Status: ✅ covered · 🟡 partial (some cases only, API-only, or tolerant assertion) · ❌ not covered · ⛔ known gap (reason given) · 🐞 bug regression (guards a bug found by the first E2E run; it fails while the bug exists)
 
-Bug state on branch `feat/ordering-notify-release` (working tree, 2026-10-16): BUG-01…08, 10, 12, 13, 14, 15 and the erase confirmation are fixed in code and their regressions should now pass (not yet re-run against a live server). **BUG-09** is `fixme`: the fix plan closed it as an open product decision (browser time vs store time). **BUG-11** was never reproduced and only runs with `E2E_ADMIN_DEV=1` on a `strapi develop` server. See `docs/plans/ordering-e2e-fixes-2026-10-16.md`.
+Bug state on branch `feat/ordering-notify-release` (2026-10-16): BUG-01…08, 10, 12, 13, 14, 15 and the erase confirmation are fixed and committed (BUG-03/04 together with the R1a notification work they patch), so their regressions should now pass (not yet re-run against a live server). **BUG-09** is `fixme`: the fix plan closed it as an open product decision (browser time vs store time). **BUG-11** was never reproduced and only runs with `E2E_ADMIN_DEV=1` on a `strapi develop` server. See `docs/plans/ordering-e2e-fixes-2026-10-16.md`.
 
 Spec files are in `e2e/specs/`; the `01-`…`99-` prefixes are shortened below.
 
@@ -88,7 +88,7 @@ Spec files are in `e2e/specs/`; the `01-`…`99-` prefixes are shortened below.
 | Feature | Cases | Spec | Status |
 |---|---|---|---|
 | Customers (customers.mjs) | list/search; profile; staff edit; reveal phone (audited); export | 11 | ✅ `totalSpent` 🐞 BUG-02. The Customers UI page is only covered by the OpenAPI sweep. |
-| Data requests (data-rights.mjs, review-erasure-race.mjs, data-request-overdue.mjs) | export processed; erase waits while an order is open, then reject with a reason; validation | 06, 11 | ✅ Missing erase confirmation is UX `@ux-erase-confirm`. Overdue alert and erasure race are not covered. |
+| Data requests (data-rights.mjs, review-erasure-race.mjs, data-request-overdue.mjs) | export processed; erase waits while an order is open, then reject with a reason; validation | 06, 11 | ✅ Erase is two-step in the UI and needs `confirm: true` on the API (`@ux-erase-confirm`); the erase UI flow in 06 clicks both steps. Overdue alert and erasure race are not covered. |
 | Consent policy (consent-policy.mjs) | wrong version refused; draft consent required | 10, 11 | ✅ |
 | Retention (retention.mjs) | — | — | ❌ Job-driven over long time windows |
 | Ratings (rating.mjs) | UI note + hide; tag label 🐞 BUG-12 | 06 | ✅ |
@@ -105,7 +105,7 @@ Spec files are in `e2e/specs/`; the `01-`…`99-` prefixes are shortened below.
 | Branches (branches.mjs) | UI create + edit + tabs; branch delivery-quote | 05 | ✅ / ⛔ delivery quote (commune catalog) |
 | Sales settings | UI field + reject reason persist; API round-trip | 05, 11 | ✅ |
 | Staff scopes (scope.mjs) | UI add Q3 then revert; grant escalation refused; branch scope | 05, 07 | ✅ |
-| Roles / permissions | API matrix; UI menu per role (accountant) | 07 | ✅ |
+| Roles / permissions | API matrix; UI menu per role (accountant); Categories and Availability show "no permission" for accountant; giao-q1 has no Bếp link while a manager has it (kitchen menu follows `kitchen.read`) | 07 | ✅ |
 | Ops status / jobs (ops-status.mjs, jobs.mjs, auto-reject.mjs) | status; run payment-expiry / auto-reject / data-request-waiting / alerts-evaluate; unknown job 404 | 11 | 🟡 Auto-reject effect on an old order is not asserted (needs aging) |
 | Outbox (outbox-two-process.mjs) | — | — | ⛔ Two-process locking cannot be driven from a browser suite. Retry needs a failed entry. |
 | Outgoing webhooks (webhooks-admin, webhooks-out, webhook-new-events, review-webhook-fanout) | list; events; invalid URL; private target refused | 11 | ⛔ Delivery and test need a reachable public endpoint (box DNS resolves example.com to 198.18.0.1) |
@@ -118,7 +118,7 @@ Spec files are in `e2e/specs/`; the `01-`…`99-` prefixes are shortened below.
 | i18n (vi / en) | storefront `locale=en`; admin UI runs in vi-VN | 10, all UI | 🟡 No full English admin run. Mixed-language findings are in the report. |
 | Build / registry / schema scripts (admin-build, build-server, check-*-imports, registry-boot, schema, disable-survives) | — | — | ❌ Build-time checks. They belong to CI scripts, not a browser E2E suite. BUG-04 runs the registry unit test. |
 
-## 6. Bug regressions (`99-bugs.spec.ts`, expected to FAIL until fixed)
+## 6. Bug regressions (`99-bugs.spec.ts`; each fails while its bug exists)
 
 | Tag | What it asserts |
 |---|---|
@@ -127,14 +127,14 @@ Spec files are in `e2e/specs/`; the `01-`…`99-` prefixes are shortened below.
 | @bug-03 @slow | `review-otp-race.mjs` finishes |
 | @bug-04 @slow | `registry.test.ts` passes |
 | @bug-05 @slow | `uat-server.mjs` boots (throwaway DB) |
-| @bug-06 | Cash-closing difference updates after more cash is collected |
+| @bug-06 | Cash-closing difference updates after more cash is collected (API `liveDifferenceAmount` + the UI cell and its "Lúc chốt" line) |
 | @bug-07 | 403 shows "no permission" (Categories as lan-q1) |
 | @bug-08 | Price-list and loyalty-tier errors are specific and in Vietnamese |
 | @bug-09 | Promotion preview uses store time even in a UTC browser |
-| @bug-10 | OpenAPI required params + loyalty settings GET→PUT round-trip |
+| @bug-10 | OpenAPI required params (reports, cash-closing) + loyalty settings request body + GET→PUT round-trip |
 | @bug-11 | No React key warning on Providers |
 | @bug-12 | Rating tag shows its label, not `late` |
 | @bug-13 | Unknown ordering route shows not-found |
 | @bug-14 | Webhook for an unregistered provider → 4xx, not 500 (**new**, found by this suite) |
 | @bug-15 | Orders inbox search submits `q=` and filters (**new**, found by this suite) |
-| @ux-erase-confirm | Erase is not the default type and asks for confirmation |
+| @ux-erase-confirm | Erase is not the default type; the red warning names the phone; "Quay lại" erases nothing; "Xóa vĩnh viễn" erases; the API refuses `kind: erase` without `confirm: true` (400, field `confirm`) |

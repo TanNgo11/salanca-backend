@@ -39,13 +39,23 @@ test.describe('Role permissions (API)', () => {
 });
 
 test.describe('Role visibility (UI)', () => {
-  for (const [role, sub] of [['courier', 'staff'], ['courier', 'settings-page'], ['accountant', 'staff'], ['accountant', 'loyalty'], ['lan', 'data-requests']] as const) {
+  for (const [role, sub] of [['courier', 'staff'], ['courier', 'settings-page'], ['accountant', 'staff'], ['accountant', 'loyalty'], ['accountant', 'categories'], ['accountant', 'availability'], ['lan', 'data-requests']] as const) {
     test(`${role} sees "no permission" on ${sub}`, async ({ pageAs }) => {
       const page = await pageAs(role); test.skip(!page);
       if (sub === 'settings-page') await page!.goto('/admin/settings/ordering'); else await ui.open(page!, sub);
       await expect(page!.getByText('Bạn không có quyền truy cập nội dung này')).toBeVisible();
     });
   }
+  // Every /kitchen route needs kitchen.read, so the menu follows it: giao-q1 (order.process, no kitchen.read) gets no Bếp link.
+  test('kitchen menu follows kitchen.read: courier has no Bếp link, manager has it', async ({ pageAs }) => {
+    const courier = await pageAs('courier'); test.skip(!courier);
+    await ui.open(courier!, 'orders', null);
+    await expect(courier!.getByRole('link', { name: 'Đơn hàng' }).first()).toBeVisible();
+    await expect(courier!.getByRole('link', { name: 'Bếp', exact: true })).toHaveCount(0);
+    const manager = await pageAs('manager'); test.skip(!manager);
+    await ui.open(manager!, 'orders', null);
+    await expect(manager!.getByRole('link', { name: 'Bếp', exact: true })).toBeVisible();
+  });
   test('accountant does not see configuration menu or accept buttons', async ({ pageAs }) => {
     const page = await pageAs('accountant'); test.skip(!page);
     await ui.open(page!, 'orders');

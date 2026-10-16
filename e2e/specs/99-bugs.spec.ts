@@ -76,6 +76,9 @@ test('BUG-06 cash-closing difference reflects cash collected after closing @bug-
   const after = (await summary()).find((r) => r.collectorRef === me.collectorRef);
   const diff = after.closing.countedAmount - after.expectedAmount;
   expect(diff).not.toBe(0);
+  // API: the live difference follows the ledger while the frozen audit value stays what it was at close time.
+  expect(after.closing.liveDifferenceAmount).toBe(diff);
+  expect(after.closing.differenceAmount, 'the frozen difference does not move').not.toBe(diff);
   expect(after.collectorName, 'the collector row is found by name').toBeTruthy();
   await ui.open(page, 'cash-closing');
   const header = (await page.getByRole('row').filter({ hasText: /chênh lệch/i }).first().locator('th, td, [role=gridcell], [role=columnheader], [role=cell]').allInnerTexts()).map((t) => t.trim().toUpperCase());
@@ -142,6 +145,12 @@ test('BUG-10 OpenAPI marks required query params and loyalty settings round-trip
   const doc = JSON.parse(readFileSync(path.join(ROOT, 'docs/ordering-admin-openapi.json'), 'utf8'));
   const params = (doc.paths['/reports/sales'].get.parameters ?? []) as any[];
   expect(params.find((p) => p.name === 'from')?.required).toBe(true);
+  for (const route of ['/cash-closing', '/cash-closing/summary']) {
+    const q = (doc.paths[route].get.parameters ?? []) as any[];
+    expect(q.find((p) => p.name === 'branch')?.required, `${route} branch`).toBe(true);
+    expect(q.find((p) => p.name === 'businessDate')?.required, `${route} businessDate`).toBe(true);
+  }
+  expect(doc.paths['/loyalty/settings'].put.requestBody?.content?.['application/json']?.schema?.properties?.earnPerAmount).toBeTruthy();
   expect(doc.paths['/orders/{id}/cancel'].post.requestBody?.content?.['application/json']?.schema?.properties?.reasonCode).toBeTruthy();
   const s = (await api.get('/loyalty/settings')).body;
   expect((await api.put('/loyalty/settings', s.settings ?? s)).status).toBe(200);
@@ -198,7 +207,26 @@ test('UX data-request erase asks for confirmation and is not the default type @u
   await page.getByLabel('Số điện thoại khách').fill(o.phone);
   await page.getByRole('combobox', { name: 'Loại' }).click(); await page.getByRole('option', { name: 'Xóa', exact: true }).click();
   await page.getByRole('button', { name: 'Tạo yêu cầu', exact: true }).last().click();
-  await expect(page.locator('[role=alertdialog], [role=dialog]').filter({ hasText: /xác nhận|không thể hoàn tác/i })).toBeVisible();
-  const customer = ((await api.get(`/customers?q=${o.phone}`)).body.items as any[])[0];
-  expect(customer?.status, 'nothing is erased before the second confirmation').not.toBe('erased');
+  const warning = page.locator('[role=alertdialog], [role=dialog]').filter({ hasText: /xác nhận|không thể hoàn tác/i });
+  await expect(warning).toBeVisible();
+  await expect(warning, 'the warning names the number that is about to be erased').toContainText(o.phone);
+  const found = async () => ((await api.get(`/customers?q=${o.phone}`)).body.items as any[]).length;
+  expect(await found(), 'nothing is erased before the second confirmation').toBe(1);
+  // "Quay lại" returns to the form without sending anything
+  await page.getByRole('button', { name: 'Quay lại', exact: true }).click();
+  await expect(page.getByLabel('Số điện thoại khách')).toBeVisible();
+  expect(await found(), 'going back does not erase').toBe(1);
+  // the second confirmation erases: the customer leaves the directory
+  await page.getByRole('button', { name: 'Tạo yêu cầu', exact: true }).last().click();
+  await page.getByRole('button', { name: 'Xóa vĩnh viễn', exact: true }).click();
+  await expect.poll(found, { timeout: 30_000 }).toBe(0);
+});
+
+test('UX data-request erase over the API needs confirm:true @ux-erase-confirm', async ({ api }) => {
+  const phone = `09${String(Date.now()).slice(-8)}`;
+  const denied = await api.post('/data-requests', { phone, kind: 'erase' });
+  expect(denied.status, JSON.stringify(denied.body)).toBe(400);
+  expect(denied.body.error?.details?.field).toBe('confirm');
+  // with the flag the request passes the gate; this phone has no profile, so the lookup answers 404, never 400
+  expect((await api.post('/data-requests', { phone, kind: 'erase', confirm: true })).status).toBe(404);
 });

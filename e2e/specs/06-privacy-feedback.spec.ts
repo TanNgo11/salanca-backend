@@ -16,9 +16,11 @@ test.describe('Data requests', () => {
     await ui.btn(page, '+ Tạo yêu cầu').click();
     await page.getByLabel('Số điện thoại khách').fill(o.phone);
     await page.getByRole('combobox', { name: 'Loại' }).click(); await page.getByRole('option', { name: 'Xóa', exact: true }).click();
+    // Erase is two-step: the first click only shows the red warning, "Xóa vĩnh viễn" sends the request.
+    await page.getByRole('button', { name: 'Tạo yêu cầu', exact: true }).last().click();
     await Promise.all([
       page.waitForResponse((r) => r.url().includes('/ordering/data-requests') && r.request().method() === 'POST'),
-      page.getByRole('button', { name: 'Tạo yêu cầu', exact: true }).last().click(),
+      page.getByRole('button', { name: 'Xóa vĩnh viễn', exact: true }).click(),
     ]);
     const masked = `****${o.phone.slice(-3)}`;
     const row = page.getByRole('row').filter({ hasText: masked }).first();
