@@ -51,10 +51,14 @@ Nguồn lỗi là `docs/BAO-CAO-E2E-ORDERING.md`. **Đã commit cục bộ (chư
   OpenAPI cho 14 thao tác ghi (còn 34 chưa khai); lỗi tự viết của hạng loyalty/chi nhánh/nhóm khách/khuyến mãi có `code` để
   Admin dịch; `customers.mjs` kiểm migration 0014 trên dữ liệu bị ghi sai. Runbook: múi giờ Node và Postgres phải trùng nhau
   (khuyến nghị UTC). **BUG-11** vẫn chờ nguyên văn cảnh báo console.
+- **Retest v3 (2026-10-17)**: BUG-11 có nguồn: `key` đứng sau `{...cardBox}` trong `Providers/index.tsx` làm SWC (Vite dev) sinh
+  `createElement` với `children` dạng mảng; đặt `key` trước spread là hết cảnh báo, và tên biến môi trường giờ mỗi tên một dòng.
+  **NEW-1** (bug thật): `evaluateAvailability` so `outOfStockUntil` với giờ treo tường của chi nhánh, nên khi Node không chạy giờ VN
+  món tạm hết "đến hết ngày" bán lại được từ 21:00; đã thêm `now` (instant thật) vào đầu vào và 2 ca unit test. Test e2e BUG-06 và BUG-10
+  sửa lại. Chưa làm: NEW-3 (chi nhánh mặc định của Chốt tiền mặt), NEW-4 (mã lỗi + bản dịch cho khoảng 25 lỗi viết tay), 34 body OpenAPI.
 - **Còn mở**: UAT tay (xóa dữ liệu 2 bước, Bếp có đơn, chênh lệch sau chốt, 403/404, màn UX, giờ
-  khuyến mãi trên trình duyệt VN); **BUG-11** (React thiếu `key`) chưa sửa — cần nguyên văn cảnh báo
-  console; "giao-q1 mở Bàn & QR trắng" chưa tái hiện được bằng code (cần console + tab Network của user);
-  **Nhóm B (Task 9, UX)** chưa làm; chưa push.
+  khuyến mãi trên trình duyệt VN); "giao-q1 mở Bàn & QR trắng" chưa tái hiện được bằng code (cần console + tab Network của user);
+  **Nhóm B (Task 9, UX)** chưa làm; nhánh đã push lên `origin` (chưa merge vào `feat/ordering`).
 
 2026-10-15: **Thông báo cho release Salanca (R0–R1e) — implemented + automated verification passed, ready for manual UAT** trên
 nhánh `feat/ordering-notify-release` (worktree `D:\outsource\salanca\salanca-notify`, tách từ `feat/ordering` tại `de77da5`),

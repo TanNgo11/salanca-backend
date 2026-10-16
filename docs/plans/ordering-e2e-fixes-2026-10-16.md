@@ -1183,3 +1183,24 @@ Kết quả retest: lint/typecheck/vitest xanh (207 file / 1554 test), `@slow` B
 dưới dạng yêu cầu "hai bên trùng nhau"); (2) API xóa với số điện thoại chưa có hồ sơ giữ nguyên hành vi hiện tại (201 cho
 admin mọi chi nhánh, 404 cho nhân viên bị giới hạn chi nhánh) — test e2e chỉ đòi "không phải 400 của `confirm`".
 BUG-09, D2 (có trừ hoàn tiền hay không) và D4 (khóa `adjust`) vẫn là quyết định của chủ dự án.
+
+### Retest v3 (HEAD `e944eb1`, báo cáo `BAO-CAO-RETEST-V3.md`) và xử lý
+
+Kết quả retest: lint/typecheck/vitest xanh (207 file / 1554 test), audit-log và outbox đạt ở cả 4 tổ hợp múi giờ,
+migration 0014 đạt, Playwright 119 pass / 2 fail / 5 skip, `run-all` 108/108 ở giờ VN nhưng 107/108 khi Node chạy `TZ=UTC`.
+
+| Điểm retest | Kết luận | Xử lý |
+|---|---|---|
+| NEW-1 `catalog-availability.mjs:69` fail khi Node `TZ=UTC` | **Bug thật, và chỉ lộ ra từ 21:00 đến 04:00 giờ VN.** `evaluateAvailability` so `outOfStockUntil` (một instant thật) với `nowLocal`, là giờ treo tường của chi nhánh dựng thành `Date` theo múi giờ của tiến trình (`branchLocal`). Node không chạy giờ VN thì `nowLocal` lệch +7h, nên món tắt "đến hết ngày" ở 04:00 hôm sau bị coi là đã hết hạn sau 21:00. `validFrom`/`validTo` của khung giờ bán dính cùng lỗi. Nghĩa là khuyến nghị `TZ=UTC` trong runbook sẽ làm món tạm hết bán lại được vào buổi tối | `AvailabilityInput.now` (instant thật) được thêm; `until` và `validFrom/validTo` so với `now`, còn giờ/phút/thứ vẫn đọc `nowLocal`. Adapter truyền `now` ở cả 2 chỗ gọi. 2 ca unit test dựng `nowLocal` lệch +7h nên không phụ thuộc múi giờ của máy chạy test. `catalog-availability.mjs` và `catalog-adapter.mjs` đạt với `TZ=UTC` và `Asia/Ho_Chi_Minh` |
+| BUG-11 (React thiếu `key` ở Nhà cung cấp) | **Nguồn đã xác định, không phải `Alert`.** `<Box {...cardBox} key={card.code}>` có `key` đứng sau `{...spread}`: SWC (compiler của Vite dev) sinh `createElement(Box, {...cardBox, key, children: [...]})`, các con không được React đánh dấu "đã kiểm tra" nên Box của design-system báo thiếu key cho `<Flex>` đầu thẻ. Chỉ xảy ra ở bản dev, đúng như retest thấy. Tái hiện ngoài trình duyệt bằng SSR + SWC cùng cấu hình (1 cảnh báo trước, 0 sau khi sửa) | Đặt `key` trước spread (`<Box key={card.code} {...cardBox}>`) và ghi chú tại `cardBox`. Chỗ duy nhất trong plugin dùng `key` sau spread |
+| NEW-2 tên biến môi trường dính nhau | `Typography` kiểu `pi` là `<span>` nên các tên nằm cùng dòng | Mỗi tên thành một dòng (`display: block`) |
+| `99-bugs.spec.ts` BUG-06 | Lỗi test: không chờ bảng, và chọn hàng bằng `hasText` nên khớp nhầm hàng có "Admin Local" ở cột "chốt bởi" | Đợi combobox là Quận 1 và tiêu đề cột hiện; chọn hàng theo ô đầu (người thu). Chưa chạy lại Playwright |
+| `99-bugs.spec.ts` BUG-10 | Chỉ kiểm `cancel` | Kiểm đủ 14 thao tác có body và đặt ngưỡng: số lệnh ghi chưa có body không được vượt 34 |
+| NEW-3 Chốt tiền mặt mở sẵn chi nhánh đầu danh sách | UX, đúng như mô tả (`list[0]`); danh sách của admin mọi chi nhánh xếp theo tên | **Chưa sửa**, cần quyết định sản phẩm: ghi nhớ chi nhánh gần nhất, hay dùng chi nhánh trong phạm vi nhân viên |
+| NEW-4 lỗi viết tay chưa có `code` | Đúng, nhiều hơn một chỗ: `branch-settings.ts` (cả lỗi zod của form chi nhánh không có `code`), `promotion-admin.ts`, `price-list.ts`, `ordering-settings.ts`, `notification-template.ts`, `alert-rules.ts`. Thêm nữa, `BranchEditor`, `PromotionEditor`, `WebhookEditor`, `CashClosing` gọi `fieldErrors(error)` không truyền `t` nên đang hiện câu tiếng Anh của server, không phải thông báo chung | **Chưa sửa** (khoảng 25 chỗ và 4 màn hình, cần duyệt lời tiếng Việt). Đề xuất làm một đợt riêng |
+| 34 lệnh ghi chưa có body OpenAPI | Đúng | Chưa làm; test BUG-10 giờ chặn việc tăng thêm |
+| Test còn thiếu (mục 7 của retest) | Đồng ý: `run-all` chạy cả `TZ=UTC` lẫn giờ VN trong CI; assert `code: 'taken'` cho chi nhánh/nhóm khách/khuyến mãi; test UI cho các mã lỗi hạng; test quét lỗi không có `code`; contract test OpenAPI | Chưa làm |
+
+`TZ=UTC` cho Node và Postgres vẫn là khuyến nghị. Trong retest chỉ `catalog-availability.mjs` fail khi Node chạy UTC; sau sửa NEW-1
+script đó và `catalog-adapter.mjs` đạt ở cả `TZ=UTC` lẫn `Asia/Ho_Chi_Minh`. **Chưa chạy lại `run-all` đầy đủ** ở hai múi giờ, nên
+chưa thể khẳng định không còn script nào chỉ lộ lỗi ở một khung giờ khác (NEW-1 chỉ lộ từ 21:00 đến 04:00 giờ VN, đúng giờ retest chạy).

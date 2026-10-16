@@ -84,11 +84,22 @@ test('BUG-06 cash-closing difference reflects cash collected after closing @bug-
   expect(after.closing.differenceAmount, 'the frozen difference does not move').not.toBe(diff);
   expect(after.collectorName, 'the collector row is found by name').toBeTruthy();
   await ui.open(page, 'cash-closing');
+  // The page opens on the first branch by name (runs create extra branches); make sure it is Q1 and the table has loaded.
+  await expect(page.getByRole('combobox', { name: 'Chi nhánh', exact: true }).first()).toHaveText(/Quận 1|Q1/);
+  await expect(page.getByRole('columnheader', { name: /chênh lệch/i }).first()).toBeVisible();
   const header = (await page.getByRole('row').filter({ hasText: /chênh lệch/i }).first().locator('th, td, [role=gridcell], [role=columnheader], [role=cell]').allInnerTexts()).map((t) => t.trim());
   const idx = header.findIndex((t) => /chênh lệch/i.test(t.normalize('NFC')));
   expect(idx, `headers: ${header.join(' | ')}`).toBeGreaterThan(-1);
-  const row = page.getByRole('row').filter({ hasText: after.collectorName }).first();
-  const texts = await row.locator('th, td, [role=gridcell], [role=cell]').allInnerTexts();
+  // Match the collector by the FIRST cell: another row can mention this name in its "closed by" column.
+  await expect(page.getByRole('row').filter({ hasText: after.collectorName }).first()).toBeVisible();
+  const rows = page.getByRole('row');
+  let row = rows.first();
+  let texts: string[] = [];
+  for (let i = 0, n = await rows.count(); i < n; i += 1) {
+    const cells = await rows.nth(i).locator('th, td, [role=gridcell], [role=cell]').allInnerTexts();
+    if (cells[0]?.trim().startsWith(after.collectorName)) { row = rows.nth(i); texts = cells; break; }
+  }
+  expect(texts.length, `no row starts with ${after.collectorName}`).toBeGreaterThan(idx);
   // The cell shows the live difference first, then "Lúc chốt: <frozen>" once cash was posted after the close;
   // take only the first amount so the second line's digits are not glued on.
   const live = texts[idx].match(/\d[\d.]*(?=\s*đ)/)?.[0] ?? '';
@@ -155,7 +166,24 @@ test('BUG-10 OpenAPI marks required query params and loyalty settings round-trip
   }
   expect(doc.paths['/loyalty/settings'].put.requestBody?.content?.['application/json']?.schema?.properties?.earnPerAmount).toBeTruthy();
   expect(doc.paths['/orders/{id}/cancel'].post.requestBody?.content?.['application/json']?.schema?.properties?.reasonCode).toBeTruthy();
-  const s = (await api.get('/loyalty/settings')).body;
+  // The order / payment-review / cash-closing writes all declare a body (retest v3: 14 ops).
+  const withBody: [string, string][] = [
+    ['/orders/{id}/transition', 'post'], ['/orders/{id}/notes', 'post'], ['/orders/{id}/cash-handover', 'post'],
+    ['/orders/{id}/cancel', 'post'], ['/orders/{id}/lines/{lineId}/cancel', 'post'], ['/orders/{id}/refunds', 'post'],
+    ['/refunds/{id}/settle', 'post'], ['/orders/{id}/manual-payments', 'post'], ['/cash-closing', 'post'],
+    ['/cash-closing/{id}/adjust', 'post'], ['/payment-reviews/{id}/assign', 'post'],
+    ['/payment-reviews/{id}/refund-due', 'post'], ['/payment-reviews/{id}/reopen', 'post'],
+    ['/payment-reviews/{id}/ignore', 'post'],
+  ];
+  for (const [route, verb] of withBody) {
+    const op = doc.paths[route]?.[verb];
+    expect(op?.requestBody?.content?.['application/json']?.schema?.properties, `${verb.toUpperCase()} ${route} has a request body`).toBeTruthy();
+  }
+  // Ratchet: the writes still without a body (categories, branches, settings, webhooks, ...) must not grow.
+  const bodyless = Object.entries(doc.paths).flatMap(([route, ops]: [string, any]) =>
+    ['post', 'put', 'patch'].filter((verb) => ops[verb] && !ops[verb].requestBody).map((verb) => `${verb.toUpperCase()} ${route}`));
+  expect(bodyless.length, `writes without a request body: ${bodyless.join(', ')}`).toBeLessThanOrEqual(34);
+  const s =(await api.get('/loyalty/settings')).body;
   expect((await api.put('/loyalty/settings', s.settings ?? s)).status).toBe(200);
 });
 
