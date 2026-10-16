@@ -21,9 +21,10 @@ import {
   Tr,
   Typography,
 } from '@strapi/design-system';
-import { useFetchClient, useNotification } from '@strapi/strapi/admin';
+import { Page, useFetchClient, useNotification } from '@strapi/strapi/admin';
 import { useIntl } from 'react-intl';
 
+import { RBAC_CATALOG_ACCESS } from '../../lib/permissions';
 import { PLUGIN_ID } from '../../pluginId';
 
 type BranchOption = { code: string; name: string; timezone?: string; isActive: boolean };
@@ -88,7 +89,7 @@ const fmtUntil = (row: Row, t: (k: string, f: string, v?: Record<string, string 
  * member's scope, a flat product/variant/modifier table, and Còn/Hết toggles that write
  * `catalog-location-state` through the guarded admin route.
  */
-const AvailabilityPage = () => {
+const AvailabilityContent = () => {
   const { formatMessage } = useIntl();
   const { get, post, put } = useFetchClient();
   const { toggleNotification } = useNotification();
@@ -520,5 +521,11 @@ const AvailabilityPage = () => {
     </Box>
   );
 };
+
+const AvailabilityPage = () => (
+  <Page.Protect permissions={RBAC_CATALOG_ACCESS}>
+    <AvailabilityContent />
+  </Page.Protect>
+);
 
 export default AvailabilityPage;

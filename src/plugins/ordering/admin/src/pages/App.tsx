@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { Flex, Loader, SubNav, SubNavHeader, SubNavLink, SubNavSection, SubNavSections } from '@strapi/design-system';
+import { Alert, Flex, Loader, SubNav, SubNavHeader, SubNavLink, SubNavSection, SubNavSections } from '@strapi/design-system';
 import { Layouts, useFetchClient, useRBAC } from '@strapi/strapi/admin';
 import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 
@@ -214,6 +214,28 @@ const SideNav = ({
   );
 };
 
+const NoAccess = () => {
+  const t = useT();
+  return (
+    <Layouts.Content>
+      <Alert variant="danger" closeLabel={t('common.close')} title={t('common.forbidden.title')}>
+        {t('common.forbidden.body')}
+      </Alert>
+    </Layouts.Content>
+  );
+};
+
+const NotFound = () => {
+  const t = useT();
+  return (
+    <Layouts.Content>
+      <Alert variant="warning" closeLabel={t('common.close')} title={t('common.notFound.title')}>
+        {t('common.notFound.body')}
+      </Alert>
+    </Layouts.Content>
+  );
+};
+
 const OrderingApp = () => {
   const orders = useRBAC(RBAC_ORDERS_READ);
   const kitchen = useRBAC(RBAC_KITCHEN);
@@ -361,7 +383,7 @@ const OrderingApp = () => {
           }
         >
           <Routes>
-            <Route index element={first ? <Navigate to={first} replace /> : null} />
+            <Route index element={first ? <Navigate to={first} replace /> : <NoAccess />} />
             <Route path="orders/*" element={<OrdersPage />} />
             <Route path="kitchen/*" element={<KitchenPage />} />
             <Route path="table-sessions/*" element={<TableSessionsPage />} />
@@ -390,6 +412,7 @@ const OrderingApp = () => {
             <Route path="loyalty/*" element={<LoyaltyPage />} />
             <Route path="price-lists/*" element={<PriceListsPage />} />
             <Route path="ratings/*" element={<RatingsPage />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
       </Layouts.Root>

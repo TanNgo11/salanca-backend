@@ -78,8 +78,8 @@ export const RBAC_PRICE = [...PERMISSIONS.price];
 export const RBAC_GIFT_CARD = [...PERMISSIONS.giftCardManage];
 export const RBAC_GIFT_CARD_FULL = [...PERMISSIONS.giftCardManage, ...PERMISSIONS.giftCardAdjust];
 export const RBAC_LOYALTY = [...PERMISSIONS.loyaltyManage];
-/** O12: kitchen display is read+process (prepared/done buttons share order.process). */
-export const RBAC_KITCHEN = [...PERMISSIONS.kitchenRead, ...PERMISSIONS.process];
+/** O12: the kitchen display and all its routes (board, stream, prepared, start, complete) sit behind `kitchen.read`. */
+export const RBAC_KITCHEN = [...PERMISSIONS.kitchenRead];
 export const RBAC_TABLES = [...PERMISSIONS.tableManage];
 /** O6 alert list: anyone a rule could notify (ops, reports, payment review or branch staff). */
 export const RBAC_ALERTS = [

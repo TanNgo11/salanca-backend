@@ -13,6 +13,8 @@ export const o3Messages: Record<string, [string, string]> = {
   'common.error.title': ['Có lỗi', 'Something went wrong'],
   'common.forbidden.body': ['Tài khoản của bạn chưa có quyền xem mục này.', 'Your account does not have permission to view this.'],
   'common.forbidden.title': ['Không có quyền', 'No access'],
+  'common.notFound.body': ['Địa chỉ này không thuộc mục Bán hàng. Chọn một mục ở thanh bên.', 'This address is not part of Ordering. Pick an item in the side menu.'],
+  'common.notFound.title': ['Không tìm thấy trang', 'Page not found'],
   'common.loading': ['Đang tải…', 'Loading…'],
   'common.next': ['Sau', 'Next'],
   'common.previous': ['Trước', 'Previous'],

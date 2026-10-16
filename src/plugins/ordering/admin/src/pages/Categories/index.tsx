@@ -26,11 +26,12 @@ import {
   Plus,
   Trash,
 } from '@strapi/icons';
-import { useFetchClient, useNotification } from '@strapi/strapi/admin';
+import { Page, useFetchClient, useNotification } from '@strapi/strapi/admin';
 import { useIntl } from 'react-intl';
 import { NavLink } from 'react-router-dom';
 
 import LocalizedTextInput from '../../components/LocalizedTextInput';
+import { RBAC_CATALOG_MANAGE } from '../../lib/permissions';
 import { PLUGIN_ID } from '../../pluginId';
 
 type LocalizedMap = Record<string, string>;
@@ -135,7 +136,7 @@ const siblingsOf = (nodes: TreeNode[], parentRef: string | null): TreeNode[] =>
  * Native HTML5 drag/drop (no extra dependency); ↑/↓ buttons and the parent select are the
  * documented fallback.
  */
-const CategoriesPage = () => {
+const CategoriesContent = () => {
   const { formatMessage } = useIntl();
   const { get, post, put, del } = useFetchClient();
   const { toggleNotification } = useNotification();
@@ -669,5 +670,11 @@ const CategoriesPage = () => {
     </Box>
   );
 };
+
+const CategoriesPage = () => (
+  <Page.Protect permissions={RBAC_CATALOG_MANAGE}>
+    <CategoriesContent />
+  </Page.Protect>
+);
 
 export default CategoriesPage;
