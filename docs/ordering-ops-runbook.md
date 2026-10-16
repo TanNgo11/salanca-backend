@@ -195,6 +195,13 @@ Checklist — mỗi mục tick xong mới bật bán:
   `ORDERING_ORDER_LINK_TEMPLATE` trỏ trang đơn của web thật, và nhóm thông báo:
   `ORDERING_NOTIFY_TIMEZONE` (để trống = `Asia/Ho_Chi_Minh`), `ORDERING_NOTIFY_MODE=live`
   ở production (xem mục "Môi trường thử" — `allowlist` **chỉ** dùng cho staging/UAT).
+- [ ] **Múi giờ tiến trình và Postgres phải trùng nhau; khuyến nghị cả hai là UTC.** Strapi lưu thời điểm vào
+  cột `timestamp without time zone` theo đồng hồ của tiến trình Node, nên SQL thô so với `now()` của Postgres
+  (và script kiểm thử dùng `now()`) lệch đúng độ chênh múi giờ nếu hai bên khác nhau. Mã của plugin đã bỏ phụ thuộc
+  này ở chỗ ranh giới ngày (`audit-log`) và giờ retry outbox luôn đối xứng, nhưng hai điều kiện sau vẫn nên giữ:
+  đặt `TZ=UTC` cho tiến trình Strapi và `timezone = 'UTC'` cho Postgres (hoặc cả hai cùng giờ Việt Nam), và **không
+  đổi `TZ` của tiến trình sau khi đã có dữ liệu** — giá trị cũ không được dịch lại. Ngày hiển thị cho nhân viên vẫn
+  tính theo giờ Việt Nam (`+07:00`) bất kể cài đặt này.
 - [ ] **`plugin::ordering.consent.policyVersion`**: đặt đúng phiên bản chính sách dữ liệu
   cá nhân đã duyệt (21.4). Hiện chỉ chỉnh được qua config/env — **chưa có màn Admin**.
 - [ ] **Smoke sau khi bật**: `GET /_health` → 204; Admin hiện menu **Bán hàng**; gửi một

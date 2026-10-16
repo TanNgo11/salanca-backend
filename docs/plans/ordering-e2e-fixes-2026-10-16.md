@@ -1162,3 +1162,24 @@ Ngoài 13 task trên, báo cáo E2E bản sau thêm BUG-14, BUG-15 và bộ Play
   admin phải tự tạo, không trỏ vào DB dev).
 - **Chưa chạy**: Playwright không chạy lại trên server thật; mọi thay đổi `e2e/` chỉ qua `tsc -p e2e` và `--list`.
   Chạy `pnpm test:e2e` trên server UAT mới sau khi merge `feat/ordering` (có `b78fc9b` = D4 trong `cash-closing.ts`).
+
+### Retest v2 (HEAD `0a1483f`, báo cáo `BAO-CAO-RETEST-V2.md`) và xử lý
+
+Kết quả retest: lint/typecheck/vitest xanh (207 file / 1554 test), `@slow` BUG-03/04/05 đạt, 106/108 script `run-all`
+đạt. Xử lý từng điểm:
+
+| Điểm retest | Kết luận | Xử lý |
+|---|---|---|
+| `audit-log.mjs:67` lọc ngày hôm nay ra rỗng | **Bug thật** ở `audit-log.ts`: cận dưới là chuỗi (Postgres bỏ offset), cận trên là `?::timestamptz` (giữ offset) nên hai đầu của ngày VN nằm trên hai đồng hồ khác nhau. Chỉ lộ khi Node và Postgres khác múi giờ và đã quá 17:00 | Cả hai cận là `Date` (cùng đường chuyển đổi mà Strapi dùng khi ghi). Ca hồi quy cố định trong `audit-log.mjs` (hàng 00:30 và 23:30 giờ VN, và 00:30 hôm sau). Pass ở cả 4 tổ hợp: Node/PG = +7/+7, +7/UTC, UTC/+7, UTC/UTC |
+| `outbox-two-process.mjs:205` backoff lệch 7 giờ | **Chỉ lỗi ở script** (`now()` của Postgres). `outbox.ts` ghi và đọc `available_at` bằng `Date` đối xứng nên giờ retry thật không lệch | Script dùng tham số `Date` thay `now()`. Pass ở +7/+7, +7/UTC, UTC/+7 |
+| BUG-10 chỉ sửa một phần | Đúng: báo cáo gốc nói "gần như không có schema request body", Task 12 chỉ làm `PUT /loyalty/settings` | Thêm body cho 14 thao tác ghi: `transition`, `notes`, `cash-handover`, `cancel`, `lines/:id/cancel`, `refunds`, `refunds/:id/settle`, `manual-payments`, bốn thao tác `payment-reviews`, `cash-closing`, `cash-closing/:id/adjust`. **Còn 34 thao tác ghi chưa khai body** (một phần không có body: `rotate-qr`, `start`, `complete`…; phần cần body: danh mục, chi nhánh, cài đặt, webhook, staff-scopes, availability) |
+| Hạng loyalty chỉ hiện "Giá trị chưa hợp lệ" | **Thiếu sót của fix BUG-08**: chỉ lỗi từ zod có `code`; lỗi tự viết như `invalid(...)` trong `loyalty-tier.ts` thì không | `loyalty-tier.ts`, `branch.ts`, `customer-group.ts`, `promotion-admin.ts` thêm `code` (`lowest_not_zero`, `duplicate_threshold`, `last_active`, `group_*`, `taken`, `immutable`) + bản dịch `validation.*`. `loyalty-admin.mjs` kiểm `code`. Còn khoảng 20 chỗ tự viết khác chưa có `code` (hiện vẫn ra câu chung, không lộ tiếng Anh) |
+| BUG-11 vẫn báo thiếu `key` ở Nhà cung cấp | **Chưa xác định được nguồn.** Mọi `.map` trong `Providers/index.tsx` đều có `key` và dữ liệu server có đủ `group.key`/`card.code` | Cần nguyên văn dòng `Check the render method of …` cùng component stack từ console |
+| `MISSING_TRANSLATION lead-shortcuts.*` | Không thuộc plugin ordering (plugin `lead-shortcuts` của Salanca CMS) | Không sửa trong đợt này |
+| Test e2e cũ | BUG-02 dùng tổng báo giá (chưa trừ khuyến mãi đơn đầu); BUG-06 so tiêu đề phân biệt hoa thường; spec hạng loyalty không tạo hạng nền 0đ; API xóa kỳ vọng 404 sai | Đã sửa trong `e2e/specs/99-bugs.spec.ts` và `04-marketing.spec.ts`; thêm ca "tier rules trả `code`". Chưa chạy lại Playwright |
+| Migration 0014 chưa kiểm được trên dữ liệu cũ | Đúng | `customers.mjs`: ghi sai `total_spent`/`order_count`, hủy một phần một đơn, chạy migration, kiểm lại và chạy lần hai (idempotent). Pass |
+
+Đề xuất, **chờ user xác nhận**: (1) vận hành `TZ=UTC` cho Node và Postgres (đã ghi vào runbook mục "Hạ tầng và go-live"
+dưới dạng yêu cầu "hai bên trùng nhau"); (2) API xóa với số điện thoại chưa có hồ sơ giữ nguyên hành vi hiện tại (201 cho
+admin mọi chi nhánh, 404 cho nhân viên bị giới hạn chi nhánh) — test e2e chỉ đòi "không phải 400 của `confirm`".
+BUG-09, D2 (có trừ hoàn tiền hay không) và D4 (khóa `adjust`) vẫn là quyết định của chủ dự án.

@@ -46,6 +46,11 @@ Nguồn lỗi là `docs/BAO-CAO-E2E-ORDERING.md`. **Đã commit cục bộ (chư
   `typecheck:admin` exit 0, `vitest` **204 file / 1528 test pass**, build server bằng `tsc` exit 0, `schema.mjs` và
   `openapi.mjs` pass. **Chưa chạy trên cây này**: `customers`, `cash-closing`, `data-rights`, `admin-customers`,
   `loyalty-admin`, `rating` (đã pass trên working tree đầy đủ) — cần chạy lại trước khi push.
+- **Retest v2 (2026-10-16)**: lọc ngày của `audit-log` không còn phụ thuộc múi giờ Node/Postgres (bug thật, đã sửa + ca hồi quy);
+  `outbox-two-process.mjs` chỉ lệch ở script (giờ retry thật đối xứng) nên script dùng `Date` thay `now()`; thêm request body
+  OpenAPI cho 14 thao tác ghi (còn 34 chưa khai); lỗi tự viết của hạng loyalty/chi nhánh/nhóm khách/khuyến mãi có `code` để
+  Admin dịch; `customers.mjs` kiểm migration 0014 trên dữ liệu bị ghi sai. Runbook: múi giờ Node và Postgres phải trùng nhau
+  (khuyến nghị UTC). **BUG-11** vẫn chờ nguyên văn cảnh báo console.
 - **Còn mở**: UAT tay (xóa dữ liệu 2 bước, Bếp có đơn, chênh lệch sau chốt, 403/404, màn UX, giờ
   khuyến mãi trên trình duyệt VN); **BUG-11** (React thiếu `key`) chưa sửa — cần nguyên văn cảnh báo
   console; "giao-q1 mở Bàn & QR trắng" chưa tái hiện được bằng code (cần console + tab Network của user);
