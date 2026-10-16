@@ -261,6 +261,20 @@ withApp(async (app) => {
   assert.equal(meAfter.status, 401, 'every session was revoked');
   console.log('[ordering-test] /me/erase: request waiting on open order, sessions revoked');
 
+  // ── Staff erase without confirm → 400; the customer is left untouched ───────────────
+  const staffUnconfirmed = await staff.as.quanly('POST', '/data-requests', {
+    phone: '0912345678',
+    kind: 'erase',
+  });
+  assert.equal(staffUnconfirmed.status, 400, JSON.stringify(staffUnconfirmed.body));
+  assert.equal(staffUnconfirmed.body.error.details.field, 'confirm');
+  assert.notEqual(
+    (await customers().findOne({ where: { id: customer.id } })).status,
+    'erased',
+    'an unconfirmed staff erase must not touch the customer',
+  );
+  console.log('[ordering-test] staff erase without confirm: 400, customer untouched');
+
   // ── Anonymized closed order: contact/address/note gone, money and lines intact ───────
   const closedRow = await orders().findOne({
     where: { code: closedCode },
@@ -361,6 +375,7 @@ withApp(async (app) => {
   const created = await staff.as.quanly('POST', '/data-requests', {
     phone: '0987654321',
     kind: 'erase',
+    confirm: true,
     note: 'khách gọi điện yêu cầu xóa',
   });
   assert.equal(created.status, 201, JSON.stringify(created.body));

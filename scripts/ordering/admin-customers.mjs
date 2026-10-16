@@ -244,6 +244,7 @@ withApp(async (app) => {
   const byCustomer = await staff.as.quanly('POST', '/data-requests', {
     customerId: customerA.documentId,
     kind: 'erase',
+    confirm: true,
     note: 'khách yêu cầu tại quầy',
   });
   assert.equal(byCustomer.status, 201, JSON.stringify(byCustomer.body));
@@ -269,7 +270,7 @@ withApp(async (app) => {
   // Both identifiers and every request operation enforce the same location scope.
   const requestsBefore = await requests().count({});
   for (const identity of [{ phone: '0914445555' }, { customerId: customerB.documentId }, { phone: '0900000099' }]) {
-    const denied = await staff.as.q1('POST', '/data-requests', { ...identity, kind: 'erase' });
+    const denied = await staff.as.q1('POST', '/data-requests', { ...identity, kind: 'erase', confirm: true });
     assert.equal(denied.status, 404, 'foreign or unknown customer is invisible to scoped staff');
   }
   assert.equal(await requests().count({}), requestsBefore, 'denied erasures must not create requests');
@@ -299,7 +300,7 @@ withApp(async (app) => {
   await assert.rejects(() => rights.listRequests({}, unscopedCtx), (error) => error.code === 'SCOPE_REQUIRED');
   await assert.rejects(() => rights.processByStaff(requestRow.documentId, unscopedCtx), (error) => error.code === 'SCOPE_REQUIRED');
   await assert.rejects(() => rights.rejectRequest(requestRow.documentId, { reason: 'test' }, unscopedCtx), (error) => error.code === 'SCOPE_REQUIRED');
-  await assert.rejects(() => rights.createStaffRequest({ phone: '0912223333', kind: 'erase' }, unscopedCtx),
+  await assert.rejects(() => rights.createStaffRequest({ phone: '0912223333', kind: 'erase', confirm: true }, unscopedCtx),
     (error) => error.code === 'CUSTOMER_NOT_FOUND');
   assert.equal((await staff.as.q1('POST', `/data-requests/${requestRow.documentId}/reject`, { reason: 'test complete' })).status, 200,
     'scoped staff can reject their own waiting request');

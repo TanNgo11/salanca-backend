@@ -624,12 +624,23 @@ const dataRights = ({ strapi }: { strapi: Core.Strapi }) => {
      * phone never persists either way — `phoneHash` links the ledger row to the profile.
      */
     async createStaffRequest(
-      input: { phone?: unknown; customerId?: unknown; kind?: unknown; note?: unknown },
+      input: {
+        phone?: unknown;
+        customerId?: unknown;
+        kind?: unknown;
+        note?: unknown;
+        confirm?: unknown;
+      },
       ctx: ServiceContext,
     ) {
       if (input.kind !== 'export' && input.kind !== 'erase') {
         throw new OrderingError('VALIDATION_ERROR', 'kind must be export or erase', {
           details: { field: 'kind' },
+        });
+      }
+      if (input.kind === 'erase' && input.confirm !== true) {
+        throw new OrderingError('VALIDATION_ERROR', 'confirm:true is required to erase data', {
+          details: { field: 'confirm' },
         });
       }
       const kind = input.kind;

@@ -81,8 +81,9 @@ const DataRequestsPage = () => {
   const [rejectReason, setRejectReason] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [newPhone, setNewPhone] = useState('');
-  const [newKind, setNewKind] = useState<'erase' | 'export'>('erase');
+  const [newKind, setNewKind] = useState<'erase' | 'export'>('export');
   const [newNote, setNewNote] = useState('');
+  const [confirmingErase, setConfirmingErase] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -137,11 +138,14 @@ const DataRequestsPage = () => {
       await post('/ordering/data-requests', {
         phone: newPhone,
         kind: newKind,
+        ...(newKind === 'erase' ? { confirm: true } : {}),
         ...(newNote.trim() ? { note: newNote.trim() } : {}),
       });
       setCreateOpen(false);
       setNewPhone('');
       setNewNote('');
+      setConfirmingErase(false);
+      setNewKind('export');
       toggleNotification({ type: 'success', message: t('dataRequests.create.created') });
       await load();
     } catch (error) {
@@ -330,44 +334,87 @@ const DataRequestsPage = () => {
           </Dialog.Footer>
         </Dialog.Content>
       </Dialog.Root>
-      <Dialog.Root open={createOpen} onOpenChange={(open: boolean) => setCreateOpen(open)}>
+      <Dialog.Root
+        open={createOpen}
+        onOpenChange={(open: boolean) => {
+          setCreateOpen(open);
+          if (!open) {
+            setConfirmingErase(false);
+            setNewKind('export');
+          }
+        }}
+      >
         <Dialog.Content>
           <Dialog.Header>{t('dataRequests.create.title')}</Dialog.Header>
           <Dialog.Body>
-            <Flex direction="column" alignItems="stretch" gap={3}>
-              <Field.Root required>
-                <Field.Label>{t('dataRequests.create.phone')}</Field.Label>
-                <TextInput
-                  value={newPhone}
-                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => setNewPhone(event.target.value)}
-                />
-              </Field.Root>
-              <Field.Root>
-                <Field.Label>{t('dataRequests.create.kind')}</Field.Label>
-                <SingleSelect
-                  value={newKind}
-                  onChange={(value: string | number) => setNewKind(value as 'erase' | 'export')}
-                >
-                  <SingleSelectOption value="erase">{t('dataRequests.kind.erase')}</SingleSelectOption>
-                  <SingleSelectOption value="export">{t('dataRequests.kind.export')}</SingleSelectOption>
-                </SingleSelect>
-              </Field.Root>
-              <Field.Root>
-                <Field.Label>{t('dataRequests.create.note')}</Field.Label>
-                <Textarea
-                  value={newNote}
-                  onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setNewNote(event.target.value)}
-                />
-              </Field.Root>
-            </Flex>
+            {newKind === 'erase' && confirmingErase ? (
+              <Alert
+                variant="danger"
+                closeLabel={t('common.close')}
+                title={t('dataRequests.create.eraseConfirm')}
+              >
+                {t('dataRequests.create.erasePhone', { phone: newPhone.trim() })}{' '}
+                {t('dataRequests.create.eraseWarning')}
+              </Alert>
+            ) : (
+              <Flex direction="column" alignItems="stretch" gap={3}>
+                <Field.Root required>
+                  <Field.Label>{t('dataRequests.create.phone')}</Field.Label>
+                  <TextInput
+                    value={newPhone}
+                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => setNewPhone(event.target.value)}
+                  />
+                </Field.Root>
+                <Field.Root>
+                  <Field.Label>{t('dataRequests.create.kind')}</Field.Label>
+                  <SingleSelect
+                    value={newKind}
+                    onChange={(value: string | number) => {
+                      setNewKind(value as 'erase' | 'export');
+                      setConfirmingErase(false);
+                    }}
+                  >
+                    <SingleSelectOption value="erase">{t('dataRequests.kind.erase')}</SingleSelectOption>
+                    <SingleSelectOption value="export">{t('dataRequests.kind.export')}</SingleSelectOption>
+                  </SingleSelect>
+                </Field.Root>
+                <Field.Root>
+                  <Field.Label>{t('dataRequests.create.note')}</Field.Label>
+                  <Textarea
+                    value={newNote}
+                    onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setNewNote(event.target.value)}
+                  />
+                </Field.Root>
+              </Flex>
+            )}
           </Dialog.Body>
           <Dialog.Footer>
-            <Dialog.Cancel>
-              <Button variant="tertiary">{t('common.cancel')}</Button>
-            </Dialog.Cancel>
+            {newKind === 'erase' && confirmingErase ? (
+              <Button variant="tertiary" onClick={() => setConfirmingErase(false)}>
+                {t('dataRequests.create.back')}
+              </Button>
+            ) : (
+              <Dialog.Cancel>
+                <Button variant="tertiary">{t('common.cancel')}</Button>
+              </Dialog.Cancel>
+            )}
             <Dialog.Action>
-              <Button disabled={newPhone.trim() === ''} loading={busy} onClick={() => void create()}>
-                {t('dataRequests.create.confirm')}
+              <Button
+                variant={newKind === 'erase' && confirmingErase ? 'danger' : 'default'}
+                disabled={newPhone.trim() === ''}
+                loading={busy}
+                onClick={(event: React.MouseEvent) => {
+                  if (newKind === 'erase' && !confirmingErase) {
+                    event.preventDefault();
+                    setConfirmingErase(true);
+                  } else {
+                    void create();
+                  }
+                }}
+              >
+                {newKind === 'erase' && confirmingErase
+                  ? t('dataRequests.create.eraseConfirm')
+                  : t('dataRequests.create.confirm')}
               </Button>
             </Dialog.Action>
           </Dialog.Footer>

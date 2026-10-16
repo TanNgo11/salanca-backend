@@ -189,7 +189,7 @@ export const CustomerDetailPage = () => {
   const requestErase = async () => {
     setBusy(true);
     try {
-      await post('/ordering/data-requests', { customerId: id, kind: 'erase' });
+      await post('/ordering/data-requests', { customerId: id, kind: 'erase', confirm: true });
       setEraseOpen(false);
       toggleNotification({ type: 'success', message: t('customers.detail.erase.created') });
       await load();

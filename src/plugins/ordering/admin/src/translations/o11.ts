@@ -137,6 +137,13 @@ export const o11Messages: Record<string, [string, string]> = {
   'dataRequests.create.note': ['Ghi chú', 'Note'],
   'dataRequests.create.confirm': ['Tạo yêu cầu', 'Create'],
   'dataRequests.create.created': ['Đã tạo yêu cầu.', 'Request created.'],
+  'dataRequests.create.eraseWarning': [
+    'Xóa dữ liệu cá nhân của khách này ngay lập tức, không thể hoàn tác. Các đơn cũ được ẩn danh.',
+    'This erases the customer’s personal data immediately and cannot be undone. Past orders are anonymized.',
+  ],
+  'dataRequests.create.erasePhone': ['Số điện thoại: {phone}.', 'Phone number: {phone}.'],
+  'dataRequests.create.eraseConfirm': ['Xóa vĩnh viễn', 'Erase permanently'],
+  'dataRequests.create.back': ['Quay lại', 'Back'],
   'dataRequests.process': ['Xử lý', 'Process'],
   'dataRequests.process.title': ['Xử lý yêu cầu xóa', 'Process erasure request'],
   'dataRequests.process.consequences': [
