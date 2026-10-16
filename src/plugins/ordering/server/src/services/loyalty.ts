@@ -757,6 +757,32 @@ const loyalty = ({ strapi }: { strapi: Core.Strapi }) => {
       });
     },
 
+    /**
+     * Points an order still shows as discount but no longer holds (audit round 8). A canceled order
+     * hands its spent points back; a reopen keeps the loyalty discount on the order, so without this
+     * check the customer would have both the discount and the points. The ledger cannot re-spend
+     * the same (order, lot) — `redeem` is unique per pair — so the reopen is refused instead and
+     * the late transfer stays in the review queue for a refund. Read-only, runs inside the reopen
+     * transaction under the order mutex.
+     */
+    async pointsReleasedOnCancel(trx: TransactionClient, orderId: number): Promise<number> {
+      const rows = (await trx(LEDGER_TABLE)
+        .where({ order_id: orderId })
+        .whereIn('kind', ['redeem', 'release'])
+        .select('points')) as Array<{ points: number }>;
+      if (rows.length === 0) return 0;
+      const outstanding = -rows.reduce((sum, row) => sum + Number(row.points), 0);
+      const adjustment = (await trx('plugins_ordering_order_adjustment as a')
+        .join('plugins_ordering_order_adjustment_order_lnk as l', 'l.order_adjustment_id', 'a.id')
+        .where('l.order_id', orderId)
+        .where('a.source_ref', 'loyalty')
+        .first('a.rule_snapshot')) as { rule_snapshot: unknown } | undefined;
+      const applied = Number(
+        parseJson<{ loyalty?: { points?: number } }>(adjustment?.rule_snapshot, {}).loyalty?.points ?? 0,
+      );
+      return Math.max(0, applied - outstanding);
+    },
+
     /** Canceled orders that still hold redeemed points — the sweep's release worklist. */
     async pendingReleaseOrderIds(limit: number): Promise<number[]> {
       const { rows } = (await strapi.db.connection.raw(

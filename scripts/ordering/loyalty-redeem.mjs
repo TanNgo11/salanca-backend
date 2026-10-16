@@ -213,5 +213,38 @@ withApp(async (app) => {
   await assertLedger(i.id, 'I');
   console.log('[ordering-test] sweep releases a cancel that emitted no event');
 
+  // ── J. A canceled order that spent points cannot be reopened (round 8) ───────────────────
+  // The cancel handed the points back but a reopen keeps the loyalty discount: without the refusal
+  // the customer would hold both. The late transfer stays in review for a refund.
+  const j = await newCustomer([[600, 30]]);
+  const jPlaced = await order.createOrder({ ...input(j), redeemPoints: 350 }, systemCtx);
+  const jOrderId = jPlaced.order.order.id;
+  await adminOrders.cancel(jOrderId, { reasonCode: 'customer-request', note: 'đổi ý' }, lanCtx);
+  await dispatch();
+  assert.equal(await balanceOf(j.id), 600);
+  const jEvent = await app.db.query('plugin::ordering.payment-event').create({
+    data: {
+      providerCode: 'sepay',
+      providerTransactionId: `LOYALTY-REOPEN-${randomUUID()}`,
+      transferType: 'in',
+      amount: jPlaced.order.order.totalAmount,
+      currency: 'VND',
+      kind: 'transfer',
+      rawPayload: { source: 'test', content: jPlaced.order.order.code },
+      receivedAt: new Date(),
+      reviewStatus: 'needs-review',
+      reviewReason: 'order-closed',
+    },
+  });
+  const jReopen = await codeOf(() =>
+    plugin.service('payment-review').reopen(jEvent.id, { orderId: jOrderId, reason: 'khách chuyển muộn' }, { actor: staff.keToan.actor }),
+  );
+  assert.equal(jReopen.code, 'REOPEN_UNAVAILABLE', 'points were returned, so the discount cannot come back');
+  assert.equal((await order.getOrder(jOrderId, systemCtx)).order.status, 'canceled');
+  assert.equal(await balanceOf(j.id), 600, 'the refused reopen spends nothing');
+  assert.equal((await app.db.query('plugin::ordering.payment-event').findOne({ where: { id: jEvent.id } })).reviewStatus, 'needs-review');
+  await assertLedger(j.id, 'J');
+  console.log('[ordering-test] reopen after a points cancel is refused; transfer stays in review');
+
   console.log('[ordering-test] loyalty-redeem OK');
 });

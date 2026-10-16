@@ -17,6 +17,7 @@ import type { ServiceContext } from './context';
 import { actorRefOf, nowOf } from './context';
 import type changeLogFactory from './change-log';
 import type dailyStockFactory from './daily-stock';
+import type loyaltyFactory from './loyalty';
 import type orderServiceFactory from './order';
 import type { OrderingRegistry } from './registry';
 import type outboxFactory from './outbox';
@@ -95,6 +96,7 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
   const outbox = () => plugin().service('outbox') as ReturnType<typeof outboxFactory>;
   const orderService = () => plugin().service('order') as ReturnType<typeof orderServiceFactory>;
   const dailyStock = () => plugin().service('daily-stock') as ReturnType<typeof dailyStockFactory>;
+  const loyalty = () => plugin().service('loyalty') as ReturnType<typeof loyaltyFactory>;
   const promotion = () => plugin().service('promotion') as ReturnType<typeof promotionServiceFactory>;
   const registry = () => plugin().service('registry') as OrderingRegistry;
   const repo = orderRepository({ strapi });
@@ -496,6 +498,14 @@ const paymentReview = ({ strapi }: { strapi: Core.Strapi }) => {
         const recovery = recoveryStateFor(definition);
         if (!recovery) {
           throw new OrderingError('REOPEN_UNAVAILABLE', 'the workflow has no recovery state');
+        }
+        // The cancellation handed the customer's loyalty points back, but the reopened order keeps
+        // the points discount: refuse rather than give both (the transfer goes to a refund).
+        if ((await loyalty().pointsReleasedOnCancel(trx, orderId)) > 0) {
+          throw new OrderingError(
+            'REOPEN_UNAVAILABLE',
+            'the loyalty points behind this order were returned; refund the transfer instead',
+          );
         }
         // Re-hold the daily-stock portions the cancellation released (O-08). If another order
         // consumed them the reopen is refused and the whole transaction rolls back.

@@ -35,7 +35,7 @@ quy ước mới: khóa order trước (`repo.lockOrder` / `lockOrderAndLoad`), 
 - **Chốt quỹ**: `close` và `adjust` chụp sổ cái dưới khóa `(chi nhánh, ngày, người thu)`; thu/hoàn tiền mặt sau khi chốt vẫn ghi
   nhưng mở cảnh báo `cash-closing-mismatch` (`adjust` tính lại và đóng cảnh báo). Không chặn cứng vì sẽ khóa thu tiền cả ngày.
 - **Hoàn tiền / mở lại đơn**: hoàn tiền mặt chia qua mọi payment; `reopen` giữ lại suất bán, slot, lượt khuyến mãi (hết thì
-  `REOPEN_UNAVAILABLE`) và chọn state theo workflow (chuyển khoản thiếu vẫn chờ ở `awaiting-payment`); auto-reject không hoàn
+  `REOPEN_UNAVAILABLE`), từ chối reopen đơn đã dùng điểm thành viên (hủy đã trả điểm, reopen sẽ giữ cả giảm giá lẫn điểm; chuyển khoản ở lại hàng chờ để hoàn) và chọn state theo workflow (chuyển khoản thiếu vẫn chờ ở `awaiting-payment`); auto-reject không hoàn
   tiền đơn đã được nhận; hủy món không trả suất khi món đã rời bếp (`restocked:false`, vẫn hoàn tiền); đơn đã giao không hủy món.
 - **Thẻ quà tặng**: hoàn tiền chặn theo giá trị đã cam kết khi group ở `issued`; consumer không phát thẻ khi đơn không còn giữ
   đủ tiền, mở cảnh báo `gift-card-underfunded`.
