@@ -201,7 +201,54 @@
         },
         "x-ordering-permissions": [
           "plugin::ordering.catalog.manage"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "description": "Locale to text, for example { \"vi\": \"…\", \"en\": \"…\" }"
+                  },
+                  "description": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "description": "Locale to text, for example { \"vi\": \"…\", \"en\": \"…\" }"
+                  },
+                  "slug": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "description": "Locale to text, for example { \"vi\": \"…\", \"en\": \"…\" }"
+                  },
+                  "parent": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "Parent category documentId; null for a root"
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  },
+                  "isInternal": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        }
       }
     },
     "/categories/{id}": {
@@ -271,7 +318,51 @@
         ],
         "x-ordering-permissions": [
           "plugin::ordering.catalog.manage"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "description": "Locale to text, for example { \"vi\": \"…\", \"en\": \"…\" }"
+                  },
+                  "description": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "description": "Locale to text, for example { \"vi\": \"…\", \"en\": \"…\" }"
+                  },
+                  "slug": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "description": "Locale to text, for example { \"vi\": \"…\", \"en\": \"…\" }"
+                  },
+                  "parent": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "Parent category documentId; null for a root"
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  },
+                  "isInternal": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
       },
       "delete": {
         "tags": [
@@ -409,7 +500,28 @@
         ],
         "x-ordering-permissions": [
           "plugin::ordering.catalog.manage"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "parentId": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "New parent documentId; null moves to the root"
+                  },
+                  "index": {
+                    "type": "integer",
+                    "description": "Position among the siblings"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/availability/locations": {
@@ -589,7 +701,54 @@
         },
         "x-ordering-permissions": [
           "plugin::ordering.catalog.manage"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "entityType": {
+                    "type": "string",
+                    "enum": [
+                      "product",
+                      "variant",
+                      "modifier"
+                    ]
+                  },
+                  "entityDocumentId": {
+                    "type": "string"
+                  },
+                  "locationRef": {
+                    "type": "string",
+                    "description": "Branch code"
+                  },
+                  "selling": {
+                    "type": "boolean"
+                  },
+                  "untilKind": {
+                    "type": "string",
+                    "enum": [
+                      "end-of-business-day",
+                      "specific-time"
+                    ]
+                  },
+                  "until": {
+                    "type": "string",
+                    "description": "'HH:mm' branch-local time or an absolute ISO instant (specific-time only)"
+                  }
+                },
+                "required": [
+                  "entityType",
+                  "entityDocumentId",
+                  "locationRef",
+                  "selling"
+                ]
+              }
+            }
+          }
+        }
       }
     },
     "/admin-units": {
@@ -767,7 +926,85 @@
         },
         "x-ordering-permissions": [
           "plugin::ordering.settings.manage"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "description": "Letters, digits, \"-\" or \"_\", up to 32; accepted on create only"
+                  },
+                  "name": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "description": "Locale to text, for example { \"vi\": \"…\", \"en\": \"…\" }"
+                  },
+                  "address": {
+                    "type": "object"
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "timezone": {
+                    "type": "string",
+                    "description": "IANA zone, for example Asia/Ho_Chi_Minh"
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  },
+                  "onlineOrdering": {
+                    "type": "boolean"
+                  },
+                  "cartReminderEnabled": {
+                    "type": "boolean"
+                  },
+                  "rank": {
+                    "type": "integer"
+                  },
+                  "cashRounding": {
+                    "type": "object"
+                  },
+                  "fees": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "printing": {
+                    "type": "object"
+                  },
+                  "fulfillment": {
+                    "type": "object",
+                    "properties": {
+                      "pickup": {
+                        "type": "object"
+                      },
+                      "delivery": {
+                        "type": "object"
+                      },
+                      "dineIn": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "code",
+                  "name"
+                ]
+              }
+            }
+          }
+        }
       }
     },
     "/branches/{code}": {
@@ -905,7 +1142,81 @@
         ],
         "x-ordering-permissions": [
           "plugin::ordering.settings.manage"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "description": "Letters, digits, \"-\" or \"_\", up to 32; accepted on create only"
+                  },
+                  "name": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "description": "Locale to text, for example { \"vi\": \"…\", \"en\": \"…\" }"
+                  },
+                  "address": {
+                    "type": "object"
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "timezone": {
+                    "type": "string",
+                    "description": "IANA zone, for example Asia/Ho_Chi_Minh"
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  },
+                  "onlineOrdering": {
+                    "type": "boolean"
+                  },
+                  "cartReminderEnabled": {
+                    "type": "boolean"
+                  },
+                  "rank": {
+                    "type": "integer"
+                  },
+                  "cashRounding": {
+                    "type": "object"
+                  },
+                  "fees": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "printing": {
+                    "type": "object"
+                  },
+                  "fulfillment": {
+                    "type": "object",
+                    "properties": {
+                      "pickup": {
+                        "type": "object"
+                      },
+                      "delivery": {
+                        "type": "object"
+                      },
+                      "dineIn": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       },
       "put": {
         "tags": [
@@ -973,7 +1284,81 @@
         ],
         "x-ordering-permissions": [
           "plugin::ordering.settings.manage"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "description": "Letters, digits, \"-\" or \"_\", up to 32; accepted on create only"
+                  },
+                  "name": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "description": "Locale to text, for example { \"vi\": \"…\", \"en\": \"…\" }"
+                  },
+                  "address": {
+                    "type": "object"
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "timezone": {
+                    "type": "string",
+                    "description": "IANA zone, for example Asia/Ho_Chi_Minh"
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  },
+                  "onlineOrdering": {
+                    "type": "boolean"
+                  },
+                  "cartReminderEnabled": {
+                    "type": "boolean"
+                  },
+                  "rank": {
+                    "type": "integer"
+                  },
+                  "cashRounding": {
+                    "type": "object"
+                  },
+                  "fees": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "printing": {
+                    "type": "object"
+                  },
+                  "fulfillment": {
+                    "type": "object",
+                    "properties": {
+                      "pickup": {
+                        "type": "object"
+                      },
+                      "delivery": {
+                        "type": "object"
+                      },
+                      "dineIn": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/branches/{code}/delivery-quote": {
@@ -1043,7 +1428,37 @@
         ],
         "x-ordering-permissions": [
           "plugin::ordering.settings.manage"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "communeCode": {
+                    "type": "string"
+                  },
+                  "subtotal": {
+                    "type": "integer",
+                    "description": "Amount in minor currency unit (VND đồng)"
+                  },
+                  "zones": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "Draft zones to quote instead of the saved ones"
+                  }
+                },
+                "required": [
+                  "communeCode",
+                  "subtotal"
+                ]
+              }
+            }
+          }
+        }
       }
     },
     "/branches/{code}/pause": {
@@ -1113,7 +1528,47 @@
         ],
         "x-ordering-permissions": [
           "plugin::ordering.order.process"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "kinds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "pickup",
+                        "delivery",
+                        "dine-in"
+                      ]
+                    }
+                  },
+                  "minutes": {
+                    "type": "integer",
+                    "description": "Pause for this many minutes"
+                  },
+                  "until": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Pause until this instant"
+                  },
+                  "endOfDay": {
+                    "type": "boolean",
+                    "description": "Pause until the branch business day closes"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "description": "Up to 200 characters"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/branches/{code}/resume": {
@@ -1183,7 +1638,30 @@
         ],
         "x-ordering-permissions": [
           "plugin::ordering.order.process"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "kinds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "pickup",
+                        "delivery",
+                        "dine-in"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/branches/{code}/busy": {
@@ -1253,7 +1731,35 @@
         ],
         "x-ordering-permissions": [
           "plugin::ordering.order.process"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "extraMinutes": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 240,
+                    "description": "Minutes added to the preparation estimate"
+                  },
+                  "minutes": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1440,
+                    "description": "How long busy mode lasts"
+                  }
+                },
+                "required": [
+                  "extraMinutes",
+                  "minutes"
+                ]
+              }
+            }
+          }
+        }
       }
     },
     "/branches/{code}/busy/clear": {
@@ -1453,7 +1959,30 @@
         ],
         "x-ordering-permissions": [
           "plugin::ordering.scope.manage"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "allLocations": {
+                    "type": "boolean",
+                    "description": "Every branch; only an all-branches manager may grant it"
+                  },
+                  "locationRefs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Branch codes; at least one unless allLocations"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/orders": {
@@ -6196,7 +6725,99 @@
         },
         "x-ordering-permissions": [
           "plugin::ordering.settings.manage"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "consentPolicyVersion": {
+                    "type": "string",
+                    "description": "Letters, digits, dot, dash and underscore; up to 32"
+                  },
+                  "newOrderDialog": {
+                    "type": "boolean"
+                  },
+                  "soundByDefault": {
+                    "type": "boolean"
+                  },
+                  "rejectReasons": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string"
+                          },
+                          "description": "Locale to text, for example { \"vi\": \"…\", \"en\": \"…\" }"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "label"
+                      ]
+                    }
+                  },
+                  "delayMinutes": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    }
+                  },
+                  "ratingInviteEnabled": {
+                    "type": "boolean"
+                  },
+                  "ratingInviteDelayMinutes": {
+                    "type": "integer"
+                  },
+                  "ratingWindowDays": {
+                    "type": "integer"
+                  },
+                  "ratingEditHours": {
+                    "type": "integer"
+                  },
+                  "ratingTags": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string"
+                          },
+                          "description": "Locale to text, for example { \"vi\": \"…\", \"en\": \"…\" }"
+                        },
+                        "sentiment": {
+                          "type": "string",
+                          "enum": [
+                            "positive",
+                            "negative"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "label",
+                        "sentiment"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/settings/alert-rules": {
@@ -6314,7 +6935,55 @@
         },
         "x-ordering-permissions": [
           "plugin::ordering.settings.manage"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "rules": {
+                    "type": "object",
+                    "description": "Alert code to rule",
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "threshold": {
+                          "type": "integer"
+                        },
+                        "criticalThreshold": {
+                          "type": "integer"
+                        },
+                        "aggregationMinutes": {
+                          "type": "integer"
+                        },
+                        "recipients": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "enabled",
+                        "threshold",
+                        "aggregationMinutes",
+                        "recipients"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "rules"
+                ]
+              }
+            }
+          }
+        }
       }
     },
     "/alerts": {
@@ -8056,7 +8725,35 @@
         ],
         "x-ordering-permissions": [
           "plugin::ordering.webhook.manage"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "events": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "includeCustomer": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
       },
       "put": {
         "tags": [
@@ -8124,7 +8821,35 @@
         ],
         "x-ordering-permissions": [
           "plugin::ordering.webhook.manage"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "events": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "includeCustomer": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/webhooks/{id}/rotate-secret": {

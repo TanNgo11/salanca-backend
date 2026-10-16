@@ -179,10 +179,10 @@ test('BUG-10 OpenAPI marks required query params and loyalty settings round-trip
     const op = doc.paths[route]?.[verb];
     expect(op?.requestBody?.content?.['application/json']?.schema?.properties, `${verb.toUpperCase()} ${route} has a request body`).toBeTruthy();
   }
-  // Ratchet: the writes still without a body (categories, branches, settings, webhooks, ...) must not grow.
+  // Ratchet: what is left are actions that read no body (rotate-qr, resend, retry, start/complete, ...); it must not grow.
   const bodyless = Object.entries(doc.paths).flatMap(([route, ops]: [string, any]) =>
     ['post', 'put', 'patch'].filter((verb) => ops[verb] && !ops[verb].requestBody).map((verb) => `${verb.toUpperCase()} ${route}`));
-  expect(bodyless.length, `writes without a request body: ${bodyless.join(', ')}`).toBeLessThanOrEqual(34);
+  expect(bodyless.length, `writes without a request body: ${bodyless.join(', ')}`).toBeLessThanOrEqual(18);
   const s =(await api.get('/loyalty/settings')).body;
   expect((await api.put('/loyalty/settings', s.settings ?? s)).status).toBe(200);
 });

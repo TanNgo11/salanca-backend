@@ -45,6 +45,37 @@ const generic: JsonSchema = { type: 'object' };
 const money = { ...int, description: 'Amount in minor currency unit (VND đồng)' };
 const isoDate = { ...str, format: 'date-time' };
 
+const localizedText: JsonSchema = {
+  type: 'object',
+  additionalProperties: str,
+  description: 'Locale to text, for example { "vi": "…", "en": "…" }',
+};
+const receiveKinds: JsonSchema = arr({ type: 'string', enum: ['pickup', 'delivery', 'dine-in'] });
+const categoryFields: Record<string, JsonSchema> = {
+  name: localizedText,
+  description: localizedText,
+  slug: localizedText,
+  parent: { ...str, nullable: true, description: 'Parent category documentId; null for a root' },
+  isActive: bool,
+  isInternal: bool,
+};
+const branchFields: Record<string, JsonSchema> = {
+  code: { ...str, description: 'Letters, digits, "-" or "_", up to 32; accepted on create only' },
+  name: localizedText,
+  address: generic,
+  phone: str,
+  email: str,
+  timezone: { ...str, description: 'IANA zone, for example Asia/Ho_Chi_Minh' },
+  isActive: bool,
+  onlineOrdering: bool,
+  cartReminderEnabled: bool,
+  rank: int,
+  cashRounding: generic,
+  fees: arr(generic),
+  printing: generic,
+  fulfillment: obj({ pickup: generic, delivery: generic, dineIn: generic }),
+};
+
 const pub = (
   method: Operation['method'],
   path: string,
@@ -550,45 +581,94 @@ export const OPERATIONS: Operation[] = [
 
   // ── Admin: catalog ──────────────────────────────────────────────────────────
   adm('get', '/categories', 'Catalog', 'Category tree', ['catalog.manage']),
-  adm('post', '/categories', 'Catalog', 'Create a category', ['catalog.manage']),
+  adm('post', '/categories', 'Catalog', 'Create a category', ['catalog.manage'], {
+    requestBody: obj(categoryFields, ['name']),
+  }),
   adm('put', '/categories/:id', 'Catalog', 'Update a category', ['catalog.manage'], {
     parameters: [pathParam('id')],
+    requestBody: obj(categoryFields),
   }),
   adm('post', '/categories/:id/move', 'Catalog', 'Move a category', ['catalog.manage'], {
     parameters: [pathParam('id')],
+    requestBody: obj({
+      parentId: { ...str, nullable: true, description: 'New parent documentId; null moves to the root' },
+      index: { ...int, description: 'Position among the siblings' },
+    }),
   }),
   adm('delete', '/categories/:id', 'Catalog', 'Delete a category', ['catalog.manage'], {
     parameters: [pathParam('id')],
   }),
   adm('get', '/availability/locations', 'Catalog', 'Locations the caller may toggle', ['catalog.manage']),
   adm('get', '/availability', 'Catalog', 'Availability list', ['catalog.manage']),
-  adm('post', '/availability/toggle', 'Catalog', 'Toggle a product availability', ['catalog.manage']),
+  adm('post', '/availability/toggle', 'Catalog', 'Toggle a product availability', ['catalog.manage'], {
+    requestBody: obj(
+      {
+        entityType: { ...str, enum: ['product', 'variant', 'modifier'] },
+        entityDocumentId: str,
+        locationRef: { ...str, description: 'Branch code' },
+        selling: bool,
+        untilKind: { ...str, enum: ['end-of-business-day', 'specific-time'] },
+        until: {
+          ...str,
+          description: "'HH:mm' branch-local time or an absolute ISO instant (specific-time only)",
+        },
+      },
+      ['entityType', 'entityDocumentId', 'locationRef', 'selling'],
+    ),
+  }),
 
   // ── Admin: branches & staff ─────────────────────────────────────────────────
   adm('get', '/admin-units', 'Branches', 'Administrative units (internal view)', ['settings.manage']),
   adm('get', '/branches', 'Branches', 'Branch list', ['settings.manage']),
-  adm('post', '/branches', 'Branches', 'Create a branch', ['settings.manage']),
+  adm('post', '/branches', 'Branches', 'Create a branch', ['settings.manage'], {
+    requestBody: obj(branchFields, ['code', 'name']),
+  }),
   adm('get', '/branches/:code', 'Branches', 'Branch detail', ['settings.manage'], {
     parameters: [pathParam('code')],
   }),
   adm('patch', '/branches/:code', 'Branches', 'Update a branch', ['settings.manage'], {
     parameters: [pathParam('code')],
+    requestBody: obj(branchFields),
   }),
   adm('put', '/branches/:code', 'Branches', 'Update a branch', ['settings.manage'], {
     parameters: [pathParam('code')],
+    requestBody: obj(branchFields),
   }),
   adm('post', '/branches/:code/delivery-quote', 'Branches', 'Delivery quote for a branch', ['settings.manage'], {
     parameters: [pathParam('code')],
+    requestBody: obj(
+      {
+        communeCode: str,
+        subtotal: money,
+        zones: { ...arr(generic), description: 'Draft zones to quote instead of the saved ones' },
+      },
+      ['communeCode', 'subtotal'],
+    ),
   }),
   // O12: inbox staff pause/resume ordering and toggle busy mode (screens N3).
   adm('post', '/branches/:code/pause', 'Branches', 'Pause ordering (minutes|until|endOfDay, kinds)', ['order.process'], {
     parameters: [pathParam('code')],
+    requestBody: obj({
+      kinds: receiveKinds,
+      minutes: { ...int, description: 'Pause for this many minutes' },
+      until: { ...isoDate, description: 'Pause until this instant' },
+      endOfDay: { ...bool, description: 'Pause until the branch business day closes' },
+      reason: { ...str, description: 'Up to 200 characters' },
+    }),
   }),
   adm('post', '/branches/:code/resume', 'Branches', 'Resume ordering (optional kinds)', ['order.process'], {
     parameters: [pathParam('code')],
+    requestBody: obj({ kinds: receiveKinds }),
   }),
   adm('post', '/branches/:code/busy', 'Branches', 'Set busy mode (extraMinutes + minutes)', ['order.process'], {
     parameters: [pathParam('code')],
+    requestBody: obj(
+      {
+        extraMinutes: { ...int, minimum: 1, maximum: 240, description: 'Minutes added to the preparation estimate' },
+        minutes: { ...int, minimum: 1, maximum: 1440, description: 'How long busy mode lasts' },
+      },
+      ['extraMinutes', 'minutes'],
+    ),
   }),
   adm('post', '/branches/:code/busy/clear', 'Branches', 'Clear busy mode', ['order.process'], {
     parameters: [pathParam('code')],
@@ -596,6 +676,10 @@ export const OPERATIONS: Operation[] = [
   adm('get', '/staff-scopes', 'Branches', 'Staff location scopes', ['scope.manage']),
   adm('put', '/staff-scopes/:adminUserId', 'Branches', 'Set a staff member scope', ['scope.manage'], {
     parameters: [pathParam('adminUserId')],
+    requestBody: obj({
+      allLocations: { ...bool, description: 'Every branch; only an all-branches manager may grant it' },
+      locationRefs: { ...arr(str), description: 'Branch codes; at least one unless allLocations' },
+    }),
   }),
 
   // ── Admin: orders ───────────────────────────────────────────────────────────
@@ -828,9 +912,48 @@ export const OPERATIONS: Operation[] = [
 
   // ── Admin: settings ─────────────────────────────────────────────────────────
   adm('get', '/settings', 'Settings', 'Sales settings', ['settings.manage']),
-  adm('put', '/settings', 'Settings', 'Update sales settings', ['settings.manage']),
+  adm('put', '/settings', 'Settings', 'Update sales settings', ['settings.manage'], {
+    requestBody: obj({
+      consentPolicyVersion: { ...str, description: 'Letters, digits, dot, dash and underscore; up to 32' },
+      newOrderDialog: bool,
+      soundByDefault: bool,
+      rejectReasons: arr(obj({ code: str, label: localizedText }, ['code', 'label'])),
+      delayMinutes: arr(int),
+      ratingInviteEnabled: bool,
+      ratingInviteDelayMinutes: int,
+      ratingWindowDays: int,
+      ratingEditHours: int,
+      ratingTags: arr(
+        obj({ code: str, label: localizedText, sentiment: { ...str, enum: ['positive', 'negative'] } }, [
+          'code',
+          'label',
+          'sentiment',
+        ]),
+      ),
+    }),
+  }),
   adm('get', '/settings/alert-rules', 'Settings', 'Alert rules', ['settings.manage']),
-  adm('put', '/settings/alert-rules', 'Settings', 'Update alert rules', ['settings.manage']),
+  adm('put', '/settings/alert-rules', 'Settings', 'Update alert rules', ['settings.manage'], {
+    requestBody: obj(
+      {
+        rules: {
+          type: 'object',
+          description: 'Alert code to rule',
+          additionalProperties: obj(
+            {
+              enabled: bool,
+              threshold: int,
+              criticalThreshold: int,
+              aggregationMinutes: int,
+              recipients: arr(str),
+            },
+            ['enabled', 'threshold', 'aggregationMinutes', 'recipients'],
+          ),
+        },
+      },
+      ['rules'],
+    ),
+  }),
 
   // ── Admin: alerts & ops ─────────────────────────────────────────────────────
   adm('get', '/alerts', 'Ops', 'Alert inbox', ['ops.read']),
@@ -946,9 +1069,21 @@ export const OPERATIONS: Operation[] = [
   ),
   adm('patch', '/webhooks/:id', 'Webhooks', 'Update URL/description/events/includeCustomer', ['webhook.manage'], {
     parameters: [pathParam('id')],
+    requestBody: obj({
+      url: { ...str, format: 'uri' },
+      description: str,
+      events: arr(str),
+      includeCustomer: bool,
+    }),
   }),
   adm('put', '/webhooks/:id', 'Webhooks', 'Update (PUT alias of PATCH)', ['webhook.manage'], {
     parameters: [pathParam('id')],
+    requestBody: obj({
+      url: { ...str, format: 'uri' },
+      description: str,
+      events: arr(str),
+      includeCustomer: bool,
+    }),
   }),
   adm('post', '/webhooks/:id/rotate-secret', 'Webhooks', 'Rotate the secret (old one valid 24h)', ['webhook.manage'], {
     parameters: [pathParam('id')],
