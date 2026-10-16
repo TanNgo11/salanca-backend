@@ -166,6 +166,46 @@ describe('evaluateAvailability', () => {
     });
     expect(verdict.resumesAt?.getTime()).toBe(Date.parse('2026-10-11T04:00:00'));
   });
+
+  it('compares outOfStockUntil with the real instant, not the wall-clock Date (any process zone)', () => {
+    // 23:40 in Ho Chi Minh is 16:40Z. A Node process on UTC builds `nowLocal` from the wall-clock
+    // reading, so it lands 7 h ahead of the instant; the 04:00 day close (21:00Z) must still hold.
+    const instant = new Date('2026-10-16T16:40:00Z');
+    const wallClockOnUtcNode = new Date('2026-10-16T23:40:00Z');
+    const verdict = evaluateAvailability({
+      ...base,
+      nowLocal: wallClockOnUtcNode,
+      now: instant,
+      locationState: { selling: false, outOfStockUntil: '2026-10-16T21:00:00Z' },
+    });
+    expect(verdict.purchasable).toBe(false);
+    expect(verdict.reasons).toEqual(['temporarily-unavailable']);
+    expect(verdict.resumesAt?.toISOString()).toBe('2026-10-16T21:00:00.000Z');
+  });
+
+  it('checks window validity against the real instant, not the wall-clock Date', () => {
+    // An all-day window, so the hour check passes whatever zone the test process runs in.
+    const window: SellingWindow = {
+      startTime: '00:00',
+      endTime: '23:59',
+      validTo: '2026-10-16T17:00:00Z',
+    };
+    // The wall-clock Date is 7 h ahead of the instant (a UTC Node on a Ho Chi Minh branch).
+    const open = evaluateAvailability({
+      ...base,
+      windows: [window],
+      nowLocal: new Date('2026-10-16T23:40:00Z'),
+      now: new Date('2026-10-16T16:40:00Z'),
+    });
+    expect(open.reasons).not.toContain('outside-window');
+    const closed = evaluateAvailability({
+      ...base,
+      windows: [window],
+      nowLocal: new Date('2026-10-17T00:10:00Z'),
+      now: new Date('2026-10-16T17:10:00Z'),
+    });
+    expect(closed.reasons).toContain('outside-window');
+  });
 });
 
 describe('instantAtLocal / localPartsInZone', () => {

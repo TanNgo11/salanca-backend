@@ -508,7 +508,7 @@ const toSellable = async (
     allRequiredComponentsAvailable: requiredOk,
     categoryActive,
   };
-  const verdict = evaluateAvailability({ ...availabilityInput, nowLocal });
+  const verdict = evaluateAvailability({ ...availabilityInput, nowLocal, now: new Date(ctx.now) });
 
   // Public-catalog extras the storefront serializer needs (Step 7): slug for pretty URLs and
   // every variant with its context-selected price — the Sellable itself keeps only the first.
@@ -808,6 +808,7 @@ export const createOrderingCatalogAdapter = ({ strapi }: { strapi: Core.Strapi }
       const verdict = evaluateAvailability({
         ...input,
         nowLocal: branchLocal(ctx.now, input.timezone),
+        now: new Date(ctx.now),
       });
       if (!verdict.purchasable) {
         return { available: false, reasonCode: verdict.reasons[0] ?? 'unavailable' };

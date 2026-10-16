@@ -29,6 +29,13 @@ export type AvailabilityInput = {
   /** Union of product windows and every ancestor category window. Empty = no time limit. */
   windows?: SellingWindow[];
   nowLocal?: Date;
+  /**
+   * The real instant. `nowLocal` is a wall-clock reading built into a `Date` in the process's own
+   * zone (see the adapter's `branchLocal`), so it only equals the instant when Node runs on the
+   * branch zone. Instants stored on rows (`outOfStockUntil`, window validity) compare against this
+   * one; the hour/minute/weekday checks read `nowLocal`. Absent → `nowLocal` is used for both.
+   */
+  now?: Date;
   /** Branch IANA timezone — callers re-derive `nowLocal` from it when the verdict ages. */
   timezone?: string;
   /** Bundle flag: every item of every required slot must be available for the combo to sell. */
@@ -65,9 +72,13 @@ const isoDay = (date: Date): number => ((date.getDay() + 6) % 7) + 1;
  * end crosses midnight (22:00–02:00): before midnight it belongs to the start day, after
  * midnight to the previous day.
  */
-export function isWithinSellingWindow(nowLocal: Date, window: SellingWindow): boolean {
+export function isWithinSellingWindow(
+  nowLocal: Date,
+  window: SellingWindow,
+  instant: Date = nowLocal,
+): boolean {
   if (window.isActive === false) return false;
-  const now = nowLocal.getTime();
+  const now = instant.getTime();
   const from = toTime(window.validFrom);
   const to = toTime(window.validTo);
   if (from !== null && now < from) return false;
@@ -92,8 +103,12 @@ export function isWithinSellingWindow(nowLocal: Date, window: SellingWindow): bo
 }
 
 /** Any applicable window containing `nowLocal` → true; empty list → always available. */
-export const withinAnyWindow = (nowLocal: Date, windows: SellingWindow[] = []): boolean =>
-  windows.length === 0 || windows.some((window) => isWithinSellingWindow(nowLocal, window));
+export const withinAnyWindow = (
+  nowLocal: Date,
+  windows: SellingWindow[] = [],
+  instant: Date = nowLocal,
+): boolean =>
+  windows.length === 0 || windows.some((window) => isWithinSellingWindow(nowLocal, window, instant));
 
 /** `instant` rendered as `YYYY-MM-DDTHH:mm:ss` wall time inside an IANA `timezone`. */
 export const localPartsInZone = (instant: Date, timezone: string): string => {
@@ -153,7 +168,8 @@ export const nextLocalTime = nextBusinessDayCutoff;
 export function evaluateAvailability(input: AvailabilityInput): AvailabilityVerdict {
   const reasons: string[] = [];
   let resumesAt: Date | undefined;
-  const now = input.nowLocal ?? new Date();
+  const now = input.nowLocal ?? input.now ?? new Date();
+  const instant = input.now ?? now;
 
   if (input.status !== undefined && input.status !== 'active') {
     reasons.push('not-active');
@@ -164,7 +180,7 @@ export function evaluateAvailability(input: AvailabilityInput): AvailabilityVerd
   const state = input.locationState;
   if (state) {
     const until = toTime(state.outOfStockUntil);
-    if (until !== null && until > now.getTime()) {
+    if (until !== null && until > instant.getTime()) {
       // Active "tạm hết đến …" — reports when selling resumes.
       reasons.push('temporarily-unavailable');
       resumesAt = new Date(until);
@@ -174,7 +190,7 @@ export function evaluateAvailability(input: AvailabilityInput): AvailabilityVerd
       reasons.push('temporarily-unavailable');
     }
   }
-  if (input.windows && !withinAnyWindow(now, input.windows)) {
+  if (input.windows && !withinAnyWindow(now, input.windows, instant)) {
     reasons.push('outside-window');
   }
   if (input.allRequiredComponentsAvailable === false) {
