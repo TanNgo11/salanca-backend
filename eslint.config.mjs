@@ -30,4 +30,10 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // Playwright suite: it reads untyped JSON bodies from the API under test, so `any` is the honest type there,
+    // and fixtures must destructure their first argument (`async ({}, use)`) for Playwright to parse them.
+    files: ['e2e/**/*.ts'],
+    rules: { '@typescript-eslint/no-explicit-any': 'off', 'no-empty-pattern': 'off' },
+  },
 );

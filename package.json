@@ -47,7 +47,9 @@
     "ordering:openapi": "node scripts/ordering/openapi.mjs --write",
     "smoke:ordering-pickup": "pnpm run build:ordering && node scripts/smoke-ordering-pickup.mjs",
     "upgrade": "npx @strapi/upgrade latest",
-    "upgrade:dry": "npx @strapi/upgrade latest --dry"
+    "upgrade:dry": "npx @strapi/upgrade latest --dry",
+    "test:e2e": "playwright test -c e2e/playwright.config.ts",
+    "test:e2e:ui": "playwright test -c e2e/playwright.config.ts --ui"
   },
   "dependencies": {
     "@strapi/design-system": "2.2.3",
@@ -70,6 +72,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "@playwright/test": "1.64.1",
     "@strapi/typescript-utils": "5.51.1",
     "@types/node": "^22.20.1",
     "@types/react": "^18",

@@ -27,6 +27,7 @@
   ],
 
   "exclude": [
+    "e2e/",
     "node_modules/",
     "build/",
     "dist/",
