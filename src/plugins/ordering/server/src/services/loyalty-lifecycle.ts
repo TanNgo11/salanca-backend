@@ -1,6 +1,7 @@
 import type { Core } from '@strapi/strapi';
 
 import type { OrderingConfig } from '../config';
+import { calendarDate } from '../domain/business-date';
 import { OrderingError } from '../domain/errors';
 import { sha256Hex } from '../domain/hashing';
 import { addDays, addMonths, lotRemainingAfterDebt, takeFromLots } from '../domain/loyalty/lots';
@@ -611,7 +612,8 @@ const loyaltyLifecycle = ({ strapi }: { strapi: Core.Strapi }) => {
     async report(query: { from?: string; to?: string; branch?: string }, ctx: ServiceContext) {
       const dayPattern = /^\d{4}-\d{2}-\d{2}$/;
       const now = nowOf(ctx);
-      const to = query.to ?? now.toISOString().slice(0, 10);
+      // The period is counted in Ho Chi Minh days (+07:00 below), so "today" is the Ho Chi Minh date, not the UTC one.
+      const to = query.to ?? calendarDate(now, 'Asia/Ho_Chi_Minh');
       const from = query.from ?? new Date(Date.parse(`${to}T00:00:00Z`) - 29 * 86_400_000).toISOString().slice(0, 10);
       if (!dayPattern.test(from) || !dayPattern.test(to) || from > to) {
         throw new OrderingError('VALIDATION_ERROR', 'from/to must be YYYY-MM-DD with from <= to', { details: { field: 'from' } });

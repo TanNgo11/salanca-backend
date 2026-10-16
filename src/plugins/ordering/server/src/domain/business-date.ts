@@ -13,3 +13,13 @@ export function businessDate(instant: Date, timezone: string, cutoff = '04:00'):
   previous.setUTCDate(previous.getUTCDate() - 1);
   return previous.toISOString().slice(0, 10);
 }
+
+/** The calendar day (no business-day cutoff) of an instant in `timezone`; independent of the server's zone. */
+export function calendarDate(instant: Date, timezone: string): string {
+  if (!Number.isFinite(instant.getTime())) throw new Error('Invalid calendar-date instant');
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(instant);
+  const part = (name: string) => parts.find((value) => value.type === name)!.value;
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
