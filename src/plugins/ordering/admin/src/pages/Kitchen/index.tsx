@@ -6,6 +6,7 @@ import { useSearchParams } from 'react-router-dom';
 import { minutesSince, formatTime } from '../../lib/format';
 import { useT } from '../../lib/i18n';
 import { RBAC_KITCHEN } from '../../lib/permissions';
+import { boardFrom } from './board';
 
 type KitchenLine = {
   id: number;
@@ -133,7 +134,9 @@ const KitchenPage = () => {
       const qs = new URLSearchParams({ branch });
       if (station) qs.set('station', station);
       const { data } = await get(`/ordering/kitchen?${qs}`);
-      setBoard(data as KitchenBoard);
+      const next = boardFrom<KitchenBoard>(data);
+      if (!next) throw new Error('unexpected kitchen board payload');
+      setBoard(next);
       setFailed(false);
     } catch {
       setFailed(true);
