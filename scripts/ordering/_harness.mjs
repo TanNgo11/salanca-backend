@@ -40,7 +40,12 @@ export function configureTestEnvironment(enabled = true) {
   process.env.CMS_WEBHOOK_URL = '';
   process.env.CMS_WEBHOOK_ENABLED = 'false';
   process.env.STRAPI_TELEMETRY_DISABLED = 'true';
-  process.env.PORT ??= String(1400 + (process.pid % 500));
+  // fetch() refuses a few well-known ports (H.323 1719/1720, PPTP 1723) with "bad port", so a pid that
+  // landed on one of them failed the script for no reason; step past them.
+  const blockedPorts = new Set([1719, 1720, 1723]);
+  let port = 1400 + (process.pid % 500);
+  while (blockedPorts.has(port)) port += 4;
+  process.env.PORT ??= String(port);
 }
 
 const require = createRequire(import.meta.url);
