@@ -275,7 +275,7 @@ const CodesTab = ({ promotionId }: { promotionId: number }) => {
       setOne({ code: '' });
       void load();
     } catch (error) {
-      const fields = fieldErrors(error);
+      const fields = fieldErrors(error, t);
       setErrors(fields);
       if (Object.keys(fields).length === 0) toastError(error);
     } finally {
@@ -651,7 +651,7 @@ export const PromotionEditor = () => {
         setStats(body.stats);
       }
     } catch (error) {
-      const fields = fieldErrors(error);
+      const fields = fieldErrors(error, t);
       setErrors(fields);
       if (Object.keys(fields).length === 0) toastError(error);
     } finally {

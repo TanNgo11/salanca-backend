@@ -251,7 +251,7 @@ export const BranchEditor = () => {
       toggleNotification({ type: 'success', message: t('branch.saved') });
       if (creating) navigate(`../${branch.code}`);
     } catch (error) {
-      const fields = fieldErrors(error);
+      const fields = fieldErrors(error, t);
       setErrors(fields);
       if (Object.keys(fields).length === 0) toastError(error);
       else toggleNotification({ type: 'danger', message: t('branch.fixErrors') });
