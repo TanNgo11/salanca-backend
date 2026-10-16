@@ -42,6 +42,9 @@ export type ProviderCard = {
 export type ProviderOverview = {
   now: string;
   publicApiUrl: string;
+  /** R1a: `allowlist` means test-mode delivery — the page shows a banner. */
+  notificationMode: 'live' | 'allowlist';
+  notificationAllowlistCount: number;
   groups: Array<{ key: ProviderGroup; cards: ProviderCard[] }>;
 };
 
@@ -271,7 +274,13 @@ const providerStatus = ({ strapi }: { strapi: Core.Strapi }) => {
       ['payment', 'fulfillment', 'notification'] as ProviderGroup[]
     ).map((key) => ({ key, cards: cards.filter((card) => card.group === key) }));
 
-    return { now: new Date().toISOString(), publicApiUrl, groups };
+    return {
+      now: new Date().toISOString(),
+      publicApiUrl,
+      notificationMode: cfg.notifications.mode,
+      notificationAllowlistCount: cfg.notifications.allowlist.length,
+      groups,
+    };
   };
 
   return { overview };

@@ -246,6 +246,9 @@ describe('ordering plugin configuration', () => {
     notifications: {
       email: { enabled: false },
       orderLinkTemplate: 'http://localhost:3000/don-hang#t={token}',
+      timezone: 'Asia/Ho_Chi_Minh',
+      mode: 'live',
+      allowlist: [],
     },
   };
 
@@ -297,6 +300,9 @@ describe('ordering plugin configuration', () => {
         notifications: {
           email: { enabled: true },
           orderLinkTemplate: 'http://localhost:3000/don-hang#t={token}',
+          timezone: 'Asia/Ho_Chi_Minh',
+          mode: 'live',
+          allowlist: [],
         },
       },
     });
@@ -305,5 +311,65 @@ describe('ordering plugin configuration', () => {
   it('fails startup when the plugin is enabled without a server build', () => {
     const env = createEnv({ ORDERING_ENABLED: 'true' });
     expect(() => resolveOrderingPluginConfig(env, () => false)).toThrow(/build:ordering/);
+  });
+
+  it('defaults the notification budget timezone to Asia/Ho_Chi_Minh', () => {
+    expect(resolveOrderingPluginConfig(createEnv({}), () => true).config.notifications.timezone).toBe(
+      'Asia/Ho_Chi_Minh',
+    );
+  });
+
+  it('applies ORDERING_NOTIFY_TIMEZONE', () => {
+    const env = createEnv({ ORDERING_NOTIFY_TIMEZONE: 'UTC' });
+    expect(resolveOrderingPluginConfig(env, () => true).config.notifications.timezone).toBe('UTC');
+  });
+
+  it('fails startup on an invalid ORDERING_NOTIFY_TIMEZONE without printing the value', () => {
+    const env = createEnv({ ORDERING_NOTIFY_TIMEZONE: 'Mars/Olympus' });
+    let message = '';
+    try {
+      resolveOrderingPluginConfig(env, () => true);
+    } catch (error) {
+      message = String((error as Error).message);
+    }
+    expect(message).toContain('ORDERING_NOTIFY_TIMEZONE');
+    expect(message).not.toContain('Mars/Olympus');
+  });
+
+  it('defaults notification mode to live with an empty allowlist', () => {
+    const { notifications } = resolveOrderingPluginConfig(createEnv({}), () => true).config;
+    expect(notifications.mode).toBe('live');
+    expect(notifications.allowlist).toEqual([]);
+  });
+
+  it('parses ORDERING_NOTIFY_MODE and ORDERING_NOTIFY_ALLOWLIST', () => {
+    const env = createEnv({
+      ORDERING_NOTIFY_MODE: 'allowlist',
+      ORDERING_NOTIFY_ALLOWLIST: ' a@example.invalid , @salanca.invalid, 0901234567 ',
+    });
+    const { notifications } = resolveOrderingPluginConfig(env, () => true).config;
+    expect(notifications.mode).toBe('allowlist');
+    expect(notifications.allowlist).toEqual(['a@example.invalid', '@salanca.invalid', '0901234567']);
+  });
+
+  it('fails startup on an invalid allowlist entry, naming the variable and position, not the value', () => {
+    const env = createEnv({
+      ORDERING_NOTIFY_MODE: 'allowlist',
+      ORDERING_NOTIFY_ALLOWLIST: 'ok@example.invalid, not-a-phone',
+    });
+    let message = '';
+    try {
+      resolveOrderingPluginConfig(env, () => true);
+    } catch (error) {
+      message = String((error as Error).message);
+    }
+    expect(message).toContain('ORDERING_NOTIFY_ALLOWLIST');
+    expect(message).toContain('2');
+    expect(message).not.toContain('not-a-phone');
+  });
+
+  it('fails startup on an unknown ORDERING_NOTIFY_MODE', () => {
+    const env = createEnv({ ORDERING_NOTIFY_MODE: 'sandbox' });
+    expect(() => resolveOrderingPluginConfig(env, () => true)).toThrow('ORDERING_NOTIFY_MODE');
   });
 });

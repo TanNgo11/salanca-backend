@@ -141,10 +141,16 @@ export const configSchema = z.object({
     email: z.object({ enabled: z.boolean() }),
     /** Customer order link; `{token}` is replaced (put it after `#`, contracts §11). */
     orderLinkTemplate: z.string(),
-    /** O13: paid-channel cap per UTC day; deliveries beyond it fall to the next channel. */
+    /** O13: paid-channel cap per `notifications.timezone` day; beyond it, the next channel. */
     dailyLimit: z.number().int().positive(),
     /** Estimated per-message cost (VND) by channel — shown on P3, never a billing value. */
     costEstimates: z.record(z.string(), z.number().int().min(0)),
+    /** R1e: IANA timezone the daily budget and day keys follow (validated in config/plugins.ts). */
+    timezone: z.string().min(1),
+    /** R1a: `live` sends everywhere; `allowlist` only to the entries below (fail closed when empty). */
+    mode: z.enum(['live', 'allowlist']),
+    /** R1a: recipient allowlist — emails, `@domain` entries and phone numbers (see notify-guard). */
+    allowlist: z.array(z.string()),
   }),
   /** O12: table QR links. `{token}` is replaced by the table's raw secret. */
   tables: z.object({
@@ -363,6 +369,9 @@ export default {
       orderLinkTemplate: '',
       dailyLimit: 2000,
       costEstimates: { sms: 900, zalo: 300 },
+      timezone: 'Asia/Ho_Chi_Minh',
+      mode: 'live',
+      allowlist: [],
     },
     tables: { menuUrlTemplate: '' },
     storefront: {

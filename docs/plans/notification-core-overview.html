@@ -1,0 +1,836 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notification core dùng chung</title>
+<style>
+  :root {
+    --bg: #f7f5f3; --surface: #ffffff; --fg: #23201e; --muted: #6d6560; --line: #e4dfda;
+    --accent: #7a2a22; --accent-soft: #f3e6e3; --ok: #2f6b45; --ok-soft: #e4f1e9;
+    --warn: #8a5a12; --warn-soft: #fbf1df; --blue: #1f4e79; --blue-soft: #e3edf6;
+    --font-body: "Segoe UI", system-ui, -apple-system, sans-serif;
+    --font-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1817; --surface: #242120; --fg: #ece7e3; --muted: #a59d97; --line: #3a3532;
+      --accent: #e08a7d; --accent-soft: #3a2724; --ok: #7cc597; --ok-soft: #1f3327;
+      --warn: #e2b264; --warn-soft: #3a2f1c; --blue: #8ab8e0; --blue-soft: #1d2d3d;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.6 var(--font-body); padding: 40px 16px 72px; }
+  main { max-width: 860px; margin: 0 auto; display: grid; gap: 44px; }
+  h1, h2, h3 { margin: 0; line-height: 1.25; text-wrap: balance; }
+  h1 { font-size: 30px; }
+  h2 { font-size: 21px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  h3 { font-size: 16px; }
+  p { margin: 0; }
+  section { display: grid; gap: 16px; }
+  .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  .lead { color: var(--muted); font-size: 16px; max-width: 64ch; }
+  code { font-family: var(--font-mono); font-size: .88em; background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; }
+  pre { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; overflow-x: auto; font: 13px/1.55 var(--font-mono); }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .grid2 { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid3 { display: grid; gap: 16px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  @media (max-width: 720px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+  .tag { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+  .tag.ok { background: var(--ok-soft); color: var(--ok); }
+  .tag.warn { background: var(--warn-soft); color: var(--warn); }
+  .tag.blue { background: var(--blue-soft); color: var(--blue); }
+  .tag.acc { background: var(--accent-soft); color: var(--accent); }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+  ul, ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+  svg { width: 100%; height: auto; display: block; }
+  svg text { font-family: var(--font-body); fill: var(--fg); }
+  svg .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+  svg .core { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+  svg .site { fill: var(--blue-soft); stroke: var(--blue); stroke-width: 1.5; }
+  svg .chan { fill: var(--ok-soft); stroke: var(--ok); stroke-width: 1.5; }
+  svg .later { fill: var(--surface); stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4; }
+  svg .arrow { stroke: var(--muted); stroke-width: 1.8; fill: none; marker-end: url(#ah); }
+  svg .small { font-size: 12px; fill: var(--muted); }
+  svg .lbl { font-size: 13px; font-weight: 600; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--accent-soft); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  .scroll { overflow-x: auto; }
+  .mock { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
+  .mock-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+  .mock-bar b { font-size: 16px; }
+  .mock-bar small { color: var(--muted); display: block; }
+  .mock-body { padding: 16px 18px; display: grid; gap: 14px; }
+  .mock table { border: 0; border-radius: 0; font-size: 13px; }
+  .mock th { background: transparent; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  .btn { font: inherit; font-size: 13px; border-radius: 6px; padding: 6px 12px; border: 1px solid var(--accent); background: var(--accent); color: var(--bg); }
+  .btn.sec { background: transparent; color: var(--accent); }
+  .tgl { display: inline-block; width: 34px; height: 18px; border-radius: 999px; background: var(--line); position: relative; vertical-align: middle; }
+  .tgl::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--surface); }
+  .tgl.on { background: var(--ok); }
+  .tgl.on::after { left: 18px; }
+  .chip { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); margin-right: 4px; background: var(--bg); }
+  .chip.var { font-family: var(--font-mono); background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+  .field { display: grid; gap: 4px; font-size: 13px; }
+  .field > span { color: var(--muted); font-size: 12px; }
+  .input { border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; background: var(--bg); font-size: 13px; }
+  .input.area { min-height: 110px; font-family: var(--font-mono); white-space: pre-wrap; }
+  .split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+  @media (max-width: 720px) { .split { grid-template-columns: 1fr; } }
+  .mail { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; background: var(--bg); font-size: 13px; display: grid; gap: 6px; }
+  .shell { display: grid; grid-template-columns: 170px minmax(0, 1fr); min-height: 260px; }
+  @media (max-width: 720px) { .shell { grid-template-columns: 1fr; } }
+  .side { background: var(--bg); border-right: 1px solid var(--line); padding: 12px 8px; display: grid; gap: 2px; align-content: start; font-size: 13px; }
+  .side div { padding: 7px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; color: var(--muted); }
+  .side div.cur { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .badge { background: var(--accent); color: var(--bg); font-size: 11px; font-weight: 700; border-radius: 999px; min-width: 20px; height: 20px; padding: 0 6px; display: inline-grid; place-items: center; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-right: 8px; }
+  .dot.read { background: transparent; border: 1px solid var(--line); }
+  .nrow { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .nrow:last-child { border-bottom: 0; }
+  .nrow.read { color: var(--muted); }
+  .tabs { display: flex; gap: 4px; flex-wrap: wrap; font-size: 13px; }
+  .tabs span { padding: 5px 12px; border-radius: 6px; color: var(--muted); }
+  .tabs span.cur { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .flow { display: grid; gap: 10px; counter-reset: s; list-style: none; padding: 0; }
+  .flow li { counter-increment: s; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px 10px 48px; position: relative; }
+  .flow li::before { content: counter(s); position: absolute; left: 12px; top: 10px; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: var(--bg); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+  .uc { display: grid; gap: 8px; }
+  .uc .row { display: grid; grid-template-columns: 110px 1fr; gap: 10px; font-size: 14px; }
+  .uc .row b { color: var(--muted); font-weight: 600; }
+  @media (max-width: 720px) { .uc .row { grid-template-columns: 1fr; gap: 0; } }
+</style>
+</head>
+<body>
+<main>
+
+<header style="display:grid;gap:10px">
+  <span class="eyebrow">Kế hoạch · đã đối chiếu code ngày 2026-10-15</span>
+  <h1>Notification core dùng chung cho Salanca, BDS và các web sau</h1>
+  <p class="lead">Một lõi gửi thông báo viết một lần. Mỗi web chỉ báo "có chuyện xảy ra", lõi lo chọn kênh, render nội dung, gửi, retry và ghi log.</p>
+</header>
+
+<section>
+  <h2>0. Hiện trạng thực tế: ordering plugin đã có phần lớn</h2>
+  <p class="lead">Đối chiếu code cho thấy các mục sau trong file này nói "xây core từ đầu" là chưa đúng. Phần lõi thông báo đã nằm trong <code>src/plugins/ordering</code>. Release cho Salanca là <b>bật, kiểm chứng và lấp khe hở</b>. Core generic tách sau, từ chính code này.</p>
+  <div class="scroll"><table>
+    <tr><th>Thành phần</th><th>Trạng thái</th><th>Vị trí trong code</th></tr>
+    <tr><td>Registry kênh: <code>registerNotificationProvider(channel, provider)</code></td><td><span class="tag ok">Có</span></td><td><code>server/src/register.ts</code>, <code>contracts/notification.ts</code></td></tr>
+    <tr><td>Adapter email (qua email plugin), Zalo ZNS (OAuth, refresh token xoay vòng, retry lỗi -124), eSMS</td><td><span class="tag ok">Có</span> Zalo và SMS chỉ đăng ký khi đủ env</td><td><code>server/src/providers/</code></td></tr>
+    <tr><td>Chuỗi kênh dự phòng theo template (<code>zalo, sms, email</code>) và ánh xạ tham số ZNS</td><td><span class="tag ok">Có</span></td><td><code>services/notification-channel.ts</code>, Settings → NotificationChannels</td></tr>
+    <tr><td>Sửa template mail trong Admin, mẫu hỏng thì dùng mặc định và báo alert</td><td><span class="tag ok">Có</span></td><td><code>services/notification-template.ts</code>, <code>EmailTemplates.tsx</code></td></tr>
+    <tr><td>Event qua outbox: <code>order.created</code>, <code>order.transitioned</code>, <code>order.edited</code>, <code>rating.invite</code>, cảnh báo vận hành</td><td><span class="tag ok">Có</span></td><td><code>register.ts</code>, <code>services/notification.ts</code></td></tr>
+    <tr><td>Delivery log (bảng <code>notification-delivery</code>), khóa chống trùng, hạn mức ngày cho kênh tính phí</td><td><span class="tag ok">Có</span> ở server</td><td><code>content-types/notification-delivery</code></td></tr>
+    <tr><td>Màn "Lịch sử gửi" trong Admin</td><td><span class="tag warn">Chưa tìm thấy</span></td><td>Không có trang nào đọc <code>notification-delivery</code></td></tr>
+    <tr><td>Người nhận đơn mới phía nhân viên</td><td><span class="tag warn">Chỉ email chi nhánh</span></td><td><code>onOrderPlaced</code> dùng <code>branch.email</code></td></tr>
+    <tr><td>Nhân viên thấy đơn mới realtime trong Admin</td><td><span class="tag ok">Có</span> (SSE trong tiến trình, một instance)</td><td><code>services/order-stream.ts</code>, hộp thư đặt bàn</td></tr>
+    <tr><td>Cấu hình kênh (khóa API, token)</td><td><span class="tag warn">Qua env</span>, Admin chỉ hiện trạng thái</td><td>trang Providers (<code>envNeeded</code>)</td></tr>
+    <tr><td>Danh sách kênh</td><td><span class="tag warn">Đóng</span>: hằng số <code>['zalo','sms','email']</code>, thêm kênh phải sửa code</td><td><code>notification-channel.ts</code> dòng 19</td></tr>
+    <tr><td>Chế độ an toàn ngoài production</td><td><span class="tag ok">Có một phần</span> email bị chặn ở tầng SMTP (<code>EMAIL_ALLOW_EXTERNAL_DELIVERY</code>). <span class="tag warn">Chưa có</span> chặn theo người nhận, và chưa chặn Zalo/SMS</td><td><code>config/transactional-email.helper.ts</code>; không có gì ở <code>server/src</code> cho kênh tính phí</td></tr>
+    <tr><td>Thông báo form liên hệ và đặt bàn</td><td><span class="tag ok">Có</span> nhưng là hệ riêng, chưa hợp nhất</td><td><code>src/domain/notification-settings</code>, <code>form-intake</code></td></tr>
+  </table></div>
+  <p class="small muted">Các dòng "Chưa tìm thấy" dựa trên tìm kiếm trong code, chưa chạy thử trên Admin thật. Cần xác nhận khi làm R0.</p>
+</section>
+
+<section>
+  <h2>1. Trước và sau</h2>
+  <div class="grid2">
+    <div class="card" style="display:grid;gap:8px">
+      <span class="tag warn">Trước: mỗi web tự code</span>
+      <pre>Salanca  order.created ──► hàm gửi mail (tự viết)
+BDS      lead.created  ──► hàm gửi mail (viết lại)
+Web 3    ...           ──► viết lại lần nữa</pre>
+      <ul class="small">
+        <li>Thêm Telegram: sửa từng web.</li>
+        <li>Đổi nội dung mail: sửa code, deploy.</li>
+        <li>Mail fail: không ai biết.</li>
+      </ul>
+    </div>
+    <div class="card" style="display:grid;gap:8px">
+      <span class="tag ok">Sau: một core</span>
+      <pre>Salanca  order.created ─┐
+BDS      lead.created  ─┼─► CORE ─► email / Telegram / Zalo
+Web 3    ...           ─┘            + log + retry</pre>
+      <ul class="small">
+        <li>Thêm kênh: viết một adapter, mọi web dùng được.</li>
+        <li>Đổi nội dung: sửa template trong Admin.</li>
+        <li>Mail fail: có log và retry.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>2. Kiến trúc</h2>
+  <div class="card">
+    <svg viewBox="0 0 820 400" role="img" aria-label="Sơ đồ: các web phát event vào core, core gửi qua các kênh">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="currentColor" style="color:var(--muted)"/>
+        </marker>
+      </defs>
+
+      <text x="20" y="22" class="small">PHÍA TỪNG WEB (khác nhau)</text>
+      <rect class="site" x="20" y="36" width="170" height="64" rx="8"/>
+      <text x="105" y="62" class="lbl" text-anchor="middle">Salanca</text>
+      <text x="105" y="82" class="small" text-anchor="middle">order.created</text>
+
+      <rect class="site" x="20" y="124" width="170" height="64" rx="8"/>
+      <text x="105" y="150" class="lbl" text-anchor="middle">BDS</text>
+      <text x="105" y="170" class="small" text-anchor="middle">lead.created</text>
+
+      <rect class="later" x="20" y="212" width="170" height="64" rx="8"/>
+      <text x="105" y="238" class="lbl" text-anchor="middle">Web thứ 3</text>
+      <text x="105" y="258" class="small" text-anchor="middle">event của nó</text>
+
+      <path class="arrow" d="M190 68 L290 150"/>
+      <path class="arrow" d="M190 156 L290 170"/>
+      <path class="arrow" d="M190 244 L290 190"/>
+      <text x="212" y="300" class="small">phong bì event chung</text>
+
+      <text x="300" y="22" class="small">CORE (giống nhau)</text>
+      <rect class="core" x="290" y="36" width="250" height="300" rx="10"/>
+      <text x="415" y="62" class="lbl" text-anchor="middle">Notification core</text>
+      <rect class="box" x="308" y="76" width="214" height="40" rx="6"/>
+      <text x="415" y="101" text-anchor="middle" font-size="13">1. Nhận event (outbox)</text>
+      <rect class="box" x="308" y="126" width="214" height="40" rx="6"/>
+      <text x="415" y="151" text-anchor="middle" font-size="13">2. Tra rule: ai nhận, kênh nào</text>
+      <rect class="box" x="308" y="176" width="214" height="40" rx="6"/>
+      <text x="415" y="201" text-anchor="middle" font-size="13">3. Render template (vi/en)</text>
+      <rect class="box" x="308" y="226" width="214" height="40" rx="6"/>
+      <text x="415" y="251" text-anchor="middle" font-size="13">4. Gọi adapter của kênh</text>
+      <rect class="box" x="308" y="276" width="214" height="40" rx="6"/>
+      <text x="415" y="301" text-anchor="middle" font-size="13">5. Ghi delivery log + retry</text>
+
+      <text x="620" y="22" class="small">KÊNH (adapter)</text>
+      <rect class="chan" x="620" y="76" width="180" height="52" rx="8"/>
+      <text x="710" y="107" class="lbl" text-anchor="middle">Email (SMTP/Resend)</text>
+      <rect class="later" x="620" y="144" width="180" height="52" rx="8"/>
+      <text x="710" y="175" class="lbl" text-anchor="middle">Zalo (ưu tiên kế tiếp)</text>
+      <rect class="later" x="620" y="212" width="180" height="52" rx="8"/>
+      <text x="710" y="243" class="lbl" text-anchor="middle">SMS (eSMS) · Telegram</text>
+      <rect class="later" x="620" y="280" width="180" height="52" rx="8"/>
+      <text x="710" y="311" class="lbl" text-anchor="middle">In-app · Push</text>
+
+      <path class="arrow" d="M540 246 L620 102"/>
+      <path class="arrow" d="M540 246 L620 170"/>
+      <path class="arrow" d="M540 246 L620 238"/>
+      <path class="arrow" d="M540 246 L620 306"/>
+
+      <text x="20" y="372" class="small">Nét liền = làm ở MVP. Nét đứt = thêm sau, không phải sửa core.</text>
+    </svg>
+  </div>
+</section>
+
+<section>
+  <h2>3. Ba "chuẩn" của core</h2>
+  <div class="grid3">
+    <div class="card" style="display:grid;gap:8px">
+      <h3>Chuẩn event</h3>
+      <p class="small muted">Phong bì mà mọi web gửi vào.</p>
+<pre>{
+  "event": "lead.created",
+  "site": "bds",
+  "data": { "name": "An",
+            "phone": "09xx" },
+  "recipients": { "role": "sale" }
+}</pre>
+    </div>
+    <div class="card" style="display:grid;gap:8px">
+      <h3>Chuẩn channel</h3>
+      <p class="small muted">Mọi kênh cùng một hình dạng.</p>
+<pre>interface NotificationProvider {
+  send(input: {
+    recipient, template, data
+  }): Promise&lt;void&gt;
+}</pre>
+      <p class="small muted">Khớp với mục 14 của <code>ordering-core-contracts.md</code>.</p>
+    </div>
+    <div class="card" style="display:grid;gap:8px">
+      <h3>Chuẩn rule + template</h3>
+      <p class="small muted">Lưu DB, sửa trong Admin.</p>
+<pre>order.created
+ → email (+ zalo khi bật)
+ → template "order-new"
+ → tới: owner
+
+lead.created
+ → zalo + in-app + email
+ → template "lead-new"
+ → tới: sale phụ trách</pre>
+    </div>
+  </div>
+  <p class="small muted">Core không biết "đơn hàng" hay "lead" là gì. Nếu thấy <code>if (site === 'bds')</code> trong core thì sai chỗ: logic đó thuộc phía web.</p>
+</section>
+
+<section>
+  <h2>4. Mỗi web tự cung cấp gì</h2>
+  <div class="scroll">
+  <table>
+    <tr><th></th><th>Core lo (viết 1 lần)</th><th>Web lo (mỗi web một bộ)</th><th>Sửa ở đâu</th></tr>
+    <tr><td>Gửi</td><td>Adapter email, Zalo, SMS, retry, giới hạn gửi/ngày</td><td>Key provider (SMTP, Zalo OA)</td><td>Env/server (dev). Token Zalo lưu DB vì tự làm mới, Admin chỉ hiện trạng thái.</td></tr>
+    <tr><td>Nội dung</td><td>Engine render <code>{{biến}}</code>, locale</td><td>Template chữ riêng, thương hiệu</td><td>Admin (owner). Code chỉ cấp bản mặc định, không ghi đè bản owner đã sửa.</td></tr>
+    <tr><td>Khi nào</td><td>Bảng rule, outbox, idempotency</td><td>Chỗ gọi <code>emit(...)</code> và danh sách event</td><td>Code (dev), không có UI.</td></tr>
+    <tr><td>Theo dõi</td><td>Delivery log, cảnh báo fail</td><td>Người nhận (owner, sale)</td><td>Admin (owner).</td></tr>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>5. Use case</h2>
+
+  <div class="card uc">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><h3>A. Khách đặt món, owner nhận ngay</h3><span class="tag blue">Salanca</span><span class="tag ok">MVP</span></div>
+    <div class="row"><b>Event</b><span><code>order.created</code></span></div>
+    <div class="row"><b>Người nhận</b><span>Owner, quản lý ca</span></div>
+    <div class="row"><b>Kênh</b><span>Email ở MVP. Zalo khi owner muốn nhận nhanh hơn.</span></div>
+    <div class="row"><b>Giá trị</b><span>Bếp biết có đơn mới trong vài giây, không phải mở admin.</span></div>
+  </div>
+
+  <div class="card uc">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><h3>B. Khách nhận mail đổi trạng thái đơn</h3><span class="tag blue">Salanca</span><span class="tag ok">MVP</span></div>
+    <div class="row"><b>Event</b><span><code>order.status_changed</code> (đã xác nhận, đang giao, đã giao)</span></div>
+    <div class="row"><b>Người nhận</b><span>Khách (email trong đơn)</span></div>
+    <div class="row"><b>Kênh</b><span>Email. SMS (eSMS) bật sau cho đơn giao tận nơi.</span></div>
+    <div class="row"><b>Giá trị</b><span>Khách bớt gọi hỏi. Template do owner sửa trong Admin.</span></div>
+  </div>
+
+  <div class="card uc">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><h3>C. Form liên hệ và đặt bàn (đã có)</h3><span class="tag blue">Salanca</span><span class="tag acc">Đã làm</span></div>
+    <div class="row"><b>Hiện trạng</b><span>Màn Admin "Email thông báo" đã có registry <code>NOTIFICATION_KINDS</code>, danh sách người nhận theo loại, nút "Gửi thử", audit row.</span></div>
+    <div class="row"><b>Với core</b><span>Registry này chính là mầm của core. Việc cần làm là tách ra, thêm kênh và delivery log, không viết lại.</span></div>
+  </div>
+
+  <div class="card uc">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><h3>D. Khách để lại SĐT xem nhà, sale phụ trách nhận</h3><span class="tag blue">BDS</span><span class="tag warn">Khi làm BDS</span></div>
+    <div class="row"><b>Event</b><span><code>lead.created</code>, <code>viewing.requested</code></span></div>
+    <div class="row"><b>Người nhận</b><span>Sale phụ trách khu vực đó, quản lý nếu không ai nhận trong 15 phút</span></div>
+    <div class="row"><b>Kênh</b><span>Zalo (cần nhanh), in-app trong Admin, email làm bản lưu. Khách BDS có đăng nhập nên xem được trạng thái yêu cầu qua in-app.</span></div>
+    <div class="row"><b>Giá trị</b><span>Lead BDS nguội rất nhanh, nhận trễ là mất khách.</span></div>
+  </div>
+
+  <div class="card uc">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><h3>E. Cảnh báo vận hành</h3><span class="tag blue">Mọi web</span><span class="tag warn">Sau MVP</span></div>
+    <div class="row"><b>Event</b><span><code>notification.delivery.failed</code>, webhook lỗi liên tục, đơn quá hạn</span></div>
+    <div class="row"><b>Người nhận</b><span>Dev và owner</span></div>
+    <div class="row"><b>Kênh</b><span>Email, thêm Zalo khi đã có</span></div>
+    <div class="row"><b>Giá trị</b><span>Core tự báo khi chính nó gửi fail, không phải chờ khách phàn nàn.</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>6. Một lần gửi chạy thế nào</h2>
+  <ol class="flow">
+    <li>Khách bấm đặt món. Web ghi đơn vào DB và ghi một dòng event vào <b>outbox</b> trong cùng transaction.</li>
+    <li>Sau khi commit, worker của core đọc outbox. Nếu web chết giữa chừng thì không có đơn mà không có event, hoặc ngược lại.</li>
+    <li>Core tra rule cho <code>order.created</code>: gửi email cho owner (thêm Zalo khi đã có adapter).</li>
+    <li>Core render template với <code>data</code> của đơn, gọi adapter từng kênh.</li>
+    <li>Mỗi lần gửi ghi một dòng <b>delivery log</b>: <code>pending</code>, <code>sent</code> hoặc <code>failed</code>, số lần thử.</li>
+    <li>Dòng <code>failed</code> được retry theo cron. Quá số lần thì phát <code>notification.delivery.failed</code> (use case E).</li>
+  </ol>
+  <p class="small muted">Idempotency key theo (event, người nhận, kênh) để retry không gửi trùng.</p>
+</section>
+
+<section>
+  <h2>7. Đóng gói để dùng ở nhiều web</h2>
+  <div class="grid2">
+    <div class="card" style="display:grid;gap:6px">
+      <span class="tag ok">Khuyến nghị: package</span>
+      <p class="small">Core là một Strapi plugin trong package riêng (scope <code>@tanngo11</code>). Mỗi web cài vào, DB riêng, cùng code.</p>
+      <p class="small muted">Điều kiện: web đều chạy Strapi. Salanca và BDS đều chạy Strapi nên chọn cách này.</p>
+    </div>
+    <div class="card" style="display:grid;gap:6px">
+      <span class="tag warn">Dự phòng: service riêng</span>
+      <p class="small">Core là một service nhỏ, web nào cũng gọi <code>POST /notify</code> với phong bì event.</p>
+      <p class="small muted">Dùng khi có web không phải Strapi. Thêm một thứ phải deploy và bảo trì.</p>
+    </div>
+  </div>
+  <p class="small muted">Giai đoạn đầu: để plugin ngay trong repo Salanca (local), chạy ổn rồi mới tách package. Khớp với hướng "plugin local trước" đã chốt.</p>
+</section>
+
+<section>
+  <h2>8. Thêm một business mới thì làm gì</h2>
+  <p class="lead">Thêm business = khai báo một event. Không sửa core, không viết thêm màn Admin. Ví dụ: spa cần "nhắc lịch hẹn".</p>
+
+  <ol class="flow">
+    <li><b>Khai báo event</b> (một entry, phía business). Màn Admin sinh từ registry nên event mới tự hiện lên.
+<pre style="margin-top:8px">registerNotificationKind({
+  key: 'appointment.reminder',
+  label: 'Nhắc lịch hẹn',
+  dataSchema: { customerName: 'string', time: 'datetime', service: 'string' },
+  defaultRecipients: ['customer'],
+  defaultChannels: ['email'],
+})</pre>
+    </li>
+    <li><b>Emit từ code business</b> (một dòng, đặt ở chỗ lịch hẹn được tạo hoặc đến giờ nhắc).
+<pre style="margin-top:8px">notify.emit('appointment.reminder', { customerName, time, service })</pre>
+    </li>
+    <li><b>Template</b>: viết nội dung <code>appointment-reminder</code> (vi/en), seed sẵn một bản mặc định.</li>
+    <li><b>Rule</b>: owner vào Admin bật kênh, đổi người nhận, sửa chữ. Không cần deploy.</li>
+  </ol>
+  <p class="small muted">Đoạn code là sketch minh họa, chưa phải API thật. Khớp hướng của <code>notification-email-settings.md</code>: "future <code>order</code> kind là một entry nữa trong <code>NOTIFICATION_KINDS</code>".</p>
+
+  <h3>Tiện ở đâu</h3>
+  <div class="scroll">
+  <table>
+    <tr><th>Việc</th><th>Phải làm</th><th>Không đụng</th></tr>
+    <tr><td>Thêm business thứ N</td><td>1 file khai báo, 1 dòng emit, 1 template</td><td>Adapter, retry, log, màn Admin</td></tr>
+    <tr><td>Thêm kênh mới (Zalo)</td><td>1 adapter</td><td>Mọi event cũ và mới dùng được ngay, chỉ bật trong rule</td></tr>
+    <tr><td>Đổi chữ, đổi người nhận</td><td>Owner tự làm trong Admin</td><td>Code, deploy</td></tr>
+  </table>
+  </div>
+
+  <h3>Chỗ vẫn phải làm thêm</h3>
+  <div class="scroll">
+  <table>
+    <tr><th>Tình huống</th><th>Việc thêm</th></tr>
+    <tr><td>Loại người nhận mới (ví dụ "sale phụ trách khu vực")</td><td>Viết một resolver: từ <code>data</code> ra danh sách người nhận. Core chỉ gọi resolver, logic nằm phía business.</td></tr>
+    <tr><td>Event theo giờ (nhắc trước 24h, voucher hết hạn)</td><td>Core không tự biết "đến giờ". Business cần cron hoặc scheduler gọi <code>emit</code> đúng lúc. Nếu từ 2 business cần thì mới thêm <code>scheduleAt</code> vào core.</td></tr>
+    <tr><td>Template cần field mới</td><td>Thêm field vào <code>dataSchema</code> và template. Chỉ phía business.</td></tr>
+    <tr><td>Điều kiện ("chỉ báo đơn trên 2 triệu")</td><td>MVP chưa có. Khi cần thì thêm điều kiện đơn giản vào rule, đừng làm sớm.</td></tr>
+  </table>
+  </div>
+
+  <div class="card" style="display:grid;gap:6px">
+    <span class="tag acc">Cái giá của sự tiện</span>
+    <p class="small">Mỗi event phải khai báo <code>dataSchema</code> rõ ngay từ đầu. Hơi mất công, nhưng nhờ đó template không hỏng âm thầm khi ai đó đổi tên field, và Admin báo được "biến này không tồn tại" lúc owner sửa template.</p>
+  </div>
+</section>
+
+<section>
+  <h2>9. Màn hình trong Strapi Admin</h2>
+  <p class="lead">Owner chỉ làm việc với 4 màn này, đặt dưới Settings → Thông báo. Mọi thứ khác (emit, khai báo event, resolver, adapter, secret) là code hoặc env, không lên UI.</p>
+  <div class="tabs" aria-hidden="true"><span class="cur">Sự kiện</span><span>Mẫu nội dung</span><span>Lịch sử gửi</span><span>Kênh</span></div>
+
+  <h3>9.1 Sự kiện</h3>
+  <div class="mock" role="figure" aria-label="Mô phỏng màn Sự kiện">
+    <div class="mock-bar"><div><b>Sự kiện thông báo</b><small>Chọn việc nào gửi thông báo, qua kênh nào, cho ai.</small></div><span class="btn sec">Gửi thử tất cả</span></div>
+    <div class="mock-body"><div class="scroll">
+      <table>
+        <tr><th>Bật</th><th>Sự kiện</th><th>Kênh</th><th>Người nhận</th><th>Mẫu</th><th></th></tr>
+        <tr><td><span class="tgl on"></span></td><td><b>Đơn mới</b><br><code>order.created</code></td><td><span class="chip">Email</span><span class="chip">Zalo</span></td><td>Owner, quản lý ca</td><td>order-new</td><td><span class="btn sec">Sửa</span></td></tr>
+        <tr><td><span class="tgl on"></span></td><td><b>Đổi trạng thái đơn</b><br><code>order.status_changed</code></td><td><span class="chip">Email</span></td><td>Khách</td><td>order-status</td><td><span class="btn sec">Sửa</span></td></tr>
+        <tr><td><span class="tgl on"></span></td><td><b>Đặt bàn</b><br><code>reservation.created</code></td><td><span class="chip">Email</span></td><td>Danh sách email (đã có)</td><td>reservation-new</td><td><span class="btn sec">Sửa</span></td></tr>
+        <tr><td><span class="tgl"></span></td><td><b>Nhắc lịch hẹn</b><br><code>appointment.reminder</code></td><td><span class="chip">Email</span></td><td>Khách</td><td>appointment-reminder</td><td><span class="btn sec">Sửa</span></td></tr>
+      </table>
+    </div></div>
+  </div>
+  <p class="small muted">Mở rộng từ màn "Email thông báo" đã có: thêm cột kênh và mẫu. Dòng event mới tự hiện khi code khai báo, owner không phải tạo tay.</p>
+
+  <h3>9.2 Mẫu nội dung</h3>
+  <div class="mock" role="figure" aria-label="Mô phỏng màn Mẫu nội dung">
+    <div class="mock-bar"><div><b>Mẫu: order-new</b><small>Dùng cho sự kiện Đơn mới · ngôn ngữ Tiếng Việt</small></div><div><span class="btn sec">Gửi thử</span> <span class="btn">Lưu</span></div></div>
+    <div class="mock-body split">
+      <div style="display:grid;gap:12px">
+        <label class="field"><span>Tiêu đề</span><span class="input" style="color:var(--fg)">Đơn mới #{{order.code}} từ {{customerName}}</span></label>
+        <label class="field"><span>Nội dung</span><span class="input area" style="color:var(--fg)">Có đơn mới trị giá {{order.total}}.
+Khách: {{customerName}}
+Giao đến: {{order.address}}</span></label>
+        <div class="field"><span>Biến có thể chèn (từ dataSchema)</span><div><span class="chip var">{{order.code}}</span><span class="chip var">{{order.total}}</span><span class="chip var">{{customerName}}</span><span class="chip var">{{order.address}}</span></div></div>
+      </div>
+      <div style="display:grid;gap:8px;align-content:start">
+        <span class="small muted">Xem trước với dữ liệu mẫu</span>
+        <div class="mail"><b>Đơn mới #A123 từ An</b><span>Có đơn mới trị giá 500.000đ.<br>Khách: An<br>Giao đến: 12 Lê Lợi, Q1</span></div>
+        <span class="small muted">Gõ biến không có trong danh sách thì báo lỗi ngay, không lưu.</span>
+      </div>
+    </div>
+  </div>
+
+  <h3>9.3 Lịch sử gửi</h3>
+  <div class="mock" role="figure" aria-label="Mô phỏng màn Lịch sử gửi">
+    <div class="mock-bar"><div><b>Lịch sử gửi</b><small>Mọi lần gửi, kể cả thất bại.</small></div><div class="tabs"><span class="cur">Tất cả</span><span>Thất bại</span><span>Đang chờ</span></div></div>
+    <div class="mock-body"><div class="scroll">
+      <table>
+        <tr><th>Giờ</th><th>Sự kiện</th><th>Người nhận</th><th>Kênh</th><th>Trạng thái</th><th></th></tr>
+        <tr><td>10:42</td><td>order.created</td><td>o***@salanca.vn</td><td>Email</td><td><span class="tag ok">Đã gửi</span></td><td></td></tr>
+        <tr><td>10:42</td><td>order.created</td><td>Quản lý ca</td><td>Zalo</td><td><span class="tag ok">Đã gửi</span></td><td></td></tr>
+        <tr><td>10:31</td><td>order.status_changed</td><td>a***@gmail.com</td><td>Email</td><td><span class="tag warn">Thất bại · thử 3/5</span></td><td><span class="btn sec">Gửi lại</span></td></tr>
+        <tr><td>09:58</td><td>reservation.created</td><td>o***@salanca.vn</td><td>Email</td><td><span class="tag blue">Đang chờ</span></td><td></td></tr>
+      </table>
+    </div></div>
+  </div>
+  <p class="small muted">Địa chỉ nhận luôn che bớt, không ghi dữ liệu cá nhân vào log (đúng ràng buộc của <code>notification-email-settings.md</code>). Bấm một dòng để xem lỗi và số lần thử.</p>
+  <p class="small"><span class="tag warn">Khe hở</span> Màn này chưa có trong Admin (xem mục 0). Server đã ghi log sẵn nên chỉ cần thêm route đọc và trang hiển thị. Bảng chỉ lưu hash người nhận nên màn thực tế hiện <b>vai trò và kênh</b>, không hiện địa chỉ che bớt như mockup ở trên.</p>
+
+  <h3>9.4 Kênh</h3>
+  <div class="mock" role="figure" aria-label="Mô phỏng màn Kênh">
+    <div class="mock-bar"><div><b>Kênh gửi</b><small>Chỉ hiển thị trạng thái. Key và token nằm trong env của server.</small></div></div>
+    <div class="mock-body grid3">
+      <div class="card" style="display:grid;gap:6px"><b>Email</b><span class="tag ok">Đã cấu hình</span><span class="small muted">Gửi hôm nay: 42</span><span class="btn sec" style="justify-self:start">Gửi thử</span></div>
+      <div class="card" style="display:grid;gap:6px"><b>Zalo OA</b><span class="tag warn">Chưa kết nối</span><span class="small muted">Cần đăng ký OA và cấp quyền, token tự làm mới</span></div>
+      <div class="card" style="display:grid;gap:6px"><b>SMS (eSMS)</b><span class="tag acc">Tắt</span><span class="small muted">Giới hạn 2.000 tin/ngày khi bật</span></div>
+    </div>
+  </div>
+
+  <h3>9.5 Chuông thông báo cho owner và nhân viên (làm sau MVP)</h3>
+  <p class="small muted">Dành cho người đã đăng nhập Admin: khách ngoài làm gì trên app thì Admin của owner hiện ra việc đó.</p>
+  <p class="small"><span class="tag warn">Đối chiếu code</span> Đơn mới và đặt bàn đã có realtime trong Admin (<code>order-stream.ts</code>, hộp thư đặt bàn, SSE một instance). Phần chuông riêng ở đây chỉ còn đáng làm cho các loại thông báo khác (cảnh báo vận hành, lỗi gửi) và để có hộp thư xem lại. Không cần làm cho release Salanca.</p>
+
+  <div class="card" style="display:grid;gap:10px">
+    <b>Chuyện gì xảy ra khi khách đặt đơn</b>
+    <ol class="flow">
+      <li>Khách bấm đặt món trên web.</li>
+      <li>Core nhận event <code>order.created</code>, tra rule: owner nhận qua email, Zalo <b>và in-app</b>.</li>
+      <li>Adapter <code>inapp</code> ghi một dòng vào bảng <code>inbox</code>: ai nhận, tiêu đề, link tới đơn, chưa đọc.</li>
+      <li>Admin của owner hỏi server mỗi 30–60 giây "có bao nhiêu thông báo chưa đọc". Số ở menu tăng lên.</li>
+      <li>Owner bấm vào, thấy danh sách, bấm một dòng thì nhảy thẳng tới đơn đó và dòng chuyển sang đã đọc.</li>
+    </ol>
+  </div>
+
+  <div class="mock" role="figure" aria-label="Mô phỏng menu Admin có badge và danh sách thông báo">
+    <div class="shell">
+      <div class="side" aria-hidden="true">
+        <div>Content Manager</div>
+        <div>Đơn hàng</div>
+        <div class="cur"><span>Thông báo</span><span class="badge">3</span></div>
+        <div>Media Library</div>
+        <div>Settings</div>
+      </div>
+      <div>
+        <div class="mock-bar"><div><b>Thông báo</b><small>3 chưa đọc</small></div><span class="btn sec">Đánh dấu đã đọc tất cả</span></div>
+        <div class="mock-body">
+          <div class="nrow"><span><span class="dot"></span><b>Đơn mới #A123 từ An</b> · 500.000đ</span><span class="muted">2 phút trước</span></div>
+          <div class="nrow"><span><span class="dot"></span><b>Đặt bàn mới</b> · 4 người, 19:00 tối nay</span><span class="muted">18 phút trước</span></div>
+          <div class="nrow"><span><span class="dot"></span><b>Tin nhắn liên hệ</b> từ Bình</span><span class="muted">1 giờ trước</span></div>
+          <div class="nrow read"><span><span class="dot read"></span>Đơn #A120 đã giao</span><span>Hôm qua</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card" style="display:grid;gap:6px">
+      <b>Widget trên trang chủ Admin</b>
+      <p class="small muted">Owner vừa đăng nhập đã thấy:</p>
+      <div class="mail"><b>Việc mới (3)</b><span>Đơn mới #A123 · 2 phút trước<br>Đặt bàn mới · 18 phút trước<br>Tin nhắn liên hệ · 1 giờ trước</span></div>
+    </div>
+    <div class="card" style="display:grid;gap:6px">
+      <b>Vì sao không phải chuông ở thanh trên cùng</b>
+      <p class="small">Theo hiểu biết của mình, Strapi không có chỗ chính thức để gắn chuông vào thanh trên. Muốn có phải can thiệp DOM, dễ vỡ khi nâng cấp. Menu bên trái có badge là cách an toàn hơn.</p>
+    </div>
+  </div>
+
+  <div class="card" style="display:grid;gap:6px">
+    <span class="tag warn">Cần xác nhận trước khi làm</span>
+    <p class="small">Hai điểm này là hiểu biết của mình, <b>chưa kiểm tra tài liệu Strapi 5.51 trong phiên này</b>: menu link có hỗ trợ badge (<code>notificationsCount</code>), và trang chủ Admin có API đăng ký widget. Nếu một trong hai không đúng thì dùng trang "Thông báo" riêng, không badge.</p>
+    <p class="small"><b>Có đáng làm không:</b> owner dùng điện thoại thì Zalo (khi có) và email đã nhắc tức thì, chuông Admin ít thêm giá trị. Chuông đáng làm khi nhân viên ngồi mở Admin cả ngày (lễ tân, thu ngân), và để có hộp thư xem lại "đêm qua có gì".</p>
+  </div>
+
+  <div class="card" style="display:grid;gap:6px">
+    <span class="tag warn">Nguồn tham khảo</span>
+    <p class="small">Bố cục lấy ý từ các màn quen thuộc: cài đặt Emails của WooCommerce (bật/tắt, người nhận, tiêu đề, xem trước), mẫu thông báo của Shopify (biến chèn được, xem trước, gửi thử), log sự kiện/webhook của Saleor và Medusa. Đây là kiến thức chung, <b>chưa đối chiếu lại UI thật trong phiên này</b>. Trước khi giao cho AI khác code, cần đối chiếu từng màn theo quy tắc "UI học từ nguồn có sẵn".</p>
+  </div>
+</section>
+
+<section>
+  <h2>10. Quy tắc an toàn và vận hành (bổ sung)</h2>
+  <p class="lead">Những điều plan ban đầu chưa nói, nhưng thiếu thì dễ gặp sự cố khi chạy nhiều web.</p>
+
+  <div class="grid2">
+    <div class="card" style="display:grid;gap:8px">
+      <h3>10.1 Không gửi nhầm khách khi test</h3>
+      <p class="small">Staging hay dev mà gửi tin thật cho khách là lỗi phổ biến nhất. Email đã có guard ở tầng SMTP, nhưng Zalo và SMS chưa có gì. Thêm biến <code>ORDERING_NOTIFY_MODE</code>:</p>
+      <div class="scroll"><table>
+        <tr><th>Chế độ</th><th>Hành vi</th></tr>
+        <tr><td><code>live</code></td><td>Gửi thật. Mặc định, không đổi hành vi hiện có.</td></tr>
+        <tr><td><code>allowlist</code></td><td>Chỉ gửi tới người nhận trong <code>ORDERING_NOTIFY_ALLOWLIST</code> (email, <code>@miền</code>, số điện thoại), mọi kênh, mọi đường gửi. Người khác ghi <code>skipped</code> và không tốn hạn mức. Danh sách rỗng thì chặn hết.</td></tr>
+        
+      </table></div>
+      <p class="small muted">Khớp quyết định O13: provider tắt mặc định, bật thật sau UAT sandbox. Staging thường chạy <code>NODE_ENV=production</code> nên mặc định không dựa vào môi trường: staging tự đặt <code>allowlist</code> theo runbook, và Admin hiện banner khi đang ở chế độ này.</p>
+    </div>
+
+    <div class="card" style="display:grid;gap:8px">
+      <h3>10.2 Chống spam và kiểm soát chi phí</h3>
+      <ul class="small">
+        <li><b>Giới hạn ngày</b>: <code>notifications.dailyLimit</code> = 2.000 tin (đã chốt ở O13). Chạm ngưỡng thì dừng kênh tính phí và báo dev.</li>
+        <li><b>Chống trùng</b>: cùng event, cùng người nhận, cùng kênh trong một khoảng ngắn thì chỉ gửi một lần.</li>
+        <li><b>Giờ yên lặng</b>: tin không gấp cho khách (nhắc lịch, khảo sát) không gửi ban đêm. Đơn mới cho owner vẫn gửi.</li>
+        <li><b>Gộp tin</b> (digest): sau MVP, nếu owner phàn nàn nhận quá nhiều.</li>
+      </ul>
+    </div>
+
+    <div class="card" style="display:grid;gap:8px">
+      <h3>10.3 Kênh dự phòng</h3>
+      <p class="small">Rule cho phép xếp kênh theo thứ tự, kênh trước lỗi thì chuyển kênh sau.</p>
+<pre>order.status_changed → khách
+  1. Zalo ZNS
+  2. (lỗi sau 3 lần) email</pre>
+      <p class="small muted">Zalo hay lỗi vì mẫu chưa duyệt hoặc token hết hạn, nên có email phía sau để tin quan trọng không mất.</p>
+    </div>
+
+    <div class="card" style="display:grid;gap:8px">
+      <h3>10.4 Template an toàn</h3>
+      <ul class="small">
+        <li>Biến chèn vào email HTML luôn được escape. Tên khách có <code>&lt;script&gt;</code> không thể chạy.</li>
+        <li>Tiêu đề bị bỏ ký tự xuống dòng để chặn header injection.</li>
+        <li>Mỗi email có bản plain-text kèm theo.</li>
+        <li>Dùng biến không có trong <code>dataSchema</code> thì <b>báo lỗi lúc lưu</b>, không để trống âm thầm.</li>
+        <li>Thiếu bản dịch thì rơi về tiếng Việt.</li>
+        <li>ZNS: biến phải khớp mẫu đã duyệt, mẫu chưa duyệt thì kênh không bật (đúng O13).</li>
+      </ul>
+    </div>
+
+    <div class="card" style="display:grid;gap:8px">
+      <h3>10.5 Dữ liệu cá nhân</h3>
+      <ul class="small">
+        <li>Log che địa chỉ nhận (<code>a***@gmail.com</code>), không ghi nội dung tin vào log kỹ thuật.</li>
+        <li>Giữ chi tiết lỗi có thời hạn, đề xuất 90 ngày rồi xóa.</li>
+        <li>Core chỉ gửi tin <b>giao dịch</b> (đơn, lịch hẹn, lead). Tin quảng cáo cần khách đồng ý và có nút hủy đăng ký, <b>nằm ngoài phạm vi</b> core này.</li>
+      </ul>
+      <p class="small muted">Quy định pháp lý về dữ liệu cá nhân và tin nhắn quảng cáo ở Việt Nam mình <b>chưa kiểm tra</b> trong phiên này, cần xác nhận trước khi làm tin quảng cáo.</p>
+    </div>
+
+    <div class="card" style="display:grid;gap:8px">
+      <h3>10.6 Giữ nhiều web đồng bộ phiên bản</h3>
+      <ul class="small">
+        <li>Phong bì event có <code>v: 1</code>. Đổi kiểu phá vỡ thì ra event version mới, event cũ vẫn chạy.</li>
+        <li>Plugin theo semver. Mỗi web ghim một phiên bản.</li>
+        <li>Nâng cấp theo thứ tự: Salanca trước, chạy ổn rồi mới nâng BDS.</li>
+        <li>Một bộ test hợp đồng chung (event vào, log và tin ra) chạy ở cả hai web.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>10.7 Phân quyền (theo mẫu đã dùng ở <code>admin-roles.md</code>)</h3>
+  <div class="scroll"><table>
+    <tr><th>Action đề xuất</th><th>Cho phép làm gì</th><th>Gợi ý vai trò</th></tr>
+    <tr><td><code>notification.events.manage</code></td><td>Bật/tắt event, chọn kênh và người nhận</td><td>Owner, Quản lý</td></tr>
+    <tr><td><code>notification.templates.manage</code></td><td>Sửa và gửi thử mẫu nội dung</td><td>Owner, Quản lý</td></tr>
+    <tr><td><code>notification.log.read</code></td><td>Xem lịch sử gửi (đã che)</td><td>Quản lý</td></tr>
+    <tr><td><code>notification.log.details</code></td><td>Xem lỗi kỹ thuật, nội dung lỗi từ provider</td><td>Chỉ Super Admin (dev)</td></tr>
+    <tr><td><code>notification.log.resend</code></td><td>Bấm "Gửi lại"</td><td>Quản lý</td></tr>
+    <tr><td><code>notification.channels.read</code></td><td>Xem trạng thái kênh, kết nối Zalo</td><td>Owner, dev</td></tr>
+    <tr><td><code>notification.inbox.read</code></td><td>Thấy chuông và hộp thư trong Admin</td><td>Mọi nhân viên cần nhận thông báo</td></tr>
+  </table></div>
+  <p class="small muted">Tên action là đề xuất. Cách làm giống các plugin hiện có: bootstrap chỉ cấp cho Super Admin, plugin không tự tạo role, role <code>Quản lý</code> tạo tay một lần trong Settings → Roles, các role khác mặc định bị từ chối.</p>
+
+  <h3>10.8 Quan sát và cảnh báo</h3>
+  <ul class="small">
+    <li>Đếm theo ngày và theo kênh: gửi, lỗi, đang chờ. Hiện ở màn Kênh.</li>
+    <li>Cảnh báo cho dev khi tỉ lệ lỗi của một kênh vượt ngưỡng trong một giờ (ngưỡng đặt khi có số liệu thật).</li>
+    <li>Cảnh báo token Zalo sắp hết hạn hoặc làm mới thất bại, trước khi tin bắt đầu rớt.</li>
+    <li>Core phát <code>notification.delivery.failed</code> khi vượt số lần thử, đi qua chính hệ thống thông báo (use case E).</li>
+  </ul>
+</section>
+
+<section>
+  <h2>11. Làm gì trước, bỏ gì lại</h2>
+  <p class="small muted">Lưu ý: nhiều mục "MVP" dưới đây đã có sẵn trong ordering plugin (mục 0). Thứ tự làm thật nằm ở mục 12.</p>
+  <div class="grid2">
+    <div class="card" style="display:grid;gap:6px">
+      <span class="tag ok">MVP</span>
+      <ul class="small">
+        <li>Email (kênh duy nhất ở MVP, đủ cho Salanca vì khách không đăng nhập).</li>
+        <li>Rule và template sửa trong Admin.</li>
+        <li>Outbox, delivery log, retry.</li>
+        <li>Cắm vào Salanca: <code>order.created</code>, <code>order.status_changed</code>.</li>
+      </ul>
+    </div>
+    <div class="card" style="display:grid;gap:6px">
+      <span class="tag warn">Để sau</span>
+      <ul class="small">
+        <li>In-app cho owner/nhân viên (mục 9.5): thêm adapter <code>inapp</code>, 3 route admin, một menu link. Làm trước vì họ đã đăng nhập Admin.</li>
+        <li>In-app cho khách: chỉ làm ở <b>BDS</b> (khách có đăng nhập), cần frontend chuông riêng trong web BDS. Dùng chung bảng <code>inbox</code>. Salanca không làm vì khách không đăng nhập.</li>
+        <li><b>Zalo</b> (kênh ưu tiên kế tiếp cho người nhận). Cần đọc tài liệu Zalo trước, xem mục 15.</li>
+        <li>SMS (eSMS), Push, Telegram (tùy chọn).</li>
+        <li>Cắm BDS (chạy Strapi): cài cùng package, thêm event <code>lead.created</code>, <code>viewing.requested</code>, resolver "sale phụ trách" và template.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>12. Lộ trình release cho Salanca, adapter và các case</h2>
+
+  <h3>12.1 Lộ trình (release Salanca trước)</h3>
+  <p class="small">Đặc tả chi tiết cho AI thực hiện R0 đến R1e nằm ở <code>docs/plans/notification-release-r1.md</code> (bước 0 đến 6, có file, test và lệnh kiểm).</p>
+  <div class="scroll"><table>
+    <tr><th>Bước</th><th>Làm gì</th><th>Xong khi</th><th>Chặn release?</th></tr>
+    <tr><td><b>R0</b> Chốt phạm vi<br><span class="small muted">nhỏ</span></td><td>Chạy thử các luồng hiện có trên Admin thật, xác nhận các dòng "Chưa tìm thấy" ở mục 0, chốt các quyết định ở mục 15.</td><td>Danh sách khe hở được xác nhận bằng thao tác thật, không chỉ bằng tìm trong code.</td><td><span class="tag warn">Có</span></td></tr>
+    <tr><td><b>R1a</b> An toàn môi trường<br><span class="small muted">nhỏ</span></td><td>Thêm <code>ORDERING_NOTIFY_MODE</code> (<code>live</code> mặc định, <code>allowlist</code>) và danh sách cho phép. Chốt ở registry nên phủ cả 6 nơi gọi provider (OTP, nhắc giỏ, gửi thử...). Email đã có guard SMTP nên phần này nhỏ hơn dự kiến.</td><td>Ở <code>allowlist</code>, người ngoài danh sách không nhận gì trên mọi kênh, có dòng <code>skipped</code>, không tốn hạn mức. Có banner trong Admin. Mặc định không đổi hành vi.</td><td><span class="tag warn">Có</span></td></tr>
+    <tr><td><b>R1b</b> Lịch sử gửi<br><span class="small muted">vừa</span></td><td>Route đọc <code>notification-delivery</code> (chỉ đọc), trang Admin lọc theo trạng thái, kênh, mẫu, mã đơn. Hiện vai trò và kênh, không hiện địa chỉ. Quyền riêng cho chi tiết lỗi. Banner cảnh báo chi nhánh chưa có email. <b>Chưa có nút "Gửi lại"</b>.</td><td>Owner mở Admin thấy mail nào đã gửi, lỗi, bị bỏ qua và vì sao. Role không có quyền nhận 403. Chi nhánh thiếu email được nêu tên.</td><td><span class="tag warn">Có</span></td></tr>
+    <tr><td><b>R1c</b> UAT thông báo<br><span class="small muted">nhỏ</span></td><td>UAT tay phần thông báo của O13: mail đơn mới cho chi nhánh, biên nhận cho khách, đổi trạng thái, sửa template, chuỗi kênh dự phòng, alert hạn mức. Zalo và SMS giữ tắt.</td><td>Checklist UAT được tick. Chạy script <code>notifications</code> và <code>email-templates</code> trong <code>check:ordering</code>.</td><td><span class="tag warn">Có</span></td></tr>
+    <tr><td><b>R1d</b> Email vào được hộp thư<br><span class="small muted">nhỏ</span></td><td>SPF, DKIM, Reply-To theo <code>resend-email-operations.md</code>. Gửi thử vào Gmail và Outlook, kiểm tra thư rác.</td><td>Mail đơn mới tới hộp thư chính của owner ở cả hai dịch vụ.</td><td><span class="tag warn">Có</span></td></tr>
+    <tr><td><b>R1e</b> Hạn mức theo giờ Việt Nam<br><span class="small muted">nhỏ</span></td><td>Thêm <code>notifications.timezone</code> (IANA, mặc định <code>Asia/Ho_Chi_Minh</code>). <code>dailyLimit</code> và khóa cảnh báo tính theo ngày của múi giờ này thay vì UTC.</td><td>Bộ đếm reset lúc 00:00 giờ Việt Nam. Đổi múi giờ chỉ bằng cấu hình. Có test quanh 17:00 UTC và múi giờ có DST.</td><td><span class="tag warn">Có</span></td></tr>
+    <tr><td><b>R2</b> Mở adapter<br><span class="small muted">lớn</span></td><td>Mục 12.2: mô tả năng lực adapter, danh sách kênh động, cấu hình kênh trong Admin, thêm adapter webhook, Telegram, Messenger.</td><td>Thêm một kênh mới không sửa file nào trong core. Rule hiện kênh từ registry.</td><td><span class="tag ok">Không</span> làm ngay sau release</td></tr>
+    <tr><td><b>R3</b> Người nhận nhân viên đa kênh<br><span class="small muted">vừa</span></td><td>Thay <code>branch.email</code> đơn lẻ bằng người nhận theo (event, vai trò, chi nhánh), mỗi người có địa chỉ theo từng kênh. Tái dùng cơ chế "admin giữ action" của alert.</td><td>Đơn mới báo được cho nhiều người, nhiều kênh. Người nghỉ ca không còn nhận.</td><td><span class="tag ok">Không</span></td></tr>
+    <tr><td><b>R4</b> Bật Zalo ZNS thật<br><span class="small muted">phụ thuộc bên ngoài</span></td><td>Có Zalo OA, mẫu ZNS đã duyệt, tài khoản sandbox. UAT sandbox rồi mới bật.</td><td>Tin ZNS tới số thử. Token xoay vòng chạy được qua một lần hết hạn.</td><td><span class="tag ok">Không</span> chạy song song</td></tr>
+    <tr><td><b>R5</b> Hợp nhất và tách core<br><span class="small muted">lớn</span></td><td>Thông báo form liên hệ và đặt bàn dùng chung đường gửi. Tách thành <code>notification-core</code>, cắm BDS, in-app cho khách BDS.</td><td>Mục 14.5: chạy ở hai web thật và một app fixture, core không import code Salanca.</td><td><span class="tag ok">Không</span></td></tr>
+  </table></div>
+  <p class="small muted">Cỡ việc (nhỏ, vừa, lớn) là ước lượng tương đối, chưa quy ra ngày. Gate theo quy tắc repo: lint, typecheck, unit test và script riêng của bước, không chạy full suite. Commit chỉ khi bạn bảo.</p>
+
+  <div class="card" style="display:grid;gap:6px">
+    <span class="tag ok">Kết quả R0–R1e (2026-10-15)</span>
+    <p class="small">Đã làm bước 0–6 trên nhánh <code>feat/ordering-notify-release</code> (chưa commit). Ba điểm lệch so với bản kế hoạch ban đầu:</p>
+    <p class="small">1. <b>R1a nhỏ hơn dự kiến</b> — guard SMTP (<code>EMAIL_ALLOW_EXTERNAL_DELIVERY</code>) đã có sẵn; phần làm thật là <code>ORDERING_NOTIFY_MODE=live|allowlist</code> + danh sách cho phép, chốt ở registry nên phủ cả 6 đường gửi.</p>
+    <p class="small">2. <b>R1b chỉ đọc</b> — không có nút "Gửi lại" (quyết định D3) và <b>không</b> hiển thị địa chỉ người nhận che bớt như mockup mục 9.3: bảng chỉ lưu mã băm, nên màn hiện <b>vai trò + kênh</b>. Chi tiết lỗi kỹ thuật nằm sau quyền thứ hai <code>notification-log.details</code> (D4).</p>
+    <p class="small">3. <b>R1e</b> nằm trong phạm vi release: hạn mức ngày tính theo ngày dương lịch của <code>notifications.timezone</code> (mặc định <code>Asia/Ho_Chi_Minh</code>) thay vì UTC — <b>hành vi đổi có chủ ý</b>, bộ đếm nay reset 00:00 giờ Việt Nam.</p>
+    <p class="small">UAT tay: <code>docs/plans/notification-release-uat.md</code>. Checklist email vào hộp thư: <code>docs/resend-email-operations.md</code>. Chi tiết và bảng lệch đầy đủ: <code>docs/plans/notification-release-r1.md</code> §"Điều lệch kế hoạch" và §"Completion record".</p>
+  </div>
+
+  <div class="card" style="display:grid;gap:6px">
+    <span class="tag acc">Điều kiện release Salanca</span>
+    <p class="small">Xong R0 và R1a đến R1e. Kênh bật khi release: <b>email</b>. Zalo, SMS giữ <code>enabled = false</code> tới R4. Chuông Admin cho đơn đã có qua SSE sẵn, không cần làm thêm.</p>
+  </div>
+
+  <h3>12.2 Mọi kênh là adapter, cấu hình trong Admin</h3>
+  <p class="small">Yêu cầu: không dùng Zalo thì dùng Messenger, Telegram hay kênh khác, và người dùng tự chọn trong Admin. Hiện danh sách kênh là hằng số trong code, cần mở ra.</p>
+<pre>// Mở rộng contracts/notification.ts hiện có, không thay thế. Sketch, chưa phải API thật.
+interface NotificationAdapter {
+  code: string;                    // 'email' | 'zalo' | 'sms' | 'messenger' | 'telegram' | 'webhook'
+  label: string;
+  addressKind: 'email' | 'phone' | 'chat-id' | 'url';
+  optIn: 'none' | 'user-messages-first';
+  templateMode: 'free-text' | 'approved-template';
+  paid: boolean;                   // có tính vào dailyLimit không
+  configSchema: ConfigField[];     // sinh form Admin, field secret bị che
+  send(input): Promise&lt;SendResult&gt;;
+  healthCheck(): Promise&lt;Health&gt;;
+}</pre>
+  <ul>
+    <li><b>Rule lấy kênh từ registry.</b> Bỏ hằng số <code>NOTIFICATION_CHANNELS</code>. Màn Kênh thông báo liệt kê adapter đã bật, owner kéo thả thứ tự dự phòng cho từng template.</li>
+    <li><b>Form cấu hình sinh từ <code>configSchema</code>.</b> Secret lưu mã hóa, không bao giờ trả lại qua API, chỉ hiện "đã đặt". Có nút "Kiểm tra kết nối" gọi <code>healthCheck</code>.</li>
+    <li><b>Bật tắt kênh là cờ <code>enabled</code>, không cần deploy.</b> Tắt một kênh là cách rollback nhanh nhất.</li>
+    <li><b>Adapter khai báo năng lực</b> để UI và core biết cách xử lý: kênh nào cần địa chỉ gì, có phải gửi theo mẫu đã duyệt (ZNS), có tính phí.</li>
+    <li><b>Kênh chat cần liên kết người nhận.</b> Messenger, Telegram và Zalo OA chỉ gửi được cho người đã nhắn trước, và cần mã chat riêng chứ không phải email hay SĐT. Thêm bảng <code>channel-binding</code> (người nhận, kênh, mã chat, thời điểm đồng ý, lần nhắn gần nhất). Khách nhắn "bắt đầu" cho bot hoặc trang thì mới ghi nhận được.</li>
+    <li><b>Adapter webhook là lối nhanh.</b> Gửi JSON tới một URL (n8n, Slack, Zapier). Dùng khi cần Messenger hay Telegram mà chưa có adapter chính thức. Plugin đã có outbound webhook cho event, cần xem có tái dùng được không trước khi viết adapter mới.</li>
+    <li><b>Quyết định cần chốt:</b> khi cùng một khóa có ở env và ở Admin thì ai thắng. Đề xuất env thắng ở production để deploy không bị ghi đè âm thầm.</li>
+  </ul>
+  <p class="small muted">Quy tắc Messenger (cửa sổ thời gian sau tin nhắn cuối của khách, loại tin được phép ngoài cửa sổ) <b>chưa kiểm tra</b>, cần đọc tài liệu Meta trước khi làm adapter. Tương tự Telegram: bot chỉ nhắn được người đã bấm bắt đầu.</p>
+
+  <h3>12.3 Case bổ sung cần tính tới</h3>
+  <div class="scroll"><table>
+    <tr><th>Case</th><th>Vấn đề</th><th>Cách xử</th></tr>
+    <tr><td><b>Khách chỉ có SĐT, không email</b></td><td>Chuỗi mặc định chỉ có email thì không gửi được gì.</td><td>Khi khách không có email thì rơi sang kênh theo SĐT nếu bật. Nếu không còn kênh nào, ghi rõ "không thể thông báo" trong Lịch sử và chi tiết đơn. Cần kiểm tra hành vi hiện tại của <code>deliver</code>.</td></tr>
+    <tr><td><b>Sửa template trong Admin nhưng Zalo không đổi</b></td><td>ZNS gửi theo mẫu đã duyệt trên Zalo, hệ thống chỉ truyền tham số. Owner sửa chữ mà tin Zalo vẫn như cũ.</td><td>Màn template ghi rõ "mẫu Zalo sửa ở Zalo OA", và hiện bản xem trước theo từng kênh.</td></tr>
+    <tr><td><b>Hạn mức ngày tính theo UTC</b></td><td>Code dùng ngày UTC cho <code>dailyLimit</code> nên bộ đếm reset lúc 07:00 giờ Việt Nam.</td><td><b>Đã chốt:</b> mặc định giờ Việt Nam, đổi được sau. Thêm <code>notifications.timezone</code> (IANA, mặc định <code>Asia/Ho_Chi_Minh</code>) cạnh <code>dailyLimit</code> trong config plugin, tính đầu ngày bằng <code>Intl</code> theo múi giờ này. Hạn mức là toàn hệ thống nên dùng một múi giờ chung. Chi nhánh đã có trường <code>timezone</code>, dùng lại cho giờ yên lặng theo chi nhánh sau này.</td></tr>
+    <tr><td><b>Mọi provider cùng lỗi</b></td><td>Đơn vẫn phải tạo được dù thông báo hỏng.</td><td>Thông báo chạy sau commit qua outbox nên không chặn đặt món. Retry, rồi ghi <code>failed</code> và báo alert cho dev.</td></tr>
+    <tr><td><b>Event phát hai lần</b></td><td>Outbox giao ít nhất một lần nên có thể trùng.</td><td>Đã có khóa chống trùng. Thêm test: một event phát hai lần chỉ gửi một tin.</td></tr>
+    <tr><td><b>Nhiều chi nhánh</b></td><td>Người nhận, Zalo OA, giờ yên lặng khác nhau theo chi nhánh. Hiện chỉ có <code>branch.email</code>.</td><td>R3: người nhận theo (event, vai trò, chi nhánh).</td></tr>
+    <tr><td><b>Nhân viên nghỉ ca hoặc đổi người</b></td><td>Địa chỉ cố định sẽ gửi nhầm người.</td><td>Người nhận theo vai trò. Alert vận hành đã có cơ chế "admin giữ action", dùng lại cho đơn mới.</td></tr>
+    <tr><td><b>Email hoặc SĐT sai, mail bị trả về</b></td><td>Retry vô hạn tốn tiền và làm đầy log.</td><td>Phân biệt lỗi tạm thời và lỗi vĩnh viễn. Lỗi vĩnh viễn không retry, đánh dấu trong Lịch sử.</td></tr>
+    <tr><td><b>Tin không gấp lúc nửa đêm</b></td><td>Mời đánh giá, nhắc điểm hết hạn gửi ban đêm gây khó chịu.</td><td>Giờ yên lặng theo múi giờ Việt Nam cho tin không gấp. Tin đơn mới cho chi nhánh vẫn gửi.</td></tr>
+    <tr><td><b>Chạy nhiều instance</b></td><td>Chuông realtime dùng bộ phát trong tiến trình nên chỉ đúng với một instance (đã ghi trong contracts).</td><td>Giữ một instance ở release. Cần Redis pub/sub nếu scale. Token Zalo đã có khóa chéo tiến trình.</td></tr>
+    <tr><td><b>Lộ dữ liệu cá nhân</b></td><td>Tham số ZNS có thể chứa tên, SĐT khách.</td><td>Không ghi tham số vào log. Che người nhận trong Lịch sử.</td></tr>
+    <tr><td><b>Đổi nhà cung cấp email</b></td><td>Chuyển Resend sang SES không được làm vỡ thông báo.</td><td>Adapter email đi qua email plugin của Strapi nên đổi provider chỉ là đổi cấu hình.</td></tr>
+    <tr><td><b>Đơn tại quầy, đơn bàn không có liên hệ</b></td><td>Không có người nhận phía khách.</td><td>Chỉ báo nhân viên. Code đã giới hạn biên nhận cho đơn từ storefront, giữ nguyên.</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <h2>13. Rủi ro chính</h2>
+  <div class="scroll"><table>
+    <tr><th>Rủi ro</th><th>Hậu quả</th><th>Giảm thiểu</th></tr>
+    <tr><td>Zalo OA/ZNS duyệt mẫu chậm</td><td>N3 trễ</td><td>Làm N0 và N1 trước, không phụ thuộc Zalo. Đăng ký OA và nộp mẫu sớm, song song.</td></tr>
+    <tr><td>Token Zalo hết hạn không ai biết</td><td>Tin rớt âm thầm</td><td>Làm mới tự động, cảnh báo khi làm mới lỗi, email dự phòng (10.3, 10.8).</td></tr>
+    <tr><td>Email vào thư rác</td><td>Owner không thấy đơn mới</td><td>Cấu hình SPF/DKIM theo <code>resend-email-operations.md</code>, kênh thứ hai cho owner.</td></tr>
+    <tr><td>Hai web lệch phiên bản core</td><td>Web này chạy, web kia lỗi</td><td>Ghim phiên bản, test hợp đồng chung, nâng theo thứ tự (10.6).</td></tr>
+    <tr><td>Owner nhận quá nhiều tin</td><td>Tắt hết, bỏ lỡ tin quan trọng</td><td>Công tắc theo event, chống trùng, gộp tin về sau.</td></tr>
+    <tr><td>Lộ dữ liệu khách trong log</td><td>Sự cố dữ liệu cá nhân</td><td>Che địa chỉ, không ghi nội dung, giữ log có thời hạn (10.5).</td></tr>
+    <tr><td>Staging gửi mail thật</td><td>Khách nhận tin test</td><td><code>ORDERING_NOTIFY_MODE=allowlist</code> trên staging, có banner nhắc (10.1).</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <h2>14. Generic: chạy trên mọi web Strapi và mọi FE</h2>
+  <p class="lead">Mục tiêu: cài vào một Strapi bất kỳ và dùng với FE bất kỳ mà không phải sửa core. "Mọi web Strapi" ở đây nghĩa là <b>mọi Strapi v5</b>. Strapi v4 có API plugin khác nên không nằm trong phạm vi.</p>
+
+  <h3>14.1 Core chạm vào web chủ ở đâu, và giữ generic thế nào</h3>
+  <div class="scroll"><table>
+    <tr><th>Điểm tiếp xúc</th><th>Cách giữ generic</th></tr>
+    <tr><td><b>Phiên bản Strapi</b></td><td>Khai báo <code>peerDependency</code> <code>@strapi/strapi ^5</code>. Chỉ dùng API công khai (Document Service, vòng đời plugin). Không import code của web chủ. Salanca đang ở 5.51.1.</td></tr>
+    <tr><td><b>Database</b></td><td>Không viết SQL thô. Bảng của core là content type khai báo trong plugin. Test trên SQLite và PostgreSQL (Salanca dùng PostgreSQL).</td></tr>
+    <tr><td><b>Email</b></td><td>Adapter email gọi <b>email plugin của Strapi</b> trong web chủ, nên dùng được bất kỳ provider nào web đó đã cấu hình (SMTP, Resend, SES...). Web chưa cài email plugin thì kênh email báo "chưa cấu hình", không crash.</td></tr>
+    <tr><td><b>Người nhận</b></td><td>Tham chiếu mờ <code>{ type, id }</code>: <code>admin-user</code>, <code>users-permissions-user</code>, hoặc <code>external</code> (email/số điện thoại trực tiếp). Core không giả định bảng user của web chủ.</td></tr>
+    <tr><td><b>Tên gọi</b></td><td>Mọi thứ có namespace: <code>plugin::notification-core.*</code> cho content type, tiền tố bảng, route <code>/notification-core/*</code>, action phân quyền. Cài vào web đã có content type tên <code>notification</code> hay <code>order</code> vẫn không đụng nhau.</td></tr>
+    <tr><td><b>Cấu hình</b></td><td>Qua <code>config/plugins.ts</code> của web chủ: provider, <code>NOTIFY_MODE</code>, locale, <code>dailyLimit</code>, thời hạn giữ log. Mặc định an toàn: chưa cấu hình gì thì chạy <code>log-only</code>.</td></tr>
+    <tr><td><b>Ngôn ngữ</b></td><td>Locale cấu hình được. Core không hardcode tiếng Việt, đi kèm bản dịch vi và en cho màn Admin.</td></tr>
+    <tr><td><b>Admin UI</b></td><td>Chỉ dùng <code>@strapi/design-system</code> và <code>@strapi/icons</code> (màn Email thông báo hiện tại đã dùng) nên chạy trong mọi Strapi Admin, không CSS riêng.</td></tr>
+    <tr><td><b>Template</b></td><td>Engine không có logic (kiểu Mustache), có escape, không chạy code. Web chủ không thể vô tình thực thi code qua template.</td></tr>
+  </table></div>
+
+  <h3>14.2 Ba cách phát event, web chủ chọn cách hợp mình</h3>
+  <div class="scroll"><table>
+    <tr><th>Cách</th><th>Dùng khi</th><th>Ví dụ</th></tr>
+    <tr><td><b>A. Gọi bằng code trong Strapi</b></td><td>Web có logic riêng, cần linh hoạt nhất.</td><td><code>strapi.plugin('notification-core').service('emit')(...)</code></td></tr>
+    <tr><td><b>B. Binding khai báo, không code</b></td><td>Web chỉ có CMS và form đơn giản, không muốn viết code.</td><td>Trong config: "khi <code>api::contact-message.contact-message</code> được tạo thì phát <code>contact.created</code>, map <code>name</code>, <code>phone</code>". Chỉ map field đơn giản, không có logic.</td></tr>
+    <tr><td><b>C. Gọi từ ngoài qua HTTP</b></td><td>FE hoặc backend khác Strapi muốn phát event.</td><td><code>POST /api/notification-core/events</code> kèm API token. Dùng từ server (route handler Next.js, backend khác). <b>Không</b> nhúng token vào code chạy trên trình duyệt.</td></tr>
+  </table></div>
+
+  <h3>14.3 Generic với mọi FE: core chỉ có API, không có giao diện phía FE</h3>
+  <ul>
+    <li><b>API cho người dùng cuối</b> (chỉ web có khách đăng nhập, ví dụ BDS): <code>GET /api/notification-core/inbox</code>, <code>GET .../unread-count</code>, <code>PATCH .../inbox/:id/read</code>.</li>
+    <li><b>Xác thực dùng của web chủ</b> (JWT của users-permissions). Core chỉ cần biết "người dùng hiện tại là ai", không dựng hệ đăng nhập riêng.</li>
+    <li><b>OpenAPI kèm theo</b>: React, Vue, Next, Flutter đều tự sinh client được.</li>
+    <li><b>Gói client nhỏ tùy chọn</b>: chỉ dùng <code>fetch</code>, không phụ thuộc framework, kèm ví dụ React hook và web component cho chuông. FE nào muốn tự làm thì bỏ qua.</li>
+    <li><b>Realtime</b>: mặc định polling. SSE là endpoint tùy chọn thêm sau. Không bắt buộc WebSocket.</li>
+    <li><b>Dữ liệu tin</b> trả về dạng thuần (<code>kind</code>, <code>title</code>, <code>body</code>, <code>path</code> tương đối). FE tự quyết hiển thị và điều hướng. Link tuyệt đối dựng từ <code>baseUrl</code> cấu hình, không hardcode domain.</li>
+  </ul>
+
+  <h3>14.4 Cái không thể generic (nói thẳng)</h3>
+  <div class="grid2">
+    <div class="card" style="display:grid;gap:6px">
+      <span class="tag acc">Luôn riêng từng web</span>
+      <ul class="small">
+        <li>Event, <code>dataSchema</code>, template, resolver người nhận.</li>
+        <li>Zalo: mỗi khách hàng cần OA riêng và mẫu ZNS riêng được duyệt.</li>
+        <li>Giao diện chuông trên FE: có hook mẫu, giao diện thật FE tự làm.</li>
+      </ul>
+    </div>
+    <div class="card" style="display:grid;gap:6px">
+      <span class="tag warn">Ngoài phạm vi</span>
+      <ul class="small">
+        <li>Strapi v4.</li>
+        <li>Web không phải Strapi: không cắm trực tiếp. Nếu cần thì chạy một Strapi chứa core làm service và gọi bằng cách C (xem mục 7).</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>14.5 Làm sao biết nó thật sự generic</h3>
+  <ul>
+    <li><b>Quy tắc hai web:</b> chưa gọi là generic cho tới khi chạy ở ít nhất hai web thật (Salanca, BDS) <b>và</b> một app Strapi tối thiểu trống dùng làm fixture trong repo plugin.</li>
+    <li><b>Ma trận CI:</b> Strapi 5.51.1 và bản 5.x mới nhất, mỗi bản chạy trên SQLite và PostgreSQL.</li>
+    <li><b>Lint chặn phụ thuộc ngược:</b> code core cấm import từ <code>src/domain</code>, <code>src/api</code> của web chủ (<code>no-restricted-imports</code>).</li>
+    <li><b>Quét tên miền nghiệp vụ:</b> CI báo lỗi nếu code core chứa "salanca", "order", "lead" ngoài thư mục ví dụ và test.</li>
+    <li><b>Test va chạm tên:</b> cài vào fixture đã có content type <code>notification</code> và <code>order</code>, không xung đột.</li>
+    <li><b>Test hợp đồng chung</b> (mục 10.6) chạy ở mọi web.</li>
+  </ul>
+
+  <h3>14.6 Cấu trúc code để sau này tách package không phải viết lại</h3>
+  <ul>
+    <li>Repo Salanca đã có plugin local <code>src/plugins/ordering</code>. Làm <code>src/plugins/notification-core</code> cùng dạng.</li>
+    <li>Core <b>không import gì từ code của Salanca</b> (<code>src/domain</code>, <code>src/api</code>). Điều này là điều kiện để mang nguyên thư mục sang package và BDS.</li>
+    <li>Code hiện có <code>src/domain/notification-settings</code> thuộc phía Salanca. Khi làm N0 phần này trở thành lớp mỏng: khai báo kind <code>contact-message</code>, <code>reservation-request</code> rồi gọi core. Hành vi màn "Email thông báo" và fallback <code>FORM_NOTIFY_TO</code> phải giữ nguyên.</li>
+    <li>Khi tách package, dùng công cụ plugin chính thức của Strapi 5. Mình nghĩ đó là <code>@strapi/sdk-plugin</code> nhưng <b>chưa kiểm tra</b>, cần xác nhận trước khi chọn.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>15. Câu hỏi còn mở</h2>
+  <ul>
+    <li>Đã trả lời: người nhận đơn mới <b>cấu hình được ngay ở release</b> qua ô email trong từng chi nhánh (Admin → Chi nhánh). Muốn nhiều người nhận thì dùng một địa chỉ nhóm (group mail). Nhiều người, nhiều kênh riêng từng người là R3.</li>
+    <li>Đã chốt: hạn mức ngày tính theo <b>giờ Việt Nam</b> trước, cấu hình đổi được sau. Thêm <code>notifications.timezone</code> (tên IANA, mặc định <code>Asia/Ho_Chi_Minh</code>), xem mục 12.3.</li>
+    <li>Đã chốt: Messenger và Telegram <b>để sau</b> (R2), không nằm trong release Salanca.</li>
+    <li>Cần chốt: khóa của kênh nằm ở env hay Admin, và ai thắng khi có cả hai (đề xuất env thắng ở production).</li>
+    <li>Đã chốt: BDS chạy Strapi, nên dùng cách package (mục 7). Không cần service riêng.</li>
+    <li>Đã chốt: khách BDS có đăng nhập, khách Salanca không. In-app cho khách chỉ làm ở BDS. Khách Salanca nhận qua email (và SMS sau, nếu đơn giao tận nơi).</li>
+    <li>Đã chốt: người nhận (owner, nhân viên) muốn Zalo nhiều hơn về sau. Telegram không phải kênh chính, chỉ giữ làm tùy chọn.</li>
+    <li>Đã có quyết định từ O13 (2026-10-13): dùng <b>Zalo ZNS qua Zalo OA</b>, mẫu chưa duyệt thì kênh không bật.</li>
+    <li>Cần từ owner: Zalo OA, mẫu ZNS đã duyệt, tài khoản sandbox. Chặn bật kênh thật, không chặn viết code. Chưa rõ Salanca và BDS đã có OA chưa hay phải đăng ký mới.</li>
+    <li>Cần xác nhận: người nhận trong Admin (owner, sale) có Zalo gắn với OA của mình không. ZNS gửi theo số điện thoại nên cần số của họ lưu ở đâu và ai được sửa.</li>
+  </ul>
+  <div class="card" style="display:grid;gap:6px">
+    <span class="tag warn">Zalo là kênh khó nhất, cần tìm hiểu trước khi hứa</span>
+    <p class="small">Theo hiểu biết của mình (<b>chưa kiểm tra tài liệu Zalo trong phiên này</b>): API Zalo cần đăng ký OA, xác thực OAuth và token hết hạn phải tự làm mới; tin gửi cho người dùng bị giới hạn theo loại tin và thời điểm họ tương tác với OA; ZNS cần mẫu tin được duyệt. Vì vậy adapter Zalo cần lưu token, làm mới token và có cảnh báo khi token chết. Quy tắc cụ thể cần đọc tài liệu chính thức rồi mới thiết kế.</p>
+    <p class="small">Core không bị ảnh hưởng: Zalo vẫn chỉ là một adapter cùng hình dạng <code>send(...)</code>. Phần khó nằm trong adapter, không nằm ở core.</p>
+  </div>
+</section>
+
+</main>
+</body>
+</html>

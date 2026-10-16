@@ -1,5 +1,11 @@
 /** O13 providers: carrier "Gọi xe" panel on the delivery leg. Each value is [vi, en]. */
 export const o13Messages: Record<string, [string, string]> = {
+  // R1a: test-mode (allowlist) banner on Kênh thông báo and Nhà cung cấp.
+  'notify.mode.title': ['Môi trường thử', 'Test environment'],
+  'notify.mode.banner': [
+    'Chỉ gửi tới {count} người nhận trong danh sách cho phép.',
+    'Sending only to {count} allowlisted recipients.',
+  ],
   'error.CARRIER_NOT_CONFIGURED': [
     'Chi nhánh chưa bật đối tác giao xe',
     'No carrier is enabled for this branch',

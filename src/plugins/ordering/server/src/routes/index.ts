@@ -483,6 +483,19 @@ export default {
         'notification-channels.test',
         'settings.manage',
       ),
+      // R1b "Lịch sử gửi" (read-only): every delivery attempt with its outcome and a VI/EN reason
+      // label. `/summary` precedes `/:id`; `/technical` is its own route gated by both
+      // `notification-log.read` and `notification-log.details` (same shape as audit-log/export).
+      adminRoute('GET', '/notification-log', 'notification-log.list', 'notification-log.read'),
+      adminRoute('GET', '/notification-log/summary', 'notification-log.summary', 'notification-log.read'),
+      adminRoute('GET', '/notification-log/:id', 'notification-log.detail', 'notification-log.read'),
+      adminRoute(
+        'GET',
+        '/notification-log/:id/technical',
+        'notification-log.technical',
+        'notification-log.read',
+        'notification-log.details',
+      ),
     ],
   },
 };

@@ -133,6 +133,13 @@ outbox**; sửa nguyên nhân (SMTP, consumer) rồi bấm **Thử lại**.
 **Chạy ngay** để hút hàng tồn — đây cũng là cách đẩy nhanh email đang kẹt khi cron đang
 tắt.
 
+**Mail khách/nhân viên không tới**: mở **Bán hàng → Cấu hình → Lịch sử gửi** (quyền
+`notification-log.read`) — dòng `Bỏ qua` nói lý do (email chưa bật, chế độ thử, hết hạn
+mức), dòng `Lỗi` cho biết đã thử và chưa đi được; nút **Xem chi tiết kỹ thuật** (quyền
+`notification-log.details`) mở lỗi thô của nhà cung cấp. Không có dòng nào cho người nhận
+nghĩa là kênh không có địa chỉ (ví dụ chi nhánh chưa nhập email) — `deliver()` bỏ qua kênh
+trước khi ghi dòng; banner cảnh báo ở màn đó liệt kê chi nhánh thiếu email.
+
 **Database**: backup chuẩn `pg_dump`/`pg_restore`. Hai điểm cần nhớ:
 
 - `plugins_ordering_migrations` ghi các migration đã áp — restore xong đừng xóa bảng này;
@@ -183,8 +190,11 @@ Checklist — mỗi mục tick xong mới bật bán:
 - [ ] **Backup DB trước go-live** (`pg_dump` đầy đủ, lưu nơi mã hóa theo mục Xuất dữ liệu).
 - [ ] **Env đầy đủ**: `ORDERING_ENABLED=true`, `ORDERING_ENCRYPTION_KEY`,
   `SEPAY_WEBHOOK_SECRET` + `SEPAY_API_TOKEN` + `SEPAY_ACCOUNTS` (nếu bán chuyển khoản),
-  captcha (`TURNSTILE_SECRET_KEY` hoặc provider tương đương), SMTP (`EMAIL_SMTP_*`),
-  `TRUST_PROXY=true` khi đứng sau proxy, `API_REST_PREFIX` nếu khác `/api/v1`.
+  captcha (`TURNSTILE_SECRET_KEY` hoặc provider tương ứng), SMTP (`EMAIL_SMTP_*`),
+  `TRUST_PROXY=true` khi đứng sau proxy, `API_REST_PREFIX` nếu khác `/api/v1`,
+  `ORDERING_ORDER_LINK_TEMPLATE` trỏ trang đơn của web thật, và nhóm thông báo:
+  `ORDERING_NOTIFY_TIMEZONE` (để trống = `Asia/Ho_Chi_Minh`), `ORDERING_NOTIFY_MODE=live`
+  ở production (xem mục "Môi trường thử" — `allowlist` **chỉ** dùng cho staging/UAT).
 - [ ] **`plugin::ordering.consent.policyVersion`**: đặt đúng phiên bản chính sách dữ liệu
   cá nhân đã duyệt (21.4). Hiện chỉ chỉnh được qua config/env — **chưa có màn Admin**.
 - [ ] **Smoke sau khi bật**: `GET /_health` → 204; Admin hiện menu **Bán hàng**; gửi một
@@ -206,6 +216,36 @@ Các provider O13 **mặc định tắt**. Chỉ bật khi đã UAT sandbox và 
    đúng domain public, rồi đăng URL đó trong portal đối tác.
 5. Sau bật: theo dõi thẻ webhook trên **Tình trạng vận hành** (tỉ lệ lỗi 24h, alert
    `webhook-failing:<code>`) và job `wallet-status-check` trước khi nhận traffic thật.
+
+## Môi trường thử (staging/UAT)
+
+Chế độ `allowlist` (R1a) chặn mọi thông báo tới người nhận ngoài danh sách, trên **mọi kênh** và
+**mọi đường gửi** (đơn hàng, OTP, nhắc giỏ, nhắc điểm hết hạn, gửi thử kênh/mẫu). Mặc định là `live`.
+
+Checklist trước khi cho người thật thử:
+
+- [ ] `ORDERING_NOTIFY_MODE=allowlist` (mặc định `live`). Lưu ý `NODE_ENV=production` **không** tự bật
+  chế độ này — staging phải đặt tay.
+- [ ] `ORDERING_NOTIFY_ALLOWLIST` có tối thiểu email của người thử: danh sách ngăn bằng dấu phẩy, mỗi
+  mục là một email đầy đủ, một `@domain.tld`, hoặc một SĐT Việt Nam. Mục sai định dạng làm app
+  **dừng khởi động** (báo tên biến và vị trí, không in giá trị).
+- [ ] Danh sách rỗng nghĩa là **chặn tất cả** (fail closed); app ghi cảnh báo lúc khởi động.
+- [ ] Khởi động ghi một dòng `notification mode: live|allowlist (N entries)`; nội dung mục không vào log.
+- [ ] Kiểm **banner vàng "Môi trường thử"** hiển thị ở **Kênh thông báo** và **Nhà cung cấp** (cảnh
+  báo chỉ gửi tới N người) trước khi cho người thật thử.
+- [ ] Tắt nhanh chế độ thử: đặt `ORDERING_NOTIFY_MODE=live` và khởi động lại.
+
+`notifications.timezone` (R1e, mặc định `Asia/Ho_Chi_Minh`) quyết định ngày dương lịch của hạn mức
+kênh tính phí (`dailyLimit`) và khóa cảnh báo hạn mức. Đổi bằng `ORDERING_NOTIFY_TIMEZONE` (tên IANA);
+giá trị sai làm app dừng khởi động.
+
+**Phạm vi:** chế độ `allowlist` **không** áp cho thông báo form liên hệ / đặt bàn
+(`src/domain/form-intake`). Các luồng đó vẫn do `EMAIL_ALLOW_EXTERNAL_DELIVERY` và danh sách người
+nhận riêng (`FORM_NOTIFY_TO` / Admin → Email thông báo) bảo vệ.
+
+Khi mở rộng danh sách sau này: một thông báo đã bị bỏ qua ở trạng thái `skipped` là trạng thái cuối
+(nhắc giỏ đã dập `reminderSentAt`; nhắc điểm hết hạn không gửi lại) — thêm người vào danh sách **không**
+tự gửi lại các tin đã bỏ qua.
 
 ## Một instance (§21.9)
 

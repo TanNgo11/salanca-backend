@@ -12,6 +12,7 @@ import {
   sampleDataFor,
 } from '../domain/notifications/template-vars';
 import { OrderingError } from '../domain/errors';
+import { notificationDay, notificationDayStart } from '../domain/notifications/budget-day';
 import { normalizeVietnamesePhone } from '../../../shared/contact/phone';
 import { normalizeEmailTarget } from '../domain/customers/otp';
 import type changeLogFactory from './change-log';
@@ -116,10 +117,9 @@ const notificationChannel = ({ strapi }: { strapi: Core.Strapi }) => {
     }
   };
 
-  /** Paid channels share the `notifications.dailyLimit` bucket (UTC day, sent rows only). */
-  const paidSentToday = async (): Promise<number> => {
-    const dayStart = new Date();
-    dayStart.setUTCHours(0, 0, 0, 0);
+  /** Paid channels share the `notifications.dailyLimit` bucket (notification-timezone day). */
+  const paidSentToday = async (now: Date = new Date()): Promise<number> => {
+    const dayStart = notificationDayStart(now, config().notifications.timezone);
     return deliveries().count({
       where: { channel: { $in: ['zalo', 'sms'] }, status: 'sent', sentAt: { $gt: dayStart } },
     }) as Promise<number>;
@@ -127,20 +127,21 @@ const notificationChannel = ({ strapi }: { strapi: Core.Strapi }) => {
 
   const service = {
     /**
-     * Takes one slot of today's paid-message budget (`notifications.dailyLimit`, UTC day) or
-     * answers false when it is spent. Atomic across processes: a per-day counter in the plugin
-     * store, updated under an advisory lock (seeded from today's sent rows). Every paid send —
-     * notifications, OTP, the staff test — calls this right before the provider call; a slot
-     * taken by a send that then fails is not given back (the cap errs on the low side).
+     * Takes one slot of today's paid-message budget (`notifications.dailyLimit`, notification-
+     * timezone day) or answers false when it is spent. Atomic across processes: a per-day counter
+     * in the plugin store, updated under an advisory lock (seeded from today's sent rows). Every
+     * paid send — notifications, OTP, the staff test — calls this right before the provider call;
+     * a slot taken by a send that then fails is not given back (the cap errs on the low side).
      */
-    async reservePaidSend(): Promise<boolean> {
+    async reservePaidSend(now: Date = new Date()): Promise<boolean> {
       const limit = config().notifications.dailyLimit;
-      const day = new Date().toISOString().slice(0, 10);
+      const day = notificationDay(now, config().notifications.timezone);
       return (await strapi.db.transaction(async ({ trx }) => {
         await trx.raw('SELECT pg_advisory_xact_lock(hashtext(?))', ['ordering-paid-daily']);
         const store = strapi.store({ type: 'plugin', name: 'ordering', key: 'paid-daily-usage' });
         const saved = (await store.get({})) as { day?: string; used?: number } | null;
-        const used = saved?.day === day && typeof saved.used === 'number' ? saved.used : await paidSentToday();
+        const used =
+          saved?.day === day && typeof saved.used === 'number' ? saved.used : await paidSentToday(now);
         if (used >= limit) {
           if (saved?.day !== day) await store.set({ value: { day, used } });
           return false;
@@ -190,6 +191,9 @@ const notificationChannel = ({ strapi }: { strapi: Core.Strapi }) => {
         providers,
         dailyLimit: notifications.dailyLimit,
         costEstimates: notifications.costEstimates,
+        timezone: notifications.timezone,
+        mode: notifications.mode,
+        allowlistCount: notifications.allowlist.length,
         sentToday: await paidSentToday(),
         rules: templates_,
       };
@@ -286,6 +290,10 @@ const notificationChannel = ({ strapi }: { strapi: Core.Strapi }) => {
         'vi',
         data as Parameters<ReturnType<typeof templates>['renderFor']>[2],
       );
+      // R1a: the test recipient must be allowlisted, and no paid slot is spent when it is not.
+      if (!registry().isNotificationAllowed(channel, String(recipient.email ?? recipient.phone))) {
+        return validation('the test recipient is not on the notification allowlist', { channel });
+      }
       if (channel !== 'email' && !(await service.reservePaidSend())) {
         return validation('the daily paid-message limit is reached', { channel });
       }

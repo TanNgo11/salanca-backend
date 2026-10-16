@@ -13,6 +13,7 @@ import {
 } from '../domain/customers/otp';
 import { OrderingError } from '../domain/errors';
 import { sha256Hex } from '../domain/hashing';
+import { SKIP_REASON } from '../domain/notifications/skip-reasons';
 import { decryptSecret, encryptSecret, parseEncryptionKey } from '../domain/token-cipher';
 import { normalizeVietnamesePhone } from '../../../shared/contact/phone';
 import type notificationChannelFactory from './notification-channel';
@@ -165,6 +166,12 @@ const customerAuth = ({ strapi }: { strapi: Core.Strapi }) => {
     const rule = input.channel === 'zalo' ? await channelRules().ruleFor('customer.otp') : null;
     if (unavailable || (input.channel === 'zalo' && !rule?.zns?.templateId)) {
       await mark('skipped', { lastError: unavailable ? 'provider-not-configured' : 'zns-template-missing' });
+      return;
+    }
+    // R1a: an allowlist block is recorded and skipped; the response never reveals the target's
+    // allowlisted state (requestOtp still answers `{challengeId}`).
+    if (!registry().isNotificationAllowed(input.channel, input.target)) {
+      await mark('skipped', { lastError: SKIP_REASON.notAllowlisted });
       return;
     }
     // OTP over SMS/Zalo spends the same paid-message budget as notifications.

@@ -389,6 +389,7 @@ export const ORDERING_ACTIONS = [
   'gift-card.manage', 'gift-card.adjust',
   'loyalty.manage', 'loyalty.adjust',
   'kitchen.read', 'table.manage',
+  'notification-log.read', 'notification-log.details',
 ];
 
 /**

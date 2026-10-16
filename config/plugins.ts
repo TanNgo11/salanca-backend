@@ -4,6 +4,7 @@ import path from 'node:path';
 import type { Core } from '@strapi/strapi';
 
 import { SEPAY_TEST_SETTINGS } from '../src/plugins/ordering/server/src/providers/sepay/testing';
+import { parseAllowlist } from '../src/plugins/ordering/server/src/domain/notifications/notify-guard';
 
 import { resolveRestApiPrefix } from './api-prefix.helper';
 import {
@@ -89,6 +90,16 @@ export const resolveAuthCookieConfig = (env: Core.Config.Shared.ConfigParams['en
     secure,
     domain: env('AUTH_COOKIE_DOMAIN'),
   };
+};
+
+/** True when `value` is a timezone `Intl` accepts — the same check the runtime would make later. */
+const isValidTimezone = (value: string): boolean => {
+  try {
+    new Intl.DateTimeFormat('en-CA', { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 /** Local generic ordering plugin (docs/plans/ordering-roadmap.md). Off unless ORDERING_ENABLED=true. */
@@ -243,6 +254,13 @@ export const resolveOrderingPluginConfig = (
       : {}),
   };
   const dailyLimit = env('ORDERING_NOTIFY_DAILY_LIMIT', '');
+  // R1e: the daily paid-message budget follows this timezone's calendar day (default Vietnam).
+  const notifyTimezone = env('ORDERING_NOTIFY_TIMEZONE', 'Asia/Ho_Chi_Minh');
+  if (!isValidTimezone(notifyTimezone)) {
+    throw new Error(
+      'ORDERING_NOTIFY_TIMEZONE must be a valid IANA timezone name (for example Asia/Ho_Chi_Minh)',
+    );
+  }
   const costEstimatesRaw = env('ORDERING_NOTIFY_COST_ESTIMATES', '');
   let costEstimates: unknown = null;
   if (costEstimatesRaw) {
@@ -251,6 +269,24 @@ export const resolveOrderingPluginConfig = (
     } catch {
       throw new Error('ORDERING_NOTIFY_COST_ESTIMATES must be a JSON object keyed by channel');
     }
+  }
+  // R1a: `allowlist` mode only reaches the configured recipients (fail closed when the list is
+  // empty). Entries are validated here so a typo fails startup instead of at send time.
+  const notifyMode = env('ORDERING_NOTIFY_MODE', 'live');
+  if (notifyMode !== 'live' && notifyMode !== 'allowlist') {
+    throw new Error('ORDERING_NOTIFY_MODE must be "live" or "allowlist"');
+  }
+  const notifyAllowlist = env('ORDERING_NOTIFY_ALLOWLIST', '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry !== '');
+  const parsedAllowlist = parseAllowlist(notifyAllowlist);
+  if (!parsedAllowlist.ok) {
+    throw new Error(
+      `ORDERING_NOTIFY_ALLOWLIST has an invalid entry at position(s) ${parsedAllowlist.invalid
+        .map((index) => index + 1)
+        .join(', ')} (use an email address, @domain or Vietnamese phone number)`,
+    );
   }
   // O13: OTP channels beyond email are opt-in (`email,sms,zalo`); sms/zalo also need the
   // matching provider config or sends are skipped at delivery time.
@@ -293,6 +329,9 @@ export const resolveOrderingPluginConfig = (
             }),
         ...(dailyLimit ? { dailyLimit: Number(dailyLimit) } : {}),
         ...(costEstimates ? { costEstimates } : {}),
+        timezone: notifyTimezone,
+        mode: notifyMode,
+        allowlist: notifyAllowlist,
       },
       // O12: the table QR lands on the storefront's at-table menu route.
       tables: builtins

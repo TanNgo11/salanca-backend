@@ -8,6 +8,7 @@ import { hashingForConfig } from '../domain/customers/identity';
 import { generateBearerToken } from '../domain/customers/otp';
 import { OrderingError } from '../domain/errors';
 import { sha256Hex } from '../domain/hashing';
+import { SKIP_REASON } from '../domain/notifications/skip-reasons';
 import type { SelectedOptionSnapshot } from '../domain/storefront/serialize';
 import { normalizeVietnamesePhone } from '../../../shared/contact/phone';
 import type { TransactionClient } from '../migrations/runner';
@@ -941,12 +942,17 @@ const cart = ({ strapi }: { strapi: Core.Strapi }) => {
       const attempt = delivery.attempts + 1;
       const mark = (status: string, extra: Record<string, unknown> = {}) =>
         deliveries().update({ where: { id: rowId }, data: { status, attempts: attempt, ...extra } });
-      const finish = async (status: 'sent' | 'skipped') => {
-        await mark(status, status === 'sent' ? { sentAt: now } : {});
+      const finish = async (status: 'sent' | 'skipped', reason?: string) => {
+        await mark(status, status === 'sent' ? { sentAt: now } : reason ? { lastError: reason } : {});
         await carts().update({ where: { id: row.id }, data: { reminderSentAt: now } });
         return status;
       };
       if (!config().notifications.email.enabled) return finish('skipped');
+      // R1a: a non-allowlisted customer is skipped; `finish` still stamps reminderSentAt, so the
+      // reminder is not retried (accepted for test environments).
+      if (!registry().isNotificationAllowed('email', email)) {
+        return finish('skipped', SKIP_REASON.notAllowlisted);
+      }
       const locale = row.locale === 'en' ? 'en' : 'vi';
       const branch = await branches().findByCode(row.locationRef ?? '');
       const name = (branch?.name ?? {}) as Record<string, string>;

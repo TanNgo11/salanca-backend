@@ -862,6 +862,25 @@ export const OPERATIONS: Operation[] = [
   adm('get', '/audit-log/export', 'Audit', 'CSV export', ['audit.read', 'export']),
   adm('get', '/audit-log/:id', 'Audit', 'Entry detail', ['audit.read'], { parameters: [pathParam('id')] }),
 
+  // ── Admin: notification delivery log (R1b) ──────────────────────────────────
+  adm('get', '/notification-log', 'Notification log', 'Delivery attempts with outcome and reason', [
+    'notification-log.read',
+  ]),
+  adm('get', '/notification-log/summary', 'Notification log', '24h counters, budget and branches without email', [
+    'notification-log.read',
+  ]),
+  adm('get', '/notification-log/:id', 'Notification log', 'One delivery row', ['notification-log.read'], {
+    parameters: [pathParam('id')],
+  }),
+  adm(
+    'get',
+    '/notification-log/:id/technical',
+    'Notification log',
+    'Technical failure tail (error, provider id, cost)',
+    ['notification-log.read', 'notification-log.details'],
+    { parameters: [pathParam('id')] },
+  ),
+
   // ── Admin: outbound webhooks (O10 X1) ───────────────────────────────────────
   adm('get', '/webhooks', 'Webhooks', 'Endpoints + 24h delivery stats', ['webhook.manage'], {
     response: obj({

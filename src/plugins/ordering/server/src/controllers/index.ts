@@ -15,6 +15,7 @@ import customer from './customer';
 import kitchen from './kitchen';
 import cart from './cart';
 import notificationChannels from './notification-channels';
+import notificationLog from './notification-log';
 import notificationTemplates from './notification-templates';
 import openapi from './openapi';
 import ops from './ops';
@@ -62,6 +63,7 @@ export default {
   loyalty,
   'audit-log': auditLog,
   'notification-channels': notificationChannels,
+  'notification-log': notificationLog,
   'notification-templates': notificationTemplates,
   providers,
   'customer-auth': customerAuth,

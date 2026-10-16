@@ -51,6 +51,40 @@ proxy trong `registry.ts` mà R1a chưa commit, nên đi cùng commit R1a.
   console; "giao-q1 mở Bàn & QR trắng" chưa tái hiện được bằng code (cần console + tab Network của user);
   **Nhóm B (Task 9, UX)** chưa làm; chưa push; BUG-03/04 chờ commit R1a.
 
+2026-10-15: **Thông báo cho release Salanca (R0–R1e) — implemented + automated verification passed, ready for manual UAT** trên
+nhánh `feat/ordering-notify-release` (worktree `D:\outsource\salanca\salanca-notify`, tách từ `feat/ordering` tại `de77da5`),
+theo [`plans/notification-release-r1.md`](plans/notification-release-r1.md) (bước 0–6, Completion record có bảng gate và chỗ lệch
+kế hoạch). Kênh bật khi release: **email**; Zalo ZNS và SMS giữ `enabled = false` (R4).
+
+- **Hạn mức ngày theo múi giờ (R1e)**: `notifications.timezone` (IANA, mặc định `Asia/Ho_Chi_Minh`, env
+  `ORDERING_NOTIFY_TIMEZONE`); `dailyLimit` và khóa cảnh báo hạn mức tính theo ngày dương lịch của múi giờ này thay vì UTC.
+  **Hành vi đổi có chủ ý** (đã chốt): trước đây bộ đếm reset lúc 07:00 giờ Việt Nam, nay reset lúc 00:00 giờ Việt Nam.
+- **Chế độ thử (R1a)**: `ORDERING_NOTIFY_MODE` (`live` mặc định | `allowlist`) + `ORDERING_NOTIFY_ALLOWLIST`
+  (email đầy đủ, `@domain.tld`, hoặc SĐT Việt Nam; mục sai làm app dừng khởi động, không in giá trị; danh sách rỗng chặn tất cả).
+  Chốt ở registry bằng `Proxy` nên phủ cả 6 nơi gọi provider (đơn hàng, OTP, nhắc giỏ, nhắc điểm hết hạn, gửi thử kênh/mẫu);
+  người ngoài danh sách ghi `skipped` lý do `not-allowlisted` và **không** tốn suất hạn mức tính phí. Banner "Môi trường thử"
+  ở Kênh thông báo, Nhà cung cấp và Lịch sử gửi. Mặc định `live` **không** đổi hành vi.
+- **Màn "Lịch sử gửi" (R1b, chỉ đọc)**: bốn route `GET /ordering/notification-log`, `/summary`, `/:id`, `/:id/technical` với hai
+  quyền mới `notification-log.read` và `notification-log.details` (Super Admin mặc định; `Quản lý` chỉ có `read` — **đề xuất D4, chờ chủ dự án xác nhận**).
+  Bộ lọc ngày/trạng thái/kênh/mẫu/vai trò/mã đơn, tối đa 92 ngày, phân trang 50, phạm vi chi nhánh như O15, dòng không có đơn chỉ
+  `allLocations` thấy; banner cảnh báo chi nhánh thiếu email nhận đơn. Màn hiện **vai trò + kênh**, không hiện địa chỉ (bảng chỉ
+  lưu hash); **không** có nút "Gửi lại" (đề xuất D3, chờ chủ dự án xác nhận — gửi lỗi đã được outbox thử lại). Id không phải số nguyên hợp lệ hoặc vượt
+  `integer` trên hai route chi tiết trả 404 `NOTIFICATION_DELIVERY_NOT_FOUND`, không 500 và không chạm DB.
+- **UAT và email**: checklist tay [`plans/notification-release-uat.md`](plans/notification-release-uat.md) (12 ca trên server UAT
+  + 3 ca Mailpit); checklist đưa mail vào hộp thư [`resend-email-operations.md`](resend-email-operations.md) §"Kiểm trước khi ra mắt";
+  biến môi trường và checklist staging ở [`ordering-ops-runbook.md`](ordering-ops-runbook.md) §"Môi trường thử (staging/UAT)";
+  màn cho nhân viên ở [`ordering-staff-guide.md`](ordering-staff-guide.md) §"Lịch sử gửi".
+- **Gate (chạy lại độc lập bởi người review, 2026-10-15, sau khi sửa lỗi id, DB riêng `salanca_ordering_notify_review`)**:
+  `lint`, `typecheck`, `typecheck:admin`, `build:ordering` exit 0; `vitest` (domain/notifications + admin + config) 24 file /
+  173 test pass; 11 script tích hợp exit 0 (`notify-budget-day`, `notify-guard`, `notification-log` gồm 7 ca id sai × 2 route,
+  `notifications`, `customer-auth`, `cart-reminder`, `loyalty-expiry`, `email-templates`, `audit-log`, `openapi`,
+  `check-admin-imports`) — **không sửa kỳ vọng test cũ nào**. Người thực hiện cần tự chạy lại các lệnh này và thay dòng này
+  bằng kết quả của chính mình trước khi coi là hồ sơ nghiệm thu. Theo quy ước gate gọn của nhánh, **không** chạy
+  `check:ordering` đầy đủ, `check:phase3` hay smoke; repo chưa có CI nên đây là bằng chứng duy nhất.
+- **Còn mở:** UAT tay (chủ dự án; AI không UAT trình duyệt); bước 5/R1d (tên miền, DKIM/SPF/DMARC, gửi thử Gmail + Outlook);
+  **các đề xuất D1–D4 trong kế hoạch chưa được chủ dự án xác nhận**; chưa commit gì trên nhánh. **Việc theo dõi sau R1** (không làm ở đây): khách chỉ có SĐT
+  không để lại dấu vết, nút "Gửi lại", alert "gửi lỗi liên tục", xuất CSV nhật ký, job dọn nhật ký cũ, R2/R3/R5.
+
 2026-10-15: **Ordering O16 (tích điểm và hạng thành viên) — implemented + automated verification passed, chờ UAT tay** trên
 `TanNgo11/ordering-o16` (tách từ `feat/ordering` `5930344`), 8 commit theo [`plans/ordering-o16-loyalty.md`](plans/ordering-o16-loyalty.md)
 (Completion record có bảng bước → commit, kết quả gate và chỗ lệch kế hoạch). Chương trình **mặc định tắt**:

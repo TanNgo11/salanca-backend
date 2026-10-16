@@ -14,9 +14,11 @@ import createRegistry, { assertEnabledCodesRegistered } from './registry';
 
 const validConfig = () => structuredClone(config.default);
 
+const newRegistry = () => createRegistry({ strapi: undefined as unknown as Core.Strapi });
+
 describe('ordering registry', () => {
   it('rejects a duplicate product type code', () => {
-    const registry = createRegistry();
+    const registry = newRegistry();
     registry.registerProductType(testFoodProductType);
     expect(() => registry.registerProductType(testFoodProductType)).toThrow(
       /product type "test-food" is already registered/,
@@ -28,7 +30,7 @@ describe('ordering registry', () => {
   });
 
   it('resolves unknown codes with a typed OrderingError', () => {
-    const registry = createRegistry();
+    const registry = newRegistry();
     expect(() => registry.productType('ghost')).toThrowError(
       expect.objectContaining({ code: 'PRODUCT_TYPE_NOT_REGISTERED' }),
     );
@@ -42,7 +44,7 @@ describe('ordering registry', () => {
   });
 
   it('registers and resolves workflows by name and version', () => {
-    const registry = createRegistry();
+    const registry = newRegistry();
     registry.registerWorkflow(pickupPayOnPickupWorkflow);
     expect(registry.workflow('pickup-pay-on-pickup', '1')).toBe(pickupPayOnPickupWorkflow);
     expect(registry.workflows()).toHaveLength(1);
@@ -52,7 +54,7 @@ describe('ordering registry', () => {
   });
 
   it('lists every enabled but unregistered code in one error', () => {
-    const registry = createRegistry();
+    const registry = newRegistry();
     const value = validConfig();
     value.catalog.adapter = 'ghost-catalog';
     value.productTypes = { food: { enabled: true } };
@@ -75,7 +77,7 @@ describe('ordering registry', () => {
   });
 
   it('passes when every enabled code is registered', () => {
-    const registry = createRegistry();
+    const registry = newRegistry();
     registry.registerCatalogAdapter(
       createOrderingCatalogAdapter({ strapi: undefined as unknown as Core.Strapi }),
     );
@@ -91,7 +93,7 @@ describe('ordering registry', () => {
   });
 
   it('fans outbox events to type consumers plus wildcard consumers', () => {
-    const registry = createRegistry();
+    const registry = newRegistry();
     const calls: string[] = [];
     const consumer = (tag: string): OutboxConsumer => async () => {
       calls.push(tag);
@@ -107,5 +109,49 @@ describe('ordering registry', () => {
     return Promise.all(consumers.map((handler) => handler(event, { strapi: undefined }))).then(() =>
       expect(calls.sort()).toEqual(['ping', 'wild']),
     );
+  });
+});
+
+const strapiWith = (mode: 'live' | 'allowlist', allowlist: string[] = []) =>
+  ({ config: { get: () => ({ notifications: { mode, allowlist } }) } }) as unknown as Core.Strapi;
+
+describe('notification provider guard proxy', () => {
+  it('lets a caller wrap send through the proxy without recursing', async () => {
+    const calls: string[] = [];
+    const provider = {
+      sent: [] as unknown[],
+      async send() {
+        calls.push('real');
+      },
+    };
+    const registry = createRegistry({ strapi: strapiWith('live') });
+    registry.registerNotificationProvider('email', provider as never);
+
+    const capture = registry.notificationProvider('email');
+    const originalSend = capture.send;
+    capture.send = async function (this: unknown, ...args: Parameters<typeof originalSend>) {
+      calls.push('wrapped');
+      return originalSend.apply(this, args);
+    };
+    await registry
+      .notificationProvider('email')
+      .send({ recipient: { email: 'a@b.co' }, template: 't', data: {} });
+    expect(calls).toEqual(['wrapped', 'real']);
+
+    capture.send = originalSend;
+    await registry
+      .notificationProvider('email')
+      .send({ recipient: { email: 'a@b.co' }, template: 't', data: {} });
+    expect(calls).toEqual(['wrapped', 'real', 'real']);
+  });
+
+  it('still blocks a recipient outside the allowlist', async () => {
+    const registry = createRegistry({ strapi: strapiWith('allowlist', ['ok@b.co']) });
+    registry.registerNotificationProvider('email', { async send() {} } as never);
+    await expect(
+      registry
+        .notificationProvider('email')
+        .send({ recipient: { email: 'no@b.co' }, template: 't', data: {} }),
+    ).rejects.toMatchObject({ code: 'NOTIFICATION_BLOCKED' });
   });
 });

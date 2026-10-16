@@ -142,6 +142,9 @@ const adminActions = [
   // O12 (screens N2 kitchen display, N7 table board).
   { uid: 'kitchen.read', displayName: 'Màn hình bếp' },
   { uid: 'table.manage', displayName: 'Quản lý bàn và QR' },
+  // R1b: notification delivery log — reading is day-to-day, the technical error tail is tighter.
+  { uid: 'notification-log.read', displayName: 'Xem lịch sử gửi thông báo' },
+  { uid: 'notification-log.details', displayName: 'Xem chi tiết lỗi gửi thông báo' },
 ];
 
 const register = ({ strapi }: { strapi: Core.Strapi }) => {

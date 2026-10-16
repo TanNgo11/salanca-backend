@@ -1,3 +1,5 @@
+import type { Core } from '@strapi/strapi';
+
 import type { OrderingConfig } from '../config';
 import type {
   CaptchaProvider,
@@ -12,6 +14,7 @@ import type {
   WorkflowDefinition,
 } from '../contracts';
 import { OrderingError } from '../domain/errors';
+import { createGuard } from '../domain/notifications/notify-guard';
 import { assertWorkflowDefinition } from '../domain/workflow/definition';
 
 /**
@@ -50,7 +53,7 @@ const bucket = <T extends { code: string }>(kind: string) => {
   };
 };
 
-const registry = () => {
+const registry = ({ strapi }: { strapi: Core.Strapi }) => {
   const catalogAdapters = bucket<CatalogAdapter>('catalog adapter');
   const productTypes = bucket<ProductTypeDefinition>('product type');
   const paymentProviders = bucket<PaymentProvider>('payment provider');
@@ -63,6 +66,11 @@ const registry = () => {
   const outboxConsumers = new Map<string, OutboxConsumer[]>();
 
   const workflowKey = (name: string, version: string) => `${name}@${version}`;
+
+  const notifications = () => (strapi.config.get('plugin::ordering') as OrderingConfig).notifications;
+  // R1a: the guard is rebuilt from the live config on every call so tests (and config reloads)
+  // take effect immediately — nothing is cached at register() time.
+  const guard = () => createGuard({ mode: notifications().mode, allowlist: notifications().allowlist });
 
   return {
     registerCatalogAdapter: (adapter: CatalogAdapter) => catalogAdapters.register(adapter),
@@ -111,6 +119,11 @@ const registry = () => {
       }
       notificationProviders.set(channel, provider);
     },
+    /**
+     * R1a: the provider is handed back behind a Proxy so `send` is guard-checked while every other
+     * property (the in-memory capture's `sent`/`failNext`, a real adapter's members) still passes
+     * straight through — a plain wrapper object would hide them and break the capture-based tests.
+     */
     notificationProvider(channel: string): NotificationProvider {
       const provider = notificationProviders.get(channel);
       if (!provider) {
@@ -120,10 +133,36 @@ const registry = () => {
           { details: { kind: 'notification provider', code: channel } },
         );
       }
-      return provider;
+      return new Proxy(provider, {
+        get(target, property, receiver) {
+          if (property === 'send') {
+            // Resolve the real `send` now, not when the closure runs: a caller that wraps
+            // `proxy.send = patched` (the OTP race test) lands on `target`, and a closure that
+            // re-read `target.send` per call would re-enter itself through `patched`.
+            const inner = Reflect.get(target, 'send', target) as NotificationProvider['send'];
+            return async (input: Parameters<NotificationProvider['send']>[0]) => {
+              const value = String(input?.recipient?.email ?? input?.recipient?.phone ?? '');
+              if (!guard().allows(channel, value)) {
+                throw new OrderingError(
+                  'NOTIFICATION_BLOCKED',
+                  'recipient is not on the allowlist',
+                  { details: { channel } },
+                );
+              }
+              return inner.call(target, input);
+            };
+          }
+          return Reflect.get(target, property, receiver);
+        },
+        set(target, property, value, receiver) {
+          return Reflect.set(target, property, value, receiver);
+        },
+      });
     },
     hasNotificationProvider: (channel: string) => notificationProviders.has(channel),
     notificationChannels: () => [...notificationProviders.keys()],
+    /** R1a: pre-flight check for call sites that log `skipped` instead of catching the proxy error. */
+    isNotificationAllowed: (channel: string, value: string) => guard().allows(channel, value),
 
     registerWorkflow(definition: WorkflowDefinition) {
       assertWorkflowDefinition(definition);

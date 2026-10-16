@@ -4,6 +4,8 @@ import type { OrderingConfig } from '../config';
 import type { OutboxEvent } from '../contracts';
 import { alertLabel, isAlertCode } from '../domain/alert-codes';
 import { sha256Hex } from '../domain/hashing';
+import { notificationDay } from '../domain/notifications/budget-day';
+import { SKIP_REASON } from '../domain/notifications/skip-reasons';
 import {
   customerTemplateFor,
   deliveryFailureReason,
@@ -51,12 +53,6 @@ const failureText = (error: unknown): string => {
 
 /** Channels that count against `notifications.dailyLimit` (paid sends). */
 const PAID_CHANNELS = new Set<NotificationChannel>(['zalo', 'sms']);
-
-const utcDayStart = (): Date => {
-  const date = new Date();
-  date.setUTCHours(0, 0, 0, 0);
-  return date;
-};
 
 type DeliveryRow = {
   id: number;
@@ -109,11 +105,11 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
     paidAtLimit: boolean,
   ): Promise<string | null> => {
     if (channel === 'email') {
-      return config().notifications.email.enabled ? null : 'email-disabled';
+      return config().notifications.email.enabled ? null : SKIP_REASON.emailDisabled;
     }
-    if (!registry().hasNotificationProvider(channel)) return 'provider-not-configured';
-    if (channel === 'zalo' && !rule?.zns?.templateId) return 'zns-template-missing';
-    if (PAID_CHANNELS.has(channel) && paidAtLimit) return 'daily-limit';
+    if (!registry().hasNotificationProvider(channel)) return SKIP_REASON.providerNotConfigured;
+    if (channel === 'zalo' && !rule?.zns?.templateId) return SKIP_REASON.znsTemplateMissing;
+    if (PAID_CHANNELS.has(channel) && paidAtLimit) return SKIP_REASON.dailyLimit;
     return null;
   };
 
@@ -183,7 +179,7 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
           .open(
             {
               alertCode: 'notification-daily-limit',
-              dedupeKey: `notification-daily-limit:${utcDayStart().toISOString().slice(0, 10)}`,
+              dedupeKey: `notification-daily-limit:${notificationDay(new Date(), config().notifications.timezone)}`,
               severity: 'warning',
             },
             { actor: { kind: 'system' } },
@@ -197,10 +193,26 @@ const notification = ({ strapi }: { strapi: Core.Strapi }) => {
     for (const channel of chain) {
       const value = channelValue(channel, input.recipient);
       if (!value) continue; // no address for this channel — nothing logged, next channel
+      // R1a: a recipient outside the allowlist is recorded and skipped before any paid slot.
+      if (!registry().isNotificationAllowed(channel, value)) {
+        await markSkipped(
+          {
+            event: input.event,
+            template: input.template,
+            channel,
+            value,
+            role: input.role,
+            orderId: input.orderId,
+            locale: input.locale,
+          },
+          SKIP_REASON.notAllowlisted,
+        );
+        continue;
+      }
       // Other reasons first, so a channel that cannot send never spends a paid slot.
       const blockedOther = await blockedReason(channel, rule, false);
       const limitHit = !blockedOther && PAID_CHANNELS.has(channel) ? await paidLimitHit() : false;
-      const blocked = blockedOther ?? (limitHit ? 'daily-limit' : null);
+      const blocked = blockedOther ?? (limitHit ? SKIP_REASON.dailyLimit : null);
       if (blocked) {
         await markSkipped(
           {

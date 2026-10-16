@@ -45,6 +45,9 @@ type Overview = {
   providers: Record<Channel, boolean>;
   dailyLimit: number;
   costEstimates: Record<string, number>;
+  timezone: string;
+  mode: 'live' | 'allowlist';
+  allowlistCount: number;
   sentToday: number;
   rules: RuleRow[];
 };
@@ -203,6 +206,11 @@ const NotificationChannelsBlock = ({ t }: { t: Translate }) => {
         </Alert>
       ) : (
         <>
+          {overview.mode === 'allowlist' ? (
+            <Alert variant="warning" closeLabel={t('common.close')} title={t('notify.mode.title')}>
+              {t('notify.mode.banner', { count: overview.allowlistCount })}
+            </Alert>
+          ) : null}
           <Flex gap={3} alignItems="center" wrap="wrap">
             {CHANNELS.map((channel) => (
               <Badge

@@ -16,6 +16,7 @@ import {
   RBAC_GIFT_CARD,
   RBAC_KITCHEN,
   RBAC_LOYALTY,
+  RBAC_NOTIFICATION_LOG,
   RBAC_OPS,
   RBAC_ORDERS_READ,
   RBAC_PAYMENT_REVIEW,
@@ -49,6 +50,7 @@ const OpsPage = lazy(() => import('./Ops'));
 const CashClosingPage = lazy(() => import('./CashClosing'));
 const ReportsPage = lazy(() => import('./Reports'));
 const AuditLogPage = lazy(() => import('./AuditLog'));
+const NotificationLogPage = lazy(() => import('./NotificationLog'));
 const WebhooksPage = lazy(() => import('./Webhooks'));
 const ProvidersPage = lazy(() => import('./Providers'));
 const ApiDocsPage = lazy(() => import('./ApiDocs'));
@@ -85,6 +87,7 @@ type Section =
   | 'tables'
   | 'staff'
   | 'audit-log'
+  | 'notification-log'
   | 'webhooks'
   | 'providers'
   | 'api-docs';
@@ -192,7 +195,7 @@ const SideNav = ({
             {visible.availability ? link('availability', t('nav.availability')) : null}
           </SubNavSection>
         ) : null}
-        {visible.branches || visible.tables || visible.staff || visible.settings || visible['audit-log'] || visible.webhooks || visible.providers || visible['api-docs'] || visible['data-requests'] ? (
+        {visible.branches || visible.tables || visible.staff || visible.settings || visible['audit-log'] || visible['notification-log'] || visible.webhooks || visible.providers || visible['api-docs'] || visible['data-requests'] ? (
           <SubNavSection label={t('nav.setup')}>
             {visible.branches ? link('branches', t('nav.branches')) : null}
             {visible.tables ? link('tables', t('nav.tables')) : null}
@@ -202,6 +205,7 @@ const SideNav = ({
             {visible.providers ? link('providers', t('nav.providers')) : null}
             {visible['api-docs'] ? link('api-docs', t('nav.apiDocs')) : null}
             {visible['audit-log'] ? link('audit-log', t('nav.auditLog')) : null}
+            {visible['notification-log'] ? link('notification-log', t('nav.notificationLog')) : null}
             {visible.settings ? (
               <SubNavLink tag={NavLink} to="/settings/ordering">
                 {t('nav.settings')}
@@ -269,6 +273,7 @@ const OrderingApp = () => {
     };
   }, [canProcess, canRecordCash, get]);
   const audit = useRBAC(RBAC_AUDIT);
+  const notificationLog = useRBAC(RBAC_NOTIFICATION_LOG);
   const webhook = useRBAC(RBAC_WEBHOOK);
   const promotion = useRBAC(RBAC_PROMOTION);
   const giftCards = useRBAC(RBAC_GIFT_CARD);
@@ -276,7 +281,7 @@ const OrderingApp = () => {
   const price = useRBAC(RBAC_PRICE);
   const customers = useRBAC(RBAC_CUSTOMERS);
   const dataRequests = useRBAC(RBAC_DATA_REQUESTS);
-  const loading = [orders, kitchen, tables, process, recordCash, reviews, alerts, ops, report, catalogManage, catalogAccess, settings, scope, audit, webhook, customers, dataRequests, promotion, giftCards, loyalty, price].some(
+  const loading = [orders, kitchen, tables, process, recordCash, reviews, alerts, ops, report, catalogManage, catalogAccess, settings, scope, audit, notificationLog, webhook, customers, dataRequests, promotion, giftCards, loyalty, price].some(
     (item) => item.isLoading,
   );
   if (loading) {
@@ -313,6 +318,7 @@ const OrderingApp = () => {
     branches: any(settings.allowedActions),
     staff: any(scope.allowedActions),
     'audit-log': any(audit.allowedActions),
+    'notification-log': any(notificationLog.allowedActions),
     webhooks: any(webhook.allowedActions),
     providers: any(settings.allowedActions),
     'api-docs': any(settings.allowedActions),
@@ -345,6 +351,7 @@ const OrderingApp = () => {
       'staff',
       'data-requests',
       'audit-log',
+      'notification-log',
       'webhooks',
       'providers',
       'api-docs',
@@ -404,6 +411,7 @@ const OrderingApp = () => {
             <Route path="branches/*" element={<BranchesPage />} />
             <Route path="staff/*" element={<StaffPage />} />
             <Route path="audit-log/*" element={<AuditLogPage />} />
+            <Route path="notification-log/*" element={<NotificationLogPage />} />
             <Route path="webhooks/*" element={<WebhooksPage />} />
             <Route path="providers/*" element={<ProvidersPage />} />
             <Route path="api-docs/*" element={<ApiDocsPage />} />

@@ -122,6 +122,26 @@ above where noted). Then assign each person's branches in **Nhân viên bán hà
 - Branch, settings and scope changes write `admin-change-log` rows; order actions write the order's
   timeline.
 
+## Notification log permissions (R1b, 2026-10-15)
+
+Two actions under **Settings → Roles → Plugins → Ordering** gate the `Lịch sử gửi` screen
+(Bán hàng → Cấu hình → Lịch sử gửi, `/plugins/ordering/notification-log`) and the
+`/ordering/notification-log*` routes:
+
+| Action | Unlocks |
+| --- | --- |
+| `plugin::ordering.notification-log.read` ("Xem lịch sử gửi thông báo") | Menu entry, the list screen (filters, 24h counters, pagination) and `GET /ordering/notification-log`, `/summary`, `/:id` |
+| `plugin::ordering.notification-log.details` ("Xem chi tiết lỗi gửi thông báo") | The "Xem chi tiết kỹ thuật" button and `GET /ordering/notification-log/:id/technical` — the raw provider error, provider message id and cost estimate |
+
+Bootstrap registers both; Super Admin holds every registered action, other roles default to deny.
+Proposed (D4, awaiting owner confirmation, 2026-10-15): only Super Admin gets `details`; the `Quản lý` role gets `read`, so a
+manager can see what was sent and why it was skipped, but not raw provider errors. The route carries the
+two actions as separate route parameters (same shape as `audit-log/export`), so a missing `details`
+answers 403 at the policy, never from the service. Location scope still applies: a staff member without
+all-locations sees only rows whose order is at their branches, and rows without an order (alerts, test
+sends) are visible to all-locations staff only. The screen shows the recipient **role and channel**, never
+an address — the table stores only a hash.
+
 ## Manual UAT checklist
 
 - [ ] Editor cannot open API Tokens, Transfer Tokens, or plugin marketplace settings.
@@ -145,6 +165,9 @@ above where noted). Then assign each person's branches in **Nhân viên bán hà
 - [ ] A role without `order.process` sees the inbox but no step buttons and no new-order dialog.
 - [ ] A role without `settings.manage` does not see `Chi nhánh` or Settings → Bán hàng and gets 403 on `/ordering/branches`.
 - [ ] A role without `scope.manage` does not see `Nhân viên bán hàng`; a Q1 manager with it cannot grant Q3.
+- [ ] A role without `notification-log.read` does not see `Lịch sử gửi` in the Cấu hình group and gets 403 on `/ordering/notification-log`.
+- [ ] A role with `notification-log.read` but not `notification-log.details` sees the delivery table and the detail modal but no technical button, and gets 403 on `/ordering/notification-log/:id/technical`.
+- [ ] `Lịch sử gửi` lists the recipient role and channel (never an address), and its missing-email banner names only branches inside the caller's scope.
 
 ## API tokens (server-to-server)
 

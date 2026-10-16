@@ -38,6 +38,8 @@ type ProviderCard = {
 type Body = {
   now: string;
   publicApiUrl: string;
+  notificationMode: 'live' | 'allowlist';
+  notificationAllowlistCount: number;
   groups: Array<{ key: ProviderCard['group']; cards: ProviderCard[] }>;
 };
 
@@ -122,6 +124,11 @@ const ProvidersPage = () => {
             <EmptyStateLayout content={t('p1.loadFailed')} />
           ) : (
             <Flex direction="column" alignItems="stretch" gap={6}>
+              {body.notificationMode === 'allowlist' ? (
+                <Alert variant="warning" closeLabel={t('common.close')} title={t('notify.mode.title')}>
+                  {t('notify.mode.banner', { count: body.notificationAllowlistCount })}
+                </Alert>
+              ) : null}
               {body.groups.map((group) => (
                 <Box key={group.key}>
                   <Typography variant="delta" tag="h3">

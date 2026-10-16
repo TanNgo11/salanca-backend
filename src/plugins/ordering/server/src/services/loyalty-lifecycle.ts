@@ -6,6 +6,7 @@ import { sha256Hex } from '../domain/hashing';
 import { addDays, addMonths, lotRemainingAfterDebt, takeFromLots } from '../domain/loyalty/lots';
 import { decideTier } from '../domain/loyalty/tier';
 import { amountFromDb } from '../domain/money';
+import { SKIP_REASON } from '../domain/notifications/skip-reasons';
 import { formatLocalDate, type LoyaltyMailData } from '../domain/notifications/templates';
 import type { TransactionClient } from '../migrations/runner';
 import orderRepository from '../repositories/order';
@@ -97,6 +98,12 @@ const loyaltyLifecycle = ({ strapi }: { strapi: Core.Strapi }) => {
       deliveries().update({ where: { id: rowId }, data: { status, attempts: attempt, ...extra } });
     if (!config().notifications.email.enabled) {
       await mark('skipped');
+      return 'skipped';
+    }
+    // R1a: a non-allowlisted customer is skipped. `skipped` is terminal, so widening the list
+    // later will not resend this mail (accepted for test environments — see the runbook).
+    if (!(plugin().service('registry') as OrderingRegistry).isNotificationAllowed('email', args.email)) {
+      await mark('skipped', { lastError: SKIP_REASON.notAllowlisted });
       return 'skipped';
     }
     try {

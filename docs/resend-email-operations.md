@@ -1,8 +1,10 @@
 # Resend transactional email (form lead notify)
 
 Scope: SMTP transport for **staff notifications** when a public form lead is
-created (`contact-message`, `reservation-request`). Pattern lifted from
-Nhà Thật / BDS (`config/transactional-email.helper.ts` + Nodemailer provider).
+created (`contact-message`, `reservation-request`), and for the **ordering plugin's
+notification mails** (customer receipt, order status, staff "new order" mail — R1b/R1d).
+Pattern lifted from Nhà Thật / BDS (`config/transactional-email.helper.ts` + Nodemailer
+provider).
 
 Resend transports mail only. It is not a second CMS or booking system.
 
@@ -94,7 +96,35 @@ addresses in the row).
 | Resend account / plan | TBD |
 | Sender domain DKIM | TBD |
 | Staff notification mailboxes (Admin → Email thông báo) | TBD |
+| Branch new-order mailboxes (Admin → Chi nhánh, `email`) | TBD |
+| DMARC record for `EMAIL_SENDER_DOMAIN` | TBD |
+| Order-link landing page (`ORDERING_ORDER_LINK_TEMPLATE`) | TBD |
 | API key rotation | TBD |
+
+## Kiểm trước khi ra mắt (R1d — chủ dự án chạy)
+
+Đây là việc của chủ dự án hoặc người quản trị tên miền; AI chỉ giữ danh sách. Mỗi mục tick xong mới tính là xong.
+Giá trị secret không dán vào tài liệu, không commit, không chép địa chỉ hộp thư riêng vào báo cáo.
+
+- [ ] **1. Tài khoản Resend.** Điền bảng Ownership ở trên: gói, người sở hữu, người nhận hoá đơn. Trong Resend →
+      Domains, tên miền gửi (`EMAIL_SENDER_DOMAIN`) hiện **Verified**, và cả bản ghi **DKIM** lẫn **SPF** đều ở trạng thái
+      Verified (thiếu một trong hai là mail dễ vào Thư rác).
+- [ ] **2. DMARC.** Có bản ghi DMARC cho tên miền gửi, tối thiểu `v=DMARC1; p=none; rua=mailto:<hộp nhận báo cáo>`.
+      Mức chặt hơn `p=none` (`quarantine`/`reject`) là **quyết định của chủ dự án** — chưa tự đặt.
+- [ ] **3. Env production đủ và đúng.** `EMAIL_SMTP_HOST=smtp.resend.com`; cổng `587` hoặc `2587` (STARTTLS) hoặc `465`
+      (TLS ngầm); `EMAIL_SMTP_USER=resend`; `EMAIL_SMTP_KEY=re_...`; `EMAIL_SENDER_DOMAIN`; `EMAIL_FROM_NAME`;
+      `EMAIL_FROM_ADDRESS` và `EMAIL_REPLY_TO` **thuộc tên miền gửi**; `ORDERING_ORDER_LINK_TEMPLATE` trỏ đúng trang đơn của
+      web thật (khách bấm được từ biên nhận). Kiểm bằng cách đối chiếu env trên máy chủ — **không** commit giá trị.
+      (Biến riêng của plugin thông báo: `ORDERING_NOTIFY_MODE`, `ORDERING_NOTIFY_ALLOWLIST`,
+      `ORDERING_NOTIFY_TIMEZONE` — xem `ordering-ops-runbook.md`.)
+- [ ] **4. Email chi nhánh đã nhập.** Admin → **Cài đặt bán hàng → Chi nhánh**: mọi chi nhánh đang bán có email nhận đơn mới.
+      Kiểm bằng màn **Lịch sử gửi**: banner "Chi nhánh chưa có email nhận đơn mới" **biến mất**.
+- [ ] **5. Gửi thử từ production thật** tới ít nhất một hộp **Gmail** và một hộp **Outlook**: thư vào **Hộp thư đến**
+      (không phải Thư rác). Chép lại các dòng `Authentication-Results` của thư nhận được và xác nhận **SPF, DKIM, DMARC đều
+      pass** — chép dòng kết quả, **không** chép địa chỉ riêng. Nếu vào Thư rác: **dừng**, kiểm lại bản ghi (mục 1–2) và nội
+      dung thư, báo chủ dự án trước khi coi là xong.
+- [ ] **6. Reply-To.** Trả lời một mail đơn hàng từ hộp nhận: thư phải tới đúng hộp hỗ trợ (`EMAIL_REPLY_TO`), không quay
+      về `no-reply`.
 
 ## Code map
 
@@ -110,3 +140,7 @@ addresses in the row).
 | Recipient settings store | `src/domain/notification-settings/notification-settings.store.ts` |
 | Admin routes | `src/api/notification-settings/` |
 | Admin screen | `src/admin/notification-settings/` |
+| Ordering: send + delivery log write | `src/plugins/ordering/server/src/services/notification.ts` |
+| Ordering: email provider (goes through the app email plugin) | `src/plugins/ordering/server/src/providers/email-notification.ts` |
+| Ordering: order-link env (`ORDERING_ORDER_LINK_TEMPLATE`) | `config/plugins.ts` → `notifications.orderLinkTemplate` |
+| Ordering: who received what (Lịch sử gửi) | `src/plugins/ordering/server/src/services/notification-log.ts` + `src/plugins/ordering/admin/src/pages/NotificationLog/` |

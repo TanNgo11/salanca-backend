@@ -207,6 +207,28 @@ toán, ghi/duyệt chuyển khoản, hoàn tiền, chốt tiền, giao hàng, đ
   thấy. Thông tin khách (tên, số điện thoại, địa chỉ) không có trong lịch sử. Lịch sử không sửa, không xóa
   được.
 
+## Lịch sử gửi (quản lý)
+
+Mục **Bán hàng → Cấu hình → Lịch sử gửi** (quyền "Xem lịch sử gửi thông báo") cho biết mỗi lần hệ thống gửi hoặc bỏ qua một
+thông báo: gửi cho **vai trò** nào, qua **kênh** nào, kết quả ra sao, và **vì sao** khi không gửi.
+
+- **Trạng thái**: **Đã gửi** (đã đi được), **Lỗi** (chưa đi được — hệ thống tự thử lại qua hàng đợi), **Bỏ qua** (không gửi theo
+  cấu hình, xem cột **Lý do**), **Đang chờ** (còn trong hàng đợi).
+- **Lý do** chỉ có ở dòng **Bỏ qua**, ví dụ "Email chưa bật (chưa cấu hình SMTP)" hoặc "Hết hạn mức gửi trong ngày".
+- **Lọc** theo khoảng ngày, trạng thái, kênh, mẫu thông báo, vai trò người nhận, hoặc gõ **mã đơn**. Dải số trên cùng là
+  24 giờ gần nhất và hạn mức gửi tính phí của hôm nay.
+- **Địa chỉ người nhận không hiển thị ở đây** — bảng chỉ lưu mã băm nên màn chỉ hiện vai trò (Nhân viên / Khách) và kênh.
+  Đây là chủ ý bảo vệ dữ liệu khách, không phải thiếu sót.
+- **Chi tiết** một dòng mở ra mẫu, ngôn ngữ tin, lần thử. Nếu bạn có thêm quyền "Xem chi tiết lỗi gửi thông báo" thì có nút
+  **Xem chi tiết kỹ thuật** (lỗi thô của nhà cung cấp, mã tin, chi phí ước tính) — dùng khi cần gửi cho kỹ thuật.
+- **Banner "Chi nhánh chưa có email nhận đơn mới"**: hiện khi có chi nhánh trong phạm vi bạn xem chưa nhập email. Nhân viên các
+  chi nhánh đó **không nhận** mail đơn mới. Bấm **Mở Chi nhánh** để nhập email.
+- Nếu thấy banner **"Môi trường thử: chỉ gửi tới người nhận trong danh sách cho phép"**, hệ thống đang ở chế độ thử của kỹ thuật
+  nên người ngoài danh sách bị bỏ qua — đúng thiết kế, không phải lỗi.
+- Chưa có nút **Gửi lại**: mail **Lỗi** đã được hệ thống tự thử lại; cần gửi gấp thì nhờ kỹ thuật chạy job `outbox` ở
+  **Vận hành → Tình trạng vận hành**.
+- Ngày trong màn tính theo múi giờ của hệ thống, ghi ngay dưới tiêu đề.
+
 ## Nhập/xuất menu bằng CSV (Món → Nhập/xuất)
 
 Dùng khi cần sửa giá/nội dung hàng loạt bằng Excel thay vì sửa từng món:

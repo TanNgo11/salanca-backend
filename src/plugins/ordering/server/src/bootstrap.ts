@@ -18,6 +18,15 @@ const bootstrap = async ({ strapi }: { strapi: Core.Strapi }) => {
 
   // The validator runs before any register(), so code references can only be checked here.
   assertEnabledCodesRegistered(config, registry);
+  // R1a: one info line for the delivery mode; entries themselves are never logged.
+  if (config.notifications.mode === 'allowlist' && config.notifications.allowlist.length === 0) {
+    strapi.log.warn(
+      '[ordering] notification mode is allowlist with an empty list — every recipient is blocked',
+    );
+  }
+  strapi.log.info(
+    `[ordering] notification mode: ${config.notifications.mode} (${config.notifications.allowlist.length} entries)`,
+  );
   // A signed webhook provider without the original body would silently fail every signature.
   assertSignedWebhooksHaveRawBody({
     providers: registry.paymentProviders().map((provider) => ({

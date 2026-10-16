@@ -34,6 +34,9 @@ export const PERMISSIONS = {
   // O12 (screens N2, N7).
   kitchenRead: action('kitchen.read'),
   tableManage: action('table.manage'),
+  // R1b: delivery log — read for the screen, details for the technical error tail.
+  notificationLog: action('notification-log.read'),
+  notificationLogDetails: action('notification-log.details'),
 } as const;
 
 /** Stable arrays for `useRBAC` (a new array each render makes it re-check every time). */
@@ -81,6 +84,8 @@ export const RBAC_LOYALTY = [...PERMISSIONS.loyaltyManage];
 /** O12: the kitchen display and all its routes (board, stream, prepared, start, complete) sit behind `kitchen.read`. */
 export const RBAC_KITCHEN = [...PERMISSIONS.kitchenRead];
 export const RBAC_TABLES = [...PERMISSIONS.tableManage];
+export const RBAC_NOTIFICATION_LOG = [...PERMISSIONS.notificationLog];
+export const RBAC_NOTIFICATION_LOG_DETAILS = [...PERMISSIONS.notificationLogDetails];
 /** O6 alert list: anyone a rule could notify (ops, reports, payment review or branch staff). */
 export const RBAC_ALERTS = [
   ...PERMISSIONS.ops,
@@ -110,4 +115,5 @@ export const RBAC_ANY_ORDERING = [
   ...RBAC_LOYALTY,
   ...RBAC_KITCHEN,
   ...RBAC_TABLES,
+  ...RBAC_NOTIFICATION_LOG,
 ];

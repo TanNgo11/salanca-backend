@@ -216,6 +216,14 @@ const notificationTemplate = ({ strapi }: { strapi: Core.Strapi }) => {
         });
       }
       const rendered = await service.renderFor(code, locale, sampleDataFor(code));
+      // R1a: in allowlist mode the signed-in admin must be listed to receive a test mail.
+      if (!registry().isNotificationAllowed('email', email)) {
+        throw new OrderingError(
+          'VALIDATION_ERROR',
+          'the signed-in admin is not on the notification allowlist',
+          { details: {} },
+        );
+      }
       await registry()
         .notificationProvider('email')
         .send({ recipient: { email }, template: code, data: rendered });
