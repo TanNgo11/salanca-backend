@@ -611,12 +611,18 @@ export const OPERATIONS: Operation[] = [
   }),
   adm('post', '/orders/:id/transition', 'Orders', 'Transition the order', ['order.process'], {
     parameters: [pathParam('id')],
+    requestBody: obj(
+      { to: str, note: str, notifyCustomer: bool, delayMinutes: int, reasonCode: str, assigneeRef: str, tracking: generic },
+      ['to'],
+    ),
   }),
   adm('post', '/orders/:id/notes', 'Orders', 'Add a staff note', ['order.process'], {
     parameters: [pathParam('id')],
+    requestBody: obj({ text: str }),
   }),
   adm('post', '/orders/:id/cash-handover', 'Orders', 'Record a cash handover', ['payment.record-cash'], {
     parameters: [pathParam('id')],
+    requestBody: obj({ method: str }),
   }),
   // O13 carrier legs ("Gọi xe"): quote, book, cancel — staff-initiated, idempotent booking.
   adm('post', '/orders/:id/carrier/quote', 'Orders', 'Carrier fee quote for the delivery leg', ['order.process'], {
@@ -633,21 +639,26 @@ export const OPERATIONS: Operation[] = [
   }),
   adm('post', '/orders/:id/cancel', 'Orders', 'Cancel the order', ['order.cancel'], {
     parameters: [pathParam('id')],
+    requestBody: obj({ reasonCode: str, note: str }),
   }),
   adm('get', '/orders/:id/lines/:lineId/cancel-preview', 'Orders', 'Line-cancel preview', ['order.edit-lines'], {
     parameters: [pathParam('id'), pathParam('lineId')],
   }),
   adm('post', '/orders/:id/lines/:lineId/cancel', 'Orders', 'Cancel an order line', ['order.edit-lines'], {
     parameters: [pathParam('id'), pathParam('lineId')],
+    requestBody: obj({ quantity: int, reason: str }, ['quantity']),
   }),
   adm('post', '/orders/:id/refunds', 'Orders', 'Open a refund', ['refund.manage'], {
     parameters: [pathParam('id')],
+    requestBody: obj({ method: str, amount: int, reason: str, idempotencyKey: str }, ['method', 'amount']),
   }),
   adm('post', '/refunds/:id/settle', 'Orders', 'Settle a refund', ['refund.manage'], {
     parameters: [pathParam('id')],
+    requestBody: obj({ reference: str, settledAt: str }),
   }),
   adm('post', '/orders/:id/manual-payments', 'Orders', 'Record a manual payment', ['payment.review'], {
     parameters: [pathParam('id')],
+    requestBody: obj({ reference: str, amount: int, transferredAt: str, note: str }, ['reference', 'amount']),
   }),
 
   // ── Admin: O12 print, kitchen display, tables & sessions ───────────────────
@@ -716,15 +727,19 @@ export const OPERATIONS: Operation[] = [
   adm('get', '/payment-reviews/orders', 'Payments', 'Order search for review', ['payment.review']),
   adm('post', '/payment-reviews/:id/assign', 'Payments', 'Assign a transaction to an order', ['payment.review'], {
     parameters: [pathParam('id')],
+    requestBody: obj({ orderId: int, reason: str }),
   }),
   adm('post', '/payment-reviews/:id/refund-due', 'Payments', 'Mark a refund due', ['payment.review'], {
     parameters: [pathParam('id')],
+    requestBody: obj({ amount: int, reason: str }),
   }),
   adm('post', '/payment-reviews/:id/reopen', 'Payments', 'Reopen a review', ['payment.review'], {
     parameters: [pathParam('id')],
+    requestBody: obj({ orderId: int, reason: str }),
   }),
   adm('post', '/payment-reviews/:id/ignore', 'Payments', 'Ignore a transaction', ['payment.review'], {
     parameters: [pathParam('id')],
+    requestBody: obj({ reason: str }),
   }),
 
   // ── Admin: staff drafts ─────────────────────────────────────────────────────
@@ -844,9 +859,15 @@ export const OPERATIONS: Operation[] = [
       { name: 'businessDate', in: 'query', required: true, schema: { ...str, format: 'date' } },
     ],
   }),
-  adm('post', '/cash-closing', 'Reports', 'Close the day', ['report.read']),
+  adm('post', '/cash-closing', 'Reports', 'Close the day', ['report.read'], {
+    requestBody: obj(
+      { branch: str, businessDate: { ...str, format: 'date' }, collectorRef: str, countedAmount: int, note: str },
+      ['branch', 'businessDate', 'collectorRef', 'countedAmount'],
+    ),
+  }),
   adm('post', '/cash-closing/:id/adjust', 'Reports', 'Adjust a closing', ['report.read'], {
     parameters: [pathParam('id')],
+    requestBody: obj({ countedAmount: int, note: str, reason: str }, ['countedAmount', 'reason']),
   }),
   adm('get', '/reports/sales', 'Reports', 'Sales report by business date', ['report.read'], {
     parameters: [

@@ -2023,7 +2023,43 @@
         ],
         "x-ordering-permissions": [
           "plugin::ordering.order.process"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "to": {
+                    "type": "string"
+                  },
+                  "note": {
+                    "type": "string"
+                  },
+                  "notifyCustomer": {
+                    "type": "boolean"
+                  },
+                  "delayMinutes": {
+                    "type": "integer"
+                  },
+                  "reasonCode": {
+                    "type": "string"
+                  },
+                  "assigneeRef": {
+                    "type": "string"
+                  },
+                  "tracking": {
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "to"
+                ]
+              }
+            }
+          }
+        }
       }
     },
     "/orders/{id}/notes": {
@@ -2093,7 +2129,22 @@
         ],
         "x-ordering-permissions": [
           "plugin::ordering.order.process"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/orders/{id}/cash-handover": {
@@ -2163,7 +2214,22 @@
         ],
         "x-ordering-permissions": [
           "plugin::ordering.payment.record-cash"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "method": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/orders/{id}/carrier/quote": {
@@ -2494,7 +2560,25 @@
         ],
         "x-ordering-permissions": [
           "plugin::ordering.order.cancel"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reasonCode": {
+                    "type": "string"
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/orders/{id}/lines/{lineId}/cancel-preview": {
@@ -2650,7 +2734,28 @@
         ],
         "x-ordering-permissions": [
           "plugin::ordering.order.edit-lines"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "quantity": {
+                    "type": "integer"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "quantity"
+                ]
+              }
+            }
+          }
+        }
       }
     },
     "/orders/{id}/refunds": {
@@ -2720,7 +2825,35 @@
         ],
         "x-ordering-permissions": [
           "plugin::ordering.refund.manage"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "method": {
+                    "type": "string"
+                  },
+                  "amount": {
+                    "type": "integer"
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "idempotencyKey": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "method",
+                  "amount"
+                ]
+              }
+            }
+          }
+        }
       }
     },
     "/refunds/{id}/settle": {
@@ -2790,7 +2923,25 @@
         ],
         "x-ordering-permissions": [
           "plugin::ordering.refund.manage"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reference": {
+                    "type": "string"
+                  },
+                  "settledAt": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/orders/{id}/manual-payments": {
@@ -2860,7 +3011,35 @@
         ],
         "x-ordering-permissions": [
           "plugin::ordering.payment.review"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reference": {
+                    "type": "string"
+                  },
+                  "amount": {
+                    "type": "integer"
+                  },
+                  "transferredAt": {
+                    "type": "string"
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reference",
+                  "amount"
+                ]
+              }
+            }
+          }
+        }
       }
     },
     "/print/orders/{id}": {
@@ -4135,7 +4314,25 @@
         ],
         "x-ordering-permissions": [
           "plugin::ordering.payment.review"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "orderId": {
+                    "type": "integer"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/payment-reviews/{id}/refund-due": {
@@ -4205,7 +4402,25 @@
         ],
         "x-ordering-permissions": [
           "plugin::ordering.payment.review"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "integer"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/payment-reviews/{id}/reopen": {
@@ -4275,7 +4490,25 @@
         ],
         "x-ordering-permissions": [
           "plugin::ordering.payment.review"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "orderId": {
+                    "type": "integer"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/payment-reviews/{id}/ignore": {
@@ -4345,7 +4578,22 @@
         ],
         "x-ordering-permissions": [
           "plugin::ordering.payment.review"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/drafts/quote": {
@@ -6593,7 +6841,41 @@
         },
         "x-ordering-permissions": [
           "plugin::ordering.report.read"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "branch": {
+                    "type": "string"
+                  },
+                  "businessDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "collectorRef": {
+                    "type": "string"
+                  },
+                  "countedAmount": {
+                    "type": "integer"
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "branch",
+                  "businessDate",
+                  "collectorRef",
+                  "countedAmount"
+                ]
+              }
+            }
+          }
+        }
       }
     },
     "/cash-closing/summary": {
@@ -6742,7 +7024,32 @@
         ],
         "x-ordering-permissions": [
           "plugin::ordering.report.read"
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "countedAmount": {
+                    "type": "integer"
+                  },
+                  "note": {
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "countedAmount",
+                  "reason"
+                ]
+              }
+            }
+          }
+        }
       }
     },
     "/reports/sales": {
