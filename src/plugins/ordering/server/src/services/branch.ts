@@ -12,6 +12,7 @@ import {
   resolveOrderingPause,
   resolvePickupSettings,
   resolvePrinting,
+  branchIssueView,
   receiveKindKey,
   validateBranchInput,
   type BranchFee,
@@ -363,10 +364,7 @@ const branch = ({ strapi }: { strapi: Core.Strapi }) => {
       if (!parsed.success) {
         throw new OrderingError('VALIDATION_ERROR', 'delivery quote is invalid', {
           details: {
-            issues: parsed.error.issues.map((issue) => ({
-              path: issue.path.join('.'),
-              message: issue.message,
-            })),
+            issues: parsed.error.issues.map((issue) => branchIssueView(issue)),
           },
         });
       }

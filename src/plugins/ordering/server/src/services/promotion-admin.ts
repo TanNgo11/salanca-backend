@@ -275,13 +275,13 @@ const promotionAdmin = ({ strapi }: { strapi: Core.Strapi }) => {
       if (firstCode !== undefined && firstCode !== null && firstCode !== '') {
         if (input.kind !== 'code') {
           throw new OrderingError('VALIDATION_ERROR', 'an automatic promotion has no code', {
-            details: { issues: [{ path: 'code', message: 'an automatic promotion has no code' }] },
+            details: { issues: [{ path: 'code', message: 'an automatic promotion has no code', code: 'auto_no_code' }] },
           });
         }
         normalized = typeof firstCode === 'string' ? normalizePromotionCode(firstCode) : null;
         if (!normalized) {
           throw new OrderingError('VALIDATION_ERROR', 'code must be 4-32 of A-Z, 0-9 and -', {
-            details: { issues: [{ path: 'code', message: 'code must be 4-32 of A-Z, 0-9 and -' }] },
+            details: { issues: [{ path: 'code', message: 'code must be 4-32 of A-Z, 0-9 and -', code: 'promo_code_format' }] },
           });
         }
       }
@@ -389,7 +389,7 @@ const promotionAdmin = ({ strapi }: { strapi: Core.Strapi }) => {
       const promotion = await find(id);
       if (promotion.kind !== 'code') {
         throw new OrderingError('VALIDATION_ERROR', 'only a code promotion has codes', {
-          details: { issues: [{ path: 'kind', message: 'only a code promotion has codes' }] },
+          details: { issues: [{ path: 'kind', message: 'only a code promotion has codes', code: 'not_code_promotion' }] },
         });
       }
       const input = (body ?? {}) as {
@@ -401,7 +401,7 @@ const promotionAdmin = ({ strapi }: { strapi: Core.Strapi }) => {
         if (value === undefined || value === null || value === '') return null;
         if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) {
           throw new OrderingError('VALIDATION_ERROR', 'usageLimit must be a positive integer', {
-            details: { issues: [{ path, message: 'usageLimit must be a positive integer' }] },
+            details: { issues: [{ path, message: 'usageLimit must be a positive integer', code: 'not_positive' }] },
           });
         }
         return value;
@@ -412,23 +412,27 @@ const promotionAdmin = ({ strapi }: { strapi: Core.Strapi }) => {
         const { count, prefix = '', length = 10, batch } = input.generate;
         if (typeof count !== 'number' || !Number.isInteger(count) || count < 1 || count > MAX_GENERATE) {
           throw new OrderingError('VALIDATION_ERROR', `count must be 1-${MAX_GENERATE}`, {
-            details: { issues: [{ path: 'generate.count', message: `count must be 1-${MAX_GENERATE}` }] },
+            details: { issues: [
+              { path: 'generate.count', message: `count must be 1-${MAX_GENERATE}`, code: 'out_of_range', min: 1, max: MAX_GENERATE },
+            ] },
           });
         }
         const cleanPrefix = typeof prefix === 'string' ? prefix.trim().toUpperCase() : '';
         if (!/^[A-Z0-9-]{0,12}$/.test(cleanPrefix)) {
           throw new OrderingError('VALIDATION_ERROR', 'prefix must be up to 12 of A-Z, 0-9 and -', {
-            details: { issues: [{ path: 'generate.prefix', message: 'invalid prefix' }] },
+            details: { issues: [{ path: 'generate.prefix', message: 'invalid prefix', code: 'invalid_format' }] },
           });
         }
         if (typeof length !== 'number' || !Number.isInteger(length) || length < 8 || length > 16) {
           throw new OrderingError('VALIDATION_ERROR', 'length must be 8-16', {
-            details: { issues: [{ path: 'generate.length', message: 'length must be 8-16' }] },
+            details: { issues: [{ path: 'generate.length', message: 'length must be 8-16', code: 'out_of_range', min: 8, max: 16 }] },
           });
         }
         if (cleanPrefix.length + length > 32) {
           throw new OrderingError('VALIDATION_ERROR', 'prefix + length must be at most 32', {
-            details: { issues: [{ path: 'generate.prefix', message: 'prefix + length must be at most 32' }] },
+            details: { issues: [
+              { path: 'generate.prefix', message: 'prefix + length must be at most 32', code: 'total_too_long' },
+            ] },
           });
         }
         const usageLimit = input.generate.usageLimit === undefined ? 1 : limitOf(input.generate.usageLimit, 'generate.usageLimit');
@@ -458,7 +462,7 @@ const promotionAdmin = ({ strapi }: { strapi: Core.Strapi }) => {
       const normalized = typeof input.code === 'string' ? normalizePromotionCode(input.code) : null;
       if (!normalized) {
         throw new OrderingError('VALIDATION_ERROR', 'code must be 4-32 of A-Z, 0-9 and -', {
-          details: { issues: [{ path: 'code', message: 'code must be 4-32 of A-Z, 0-9 and -' }] },
+          details: { issues: [{ path: 'code', message: 'code must be 4-32 of A-Z, 0-9 and -', code: 'promo_code_format' }] },
         });
       }
       const usageLimit = limitOf(input.usageLimit, 'usageLimit');

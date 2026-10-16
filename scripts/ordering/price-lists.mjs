@@ -205,6 +205,11 @@ withApp(async (app) => {
     { code: 'vip', name: { vi: 'VIP' }, active: true, auto: null },
     systemCtx,
   );
+  await assert.rejects(
+    groups.create({ code: 'vip', name: { vi: 'VIP 2' }, active: true, auto: null }, systemCtx),
+    (error) => error?.details?.issues?.[0]?.path === 'code' && error.details.issues[0].code === 'taken',
+    'a duplicate customer group code answers with the taken code',
+  );
   await groups.setMembers(vip.item.id, { add: [profile.documentId], remove: [] }, systemCtx);
   await lists.create(
     {

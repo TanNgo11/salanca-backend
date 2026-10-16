@@ -157,6 +157,7 @@ describe('validateBranchInput', () => {
       expect(duplicated.issues).toContainEqual({
         path: 'fulfillment.pickup.schedule.businessDayPolicy.specialHours.1.date',
         message: 'duplicate special date',
+        code: 'duplicate_date',
       });
     }
 
@@ -184,7 +185,7 @@ describe('validateBranchInput', () => {
     );
     expect(overlapping.valid).toBe(false);
     if (!overlapping.valid) {
-      expect(overlapping.issues.some((issue) => issue.message === 'ranges overlap')).toBe(true);
+      expect(overlapping.issues.some((issue) => issue.message === 'ranges overlap' && issue.code === 'ranges_overlap')).toBe(true);
     }
 
     const closedWithRanges = validateBranchInput(
@@ -212,5 +213,26 @@ describe('validateBranchInput', () => {
     if (!result.valid) {
       expect(result.issues.map((issue) => issue.path).sort()).toEqual(['code', 'name', 'timezone']);
     }
+  });
+
+  it('gives each rule a code the Admin can translate', () => {
+    const codes = (raw: unknown, opts: Parameters<typeof validateBranchInput>[1] = options) => {
+      const result = validateBranchInput(raw, opts);
+      return result.valid ? [] : result.issues.map((issue) => `${issue.path}=${issue.code}`);
+    };
+    const create = { ...options, mode: 'create' as const };
+    expect(codes({ timezone: 'Mars/Olympus' }, create).sort()).toEqual(['code=required', 'name=required', 'timezone=invalid_timezone']);
+    // the branch code allows capitals, so it must not borrow the loyalty-tier "lowercase only" text
+    expect(codes({ code: 'bad code!', name: { vi: 'x' } }, create)).toContain('code=branch_code_format');
+    expect(codes({ name: { vi: ' ' } })).toContain('name=locale_required');
+    expect(codes({ fulfillment: { pickup: { paymentProviders: ['sepay'] } } })).toContain('fulfillment.pickup.paymentProviders.0=provider_disabled');
+    expect(codes({ fulfillment: { pickup: { enabled: true, paymentProviders: [] } } })).toContain('fulfillment.pickup.paymentProviders=payment_required');
+    expect(codes({ fulfillment: { pickup: { paymentTiming: 'prepay' } } })).toContain('fulfillment.pickup.paymentTiming=online_provider_required');
+    expect(codes({ fulfillment: { pickup: { paymentProviders: ['sepay'], paymentTiming: 'pay-on-pickup' } } }, { ...options, knownProviders: ['cash', 'sepay'] })).toContain('fulfillment.pickup.paymentProviders=cash_required');
+    expect(codes({ fulfillment: { delivery: { enabled: true, zones: [] } } }, { ...options, catalogAvailable: false })).toContain('fulfillment.delivery.zones=catalog_not_loaded');
+    const fee = { code: 'svc', label: { vi: 'Phí' }, kind: 'service' as const, amount: 1000, receiveKinds: ['pickup' as const] };
+    expect(codes({ fees: [fee, { ...fee }] })).toContain('fees=not_unique');
+    expect(codes({ fees: [{ ...fee, percent: 5 }] })).toContain('fees.0=amount_or_percent');
+    expect(codes({ fulfillment: { pickup: { schedule: { leadTimeMinutes: -1 } } } })).toContain('fulfillment.pickup.schedule.leadTimeMinutes=too_small');
   });
 });

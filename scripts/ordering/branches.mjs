@@ -57,6 +57,20 @@ withApp(async (app) => {
     assert.equal(bad.body.error.code, 'VALIDATION_ERROR');
     const paths = bad.body.error.details.issues.map((issue) => issue.path);
     assert.ok(paths.includes('fulfillment.pickup.schedule.leadTimeMinutes'), paths.join(','));
+    // every issue carries a code so the Admin can show a Vietnamese line instead of the English message
+    assert.ok(bad.body.error.details.issues.every((issue) => typeof issue.code === 'string' && issue.code), JSON.stringify(bad.body.error.details.issues));
+    assert.ok(
+      bad.body.error.details.issues.some(
+        (issue) => issue.path === 'fulfillment.pickup.schedule.leadTimeMinutes' && issue.code === 'too_small' && issue.min === 0,
+      ),
+      JSON.stringify(bad.body.error.details.issues),
+    );
+    // the timezone and payment checks run once the shape is valid
+    const rules = await lan('PATCH', '/branches/Q1', { timezone: 'Mars/Olympus', fulfillment: { pickup: { paymentTiming: 'prepay' } } });
+    assert.equal(rules.status, 400);
+    const ruleCodes = rules.body.error.details.issues.map((issue) => `${issue.path}=${issue.code}`);
+    assert.ok(ruleCodes.includes('timezone=invalid_timezone'), ruleCodes.join(','));
+    assert.ok(ruleCodes.includes('fulfillment.pickup.paymentTiming=online_provider_required'), ruleCodes.join(','));
     assert.equal(
       (await lan('PATCH', '/branches/Q1', { code: 'Q9' })).body.error.code,
       'BRANCH_CODE_IMMUTABLE',
@@ -114,10 +128,12 @@ withApp(async (app) => {
     const created = await chain('POST', '/branches', { code: 'Q7', name: { vi: 'Quận 7' } });
     assert.equal(created.status, 200, JSON.stringify(created.body));
     assert.equal(created.body.item.onlineOrdering, false, 'new branches start offline');
-    assert.equal(
-      (await chain('POST', '/branches', { code: 'Q7', name: { vi: 'Lại Q7' } })).status,
-      400,
-      'duplicate code rejected',
+    const duplicateCode = await chain('POST', '/branches', { code: 'Q7', name: { vi: 'Lại Q7' } });
+    assert.equal(duplicateCode.status, 400, 'duplicate code rejected');
+    assert.deepEqual(
+      [duplicateCode.body.error.details.issues[0].path, duplicateCode.body.error.details.issues[0].code],
+      ['code', 'taken'],
+      'the Admin translates the duplicate from its code',
     );
 
     // --- Public list: active + online, allowlisted fields --------------------------------
@@ -231,7 +247,9 @@ withApp(async (app) => {
     assert.equal(duplicated.status, 400);
     assert.equal(duplicated.body.error.code, 'VALIDATION_ERROR');
     assert.ok(
-      duplicated.body.error.details.issues.some((issue) => issue.message === 'duplicate special date'),
+      duplicated.body.error.details.issues.some(
+        (issue) => issue.message === 'duplicate special date' && issue.code === 'duplicate_date',
+      ),
       JSON.stringify(duplicated.body.error.details.issues),
     );
 

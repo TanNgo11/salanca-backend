@@ -120,7 +120,7 @@ const priceList = ({ strapi }: { strapi: Core.Strapi }) => {
     const missing = lines.map((line) => line.variantId).filter((id) => !ids.has(id));
     if (missing.length > 0) {
       throw new OrderingError('PRICE_LIST_INVALID', 'unknown variant', {
-        details: { issues: [{ path: 'lines', message: 'unknown variant' }] },
+        details: { issues: [{ path: 'lines', message: 'unknown variant', code: 'unknown_variant' }] },
       });
     }
   };
@@ -256,7 +256,7 @@ const priceList = ({ strapi }: { strapi: Core.Strapi }) => {
     async setActive(id: number, active: unknown, ctx: ServiceContext) {
       if (typeof active !== 'boolean') {
         throw new OrderingError('PRICE_LIST_INVALID', 'active must be a boolean', {
-          details: { issues: [{ path: 'active', message: 'expected boolean' }] },
+          details: { issues: [{ path: 'active', message: 'expected boolean', code: 'invalid_type' }] },
         });
       }
       const before = await load(id);
@@ -331,7 +331,7 @@ const priceList = ({ strapi }: { strapi: Core.Strapi }) => {
       const variantId = typeof body.variantId === 'string' ? body.variantId.trim() : '';
       if (!variantId) {
         throw new OrderingError('PRICE_LIST_INVALID', 'variantId is required', {
-          details: { issues: [{ path: 'variantId', message: 'required' }] },
+          details: { issues: [{ path: 'variantId', message: 'required', code: 'required' }] },
         });
       }
       const channel = typeof body.channel === 'string' ? body.channel : undefined;

@@ -54,9 +54,15 @@ export const promotionInputSchema = z
 
 export type PromotionInput = z.infer<typeof promotionInputSchema>;
 
-const fail = (path: string, message: string): never => {
+/** `code` (and optional bounds) let the Admin show its own translated line; `message` stays English. */
+const fail = (
+  path: string,
+  message: string,
+  code: string,
+  bounds: { min?: number; max?: number } = {},
+): never => {
   throw new OrderingError('VALIDATION_ERROR', 'promotion is invalid', {
-    details: { issues: [{ path, message }] },
+    details: { issues: [{ path, message, code, ...bounds }] },
   });
 };
 
@@ -70,38 +76,38 @@ export const parsePromotionInput = (raw: unknown): PromotionInput => {
   }
   const input = parsed.data;
   if (input.endsAt && Date.parse(input.endsAt) <= Date.parse(input.startsAt)) {
-    fail('endsAt', 'endsAt must be after startsAt');
+    fail('endsAt', 'endsAt must be after startsAt', 'range_order');
   }
   for (const range of input.timeRanges) {
-    if (range.start === range.end) fail('timeRanges', 'a time range must not be empty');
+    if (range.start === range.end) fail('timeRanges', 'a time range must not be empty', 'empty_range');
   }
   if (input.target.kind === 'order' && input.target.refs.length > 0) {
-    fail('target.refs', 'an order target has no refs');
+    fail('target.refs', 'an order target has no refs', 'order_has_refs');
   }
   if (input.target.kind !== 'order' && input.target.refs.length === 0) {
-    fail('target.refs', 'choose at least one product or category');
+    fail('target.refs', 'choose at least one product or category', 'no_target');
   }
   if (new Set(input.target.refs).size !== input.target.refs.length) {
-    fail('target.refs', 'refs must be unique');
+    fail('target.refs', 'refs must be unique', 'not_unique');
   }
   if (new Set(input.customerGroups.map((code) => code.toUpperCase())).size !== input.customerGroups.length) {
-    fail('customerGroups', 'customer groups must be unique');
+    fail('customerGroups', 'customer groups must be unique', 'not_unique');
   }
   if (new Set(input.weekdays).size !== input.weekdays.length) {
-    fail('weekdays', 'weekdays must be unique');
+    fail('weekdays', 'weekdays must be unique', 'not_unique');
   }
   if (new Set(input.receiveKinds).size !== input.receiveKinds.length) {
-    fail('receiveKinds', 'receive kinds must be unique');
+    fail('receiveKinds', 'receive kinds must be unique', 'not_unique');
   }
   if (input.discountType === 'free-delivery') {
-    if (input.value != null) fail('value', 'free delivery has no value');
-    if (input.maxDiscount != null) fail('maxDiscount', 'free delivery has no cap');
+    if (input.value != null) fail('value', 'free delivery has no value', 'free_delivery_no_value');
+    if (input.maxDiscount != null) fail('maxDiscount', 'free delivery has no cap', 'free_delivery_no_cap');
   } else if (input.value == null) {
-    fail('value', 'value is required');
+    fail('value', 'value is required', 'required');
   } else if (input.discountType === 'percent' && input.value > 100) {
-    fail('value', 'percent must be from 1 to 100');
+    fail('value', 'percent must be from 1 to 100', 'percent_range', { min: 1, max: 100 });
   } else if (input.discountType !== 'percent' && input.maxDiscount != null) {
-    fail('maxDiscount', 'only a percent discount has a cap');
+    fail('maxDiscount', 'only a percent discount has a cap', 'cap_percent_only');
   }
   return input;
 };

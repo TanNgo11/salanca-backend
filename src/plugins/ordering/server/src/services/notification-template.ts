@@ -153,7 +153,7 @@ const notificationTemplate = ({ strapi }: { strapi: Core.Strapi }) => {
       const body = typeof input?.body === 'string' ? input.body.trim() : '';
       if (!subject || !body) {
         throw new OrderingError('VALIDATION_ERROR', 'subject and body are required', {
-          details: { issues: [{ path: subject ? 'body' : 'subject', message: 'required' }] },
+          details: { issues: [{ path: subject ? 'body' : 'subject', message: 'required', code: 'required' }] },
         });
       }
       // Dry-render proves the source renders; unknown vars fail as TEMPLATE_VARIABLE_UNKNOWN.

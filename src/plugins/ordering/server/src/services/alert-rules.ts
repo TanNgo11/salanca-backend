@@ -3,6 +3,7 @@ import { z } from '@strapi/utils';
 
 import { ALERT_CODES, isAlertCode, type AlertCode } from '../domain/alert-codes';
 import { OrderingError } from '../domain/errors';
+import { issueView } from '../domain/validation-issue';
 import type changeLogFactory from './change-log';
 import type { ServiceContext } from './context';
 
@@ -203,17 +204,16 @@ const alertRules = ({ strapi }: { strapi: Core.Strapi }) => {
         unknown
       >;
       const unknownKeys = Object.keys(input).filter((key) => !isAlertCode(key));
-      const issues: Array<{ path: string; message: string }> = unknownKeys.map((key) => ({
-        path: key,
-        message: 'unknown alert code',
-      }));
+      const issues: Array<{ path: string; message: string; code: string; min?: number; max?: number }> = unknownKeys.map(
+        (key) => ({ path: key, message: 'unknown alert code', code: 'unknown_alert' }),
+      );
       const parsedRules = {} as Record<AlertCode, AlertRule>;
       for (const code of ALERT_CODES) {
         if (!(code in input)) continue;
         const parsed = ruleSchema.safeParse(input[code]);
         if (!parsed.success) {
           for (const issue of parsed.error.issues) {
-            issues.push({ path: `${code}.${issue.path.join('.')}`, message: issue.message });
+            issues.push({ ...issueView(issue, code), path: `${code}.${issue.path.join('.')}` });
           }
           continue;
         }

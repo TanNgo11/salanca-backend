@@ -47,8 +47,10 @@ withApp(async (app) => {
     const bad = await as('POST', '/promotions', body({ value: 150 }));
     assert.equal(bad.status, 400);
     assert.equal(bad.body.error.details.issues[0].path, 'value');
+    assert.equal(bad.body.error.details.issues[0].code, 'percent_range');
     const autoWithCode = await as('POST', '/promotions', body({ kind: 'auto', code: 'ABCD1234' }));
     assert.equal(autoWithCode.status, 400);
+    assert.equal(autoWithCode.body.error.details.issues[0].code, 'auto_no_code');
 
     const created = await as('POST', '/promotions', body({ code: 'tet2027' }));
     assert.equal(created.status, 201, JSON.stringify(created.body));
@@ -57,6 +59,10 @@ withApp(async (app) => {
     assert.equal(created.body.codeCount, 1);
     const dup = await as('POST', '/promotions', body({ code: 'TET2027' }));
     assert.equal(dup.status, 400, 'codes are unique case-insensitively');
+    assert.deepEqual(
+      [dup.body.error.details.issues[0].path, dup.body.error.details.issues[0].code],
+      ['code', 'taken'],
+    );
     assert.equal(await app.db.query('plugin::ordering.promotion').count(), 1, 'a failed create leaves no promotion');
 
     const scheduled = await as('POST', '/promotions', body({ kind: 'auto', name: { vi: 'Sắp chạy' }, startsAt: '2099-01-01T00:00:00.000Z' }));

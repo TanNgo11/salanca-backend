@@ -193,7 +193,7 @@ export const parseMembersInput = (raw: unknown): { add: string[]; remove: string
   const parsed = membersInputSchema.safeParse(raw);
   if (!parsed.success || parsed.data === undefined) {
     throw new OrderingError('VALIDATION_ERROR', 'members are invalid', {
-      details: { issues: [{ path: 'members', message: 'invalid' }] },
+      details: { issues: [{ path: 'members', message: 'invalid', code: 'invalid' }] },
     });
   }
   return parsed.data;

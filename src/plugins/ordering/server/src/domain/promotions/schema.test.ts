@@ -118,3 +118,28 @@ describe('customer groups (O16)', () => {
     invalid(base({ customerGroups: ['hang-bac', 'HANG-BAC'] }), 'customerGroups');
   });
 });
+
+describe('parsePromotionInput issue codes', () => {
+  const issueOf = (raw: Record<string, unknown>) => {
+    try {
+      parsePromotionInput(raw);
+    } catch (error) {
+      const issues = (error as { details?: { issues?: Array<Record<string, unknown>> } }).details?.issues;
+      return issues?.[0];
+    }
+    return undefined;
+  };
+
+  it('gives each rule a code (and bounds) the Admin can translate', () => {
+    expect(issueOf(base({ endsAt: '2026-10-01T00:00:00.000Z' }))).toMatchObject({ path: 'endsAt', code: 'range_order' });
+    expect(issueOf(base({ timeRanges: [{ start: '11:00', end: '11:00' }] }))).toMatchObject({ path: 'timeRanges', code: 'empty_range' });
+    expect(issueOf(base({ target: { kind: 'order', refs: ['x'] } }))).toMatchObject({ path: 'target.refs', code: 'order_has_refs' });
+    expect(issueOf(base({ target: { kind: 'products', refs: [] } }))).toMatchObject({ path: 'target.refs', code: 'no_target' });
+    expect(issueOf(base({ weekdays: ['mon', 'mon'] }))).toMatchObject({ path: 'weekdays', code: 'not_unique' });
+    expect(issueOf(base({ discountType: 'free-delivery', value: 5, maxDiscount: null }))).toMatchObject({ path: 'value', code: 'free_delivery_no_value' });
+    expect(issueOf(base({ discountType: 'free-delivery', value: null }))).toMatchObject({ path: 'maxDiscount', code: 'free_delivery_no_cap' });
+    expect(issueOf(base({ value: null }))).toMatchObject({ path: 'value', code: 'required' });
+    expect(issueOf(base({ value: 101 }))).toMatchObject({ path: 'value', code: 'percent_range', min: 1, max: 100 });
+    expect(issueOf(base({ discountType: 'amount', value: 20000, maxDiscount: 1000 }))).toMatchObject({ path: 'maxDiscount', code: 'cap_percent_only' });
+  });
+});

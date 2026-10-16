@@ -106,13 +106,13 @@ const orderingSettings = ({ strapi }: { strapi: Core.Strapi }) => {
       const codes = parsed.data.rejectReasons.map((item) => item.code);
       if (new Set(codes).size !== codes.length) {
         throw new OrderingError('VALIDATION_ERROR', 'settings are invalid', {
-          details: { issues: [{ path: 'rejectReasons', message: 'reason codes must be unique' }] },
+          details: { issues: [{ path: 'rejectReasons', message: 'reason codes must be unique', code: 'not_unique' }] },
         });
       }
       const tagCodes = parsed.data.ratingTags.map((item) => item.code);
       if (new Set(tagCodes).size !== tagCodes.length) {
         throw new OrderingError('VALIDATION_ERROR', 'settings are invalid', {
-          details: { issues: [{ path: 'ratingTags', message: 'tag codes must be unique' }] },
+          details: { issues: [{ path: 'ratingTags', message: 'tag codes must be unique', code: 'not_unique' }] },
         });
       }
       const before = await read();

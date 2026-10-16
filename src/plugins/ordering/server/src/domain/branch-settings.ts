@@ -1,6 +1,7 @@
 import { z } from '@strapi/utils';
 
 import { deliveryZoneListSchema } from './delivery/zones';
+import { issueView, type RawIssue } from './validation-issue';
 
 /**
  * Per-branch ordering settings (contracts §19.6 `LocationOrderingSettings`, §21.1; screens S7).
@@ -265,7 +266,34 @@ export const branchInputSchema = z.object({
 
 export type BranchInput = z.infer<typeof branchInputSchema>;
 
-export type ValidationIssue = { path: string; message: string };
+/** `code` lets the Admin render its own translated line (`validation.<path>.<code>`); `message` is English. */
+export type ValidationIssue = { path: string; message: string; code?: string; min?: number; max?: number };
+
+/**
+ * zod reports our own refinements as a bare `custom` issue, so they are recognised by their
+ * (English) message; the Admin turns the resulting code into a translated line.
+ */
+const CUSTOM_CODES: Array<[message: string, code: string]> = [
+  ['start and end must differ', 'range_empty'],
+  ['closed is true exactly when ranges are empty', 'closed_mismatch'],
+  ['ranges overlap', 'ranges_overlap'],
+  ['duplicate special date', 'duplicate_date'],
+  ['expected ISO datetime', 'invalid_date'],
+  ['exactly one of amount or percent', 'amount_or_percent'],
+  ['at least one locale is required', 'locale_required'],
+  ['subtotal is required', 'subtotal_required'],
+  ['duplicate zone code', 'duplicate_zone_code'],
+];
+
+/** One zod issue of a branch (or delivery-zone) body as an API issue with a translatable `code`. */
+export const branchIssueView = (issue: RawIssue): ValidationIssue => {
+  const view = issueView(issue, 'branch');
+  // The branch code allows capitals; the loyalty-tier `code.invalid_format` text says lowercase only.
+  if (view.path === 'code' && view.code === 'invalid_format') return { ...view, code: 'branch_code_format' };
+  if (view.code !== 'custom') return view;
+  const specific = CUSTOM_CODES.find(([prefix]) => view.message.startsWith(prefix))?.[1];
+  return specific ? { ...view, code: specific } : view;
+};
 
 export const isValidTimezone = (timezone: string): boolean => {
   try {
@@ -295,11 +323,16 @@ const receiveIssues = (
       issues.push({
         path: `${base}.paymentProviders.${index}`,
         message: `payment provider "${code}" is not enabled`,
+        code: 'provider_disabled',
       });
     }
   }
   if (settings.enabled && settings.paymentProviders.length === 0) {
-    issues.push({ path: `${base}.paymentProviders`, message: 'select at least one payment method' });
+    issues.push({
+      path: `${base}.paymentProviders`,
+      message: 'select at least one payment method',
+      code: 'payment_required',
+    });
   }
   if (settings.paymentTiming !== 'pay-on-pickup') {
     const online = settings.paymentProviders.filter((code) => options.onlineProviders.includes(code));
@@ -307,14 +340,23 @@ const receiveIssues = (
       issues.push({
         path: `${base}.paymentTiming`,
         message: `${settings.paymentTiming} needs an enabled online payment provider`,
+        code: 'online_provider_required',
       });
     }
   } else if (!settings.paymentProviders.includes('cash')) {
-    issues.push({ path: `${base}.paymentProviders`, message: 'pay-on-pickup needs the cash provider' });
+    issues.push({
+      path: `${base}.paymentProviders`,
+      message: 'pay-on-pickup needs the cash provider',
+      code: 'cash_required',
+    });
   }
   const hours = settings.schedule.openingHours;
   if (settings.enabled && hours.mode === 'daily' && hours.daily.length === 0) {
-    issues.push({ path: `${base}.schedule.openingHours.daily`, message: 'add at least one opening range' });
+    issues.push({
+      path: `${base}.schedule.openingHours.daily`,
+      message: 'add at least one opening range',
+      code: 'opening_range_required',
+    });
   }
   return issues;
 };
@@ -343,20 +385,17 @@ export function validateBranchInput(
   if (!parsed.success) {
     return {
       valid: false,
-      issues: parsed.error.issues.map((issue) => ({
-        path: issue.path.join('.'),
-        message: issue.message,
-      })),
+      issues: parsed.error.issues.map((issue) => branchIssueView(issue)),
     };
   }
   const value = parsed.data;
   const issues: ValidationIssue[] = [];
   if (options.mode === 'create') {
-    if (!value.code) issues.push({ path: 'code', message: 'code is required' });
-    if (!value.name) issues.push({ path: 'name', message: 'name is required' });
+    if (!value.code) issues.push({ path: 'code', message: 'code is required', code: 'required' });
+    if (!value.name) issues.push({ path: 'name', message: 'name is required', code: 'required' });
   }
   if (value.timezone !== undefined && !isValidTimezone(value.timezone)) {
-    issues.push({ path: 'timezone', message: 'unknown IANA timezone' });
+    issues.push({ path: 'timezone', message: 'unknown IANA timezone', code: 'invalid_timezone' });
   }
   const pickup = value.fulfillment?.pickup;
   if (pickup) issues.push(...receiveIssues('pickup', pickup, options));
@@ -367,6 +406,7 @@ export function validateBranchInput(
       issues.push({
         path: 'fulfillment.delivery.carrier',
         message: `delivery provider "${delivery.carrier}" is not enabled`,
+        code: 'carrier_disabled',
       });
     }
     const wantsDelivery = delivery.enabled || delivery.zones.length > 0;
@@ -374,6 +414,7 @@ export function validateBranchInput(
       issues.push({
         path: 'fulfillment.delivery.zones',
         message: 'administrative-unit catalog is not loaded',
+        code: 'catalog_not_loaded',
       });
     }
     if (options.knownCommuneCodes) {
@@ -383,6 +424,7 @@ export function validateBranchInput(
             issues.push({
               path: `fulfillment.delivery.zones.${zoneIndex}.match.communeCodes.${communeIndex}`,
               message: `commune ${code} is not in the catalog`,
+              code: 'unknown_commune',
             });
           }
         }
@@ -394,7 +436,7 @@ export function validateBranchInput(
   if (value.fees) {
     const codes = value.fees.map((fee) => fee.code);
     if (new Set(codes).size !== codes.length) {
-      issues.push({ path: 'fees', message: 'fee codes must be unique' });
+      issues.push({ path: 'fees', message: 'fee codes must be unique', code: 'not_unique' });
     }
   }
   return issues.length > 0 ? { valid: false, issues } : { valid: true, value };
