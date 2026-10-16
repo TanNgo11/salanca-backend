@@ -45,6 +45,9 @@ type Body = {
 
 const REFRESH_MS = 30_000;
 
+// Keep `key` BEFORE the `{...cardBox}` spread in the JSX below: with the key after a spread the
+// dev compiler (SWC) emits `createElement(Box, {...cardBox, key, children: [...]})`, the children are
+// never marked as validated, and React logs "Each child in a list should have a unique key" (BUG-11).
 const cardBox = {
   background: 'neutral0',
   hasRadius: true,
@@ -136,7 +139,7 @@ const ProvidersPage = () => {
                   </Typography>
                   <Flex gap={4} paddingTop={3} wrap="wrap" alignItems="stretch">
                     {group.cards.map((card) => (
-                      <Box {...cardBox} key={card.code}>
+                      <Box key={card.code} {...cardBox}>
                         <Flex justifyContent="space-between" alignItems="center" gap={2}>
                           <Typography variant="omega" fontWeight="bold">
                             {nameOf(t, card.code)}
@@ -186,7 +189,7 @@ const ProvidersPage = () => {
                           <Box paddingTop={2}>
                             <Alert closeLabel={t('common.close')} variant="default" title={t('p1.envNeeded')}>
                               {card.envNeeded.map((name) => (
-                                <Typography key={name} variant="pi" style={{ fontFamily: 'monospace' }}>
+                                <Typography key={name} variant="pi" style={{ fontFamily: 'monospace', display: 'block' }}>
                                   {name}
                                 </Typography>
                               ))}
