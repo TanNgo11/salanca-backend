@@ -481,14 +481,15 @@ await ordering.service('alert').noteUnmatched('sepay', {
 
 // ── O7 UAT extras ──────────────────────────────────────────────────────────────
 // The cap is applied after the O6 fixture orders, so those orders are not reserved
-// against it. The two orders below each take 2 portions of bún bò, so the Tạm hết
-// bar opens at 4/5. A limit of 5 set before the O6 fixtures would reject them.
+// against it. The two orders below each take 2 portions of bún bò (4/7) and the O12
+// dine-in order adds 2 more (6/7) — a limit of 5 would reject that last order. The
+// Tạm hết bar warns when 20% or less of the limit is left, so it lights up at 6/7.
 await ordering.service('catalog-availability').setDailyLimit(
   {
     locationRef: 'Q1',
     entityType: 'product',
     entityDocumentId: bunBo.documentId,
-    dailyLimit: 5,
+    dailyLimit: 7,
   },
   systemCtx,
 );
