@@ -31,6 +31,7 @@ import { fieldErrors, httpStatusOf, useErrorToast } from '../../lib/api';
 import { formatBusinessDate, formatMoney } from '../../lib/format';
 import { useT } from '../../lib/i18n';
 import { RBAC_EXPORT } from '../../lib/permissions';
+import { browserOffsetLabel } from '../../lib/zone';
 import { conditionText, discountText, type PromotionRow } from './index';
 
 type Targets = {
@@ -894,6 +895,9 @@ export const PromotionEditor = () => {
                   </Field.Root>
                 </Grid.Item>
               </Grid.Root>
+              <Typography variant="pi" textColor="neutral600">
+                {t('promo.field.zoneHint', { zone: browserOffsetLabel() })}
+              </Typography>
               <Flex direction="column" alignItems="stretch" gap={2}>
                 <Typography variant="pi" fontWeight="bold">
                   {t('promo.field.weekdays')}

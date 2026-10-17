@@ -1179,10 +1179,22 @@ Kết quả retest: lint/typecheck/vitest xanh (207 file / 1554 test), `@slow` B
 | Test e2e cũ | BUG-02 dùng tổng báo giá (chưa trừ khuyến mãi đơn đầu); BUG-06 so tiêu đề phân biệt hoa thường; spec hạng loyalty không tạo hạng nền 0đ; API xóa kỳ vọng 404 sai | Đã sửa trong `e2e/specs/99-bugs.spec.ts` và `04-marketing.spec.ts`; thêm ca "tier rules trả `code`". Chưa chạy lại Playwright |
 | Migration 0014 chưa kiểm được trên dữ liệu cũ | Đúng | `customers.mjs`: ghi sai `total_spent`/`order_count`, hủy một phần một đơn, chạy migration, kiểm lại và chạy lần hai (idempotent). Pass |
 
-Đề xuất, **chờ user xác nhận**: (1) vận hành `TZ=UTC` cho Node và Postgres (đã ghi vào runbook mục "Hạ tầng và go-live"
-dưới dạng yêu cầu "hai bên trùng nhau"); (2) API xóa với số điện thoại chưa có hồ sơ giữ nguyên hành vi hiện tại (201 cho
-admin mọi chi nhánh, 404 cho nhân viên bị giới hạn chi nhánh) — test e2e chỉ đòi "không phải 400 của `confirm`".
-BUG-09, D2 (có trừ hoàn tiền hay không) và D4 (khóa `adjust`) vẫn là quyết định của chủ dự án.
+Quyết định của dev (user giao "cái nào hợp lý thì sửa", 2026-10-17; chủ dự án muốn khác thì đổi lại):
+
+- **`TZ=UTC` cho Node và Postgres:** giữ khuyến nghị (runbook mục "Hạ tầng và go-live": hai bên trùng nhau).
+- **API xóa với số điện thoại chưa có hồ sơ (201 hay 404): giữ nguyên, không sửa.** Đây là quy tắc phạm vi chứ không phải bất nhất: nhân viên bị
+  giới hạn chi nhánh không được biết khách có tồn tại ở chi nhánh khác hay không, nên số chưa có hồ sơ trả 404 cho họ; admin mọi chi nhánh
+  không có rủi ro đó và vẫn ghi được yêu cầu xóa (kết quả `alreadyErased`). Đổi cả hai thành 404 sẽ chặn admin ghi yêu cầu của người
+  chưa có hồ sơ. Test e2e đòi đúng "không phải 400 của `confirm`" và chấp nhận 201/404 theo tài khoản dùng.
+- **BUG-09 (giờ xem trước khuyến mãi):** giữ giờ của trình duyệt cho Bắt đầu/Kết thúc (`datetime-local`), nhưng thêm dòng ghi múi giờ
+  của trình duyệt ("GMT+07:00") và nói rõ khung giờ bên dưới tính theo giờ chi nhánh (`lib/zone.ts`, khóa `promo.field.zoneHint`).
+  Không cố định `Asia/Ho_Chi_Minh` vì plugin chung không có múi giờ toàn cục: múi giờ nằm ở từng chi nhánh và một khuyến mãi có thể áp
+  mọi chi nhánh. Nếu chủ dự án muốn giờ khuyến mãi luôn theo một múi giờ cửa hàng thì cần thêm cài đặt múi giờ mặc định (việc riêng).
+- **D4 (khóa `adjust` của Chốt tiền mặt):** đã sửa ở `feat/ordering` bằng `b78fc9b` (`adjust` giữ khóa bucket như `close`, có test chặn
+  close/capture và adjust/capture). Nhánh này có bản sửa sau khi merge `feat/ordering`; không làm lại ở đây để khỏi xung đột.
+- **D2 (có trừ hoàn tiền vào "Tổng chi" không): giữ công thức hiện tại, hoãn.** Trừ hoàn tiền (phần `refundedAmount` đã chốt với nhà cung cấp, có
+  thể xảy ra sau khi đơn hoàn thành) cần hook cập nhật thống kê khi hoàn tiền xong, đổi cả luật `sinceDays` của nhóm khách, thêm migration
+  tính lại và cân nhắc hạng loyalty đã cấp. `services/refund.ts` cũng đang đổi ở `feat/ordering`, nên làm sau khi merge để khỏi xung đột.
 
 ### Retest v3 (HEAD `e944eb1`, báo cáo `BAO-CAO-RETEST-V3.md`) và xử lý
 

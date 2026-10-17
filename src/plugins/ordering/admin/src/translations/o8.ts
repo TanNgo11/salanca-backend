@@ -89,6 +89,10 @@ export const o8Messages: Record<string, [string, string]> = {
   'promo.field.firstOrder': ['Chỉ đơn đầu tiên của số điện thoại', 'First order of a phone number only'],
   'promo.field.startsAt': ['Bắt đầu', 'Starts'],
   'promo.field.endsAt': ['Kết thúc', 'Ends'],
+  'promo.field.zoneHint': [
+    'Bắt đầu và kết thúc tính theo múi giờ của trình duyệt này ({zone}); khung giờ bên dưới tính theo giờ chi nhánh.',
+    'Start and end use this browser’s time zone ({zone}); the time ranges below use branch time.',
+  ],
   'promo.field.weekdays': ['Ngày trong tuần', 'Days of the week'],
   'promo.field.weekdaysHint': ['Không chọn ngày nào = mọi ngày.', 'No day chosen = every day.'],
   'promo.field.timeRanges': ['Khung giờ (giờ chi nhánh)', 'Time ranges (branch time)'],
